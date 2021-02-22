@@ -1,11 +1,11 @@
 #!/usr/bin/env Rscript
 
-# pop <- 
-# p1 <- 
-# p2 <- 
-# gmissingness <- 
-# smissingness <- 
-# minRD <- 
+# pop <-
+# p1 <-
+# p2 <-
+# gmissingness <-
+# smissingness <-
+# minRD <-
 # remove_id_list <- NULL
 # remove_id_list <- c("NA_1","NA_2")
 # remove_id_list <- paste(remove_id_list, "_GT", sep="")
@@ -50,10 +50,10 @@ RD_snpfiltering <- function(){
     subgenome_1 <- subgenome_1[,c(keep_id)]
   }
   write.table (subgenome_1, file=paste(pop,"_4x","_DP_GT.txt",sep=""), row.names=F, quote = FALSE, sep = "\t")
-  
+
   #Filter based on DP >= rd in Parents
   subgenome_1_filtered <- subgenome_1
-  subgenome_1_filtered <- subset(subgenome_1_filtered, subgenome_1_filtered[,paste(p1,"_DP",sep="")] >= 12) 
+  subgenome_1_filtered <- subset(subgenome_1_filtered, subgenome_1_filtered[,paste(p1,"_DP",sep="")] >= 12)
   subgenome_1_filtered <- subset(subgenome_1_filtered, subgenome_1_filtered[,paste(p2,"_DP",sep="")] >= 12)
   subgenome_1_filtered_1 <- subgenome_1_filtered
   subgenome_1_filtered_1$no_missing <- rowSums(is.na(subgenome_1_filtered_1))
@@ -68,12 +68,12 @@ RD_snpfiltering <- function(){
   subgenome_1_filtered_1 <- subset(subgenome_1_filtered_1, noseg != "1/1/1/1_1/1/1/1")
   subgenome_1_filtered_1 <- subset(subgenome_1_filtered_1, select=-c(noseg))
   subgenome_1_filtered_0 <- subgenome_1_filtered_1
-    
+
   #change genotype to missing if read depth is < rd in complete dataset (including progenies)
   subgenome_1_filtered_1_AB <- subset(subgenome_1_filtered_1, select=c(1:(((ncol(subgenome_1_filtered_1)-4)/2)+4)))
   for (i in 5:(((ncol(subgenome_1_filtered_1)-4)/2)+4)) {
-    j <- i+((ncol(subgenome_1_filtered)-4)/2)
-    subgenome_filtered[,j][subgenome_filtered[,i] < 12] <- NA
+    j <- i+((ncol(subgenome_1_filtered_1)-4)/2)
+    subgenome_1_filtered_1[,j][ssubgenome_1_filtered_1[,i] < 12] <- NA
     subgenome_1_filtered_1[,i][subgenome_1_filtered_1[,j] == "0/0/0/0/0/0" ] <- minRD
     subgenome_1_filtered_1[,i][subgenome_1_filtered_1[,j] == "1/1/1/1/1/1" ] <- minRD
     subgenome_1_filtered_1[,j][subgenome_1_filtered_1[,i] <= rd] <- NA
@@ -81,13 +81,13 @@ RD_snpfiltering <- function(){
   }
   subgenome_1_filtered_1_C <- subset(subgenome_1_filtered_1, select=c((((ncol(subgenome_1_filtered_1)-4)/2)+5):ncol(subgenome_1_filtered_1)))
   subgenome_1_filtered_1 <- cbind(subgenome_1_filtered_1_AB, subgenome_1_filtered_1_C)
-  subgenome_1_filtered_1 <- subset(subgenome_1_filtered_1, !is.na(subgenome_1_filtered_1[,paste(p1,"_DP",sep="")])) 
+  subgenome_1_filtered_1 <- subset(subgenome_1_filtered_1, !is.na(subgenome_1_filtered_1[,paste(p1,"_DP",sep="")]))
   subgenome_1_filtered_1 <- subset(subgenome_1_filtered_1, !is.na(subgenome_1_filtered_1[,paste(p2,"_DP",sep="")]))
   subgenome_1_filtered_1$no_missing <- rowSums(is.na(subgenome_1_filtered_1))
   subgenome_1_filtered_1 <- subset(subgenome_1_filtered_1, no_missing <= ((ncol(subgenome_1_filtered_1)-5)/2)*gmissingness)
   subgenome_1_filtered_1 <- subset(subgenome_1_filtered_1, select=-c(no_missing))
 
-    
+
   subgenome_1_SD_1 <- subgenome_1_filtered_1
   subgenome_1_SD_1 <- subset(subgenome_1_SD_1, select=c(1:4,(((ncol(subgenome_1_SD_1)-4)/2)+5):ncol(subgenome_1_SD_1)))
   # check for non-biallelic genotypes and change to missing (NA)
@@ -121,7 +121,7 @@ RD_snpfiltering <- function(){
   subgenome_1_filtered_0$no_missing <- rowSums(is.na(subgenome_1_filtered_0))
   subgenome_1_filtered_0 <- subset(subgenome_1_filtered_0, no_missing <= ((ncol(subgenome_1_filtered_0)-5)/2)*gmissingness)
   subgenome_1_filtered_0 <- subset(subgenome_1_filtered_0, select=-c(no_missing))
-  
+
   subgenome_1_SD_0 <- subgenome_1_filtered_0
   subgenome_1_SD_0 <- subset(subgenome_1_SD_0, select=c(1:4,(((ncol(subgenome_1_SD_0)-4)/2)+5):ncol(subgenome_1_SD_0)))
   # check for non-biallelic genotypes and change to missing (NA)
@@ -178,7 +178,7 @@ SD_snpfiltering <- function() {
   #	0/0/0/0 x 0/0/0/1   ->    0/0/0/0   0/0/0/1       ->	1:1
   #	0/0/0/1 x 0/0/0/0   ->    0/0/0/0   0/0/0/1       ->  1:1
   ## File Code: "subgenome_1_SD_1_G0001G0000"
-  
+
   subgenome_1_SD_0 <- read.table (file=paste(pop,"_4x","_SD_rd12",".txt",sep=""), header=T, sep="\t", check.names = FALSE)
   subgenome_1_SD_1 <- read.table (file=paste(pop,"_4x","_SD_rd",rd+1,".txt",sep=""), header=T, sep="\t", check.names = FALSE)
 
@@ -233,7 +233,7 @@ SD_snpfiltering <- function() {
   # Simplex x Simplex
   #	0/0/0/1 x 0/0/0/1   ->    0/0/0/0   0/0/0/1   0/0/1/1   ->  1:2:1
   #File Code: "subgenome_1_SD_1_G0001G0001"
-  
+
   subgenome_1_SD_1a <- subgenome_1_SD_1
   subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2][subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2]=="1/1/1/1"] <- NA
   subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2][subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2]=="0/1/1/1"] <- NA
@@ -287,7 +287,7 @@ SD_snpfiltering <- function() {
   #	0/0/0/1 x 0/0/1/1   ->    0/0/0/0   0/0/0/1   0/0/1/1   0/1/1/1   ->  1:5:5:1
   #	0/0/1/1 x 0/0/0/1   ->    0/0/0/0   0/0/0/1   0/0/1/1   0/1/1/1   ->  1:5:5:1
   #File Code: "subgenome_1_SD_1_G0001G0011"
-  
+
   subgenome_1_SD_1a <- subgenome_1_SD_1
   subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2][subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2]=="1/1/1/1"] <- NA
   subgenome_1_SD_1a$no_missing <- rowSums(is.na(subgenome_1_SD_1a))
@@ -347,7 +347,7 @@ SD_snpfiltering <- function() {
   #	0/0/0/1 x 0/1/1/1   ->    0/0/0/1   0/0/1/1   0/1/1/1   ->  1:2:1
   #	0/1/1/1 x 0/0/0/1   ->    0/0/0/1   0/0/1/1   0/1/1/1   ->  1:2:1
   #File Code: "subgenome_1_SD_1_G0001G0111"
-  
+
   subgenome_1_SD_1a <- subgenome_1_SD_1
   subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2][subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2]=="0/0/0/0"] <- NA
   subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2][subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2]=="1/1/1/1"] <- NA
@@ -403,7 +403,7 @@ SD_snpfiltering <- function() {
   #	0/0/0/1 x 1/1/1/1   ->    0/0/1/1   0/1/1/1       ->	1:1
   #	1/1/1/1 x 0/0/0/1   ->    0/0/1/1   0/1/1/1       ->  1:1
   # File Code: "subgenome_1_SD_1_G0001G1111"
-  
+
   subgenome_1_SD_1a <- subgenome_1_SD_1
   subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2][subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2]=="1/1/1/1"] <- NA
   subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2][subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2]=="0/0/0/1"] <- NA
@@ -456,7 +456,7 @@ SD_snpfiltering <- function() {
   #	0/0/1/1 x 0/0/0/0   ->    0/0/0/0   0/0/0/1   0/0/1/1       ->	1:4:1
   #	0/0/0/0 x 0/0/1/1   ->    0/0/0/0   0/0/0/1   0/0/1/1       ->	1:4:1
   # File Code: "subgenome_1_SD_1_G0011G0000"
-  
+
   subgenome_1_SD_1a <- subgenome_1_SD_1
   subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2][subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2]=="1/1/1/1"] <- NA
   subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2][subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2]=="0/1/1/1"] <- NA
@@ -511,7 +511,7 @@ SD_snpfiltering <- function() {
   # Duplex x Duplex
   #	0/0/1/1 x 0/0/1/1   ->    0/0/0/0   0/0/0/1   0/0/1/1   0/1/1/1   1/1/1/1     -> 1:8:18:8:1
   # File Code: "subgenome_1_SD_1_G0011G0011"
-  
+
   subgenome_1_SD_1a <- subgenome_1_SD_1
   if (nrow(subgenome_1_SD_1a) > 0) {
     subgenome_1_SD_1a <- subset(subgenome_1_SD_1a, subgenome_1_SD_1a[paste(p1,"_GT",sep="")]  =="0/0/1/1" & subgenome_1_SD_1a[paste(p2,"_GT",sep="")]  == "0/0/1/1")
@@ -569,7 +569,7 @@ SD_snpfiltering <- function() {
   #	0/0/1/1 x 0/1/1/1   ->    0/0/0/1   0/0/1/1   0/1/1/1   1/1/1/1       ->	1:5:5:1
   #	0/1/1/1 x 0/0/1/1   ->    0/0/0/1   0/0/1/1   0/1/1/1   1/1/1/1       ->	1:5:5:1
   # File Code: "subgenome_1_SD_1_G0011G0111"
-  
+
   subgenome_1_SD_1a <- subgenome_1_SD_1
   subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2][subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2]=="0/0/0/0"] <- NA
   subgenome_1_SD_1a$no_missing <- rowSums(is.na(subgenome_1_SD_1a))
@@ -629,7 +629,7 @@ SD_snpfiltering <- function() {
   #	0/0/1/1 x 1/1/1/1   ->    0/0/1/1   0/1/1/1   1/1/1/1       ->	1:4:1
   #	1/1/1/1 x 0/0/1/1   ->    0/0/1/1   0/1/1/1   1/1/1/1       ->	1:4:1
   # File Code: "subgenome_1_SD_1_G0011G1111"
-  
+
   subgenome_1_SD_1a <- subgenome_1_SD_1
   subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2][subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2]=="0/0/0/1"] <- NA
   subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2][subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2]=="0/0/0/0"] <- NA
@@ -685,7 +685,7 @@ SD_snpfiltering <- function() {
   #	0/1/1/1 x 0/0/0/0   ->    0/0/0/1   0/0/1/1   ->  1:1
   #	0/0/0/0 x 0/1/1/1   ->    0/0/0/1   0/0/1/1   ->  1:1
   #File Code: "subgenome_1_SD_1_G0111G0000"
-  
+
   subgenome_1_SD_1a <- subgenome_1_SD_1
   subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2][subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2]=="1/1/1/1"] <- NA
   subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2][subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2]=="0/1/1/1"] <- NA
@@ -738,7 +738,7 @@ SD_snpfiltering <- function() {
   # Triplex x Triplex
   #	0/1/1/1 x 0/1/1/1   ->    0/0/1/1   0/1/1/1   1/1/1/1   ->  1:2:1
   #File Code: "subgenome_1_SD_1_G0111G0111"
-  
+
   subgenome_1_SD_1a <- subgenome_1_SD_1
   subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2][subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2]=="0/0/0/0"] <- NA
   subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2][subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2]=="0/0/0/1"] <- NA
@@ -792,11 +792,11 @@ SD_snpfiltering <- function() {
   #	0/1/1/1 x 1/1/1/1   ->    0/1/1/1   1/1/1/1   ->  1:1
   #	1/1/1/1 x 0/1/1/1   ->    0/1/1/1   1/1/1/1   ->  1:1
   #File Code: "subgenome_1_SD_1_G0111G1111"
-  
+
   subgenome_1_SD_1a <- subgenome_1_SD_0
   subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2][subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2]=="0/0/0/0"] <- NA
   subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2][subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2]=="0/0/0/1"] <- "0/1/1/1"
-  subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2][subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2]=="0/0/1/1"] <- "0/1/1/1" 
+  subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2][subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2]=="0/0/1/1"] <- "0/1/1/1"
   subgenome_1_SD_1a$no_missing <- rowSums(is.na(subgenome_1_SD_1a))
   subgenome_1_SD_1a <- subset(subgenome_1_SD_1a, no_missing <= ((ncol(subgenome_1)-5)/2)*gmissingness)
   subgenome_1_SD_1a <- subset(subgenome_1_SD_1a, select=c(-(((ncol(subgenome_1)-4)/2)+5)))
@@ -839,11 +839,11 @@ SD_snpfiltering <- function() {
   } else {
     print ("all SNPs in G0111G1111 configuration failed segregation distortion test")
   }
-  
+
 }
 SD_snpfiltering()
 
-# set functions for RD and SD filtering..... remove samples with more than threshold (e.g. 20%) missing data 
+# set functions for RD and SD filtering..... remove samples with more than threshold (e.g. 20%) missing data
 sample_subsample <- function(){
   subgenome_1_noSD <- NULL
   if (file.exists(paste(pop,"_4x","_SD_1_G0001G0000.txt",sep=""))) {
@@ -924,7 +924,7 @@ final_summary <- function(){
   SNP4x <- as.data.frame(table(SNP4x$cross))
   sum <- sum(SNP4x$Freq, na.rm=T)
   max <- max(SNP4x$Freq, na.rm=T)
-  
+
   max <- max*1.2
   SNP4x$percentage <- ((SNP4x$Freq)/sum)*100
   SNP4x[,3] <- round(SNP4x[,3], 2)
@@ -948,8 +948,8 @@ final_summary <- function(){
     xlab(paste(p1," x ",p2," Biparental Mapping Population",sep="")) +
     ylab(paste("Number of Variants (",sum," loci)"))
   ggsave(filename="plot_SNP4x_wSD.tiff", plot=plot_SNP, width=10, height= 5, dpi=600, compression = "lzw")
-  
-  
+
+
   ########################################################################################################################################
   # Plot all markers (regular, restriction polymorphism-based):
   # noSD (no segregation distorted markers)
@@ -992,7 +992,7 @@ final_summary <- function(){
     subgenome_1_SD_1_G0111G1111 <- read.table(paste(pop,"_4x","_SD_1_G0111G1111.txt",sep=""), header=T, sep="\t",stringsAsFactors=FALSE,colClasses=c("character"), check.names = FALSE)
     subgenome_1_SD_1 <- rbind(subgenome_1_SD_1,subgenome_1_SD_1_G0111G1111) }
   subgenome_1_noSD <- subgenome_1_SD_1
-  
+
   subgenome_1_SD_1 <- subset(subgenome_1_SD_1, select=c(paste(p1,"_GT",sep=""),paste(p2,"_GT",sep="")))
   subgenome_1_SD_1$cross <- paste (subgenome_1_SD_1[,paste(p1,"_GT",sep="")], subgenome_1_SD_1[,paste(p2,"_GT",sep="")], sep=" x ")
   subgenome_1_SD_1 <- na.omit(subgenome_1_SD_1)
@@ -1004,7 +1004,7 @@ final_summary <- function(){
   max <- max*1.2
   SNP4x$percentage <- ((SNP4x$Freq)/sum)*100
   SNP4x[,3] <- round(SNP4x[,3], 2)
-  
+
   plot_SNP <- ggplot(SNP4x,aes(x=Var1, y=Freq, color=Var1)) +
     geom_col(fill="white") +
     coord_flip()+
@@ -1024,8 +1024,8 @@ final_summary <- function(){
     xlab(paste(p1," x ",p2," Biparental Mapping Population",sep="")) +
     ylab(paste("Number of Variants (",sum," loci)"))
   ggsave(filename="plot_SNP4x_noSD.tiff", plot=plot_SNP, width=10, height= 6, dpi=600, compression = "lzw")
-  
-  
+
+
   ########################################################################################################################################
   #Generate final filtered genotype file for "Regular Markers"
   names(subgenome_1_noSD) <- gsub("_GT", "", names(subgenome_1_noSD))
@@ -1039,20 +1039,20 @@ final_summary <- function(){
   subgenome_1_noSD <- subgenome_1_noSD[,c(which(colnames(subgenome_1_noSD)=="SNP"),which(colnames(subgenome_1_noSD)!="SNP"))]
   write.table (subgenome_1_noSD, file=paste(pop,"_4x","_rd",rd+1,"_noSDbinary.txt",sep=""), row.names=F, quote = FALSE, sep = "\t")
 
-  if (snpformats == "true") {  
+  if (snpformats == "true") {
     alleles <- unique(subset(subgenome_1_noSD, select=c(4,5)))
     rownames(alleles) <- NULL
     alleles[] <- lapply(alleles, as.character)
     alleles$ref0 <- alleles$REF; alleles$alt0 <- alleles$ALT
     for (i in 1:nrow(alleles)) {
       alleles[i,3] <- gsub(",.*", "", alleles[i,3])
-      alleles[i,4] <- gsub(",.*", "", alleles[i,4])      
+      alleles[i,4] <- gsub(",.*", "", alleles[i,4])
     }
     geno <- NULL
     for (i in 1:nrow(alleles)) {
       ref <- as.vector(alleles[i,3]); REFsub <- as.vector(alleles[i,1])
       alt <- as.vector(alleles[i,4]); ALTsub <- as.vector(alleles[i,2])
-      snplen = nchar(ref) + nchar(alt)    
+      snplen = nchar(ref) + nchar(alt)
       output <- subset(subgenome_1_noSD, REF == REFsub & ALT == ALTsub)
       output[] <- lapply(output, as.character)
       if (snplen == 2) {
@@ -1082,7 +1082,7 @@ final_summary <- function(){
     geno <- geno[order(geno$CHROM, geno$POS),]
     write.table (geno, file=paste(pop,"_4x","_rd",rd+1,"_noSDnucleotide.txt",sep=""), row.names=F, quote = FALSE, sep = "\t")
   }
-  
+
   subgenome_1_noSD[][subgenome_1_noSD[]=="0/0/0/0"] <- "0"
   subgenome_1_noSD[][subgenome_1_noSD[]=="0/0/0/1"] <- "1"
   subgenome_1_noSD[][subgenome_1_noSD[]=="0/0/1/1"] <- "2"
@@ -1136,24 +1136,24 @@ pop_struc <- function() {
 
   if (nrow(pop_data) >= 1000) {
     pop_data <- as.matrix(t(pop_data))
-    
+
     #Computing the full-autopolyploid matrix based on Slater 2016 (Eq. 8 and 9)
-    Gmatrix <- function (SNPmatrix = pop_data, method = "VanRaden", missingValue = NA, 
-                         maf = 0, thresh.missing = 0.1, verify.posdef = FALSE, ploidy = 4, 
-                         pseudo.diploid = FALSE, integer = FALSE, ratio = FALSE, impute.method = FALSE, 
+    Gmatrix <- function (SNPmatrix = pop_data, method = "VanRaden", missingValue = NA,
+                         maf = 0, thresh.missing = 0.1, verify.posdef = FALSE, ploidy = 4,
+                         pseudo.diploid = FALSE, integer = FALSE, ratio = FALSE, impute.method = FALSE,
                          ratio.check = FALSE) {
       Time = proc.time()
-      
+
       if(ratio){ #This allows to enter in the scaled crossprod condition
         method="VanRaden"
         ploidy=8
       }
-      
+
       if (!is.na(missingValue)) {
         m <- match(SNPmatrix, missingValue, 0)
         SNPmatrix[m > 0] <- NA
       }
-      
+
       # Internal function to check input Gmatrix arguments
       check_Gmatrix_data <- function(SNPmatrix,ploidy,method, ratio=FALSE, integer=TRUE){
         if (is.null(SNPmatrix)) {
@@ -1162,57 +1162,57 @@ pop_struc <- function() {
         if (all(method != c("Yang", "VanRaden", "Slater", "Su", "Vitezica", "MarkersMatrix","Endelman"))) {
           stop("Method to build Gmatrix has to be either `Yang` or `VanRaden` for marker-based additive relationship matrix, or `Su` or `Vitezica` or `Endelman` for marker-based dominance relationship matrx, or `MarkersMatrix` for matrix with amount of shared-marks by individuals pairs")
         }
-        
+
         #  if( method=="Yang" && ploidy>2)
         #    stop("Change method to 'VanRaden' for ploidies higher than 2 for marker-based additive relationship matrix")
-        
+
         if( method=="Su" && ploidy>2)
           stop("Change method to 'Slater' for ploidies higher than 2 for marker-based non-additive relationship matrix")
-        
+
         if( method=="Vitezica" && ploidy>2)
           stop("Change method to 'Slater' for ploidies higher than 2 for marker-based non-additive relationship matrix")
-        
+
         if(class(SNPmatrix)!="matrix"){
           cat("SNPmatrix class is:",class(SNPmatrix),"\n")
           stop("SNPmatrix class must be matrix. Please verify it.")
         }
-        
+
         if(!ratio){
           if( ploidy > 20 | (ploidy %% 2) != 0)
             stop(deparse("Only even ploidy from 2 to 20"))
-          
+
           t <- max(SNPmatrix,na.rm = TRUE)
           if( t > ploidy )
             stop(deparse("Check your data, it has values above ploidy number"))
-          
+
           t <- min(SNPmatrix,na.rm=TRUE)
           if( t < 0 )
             stop(deparse("Check your data, it has values under 0"))
-          
+
           if(integer)
             if(prod(SNPmatrix == round(SNPmatrix),na.rm = TRUE)==0)
               stop(deparse("Check your data, it has not integer values"))
         }
-        
+
         if(ratio){
           t <- max(SNPmatrix,na.rm = TRUE)
           if( t > 1)
             stop(deparse("Check your data, it has values above 1. It is expected a ratio values [0;1]."))
-          
+
           t <- min(SNPmatrix,na.rm=TRUE)
           if( t < 0 )
             stop(deparse("Check your data, it has values under 0. It is expected a ratio values [0;1]."))
         }
       }
       check_Gmatrix_data(SNPmatrix=SNPmatrix,method=method,ploidy=ploidy,ratio=ratio,integer=integer)
-      
+
       NumberMarkers <- ncol(SNPmatrix)
       nindTotal <- colSums(!is.na(SNPmatrix))
       nindAbs <- max(nindTotal)
       cat("Initial data: \n")
       cat("\tNumber of Individuals:", max(nindTotal), "\n")
       cat("\tNumber of Markers:", NumberMarkers, "\n")
-      
+
       # Function by Luis F. V. Ferrao
       # Internal function to maf cutoff and impute data
       snp.check = function(M = NULL,
@@ -1222,7 +1222,7 @@ pop_struc <- function() {
                            impute.method = "mean"){
         # SNP missing data
         ncol.init <- ncol(M)
-        
+
         missing <- apply(M, 2, function(x) sum(is.na(x))/nrow(M))
         missing.low = missing <= thresh.missing
         cat("\nMissing data check: \n")
@@ -1235,7 +1235,7 @@ pop_struc <- function() {
         } else{
           cat("\tNo SNPs with missing data, missing threshold of = ", thresh.missing,"\n")
         }
-        
+
         # Minor alele frequency
         MAF <- apply(M, 2, function(x) {
           AF <- mean(x, na.rm = T)/ploidy
@@ -1251,7 +1251,7 @@ pop_struc <- function() {
         } else{
           cat("\tNo SNPs with MAF below", thresh.maf,"\n")
         }
-        
+
         # SNPs monomorficos
         mono <- apply(M, 2, function(x) {
           equal <- isTRUE(all.equal(x, rep(x[1], length(x))))
@@ -1265,7 +1265,7 @@ pop_struc <- function() {
         } else{
           cat("\tNo monomorphic SNPs \n")
         }
-        
+
         # Imputing by mode
         if(impute.method=="mean"){
           ix <- which(is.na(M))
@@ -1273,54 +1273,54 @@ pop_struc <- function() {
             M[ix] <- mean(M,na.rm = TRUE)
           }
         }
-        
+
         if(impute.method=="mode"){
           ix <- which(is.na(M))
           if (length(ix) > 0) {
             M[ix] <- as.integer(names(which.max(table(M))))
           }
         }
-        
+
         # Total of SNPs
         cat("Summary check: \n")
         cat("\tInitial: ", ncol.init, "SNPs \n")
         cat("\tFinal: ", ncol(M), " SNPs (", ncol.init - ncol(M), " SNPs removed) \n \n")
         return(M)
       }
-      
+
       if(ratio==FALSE){
         SNPmatrix <- snp.check(SNPmatrix,
-                               ploidy = ploidy, 
-                               thresh.maf = maf, 
+                               ploidy = ploidy,
+                               thresh.maf = maf,
                                thresh.missing = thresh.missing,
                                impute.method = impute.method)
       }
-      
+
       ## Testing ratio check function: not final!
       if(ratio && ratio.check){
         SNPmatrix <- snp.check(SNPmatrix,
-                               ploidy = ploidy, 
-                               thresh.maf = maf, 
+                               ploidy = ploidy,
+                               thresh.maf = maf,
                                thresh.missing = thresh.missing,
                                impute.method = impute.method)
       }
-      
+
       ## Internal Functions ##
       # Coding SNPmatrix as Slater (2016) Full autotetraploid model including non-additive effects (Presence/Absence per Genotype per Marker)
       slater_par <- function(X,ploidy){
         prime.index <- c(3,5,7,11,13,17,19,23,29,31,37,
                          41,43,47,53,59,61,67,71,73,79)
-        
+
         NumberMarkers <- ncol(X)
         nindTotal <- nrow(X)
         X <- X+1
-        
+
         ## Breaking intervals to use less RAM
         temp <- seq(1,NumberMarkers,10000)
         temp <- cbind(temp,temp+9999)
         temp[length(temp)] <- NumberMarkers
         prime.index <- prime.index[1:(ploidy+1)]
-        
+
         ## Uses Diagonal (which is Sparse mode, uses less memmory)
         for(i in 1:nrow(temp)){
           X.temp <- X[,c(temp[i,1]:temp[i,2])]
@@ -1333,59 +1333,59 @@ pop_struc <- function() {
             X_out <- X.temp
           }else{
             X_out <- cbind(X_out,X.temp)
-          }   
+          }
         }
         gc()
         return(X_out)
       }
-      
+
       if(method=="Slater"){
         P <- colSums(SNPmatrix,na.rm = TRUE)/nrow(SNPmatrix)
         SNPmatrix[,which(P>ploidy/2)] <- ploidy-SNPmatrix[,which(P>(ploidy/2))]
         SNPmatrix <- slater_par(SNPmatrix,ploidy=ploidy)
         NumberMarkers <- ncol(SNPmatrix)
         Frequency <- colSums(SNPmatrix,na.rm=TRUE)/nrow(SNPmatrix)
-        FreqP <- matrix(rep(Frequency, each = nrow(SNPmatrix)), 
+        FreqP <- matrix(rep(Frequency, each = nrow(SNPmatrix)),
                         ncol = ncol(SNPmatrix))
       }
-      
+
       if(ploidy==2){
         alelleFreq <- function(x, y) {
-          (2 * length(which(x == y)) + length(which(x == 1)))/(2 * 
+          (2 * length(which(x == y)) + length(which(x == 1)))/(2 *
                                                                  length(which(!is.na(x))))
         }
         Frequency <- cbind(apply(SNPmatrix, 2, function(x) alelleFreq(x,0))
                            , apply(SNPmatrix, 2, function(x) alelleFreq(x, 2)))
-        
+
         #   if (any(Frequency[, 1] <= maf) & maf != 0) {
         #      cat("\t", length(which(Frequency[, 1] <= maf)), "markers dropped due to maf cutoff of", maf, "\n")
         #      SNPmatrix <- SNPmatrix[,-which(Frequency[, 1] <= maf)]
         #      cat("\t", ncol(SNPmatrix), "markers kept \n")
-        #      Frequency <- as.matrix(Frequency[-which(Frequency[,1] <= 
+        #      Frequency <- as.matrix(Frequency[-which(Frequency[,1] <=
         #                                                maf), ])
         #      NumberMarkers <- ncol(SNPmatrix)
         #    }
-        FreqP <- matrix(rep(Frequency[, 2], each = nrow(SNPmatrix)), 
+        FreqP <- matrix(rep(Frequency[, 2], each = nrow(SNPmatrix)),
                         ncol = ncol(SNPmatrix))
       }
-      
+
       if(ploidy>2 && pseudo.diploid){## Uses Pseudodiploid model
         P <- colSums(SNPmatrix,na.rm = TRUE)/nrow(SNPmatrix)
         SNPmatrix[,which(P>ploidy/2)] <- ploidy-SNPmatrix[,which(P>(ploidy/2))]
         Frequency <- colSums(SNPmatrix,na.rm=TRUE)/(ploidy*nrow(SNPmatrix))
         Frequency <- cbind(1-Frequency,Frequency)
-        FreqP <- matrix(rep(Frequency[, 2], each = nrow(SNPmatrix)), 
+        FreqP <- matrix(rep(Frequency[, 2], each = nrow(SNPmatrix)),
                         ncol = ncol(SNPmatrix))
         SNPmatrix[SNPmatrix %in% c(1:(ploidy-1))] <- 1
         SNPmatrix[SNPmatrix==ploidy] <- 2
       }
-      
+
       if (method == "MarkersMatrix") {
         Gmatrix <- !is.na(SNPmatrix)
         Gmatrix <- tcrossprod(Gmatrix, Gmatrix)
         return(Gmatrix)
       }
-      
+
       ## VanRaden ##
       if (method == "VanRaden") {
         if(ploidy==2){
@@ -1395,18 +1395,18 @@ pop_struc <- function() {
           Gmatrix <- (tcrossprod(SNPmatrix, SNPmatrix))/as.numeric(TwoPQ)
         }else{
           if(ploidy>2){
-            SNPmatrix<-scale(SNPmatrix,center=TRUE,scale=FALSE) 
+            SNPmatrix<-scale(SNPmatrix,center=TRUE,scale=FALSE)
             K<-sum(apply(X=SNPmatrix,FUN=var,MARGIN=2,na.rm=TRUE))
             SNPmatrix[which(is.na(SNPmatrix))] <- 0
             Gmatrix<-tcrossprod(SNPmatrix)/K
           }
         }
       }
-      
+
       if (method == "Yang") {
-        FreqPQ <- matrix(rep(2 * Frequency[, 1] * Frequency[, 
+        FreqPQ <- matrix(rep(2 * Frequency[, 1] * Frequency[,
                                                             2], each = nrow(SNPmatrix)), ncol = ncol(SNPmatrix))
-        G.all <- (SNPmatrix^2 - (1 + 2 * FreqP) * SNPmatrix + 
+        G.all <- (SNPmatrix^2 - (1 + 2 * FreqP) * SNPmatrix +
                     2 * (FreqP^2))/FreqPQ
         G.ii <- as.matrix(colSums(t(G.all), na.rm = T))
         SNPmatrix <- (SNPmatrix - (2 * FreqP))/sqrt(FreqPQ)
@@ -1415,16 +1415,16 @@ pop_struc <- function() {
         Gmatrix <- (tcrossprod(SNPmatrix, SNPmatrix))/NumberMarkers
         diag(Gmatrix) <- G.ii.hat
       }
-      
+
       if (method == "Su"){
         TwoPQ <- 2*(FreqP)*(1-FreqP)
         SNPmatrix[SNPmatrix==2 | SNPmatrix==0] <- 0
         SNPmatrix <- SNPmatrix - TwoPQ
         SNPmatrix[is.na(SNPmatrix)] <- 0
         Gmatrix <- tcrossprod(SNPmatrix,SNPmatrix)/
-          sum(TwoPQ[1,]*(1-TwoPQ[1,]))        
+          sum(TwoPQ[1,]*(1-TwoPQ[1,]))
       }
-      
+
       if (method == "Vitezica"){
         TwoPQ <- 2*(FreqP[1,])*(1-FreqP[1,])
         SNPmatrix[is.na(SNPmatrix)] <- 0
@@ -1433,7 +1433,7 @@ pop_struc <- function() {
           (SNPmatrix==2)*-2*((1-FreqP)^2)
         Gmatrix <- tcrossprod(SNPmatrix,SNPmatrix)/sum(TwoPQ^2)
       }
-      
+
       if (method == "Slater"){
         drop.alleles <- which(Frequency==0)
         if(length(drop.alleles)>0){
@@ -1453,7 +1453,7 @@ pop_struc <- function() {
         Gmatrix <- (tcrossprod(SNPmatrix, SNPmatrix))/NumberMarkers
         diag(Gmatrix) <- G.ii
       }
-      
+
       if( method == "Endelman" ){
         if( ploidy != 4 ){
           cat( stop( "'Endelman' method is just implemented for ploidy=4" ))
@@ -1461,25 +1461,25 @@ pop_struc <- function() {
         Frequency <- colSums(SNPmatrix)/(nrow(SNPmatrix)*ploidy)
         Frequency <- cbind(Frequency,1-Frequency)
         SixPQ <- 6 * t((Frequency[, 1]^2)) %*% (Frequency[, 2]^2)
-        SNPmatrix <- 6 * t((Frequency[, 1]^2)%*%t(rep(1,nrow(SNPmatrix)))) - 
+        SNPmatrix <- 6 * t((Frequency[, 1]^2)%*%t(rep(1,nrow(SNPmatrix)))) -
           3*t((Frequency[, 1])%*%t(rep(1,nrow(SNPmatrix))))*SNPmatrix + 0.5 * SNPmatrix*(SNPmatrix-1)
         Gmatrix <- (tcrossprod(SNPmatrix, SNPmatrix))/as.numeric(SixPQ)
       }
-      
+
       if (verify.posdef) {
         e.values <- eigen(Gmatrix, symmetric = TRUE)$values
         indicator <- length(which(e.values <= 0))
-        if (indicator > 0) 
-          cat("\t Matrix is NOT positive definite. It has ", indicator, 
+        if (indicator > 0)
+          cat("\t Matrix is NOT positive definite. It has ", indicator,
               " eigenvalues <= 0 \n \n")
       }
-      
+
       Time = as.matrix(proc.time() - Time)
       cat("Completed! Time =", Time[3], " seconds \n")
       gc()
       return(Gmatrix)
     }
-    
+
     Gmat <- Gmatrix()
     write.table (Gmat, file=paste(pop,"_4x","_rd",rd+1,"_Kinship_Matrix.txt",sep=""), row.names=F, quote = FALSE, sep = "\t")
     tiff(paste(pop,"_",ncol(pop_data),"markers_relatedness_heatmap_dendogram_4x.tiff",sep=""), width=30, height=30, units = 'in', res = 300, compression = 'lzw')
@@ -1492,10 +1492,10 @@ pop_struc <- function() {
       geom_text(size=5, color="cornflowerblue", nudge_y = -0.02)+
       geom_point(color="gray20", size=3) +
       geom_point(data=pedigree[c(p1,p2),], aes(x=Distance_p1,y=Distance_p2, label=row.names(pedigree[c(p1,p2),]), colour=c(p1,p2)), color="tomato") +
-      xlab("Kinship Coefficient Relative to Maternal Parent (P1)") + 
+      xlab("Kinship Coefficient Relative to Maternal Parent (P1)") +
       ylab("Kinship Coefficient Relative to Paternal Parent (P2)")
     ggsave(filename=paste(pop,"_",ncol(pop_data),"markers_Parentage_Inference_4x.tiff",sep=""), plot=ped, width=15, height= 15, dpi=600, compression = "lzw")
-    
+
   } else {
     print ("Not enough markers to compute Gmatrix (i.e. threshold of 100 markers)")
   }
@@ -1526,7 +1526,7 @@ rd_boxplot <- function(){
     subgenome_1_boxplot <- subset(subgenome_1_plots, select=c(2,3))
     names(subgenome_1_boxplot)[names(subgenome_1_boxplot) == "Var2"] <- "samples"
     names(subgenome_1_boxplot)[names(subgenome_1_boxplot) == "Freq"] <- "DP"
-    
+
     subgenome_1_boxplot$DP <- as.numeric(as.character(subgenome_1_boxplot$DP))
     subgenome_1_boxplot <- na.omit(subgenome_1_boxplot)
     quantile999 <- quantile(subgenome_1_boxplot$DP, probs = c(0.999), na.rm= TRUE)
@@ -1543,7 +1543,7 @@ rd_boxplot <- function(){
       xlab(paste(p1," x ",p2," Biparental Mapping Population",sep="")) +
       ylab("Read Depth (4x Genotypes)")
     ggsave(filename= paste(pop,"_4x","_boxplot_rd",t+1,".tiff",sep=""), plot=boxplot, width=15, height= 25, dpi=600, compression = "lzw")
-    
+
     meanDP <- mean(subgenome_1_boxplot$DP, na.rm=T)
     medianDP <- median(subgenome_1_boxplot$DP, na.rm=T)
     maxDP <- max(table(subgenome_1_boxplot$DP))
@@ -1563,7 +1563,7 @@ rd_boxplot <- function(){
       theme(axis.text.x=element_text(colour="cornflowerblue", size=24),
             axis.text.y=element_text(colour="cornflowerblue", size=24),
             axis.title=element_text(size=30)) +
-      ylab("Frequency") + 
+      ylab("Frequency") +
       xlab(paste("Read Depth Distribution (", p1," x ",p2," Biparental Mapping Population)",sep=""))
     ggsave(filename= paste(pop,"_4x","_histogram_rd",t+1,".tiff",sep=""), plot=histogram, width=25, height= 15, dpi=600, compression = "lzw")
 
@@ -1572,7 +1572,7 @@ rd_boxplot <- function(){
     subgenome_1_plots <- NULL
     gc()
   }
-  # Extract read depth values specifically for filtered SNPs, then plot boxplot 
+  # Extract read depth values specifically for filtered SNPs, then plot boxplot
   # Also, plot histogram of read depth across data set
   subgenome_1_plots <- subgenome_1
   subgenome_final <- read.table (file=paste(pop,"_4x","_rd",rd+1,"_noSDdose.txt",sep=""), header=T, sep="\t", check.names = FALSE)
@@ -1599,7 +1599,7 @@ rd_boxplot <- function(){
   subgenome_1_boxplot <- subset(subgenome_1_plots, select=c(2,3))
   names(subgenome_1_boxplot)[names(subgenome_1_boxplot) == "Var2"] <- "samples"
   names(subgenome_1_boxplot)[names(subgenome_1_boxplot) == "Freq"] <- "DP"
-  
+
   subgenome_1_boxplot$DP <- as.numeric(as.character(subgenome_1_boxplot$DP))
   subgenome_1_boxplot <- na.omit(subgenome_1_boxplot)
   quantile999 <- quantile(subgenome_1_boxplot$DP, probs = c(0.999), na.rm= TRUE)
@@ -1616,7 +1616,7 @@ rd_boxplot <- function(){
     xlab(paste(p1," x ",p2," Biparental Mapping Population",sep="")) +
     ylab("Read Depth (4x Genotypes)")
   ggsave(filename= paste(pop,"_4x","_boxplot_filtered.tiff",sep=""), plot=boxplot, width=15, height= 25, dpi=600, compression = "lzw")
-  
+
   meanDP <- mean(subgenome_1_boxplot$DP, na.rm=T)
   medianDP <- median(subgenome_1_boxplot$DP, na.rm=T)
   maxDP <- max(table(subgenome_1_boxplot$DP))
@@ -1636,7 +1636,7 @@ rd_boxplot <- function(){
     theme(axis.text.x=element_text(colour="cornflowerblue", size=24),
           axis.text.y=element_text(colour="cornflowerblue", size=24),
           axis.title=element_text(size=30)) +
-    ylab("Frequency") + 
+    ylab("Frequency") +
     xlab(paste("Read Depth Distribution (", p1," x ",p2," Biparental Mapping Population)",sep=""))
   ggsave(filename= paste(pop,"_4x","_histogram_filtered.tiff",sep=""), plot=histogram, width=25, height= 15, dpi=600, compression = "lzw")
   boxplot <- NULL
@@ -1674,7 +1674,7 @@ raw_alleles <- function(){
   subgenome_1_plots <- subset (subgenome_1_plots, DiffMethyl != 2)
   subgenome_1_plots <- subset(subgenome_1_plots, select=c(-7))
   subgenome_1_plots <- subset(subgenome_1_plots, select=c(5,6))
-  
+
   Cross <- subgenome_1_plots
   Cross <- na.omit(Cross)
   Cross$Cross <- paste (Cross[,paste(p1,"_GT",sep="")], Cross[,paste(p2,"_GT",sep="")], sep=" x ")
@@ -1707,7 +1707,7 @@ raw_alleles <- function(){
     xlab(paste(p1," x ",p2," Biparental Mapping Population",sep="")) +
     ylab(paste("Proportion of Genotypic Configuration (",sum,")", sep=""))
   ggsave(filename="Multiallelic_cross_4x.tiff", plot=plot, width=15, height= 10, dpi=600, compression = "lzw")
-  
+
   Cross <- subset(Cross, Cross!="0/0/0/0 x 0/0/0/0")
   Cross <- subset(Cross, Cross!="1/1/1/1 x 1/1/1/1")
   Cross <- subset(Cross, Cross!="2/2/2/2 x 2/2/2/2")
@@ -1742,7 +1742,7 @@ raw_alleles <- function(){
     ylab(paste("Proportion of Genotypic Configuration (",sum,")", sep=""))
   ggsave(filename="Multiallelic_cross_subset_4x.tiff", plot=plot, width=15, height= 10, dpi=600, compression = "lzw")
   plot <- NULL
-  
+
   Multiallelic_p1_4x <- as.data.frame(table(subgenome_1[,paste(p1,"_GT",sep="")]))
   names(Multiallelic_p1_4x)[names(Multiallelic_p1_4x) == "Var1"] <- "Genotype"
   Multiallelic_p1_4x <- subset(Multiallelic_p1_4x, Genotype != "./././.")
@@ -1787,5 +1787,3 @@ raw_alleles <- function(){
 raw_alleles()
 
 ####################################################################################################################
-
-

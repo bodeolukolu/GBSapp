@@ -1,11 +1,11 @@
 #!/usr/bin/env Rscript
 
-# pop <- 
-# p1 <- 
-# p2 <- 
-# gmissingness <- 
-# smissingness <- 
-# minRD <- 
+# pop <-
+# p1 <-
+# p2 <-
+# gmissingness <-
+# smissingness <-
+# minRD <-
 # remove_id_list <- NULL
 # remove_id_list <- c("NA_1","NA_2")
 # remove_id_list <- paste(remove_id_list, "_GT", sep="")
@@ -50,10 +50,10 @@ RD_snpfiltering <- function(){
     subgenome_1 <- subgenome_1[,c(keep_id)]
   }
   write.table (subgenome_1, file=paste(pop,"_8x","_DP_GT.txt",sep=""), row.names=F, quote = FALSE, sep = "\t")
-  
+
   #Filter based on DP >= rd in Parents
   subgenome_1_filtered <- subgenome_1
-  subgenome_1_filtered <- subset(subgenome_1_filtered, subgenome_1_filtered[,paste(p1,"_DP",sep="")] >= 24) 
+  subgenome_1_filtered <- subset(subgenome_1_filtered, subgenome_1_filtered[,paste(p1,"_DP",sep="")] >= 24)
   subgenome_1_filtered <- subset(subgenome_1_filtered, subgenome_1_filtered[,paste(p2,"_DP",sep="")] >= 24)
   subgenome_1_filtered_1 <- subgenome_1_filtered
   subgenome_1_filtered_1$no_missing <- rowSums(is.na(subgenome_1_filtered_1))
@@ -68,12 +68,12 @@ RD_snpfiltering <- function(){
   subgenome_1_filtered_1 <- subset(subgenome_1_filtered_1, noseg != "1/1/1/1/1/1/1/1_1/1/1/1/1/1/1/1")
   subgenome_1_filtered_1 <- subset(subgenome_1_filtered_1, select=-c(noseg))
   subgenome_1_filtered_0 <- subgenome_1_filtered_1
-  
+
   #change genotype to missing if read depth is < rd in complete dataset (including progenies)
   subgenome_1_filtered_1_AB <- subset(subgenome_1_filtered_1, select=c(1:(((ncol(subgenome_1_filtered_1)-4)/2)+4)))
   for (i in 5:(((ncol(subgenome_1_filtered_1)-4)/2)+4)) {
-    j <- i+((ncol(subgenome_1_filtered)-4)/2)
-    subgenome_filtered[,j][subgenome_filtered[,i] < 24] <- NA
+    j <- i+((ncol(subgenome_1_filtered_1)-4)/2)
+    subgenome_1_filtered_1[,j][subgenome_1_filtered_1[,i] < 24] <- NA
     subgenome_1_filtered_1[,i][subgenome_1_filtered_1[,j] == "0/0/0/0/0/0" ] <- minRD
     subgenome_1_filtered_1[,i][subgenome_1_filtered_1[,j] == "1/1/1/1/1/1" ] <- minRD
     subgenome_1_filtered_1[,j][subgenome_1_filtered_1[,i] <= rd] <- NA
@@ -81,13 +81,13 @@ RD_snpfiltering <- function(){
   }
   subgenome_1_filtered_1_C <- subset(subgenome_1_filtered_1, select=c((((ncol(subgenome_1_filtered_1)-4)/2)+5):ncol(subgenome_1_filtered_1)))
   subgenome_1_filtered_1 <- cbind(subgenome_1_filtered_1_AB, subgenome_1_filtered_1_C)
-  subgenome_1_filtered_1 <- subset(subgenome_1_filtered_1, !is.na(subgenome_1_filtered_1[,paste(p1,"_DP",sep="")])) 
+  subgenome_1_filtered_1 <- subset(subgenome_1_filtered_1, !is.na(subgenome_1_filtered_1[,paste(p1,"_DP",sep="")]))
   subgenome_1_filtered_1 <- subset(subgenome_1_filtered_1, !is.na(subgenome_1_filtered_1[,paste(p2,"_DP",sep="")]))
   subgenome_1_filtered_1$no_missing <- rowSums(is.na(subgenome_1_filtered_1))
   subgenome_1_filtered_1 <- subset(subgenome_1_filtered_1, no_missing <= ((ncol(subgenome_1_filtered_1)-5)/2)*gmissingness)
   subgenome_1_filtered_1 <- subset(subgenome_1_filtered_1, select=-c(no_missing))
 
-    
+
   subgenome_1_SD_1 <- subgenome_1_filtered_1
   subgenome_1_SD_1 <- subset(subgenome_1_SD_1, select=c(1:4,(((ncol(subgenome_1_SD_1)-4)/2)+5):ncol(subgenome_1_SD_1)))
   # check for non-biallelic genotypes and change to missing (NA)
@@ -115,7 +115,7 @@ RD_snpfiltering <- function(){
   col_idx <- grep(paste(p2,"_GT",sep=""), names(subgenome_1_SD_1))
   subgenome_1_SD_1 <- subgenome_1_SD_1[, c((1:ncol(subgenome_1_SD_1))[-col_idx],col_idx)]
   write.table (subgenome_1_SD_1, file=paste(pop,"_8x","_SD_rd",rd+1,".txt",sep=""), row.names=F, quote = FALSE, sep = "\t")
-  
+
   #change genotype to missing if read depth is < 40 in complete dataset (including progenies)
   for (i in 5:(((ncol(subgenome_1_filtered_0)-4)/2)+4)) {
     j <- i+((ncol(subgenome_1_filtered_0)-4)/2)
@@ -125,7 +125,7 @@ RD_snpfiltering <- function(){
   subgenome_1_filtered_0$no_missing <- rowSums(is.na(subgenome_1_filtered_0))
   subgenome_1_filtered_0 <- subset(subgenome_1_filtered_0, no_missing <= ((ncol(subgenome_1_filtered_0)-5)/2)*gmissingness)
   subgenome_1_filtered_0 <- subset(subgenome_1_filtered_0, select=-c(no_missing))
-  
+
   subgenome_1_SD_0 <- subgenome_1_filtered_0
   subgenome_1_SD_0 <- subset(subgenome_1_SD_0, select=c(1:4,(((ncol(subgenome_1_SD_0)-4)/2)+5):ncol(subgenome_1_SD_0)))
   # check for non-biallelic genotypes and change to missing (NA)
@@ -181,7 +181,7 @@ SD_snpfiltering <- function() {
   # 00000011 x 00111111	->	00000011	00000111	00001111	00011111	00111111	                                            ->	9:48:82:48:9
   # 00000011 x 01111111	->	00000111	00001111	00011111	00111111						                                            ->	3:11:11:3
   # 00000011 x 11111111	->	00001111	00011111	00111111							                                                    ->	3:8:3
-  # 
+  #
   # Trplex x other configuration
   # 00000111 x 00000000	->	00000000	00000001	00000011	00000111						                                            ->	1:6:6:1
   # 00000111 x 00000111	->	00000000	00000001	00000011	00000111	00001111	00011111	00111111		                      ->	1:12:48:74:48:12:1
@@ -190,7 +190,7 @@ SD_snpfiltering <- function() {
   # 00000111 x 00111111	->	00000011	00000111	00001111	00011111	00111111	01111111	                                  ->	3:26:69:69:26:3
   # 00000111 x 01111111	->	00000111	00001111	00011111	00111111	01111111	                                            ->	1:7:12:7:1
   # 00000111 x 11111111	->	00001111	00011111	00111111	01111111	                                                      ->	1:6:6:1
-  # 
+  #
   # Tetraplex x other configuration
   # 00001111 x 00000000	->	00000000	00000001	00000011	00000111	00001111                                            	->	1:16:36:16:1
   # 00001111 x 00001111	->	00000000	00000001	00000011	00000111	00001111	00011111	00111111	01111111	11111111	    ->	1:32:328:1184:1810:1184:328:32:1
@@ -198,32 +198,32 @@ SD_snpfiltering <- function() {
   # 00001111 x 00111111	->	00000011	00000111	00001111	00011111	00111111	01111111	11111111	                        ->	3:56:239:384:239:56:3
   # 00001111 x 01111111	->	00000111	00001111	00011111	00111111	01111111	11111111	                                  ->	1:17:52:52:17:1
   # 00001111 x 11111111	->	00001111	00011111	00111111	01111111	11111111	                                            ->	1:16:36:16:1
-  # 
+  #
   # Pentaplex x other configuration
   # 00011111 x 00000000	->	00000001	00000011	00000111	00001111	                                                      ->	1:6:6:1
   # 00011111 x 00011111	->	00000011	00000111	00001111	00011111	00111111	01111111	11111111	                        ->	1:12:48:74:48:12:1
   # 00011111 x 00111111	->	00000111	00001111	00011111	00111111	01111111	11111111	                                  ->	3:26:69:69:26:3
   # 00011111 x 01111111	->	00001111	00011111	00111111	01111111	11111111	                                            ->	1:7:12:7:1
   # 00011111 x 11111111	->	00011111	00111111	01111111	11111111	                                                      ->	1:6:6:1
-  # 
+  #
   # Hexaplex x other configuration
   # 00111111 x 00000000	->	00000011	00000111	00001111	                                                                ->	3:8:3
   # 00111111 x 00111111	->	00001111	00011111	00111111	01111111	11111111	                                            ->	9:48:82:48:9
   # 00111111 x 01111111	->	00011111	00111111	01111111	11111111	                                                      ->	3:11:11:3
   # 00111111 x 11111111	->	00111111	01111111	11111111	                                                                ->	3:8:3
-  # 
+  #
   # Heptaplex x other configuration
   # 01111111 x 00000000	->	00000111	00001111	                                                                          ->	1:1
   # 01111111 x 01111111	->	00111111	01111111	11111111                                                                	->	1:2:1
   # 01111111 x 11111111	->	01111111	11111111	                                                                          ->	1:1
-  
+
   #############################################################
   #############################################################
   # Simplex x NUlliplex
   # 00000001 x 00000000	->	00000000	00000001	-> 1:1
   # 00000000 x 00000001	->	00000000	00000001	-> 1:1
   ### File Code: "subgenome_1_SD_1_G00000001G00000000"
-  
+
   subgenome_1_SD_0 <- read.table (file=paste(pop,"_8x","_SD_rd40",".txt",sep=""), header=T, sep="\t", check.names = FALSE)
   subgenome_1_SD_1 <- read.table (file=paste(pop,"_8x","_SD_rd",rd+1,".txt",sep=""), header=T, sep="\t", check.names = FALSE)
 
@@ -274,15 +274,15 @@ SD_snpfiltering <- function() {
   } else {
     print ("all SNPs in G00000001G00000000 configuration failed segregation distortion test")
   }
-  
-  
+
+
   #############################################################
   #############################################################
   # Simplex x Simplex
   # 00000001 x 00000001	->	00000000	00000001	00000011  ->	1:2:1
   # 00000001 x 00000001	->	00000000	00000001	00000011  ->	1:2:1
-  ### File Code: "subgenome_1_SD_1_G00000001G0000001"   
-  
+  ### File Code: "subgenome_1_SD_1_G00000001G0000001"
+
   subgenome_1_SD_1a <- subgenome_1_SD_1
   subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2][subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2]=="0/0/0/0/0/1/1/1"] <- NA
   subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2][subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2]=="0/0/0/0/1/1/1/1"] <- NA
@@ -317,7 +317,7 @@ SD_snpfiltering <- function() {
     subgenome_1_SD_1a_count <- merge(subgenome_1_SD_1ax_count, subgenome_1_SD_1ay_count, all=TRUE)
     subgenome_1_SD_1a_count <- merge(subgenome_1_SD_1a_count, subgenome_1_SD_1az_count, all=TRUE)
     subgenome_1_SD_1a_count[][is.na(subgenome_1_SD_1a_count[])] <- "0"
-    subgenome_1_SD_1a_count <- transform(subgenome_1_SD_1a_count, GT00000000=as.numeric(GT00000000), GT00000001=as.numeric(GT00000001), 
+    subgenome_1_SD_1a_count <- transform(subgenome_1_SD_1a_count, GT00000000=as.numeric(GT00000000), GT00000001=as.numeric(GT00000001),
                                          GT00000011=as.numeric(GT00000011))
     subgenome_1_SD_1a_count$pvalue <- NA
     for (i in 1:nrow(subgenome_1_SD_1a_count)) {
@@ -334,15 +334,15 @@ SD_snpfiltering <- function() {
     print ("all SNPs in G00000001G00000001 configuration failed segregation distortion test")
   }
 
-  
+
   #############################################################
   #############################################################
   # Simplex x Duplex
-  
+
   # 00000001 x 00000011	->	00000000	00000001	00000011	00000111  ->	3:11:11:3
   # 00000011 x 00000001	->	00000000	00000001	00000011	00000111  ->	3:11:11:3
-  ### File Code: "subgenome_1_SD_1_G00000001G00000011"   
-  
+  ### File Code: "subgenome_1_SD_1_G00000001G00000011"
+
   subgenome_1_SD_1a <- subgenome_1_SD_1
   subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2][subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2]=="0/0/0/0/1/1/1/1"] <- NA
   subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2][subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2]=="0/0/0/1/1/1/1/1"] <- NA
@@ -383,7 +383,7 @@ SD_snpfiltering <- function() {
     subgenome_1_SD_1a_count <- merge(subgenome_1_SD_1a_count, subgenome_1_SD_1ay_count, all=TRUE)
     subgenome_1_SD_1a_count <- merge(subgenome_1_SD_1a_count, subgenome_1_SD_1az_count, all=TRUE)
     subgenome_1_SD_1a_count[][is.na(subgenome_1_SD_1a_count[])] <- "0"
-    subgenome_1_SD_1a_count <- transform(subgenome_1_SD_1a_count, GT00000000=as.numeric(GT00000000), GT00000001=as.numeric(GT00000001), 
+    subgenome_1_SD_1a_count <- transform(subgenome_1_SD_1a_count, GT00000000=as.numeric(GT00000000), GT00000001=as.numeric(GT00000001),
                                          GT00000011=as.numeric(GT00000011), GT00000111=as.numeric(GT00000111))
     subgenome_1_SD_1a_count$pvalue <- NA
     for (i in 1:nrow(subgenome_1_SD_1a_count)) {
@@ -399,14 +399,14 @@ SD_snpfiltering <- function() {
   } else {
     print ("all SNPs in G00000001G00000011 configuration failed segregation distortion test")
   }
-  
-  
+
+
   #############################################################
   #############################################################
   # Simplex x Triplex
   # 00000001 x 00000111	->	00000000	00000001	00000011	00000111	00001111  ->	1:7:12:7:1
   # 00000001 x 00000111	->	00000000	00000001	00000011	00000111	00001111  ->	1:7:12:7:1
-  ### File Code: "subgenome_1_SD_1_G00000001G00000111"    
+  ### File Code: "subgenome_1_SD_1_G00000001G00000111"
   subgenome_1_SD_1a <- subgenome_1_SD_1
   subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2][subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2]=="0/0/0/1/1/1/1/1"] <- NA
   subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2][subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2]=="0/0/1/1/1/1/1/1"] <- NA
@@ -451,7 +451,7 @@ SD_snpfiltering <- function() {
     subgenome_1_SD_1a_count <- merge(subgenome_1_SD_1a_count, subgenome_1_SD_1ay_count, all=TRUE)
     subgenome_1_SD_1a_count <- merge(subgenome_1_SD_1a_count, subgenome_1_SD_1az_count, all=TRUE)
     subgenome_1_SD_1a_count[][is.na(subgenome_1_SD_1a_count[])] <- "0"
-    subgenome_1_SD_1a_count <- transform(subgenome_1_SD_1a_count, GT00000000=as.numeric(GT00000000), GT00000001=as.numeric(GT00000001), 
+    subgenome_1_SD_1a_count <- transform(subgenome_1_SD_1a_count, GT00000000=as.numeric(GT00000000), GT00000001=as.numeric(GT00000001),
                                          GT00000011=as.numeric(GT00000011), GT00000111=as.numeric(GT00000111), GT00001111=as.numeric(GT00001111))
     subgenome_1_SD_1a_count$pvalue <- NA
     for (i in 1:nrow(subgenome_1_SD_1a_count)) {
@@ -467,14 +467,14 @@ SD_snpfiltering <- function() {
   } else {
     print ("all SNPs in G00000001G00000111 configuration failed segregation distortion test")
   }
-  
-  
+
+
   #############################################################
   #############################################################
   # Simplex x Quadruplex
   # 00000001 x 00001111	->	00000000	00000001	00000011	00000111	00001111	00011111  ->	1:17:52:52:17:1
   # 00000001 x 00001111	->	00000000	00000001	00000011	00000111	00001111	00011111  ->	1:17:52:52:17:1
-  ### File Code: "subgenome_1_SD_1_G00000001G00001111"    
+  ### File Code: "subgenome_1_SD_1_G00000001G00001111"
   subgenome_1_SD_1a <- subgenome_1_SD_1
   subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2][subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2]=="0/0/1/1/1/1/1/1"] <- NA
   subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2][subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2]=="0/1/1/1/1/1/1/1"] <- NA
@@ -523,7 +523,7 @@ SD_snpfiltering <- function() {
     subgenome_1_SD_1a_count <- merge(subgenome_1_SD_1a_count, subgenome_1_SD_1ay_count, all=TRUE)
     subgenome_1_SD_1a_count <- merge(subgenome_1_SD_1a_count, subgenome_1_SD_1az_count, all=TRUE)
     subgenome_1_SD_1a_count[][is.na(subgenome_1_SD_1a_count[])] <- "0"
-    subgenome_1_SD_1a_count <- transform(subgenome_1_SD_1a_count, GT00000000=as.numeric(GT00000000), GT00000001=as.numeric(GT00000001), 
+    subgenome_1_SD_1a_count <- transform(subgenome_1_SD_1a_count, GT00000000=as.numeric(GT00000000), GT00000001=as.numeric(GT00000001),
                                          GT00000011=as.numeric(GT00000011), GT00000111=as.numeric(GT00000111), GT00001111=as.numeric(GT00001111), GT00011111=as.numeric(GT00011111))
     subgenome_1_SD_1a_count$pvalue <- NA
     for (i in 1:nrow(subgenome_1_SD_1a_count)) {
@@ -539,14 +539,14 @@ SD_snpfiltering <- function() {
   } else {
     print ("all SNPs in G00000001G00001111 configuration failed segregation distortion test")
   }
-  
-  
+
+
   #############################################################
   #############################################################
   # Simplex x Pentaplex
   # 00000001 x 00011111	->	00000001	00000011	00000111	00001111	00011111  ->	1:7:12:7:1
   # 00000001 x 00011111	->	00000001	00000011	00000111	00001111	00011111  ->	1:7:12:7:1
-  ### File Code: "subgenome_1_SD_1_G00000001G00011111"    
+  ### File Code: "subgenome_1_SD_1_G00000001G00011111"
   subgenome_1_SD_1a <- subgenome_1_SD_1
   subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2][subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2]=="0/0/0/0/0/0/0/0"] <- NA
   subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2][subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2]=="0/0/1/1/1/1/1/1"] <- NA
@@ -591,7 +591,7 @@ SD_snpfiltering <- function() {
     subgenome_1_SD_1a_count <- merge(subgenome_1_SD_1a_count, subgenome_1_SD_1ay_count, all=TRUE)
     subgenome_1_SD_1a_count <- merge(subgenome_1_SD_1a_count, subgenome_1_SD_1az_count, all=TRUE)
     subgenome_1_SD_1a_count[][is.na(subgenome_1_SD_1a_count[])] <- "0"
-    subgenome_1_SD_1a_count <- transform(subgenome_1_SD_1a_count, GT00000001=as.numeric(GT00000001), GT00000011=as.numeric(GT00000011), GT00000111=as.numeric(GT00000111), 
+    subgenome_1_SD_1a_count <- transform(subgenome_1_SD_1a_count, GT00000001=as.numeric(GT00000001), GT00000011=as.numeric(GT00000011), GT00000111=as.numeric(GT00000111),
                                          GT00001111=as.numeric(GT00001111), GT00011111=as.numeric(GT00011111))
     subgenome_1_SD_1a_count$pvalue <- NA
     for (i in 1:nrow(subgenome_1_SD_1a_count)) {
@@ -607,15 +607,15 @@ SD_snpfiltering <- function() {
   } else {
     print ("all SNPs in G00000001G00011111 configuration failed segregation distortion test")
   }
-  
-  
+
+
   #############################################################
   #############################################################
   # Simplex x Hexaplex
-  
+
   # 00000001 x 00111111	->	00000011	00000111	00001111	00011111 ->	3:11:11:3
   # 00000001 x 00111111	->	00000011	00000111	00001111	00011111 ->	3:11:11:3
-  ### File Code: "subgenome_1_SD_1_G00000001G00111111"    
+  ### File Code: "subgenome_1_SD_1_G00000001G00111111"
   subgenome_1_SD_1a <- subgenome_1_SD_1
   subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2][subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2]=="0/0/0/0/0/0/0/0"] <- NA
   subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2][subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2]=="0/0/0/0/0/0/0/1"] <- NA
@@ -672,14 +672,14 @@ SD_snpfiltering <- function() {
   } else {
     print ("all SNPs in G00000001G00111111 configuration failed segregation distortion test")
   }
-  
-  
+
+
   #############################################################
   #############################################################
   # Simplex x Heptaplex
   # 00000001 x 01111111	->	00000111	00001111	00011111  ->	1:2:1
   # 00000001 x 01111111	->	00000111	00001111	00011111  ->	1:2:1
-  ### File Code: "subgenome_1_SD_1_G00000001G01111111"    
+  ### File Code: "subgenome_1_SD_1_G00000001G01111111"
   subgenome_1_SD_1a <- subgenome_1_SD_1
   subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2][subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2]=="0/0/0/0/0/0/0/0"] <- NA
   subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2][subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2]=="0/0/0/0/0/0/0/1"] <- NA
@@ -716,7 +716,7 @@ SD_snpfiltering <- function() {
     subgenome_1_SD_1a_count <- merge(subgenome_1_SD_1ax_count, subgenome_1_SD_1ay_count, all=TRUE)
     subgenome_1_SD_1a_count <- merge(subgenome_1_SD_1a_count, subgenome_1_SD_1az_count, all=TRUE)
     subgenome_1_SD_1a_count[][is.na(subgenome_1_SD_1a_count[])] <- "0"
-    subgenome_1_SD_1a_count <- transform(subgenome_1_SD_1a_count, GT00000111=as.numeric(GT00000111), GT00001111=as.numeric(GT00001111), 
+    subgenome_1_SD_1a_count <- transform(subgenome_1_SD_1a_count, GT00000111=as.numeric(GT00000111), GT00001111=as.numeric(GT00001111),
                                          GT00011111=as.numeric(GT00011111))
     subgenome_1_SD_1a_count$pvalue <- NA
     for (i in 1:nrow(subgenome_1_SD_1a_count)) {
@@ -732,8 +732,8 @@ SD_snpfiltering <- function() {
   } else {
     print ("all SNPs in G00000001G01111111 configuration failed segregation distortion test")
   }
-  
-  
+
+
   #############################################################
   #############################################################
   # Simplex x Octoplex
@@ -788,14 +788,14 @@ SD_snpfiltering <- function() {
   } else {
     print ("all SNPs in G00000001G11111111 configuration failed segregation distortion test")
   }
-  
-  
+
+
   #############################################################
   #############################################################
   # Duplex x Nulliplex
   # 00000011 x 00000000	->	00000000	00000001	00000011	->	3:8:3
   # 00000011 x 00000000	->	00000000	00000001	00000011	->	3:8:3
-  ### File Code: "subgenome_1_SD_1_G00000011G00000000"    
+  ### File Code: "subgenome_1_SD_1_G00000011G00000000"
   subgenome_1_SD_1a <- subgenome_1_SD_1
   subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2][subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2]=="0/0/0/0/0/1/1/1"] <- NA
   subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2][subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2]=="0/0/0/0/1/1/1/1"] <- NA
@@ -832,7 +832,7 @@ SD_snpfiltering <- function() {
     subgenome_1_SD_1a_count <- merge(subgenome_1_SD_1ax_count, subgenome_1_SD_1ay_count, all=TRUE)
     subgenome_1_SD_1a_count <- merge(subgenome_1_SD_1a_count, subgenome_1_SD_1az_count, all=TRUE)
     subgenome_1_SD_1a_count[][is.na(subgenome_1_SD_1a_count[])] <- "0"
-    subgenome_1_SD_1a_count <- transform(subgenome_1_SD_1a_count, GT00000000=as.numeric(GT00000000), GT00000001=as.numeric(GT00000001), 
+    subgenome_1_SD_1a_count <- transform(subgenome_1_SD_1a_count, GT00000000=as.numeric(GT00000000), GT00000001=as.numeric(GT00000001),
                                          GT00000011=as.numeric(GT00000011))
     subgenome_1_SD_1a_count$pvalue <- NA
     for (i in 1:nrow(subgenome_1_SD_1a_count)) {
@@ -848,14 +848,14 @@ SD_snpfiltering <- function() {
   } else {
     print ("all SNPs in G00000011G00000000 configuration failed segregation distortion test")
   }
-  
-  
+
+
   #############################################################
   #############################################################
   # Duplex x Duplex
   # 00000011 x 00000011	->	00000000	00000001	00000011	00000111	00001111  ->	9:48:82:48:9
   # 00000011 x 00000011	->	00000000	00000001	00000011	00000111	00001111  ->	9:48:82:48:9
-  ### File Code: "subgenome_1_SD_1_G00000011G00000011"    
+  ### File Code: "subgenome_1_SD_1_G00000011G00000011"
   subgenome_1_SD_1a <- subgenome_1_SD_1
   subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2][subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2]=="0/0/0/1/1/1/1/1"] <- NA
   subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2][subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2]=="0/0/1/1/1/1/1/1"] <- NA
@@ -898,7 +898,7 @@ SD_snpfiltering <- function() {
     subgenome_1_SD_1a_count <- merge(subgenome_1_SD_1a_count, subgenome_1_SD_1ay_count, all=TRUE)
     subgenome_1_SD_1a_count <- merge(subgenome_1_SD_1a_count, subgenome_1_SD_1az_count, all=TRUE)
     subgenome_1_SD_1a_count[][is.na(subgenome_1_SD_1a_count[])] <- "0"
-    subgenome_1_SD_1a_count <- transform(subgenome_1_SD_1a_count, GT00000000=as.numeric(GT00000000), GT00000001=as.numeric(GT00000001), GT00000011=as.numeric(GT00000011), 
+    subgenome_1_SD_1a_count <- transform(subgenome_1_SD_1a_count, GT00000000=as.numeric(GT00000000), GT00000001=as.numeric(GT00000001), GT00000011=as.numeric(GT00000011),
                                          GT00000111=as.numeric(GT00000111), GT00001111=as.numeric(GT00001111))
     subgenome_1_SD_1a_count$pvalue <- NA
     for (i in 1:nrow(subgenome_1_SD_1a_count)) {
@@ -914,14 +914,14 @@ SD_snpfiltering <- function() {
   } else {
     print ("all SNPs in G00000011G00000011 configuration failed segregation distortion test")
   }
-  
-  
+
+
   #############################################################
   #############################################################
   # Duplex x Triplex
   # 00000011 x 00000111	->	00000000	00000001	00000011	00000111	00001111	00011111  ->	3:26:69:69:26:3
   # 00000011 x 00000111	->	00000000	00000001	00000011	00000111	00001111	00011111  ->	3:26:69:69:26:3
-  ### File Code: "subgenome_1_SD_1_G00000011G00000111"    
+  ### File Code: "subgenome_1_SD_1_G00000011G00000111"
   subgenome_1_SD_1a <- subgenome_1_SD_1
   subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2][subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2]=="0/0/1/1/1/1/1/1"] <- NA
   subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2][subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2]=="0/1/1/1/1/1/1/1"] <- NA
@@ -970,7 +970,7 @@ SD_snpfiltering <- function() {
     subgenome_1_SD_1a_count <- merge(subgenome_1_SD_1a_count, subgenome_1_SD_1ay_count, all=TRUE)
     subgenome_1_SD_1a_count <- merge(subgenome_1_SD_1a_count, subgenome_1_SD_1az_count, all=TRUE)
     subgenome_1_SD_1a_count[][is.na(subgenome_1_SD_1a_count[])] <- "0"
-    subgenome_1_SD_1a_count <- transform(subgenome_1_SD_1a_count, GT00000000=as.numeric(GT00000000), GT00000001=as.numeric(GT00000001), 
+    subgenome_1_SD_1a_count <- transform(subgenome_1_SD_1a_count, GT00000000=as.numeric(GT00000000), GT00000001=as.numeric(GT00000001),
                                          GT00000011=as.numeric(GT00000011), GT00000111=as.numeric(GT00000111), GT00001111=as.numeric(GT00001111), GT00011111=as.numeric(GT00011111))
     subgenome_1_SD_1a_count$pvalue <- NA
     for (i in 1:nrow(subgenome_1_SD_1a_count)) {
@@ -986,14 +986,14 @@ SD_snpfiltering <- function() {
   } else {
     print ("all SNPs in G00000011G00000111 configuration failed segregation distortion test")
   }
-  
-  
+
+
   #############################################################
   #############################################################
   # Duplex x Quadruplex
   # 00000011 x 00001111	->	00000000	00000001	00000011	00000111	00001111	00011111	00111111  ->	3:56:239:384:239:56:3
   # 00000011 x 00001111	->	00000000	00000001	00000011	00000111	00001111	00011111	00111111  ->	3:56:239:384:239:56:3
-  ### File Code: "subgenome_1_SD_1_G00000011G00001111"    
+  ### File Code: "subgenome_1_SD_1_G00000011G00001111"
   subgenome_1_SD_1a <- subgenome_1_SD_1
   subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2][subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2]=="0/1/1/1/1/1/1/1"] <- NA
   subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2][subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2]=="1/1/1/1/1/1/1/1"] <- NA
@@ -1046,7 +1046,7 @@ SD_snpfiltering <- function() {
     subgenome_1_SD_1a_count <- merge(subgenome_1_SD_1a_count, subgenome_1_SD_1ay_count, all=TRUE)
     subgenome_1_SD_1a_count <- merge(subgenome_1_SD_1a_count, subgenome_1_SD_1az_count, all=TRUE)
     subgenome_1_SD_1a_count[][is.na(subgenome_1_SD_1a_count[])] <- "0"
-    subgenome_1_SD_1a_count <- transform(subgenome_1_SD_1a_count, GT00000000=as.numeric(GT00000000), GT00000001=as.numeric(GT00000001), 
+    subgenome_1_SD_1a_count <- transform(subgenome_1_SD_1a_count, GT00000000=as.numeric(GT00000000), GT00000001=as.numeric(GT00000001),
                                          GT00000011=as.numeric(GT00000011), GT00000111=as.numeric(GT00000111), GT00001111=as.numeric(GT00001111), GT00011111=as.numeric(GT00011111),
                                          GT00111111=as.numeric(GT00111111))
     subgenome_1_SD_1a_count$pvalue <- NA
@@ -1064,14 +1064,14 @@ SD_snpfiltering <- function() {
   } else {
     print ("all SNPs in G00000011G00001111 configuration failed segregation distortion test")
   }
-  
-  
+
+
   #############################################################
   #############################################################
   # Duplex x Pentaplex
   # 00000011 x 00011111	->	00000001	00000011	00000111	00001111	00011111	00111111  ->	3:26:69:69:26:3
   # 00000011 x 00011111	->	00000001	00000011	00000111	00001111	00011111	00111111  ->	3:26:69:69:26:3
-  ### File Code: "subgenome_1_SD_1_G00000011G00011111"    
+  ### File Code: "subgenome_1_SD_1_G00000011G00011111"
   subgenome_1_SD_1a <- subgenome_1_SD_1
   subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2][subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2]=="0/0/0/0/0/0/0/0"] <- NA
   subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2][subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2]=="0/1/1/1/1/1/1/1"] <- NA
@@ -1120,7 +1120,7 @@ SD_snpfiltering <- function() {
     subgenome_1_SD_1a_count <- merge(subgenome_1_SD_1a_count, subgenome_1_SD_1ay_count, all=TRUE)
     subgenome_1_SD_1a_count <- merge(subgenome_1_SD_1a_count, subgenome_1_SD_1az_count, all=TRUE)
     subgenome_1_SD_1a_count[][is.na(subgenome_1_SD_1a_count[])] <- "0"
-    subgenome_1_SD_1a_count <- transform(subgenome_1_SD_1a_count, GT00000001=as.numeric(GT00000001), GT00000011=as.numeric(GT00000011), GT00000111=as.numeric(GT00000111), 
+    subgenome_1_SD_1a_count <- transform(subgenome_1_SD_1a_count, GT00000001=as.numeric(GT00000001), GT00000011=as.numeric(GT00000011), GT00000111=as.numeric(GT00000111),
                                          GT00001111=as.numeric(GT00001111), GT00011111=as.numeric(GT00011111), GT00111111=as.numeric(GT00111111))
     subgenome_1_SD_1a_count$pvalue <- NA
     for (i in 1:nrow(subgenome_1_SD_1a_count)) {
@@ -1136,14 +1136,14 @@ SD_snpfiltering <- function() {
   } else {
     print ("all SNPs in G00000011G00011111 configuration failed segregation distortion test")
   }
-  
-  
+
+
   #############################################################
   #############################################################
   # Duplex x Hexaplex
   # 00000011 x 00111111	->	00000011	00000111	00001111	00011111	00111111  ->	9:48:82:48:9
   # 00000011 x 00111111	->	00000011	00000111	00001111	00011111	00111111  ->	9:48:82:48:9
-  ### File Code: "subgenome_1_SD_1_G00000011G00111111"    
+  ### File Code: "subgenome_1_SD_1_G00000011G00111111"
   subgenome_1_SD_1a <- subgenome_1_SD_1
   subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2][subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2]=="0/0/0/0/0/0/0/0"] <- NA
   subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2][subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2]=="0/0/0/0/0/0/0/1"] <- NA
@@ -1188,7 +1188,7 @@ SD_snpfiltering <- function() {
     subgenome_1_SD_1a_count <- merge(subgenome_1_SD_1a_count, subgenome_1_SD_1ay_count, all=TRUE)
     subgenome_1_SD_1a_count <- merge(subgenome_1_SD_1a_count, subgenome_1_SD_1az_count, all=TRUE)
     subgenome_1_SD_1a_count[][is.na(subgenome_1_SD_1a_count[])] <- "0"
-    subgenome_1_SD_1a_count <- transform(subgenome_1_SD_1a_count, GT00000011=as.numeric(GT00000011), GT00000111=as.numeric(GT00000111), 
+    subgenome_1_SD_1a_count <- transform(subgenome_1_SD_1a_count, GT00000011=as.numeric(GT00000011), GT00000111=as.numeric(GT00000111),
                                          GT00001111=as.numeric(GT00001111), GT00011111=as.numeric(GT00011111), GT00111111=as.numeric(GT00111111))
     subgenome_1_SD_1a_count$pvalue <- NA
     for (i in 1:nrow(subgenome_1_SD_1a_count)) {
@@ -1204,14 +1204,14 @@ SD_snpfiltering <- function() {
   } else {
     print ("all SNPs in G00000011G00111111 configuration failed segregation distortion test")
   }
-  
-  
+
+
   #############################################################
   #############################################################
   # Duplex x Heptaplex
   # 00000011 x 01111111	->	00000111	00001111	00011111	00111111  ->	3:11:11:3
   # 00000011 x 01111111	->	00000111	00001111	00011111	00111111  ->	3:11:11:3
-  ### File Code: "subgenome_1_SD_1_G00000001G01111111"    
+  ### File Code: "subgenome_1_SD_1_G00000001G01111111"
   subgenome_1_SD_1a <- subgenome_1_SD_1
   subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2][subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2]=="0/0/0/0/0/0/0/0"] <- NA
   subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2][subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2]=="0/0/0/0/0/0/0/1"] <- NA
@@ -1268,14 +1268,14 @@ SD_snpfiltering <- function() {
   } else {
     print ("all SNPs in G00000001G01111111 configuration failed segregation distortion test")
   }
-  
-  
+
+
   #############################################################
   #############################################################
   # Duplex x Octoplex
   # 00000011 x 11111111	->	00001111	00011111	00111111  ->	3:8:3
   # 00000011 x 11111111	->	00001111	00011111	00111111  ->	3:8:3
-  ### File Code: "subgenome_1_SD_1_G00000011G11111111"    
+  ### File Code: "subgenome_1_SD_1_G00000011G11111111"
   subgenome_1_SD_1a <- subgenome_1_SD_1
   subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2][subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2]=="0/0/0/0/0/0/0/0"] <- NA
   subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2][subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2]=="0/0/0/0/0/0/0/1"] <- NA
@@ -1312,7 +1312,7 @@ SD_snpfiltering <- function() {
     subgenome_1_SD_1a_count <- merge(subgenome_1_SD_1ax_count, subgenome_1_SD_1ay_count, all=TRUE)
     subgenome_1_SD_1a_count <- merge(subgenome_1_SD_1a_count, subgenome_1_SD_1az_count, all=TRUE)
     subgenome_1_SD_1a_count[][is.na(subgenome_1_SD_1a_count[])] <- "0"
-    subgenome_1_SD_1a_count <- transform(subgenome_1_SD_1a_count, GT00001111=as.numeric(GT00001111), GT00011111=as.numeric(GT00011111), 
+    subgenome_1_SD_1a_count <- transform(subgenome_1_SD_1a_count, GT00001111=as.numeric(GT00001111), GT00011111=as.numeric(GT00011111),
                                          GT00111111=as.numeric(GT00111111))
     subgenome_1_SD_1a_count$pvalue <- NA
     for (i in 1:nrow(subgenome_1_SD_1a_count)) {
@@ -1328,14 +1328,14 @@ SD_snpfiltering <- function() {
   } else {
     print ("all SNPs in G00000011G11111111 configuration failed segregation distortion test")
   }
-  
-  
+
+
   #############################################################
   #############################################################
   # Triplex x Nulliplex
   # 00000111 x 00000000	->	00000000	00000001	00000011	00000111  ->	1:6:6:1
   # 00000111 x 00000000	->	00000000	00000001	00000011	00000111  ->	1:6:6:1
-  ### File Code: "subgenome_1_SD_1_G00000111G00000000"    
+  ### File Code: "subgenome_1_SD_1_G00000111G00000000"
   subgenome_1_SD_1a <- subgenome_1_SD_1
   subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2][subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2]=="0/0/0/0/1/1/1/1"] <- NA
   subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2][subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2]=="0/0/0/1/1/1/1/1"] <- NA
@@ -1392,14 +1392,14 @@ SD_snpfiltering <- function() {
   } else {
     print ("all SNPs in G00000111G00000000 configuration failed segregation distortion test")
   }
-  
-  
+
+
   #############################################################
   #############################################################
   # Triplex x Triplex
   # 00000111 x 00000111	->	00000000	00000001	00000011	00000111	00001111	00011111	00111111  ->	1:12:48:74:48:12:1
   # 00000111 x 00000111	->	00000000	00000001	00000011	00000111	00001111	00011111	00111111  ->	1:12:48:74:48:12:1
-  ### File Code: "subgenome_1_SD_1_G00000111G00000111"    
+  ### File Code: "subgenome_1_SD_1_G00000111G00000111"
   subgenome_1_SD_1a <- subgenome_1_SD_1
   subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2][subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2]=="0/1/1/1/1/1/1/1"] <- NA
   subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2][subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2]=="1/1/1/1/1/1/1/1"] <- NA
@@ -1450,7 +1450,7 @@ SD_snpfiltering <- function() {
     subgenome_1_SD_1a_count <- merge(subgenome_1_SD_1a_count, subgenome_1_SD_1ay_count, all=TRUE)
     subgenome_1_SD_1a_count <- merge(subgenome_1_SD_1a_count, subgenome_1_SD_1az_count, all=TRUE)
     subgenome_1_SD_1a_count[][is.na(subgenome_1_SD_1a_count[])] <- "0"
-    subgenome_1_SD_1a_count <- transform(subgenome_1_SD_1a_count, GT00000000=as.numeric(GT00000000), GT00000001=as.numeric(GT00000001), 
+    subgenome_1_SD_1a_count <- transform(subgenome_1_SD_1a_count, GT00000000=as.numeric(GT00000000), GT00000001=as.numeric(GT00000001),
                                          GT00000011=as.numeric(GT00000011), GT00000111=as.numeric(GT00000111), GT00001111=as.numeric(GT00001111), GT00011111=as.numeric(GT00011111),
                                          GT00111111=as.numeric(GT00111111))
     subgenome_1_SD_1a_count$pvalue <- NA
@@ -1468,14 +1468,14 @@ SD_snpfiltering <- function() {
   } else {
     print ("all SNPs in G00000111G00000111 configuration failed segregation distortion test")
   }
-  
-  
+
+
   #############################################################
   #############################################################
   # Triplex x Quadruplex
   # 00000111 x 00001111	->	00000000	00000001	00000011	00000111	00001111	00011111	00111111	01111111  ->	1:22:138:329:329:138:22:1
   # 00000111 x 00001111	->	00000000	00000001	00000011	00000111	00001111	00011111	00111111	01111111  ->	1:22:138:329:329:138:22:1
-  ### File Code: "subgenome_1_SD_1_G00000111G00001111"    
+  ### File Code: "subgenome_1_SD_1_G00000111G00001111"
   subgenome_1_SD_1a <- subgenome_1_SD_1
   subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2][subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2]=="1/1/1/1/1/1/1/1"] <- NA
   subgenome_1_SD_1a$no_missing <- rowSums(is.na(subgenome_1_SD_1a))
@@ -1532,7 +1532,7 @@ SD_snpfiltering <- function() {
     subgenome_1_SD_1a_count <- merge(subgenome_1_SD_1a_count, subgenome_1_SD_1ay_count, all=TRUE)
     subgenome_1_SD_1a_count <- merge(subgenome_1_SD_1a_count, subgenome_1_SD_1az_count, all=TRUE)
     subgenome_1_SD_1a_count[][is.na(subgenome_1_SD_1a_count[])] <- "0"
-    subgenome_1_SD_1a_count <- transform(subgenome_1_SD_1a_count, GT00000000=as.numeric(GT00000000), GT00000001=as.numeric(GT00000001), 
+    subgenome_1_SD_1a_count <- transform(subgenome_1_SD_1a_count, GT00000000=as.numeric(GT00000000), GT00000001=as.numeric(GT00000001),
                                          GT00000011=as.numeric(GT00000011), GT00000111=as.numeric(GT00000111), GT00001111=as.numeric(GT00001111), GT00011111=as.numeric(GT00011111),
                                          GT00111111=as.numeric(GT00111111), GT01111111=as.numeric(GT01111111))
     subgenome_1_SD_1a_count$pvalue <- NA
@@ -1550,14 +1550,14 @@ SD_snpfiltering <- function() {
   } else {
     print ("all SNPs in G00000111G00001111 configuration failed segregation distortion test")
   }
-  
-  
+
+
   #############################################################
   #############################################################
   # Triplex x Pentaplex
   # 00000111 x 00011111	->	00000001	00000011	00000111	00001111	00011111	00111111	01111111  ->	1:12:48:74:48:12:1
   # 00000111 x 00011111	->	00000001	00000011	00000111	00001111	00011111	00111111	01111111  ->	1:12:48:74:48:12:1
-  ### File Code: "subgenome_1_SD_1_G00000111G00011111"    
+  ### File Code: "subgenome_1_SD_1_G00000111G00011111"
   subgenome_1_SD_1a <- subgenome_1_SD_1
   subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2][subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2]=="0/0/0/0/0/0/0/0"] <- NA
   subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2][subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2]=="1/1/1/1/1/1/1/1"] <- NA
@@ -1610,7 +1610,7 @@ SD_snpfiltering <- function() {
     subgenome_1_SD_1a_count <- merge(subgenome_1_SD_1a_count, subgenome_1_SD_1ay_count, all=TRUE)
     subgenome_1_SD_1a_count <- merge(subgenome_1_SD_1a_count, subgenome_1_SD_1az_count, all=TRUE)
     subgenome_1_SD_1a_count[][is.na(subgenome_1_SD_1a_count[])] <- "0"
-    subgenome_1_SD_1a_count <- transform(subgenome_1_SD_1a_count, GT00000001=as.numeric(GT00000001), 
+    subgenome_1_SD_1a_count <- transform(subgenome_1_SD_1a_count, GT00000001=as.numeric(GT00000001),
                                          GT00000011=as.numeric(GT00000011), GT00000111=as.numeric(GT00000111), GT00001111=as.numeric(GT00001111), GT00011111=as.numeric(GT00011111),
                                          GT00111111=as.numeric(GT00111111), GT01111111=as.numeric(GT01111111))
     subgenome_1_SD_1a_count$pvalue <- NA
@@ -1628,14 +1628,14 @@ SD_snpfiltering <- function() {
   } else {
     print ("all SNPs in G00000111G00011111 configuration failed segregation distortion test")
   }
-  
-  
+
+
   #############################################################
   #############################################################
   # Duplex x Hexaplex
   # 00000111 x 00111111	->	00000011	00000111	00001111	00011111	00111111	01111111  ->	3:26:69:69:26:3
   # 00000111 x 00111111	->	00000011	00000111	00001111	00011111	00111111	01111111  ->	3:26:69:69:26:3
-  ### File Code: "subgenome_1_SD_1_G00000111G00111111"    
+  ### File Code: "subgenome_1_SD_1_G00000111G00111111"
   subgenome_1_SD_1a <- subgenome_1_SD_1
   subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2][subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2]=="0/0/0/0/0/0/0/0"] <- NA
   subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2][subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2]=="0/0/0/0/0/0/0/1"] <- NA
@@ -1684,7 +1684,7 @@ SD_snpfiltering <- function() {
     subgenome_1_SD_1a_count <- merge(subgenome_1_SD_1a_count, subgenome_1_SD_1ay_count, all=TRUE)
     subgenome_1_SD_1a_count <- merge(subgenome_1_SD_1a_count, subgenome_1_SD_1az_count, all=TRUE)
     subgenome_1_SD_1a_count[][is.na(subgenome_1_SD_1a_count[])] <- "0"
-    subgenome_1_SD_1a_count <- transform(subgenome_1_SD_1a_count, GT00000011=as.numeric(GT00000011), GT00000111=as.numeric(GT00000111), 
+    subgenome_1_SD_1a_count <- transform(subgenome_1_SD_1a_count, GT00000011=as.numeric(GT00000011), GT00000111=as.numeric(GT00000111),
                                          GT00001111=as.numeric(GT00001111), GT00011111=as.numeric(GT00011111), GT00111111=as.numeric(GT00111111), GT01111111=as.numeric(GT01111111))
     subgenome_1_SD_1a_count$pvalue <- NA
     for (i in 1:nrow(subgenome_1_SD_1a_count)) {
@@ -1700,14 +1700,14 @@ SD_snpfiltering <- function() {
   } else {
     print ("all SNPs in G00000111G00111111 configuration failed segregation distortion test")
   }
-  
-  
+
+
   #############################################################
   #############################################################
   # Duplex x Heptaplex
   # 00000111 x 01111111	->	00000111	00001111	00011111	00111111	01111111  ->	1:7:12:7:1
   # 00000111 x 01111111	->	00000111	00001111	00011111	00111111	01111111  ->	1:7:12:7:1
-  ### File Code: "subgenome_1_SD_1_G00000111G01111111"    
+  ### File Code: "subgenome_1_SD_1_G00000111G01111111"
   subgenome_1_SD_1a <- subgenome_1_SD_1
   subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2][subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2]=="0/0/0/0/0/0/0/0"] <- NA
   subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2][subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2]=="0/0/0/0/0/0/0/1"] <- NA
@@ -1752,7 +1752,7 @@ SD_snpfiltering <- function() {
     subgenome_1_SD_1a_count <- merge(subgenome_1_SD_1a_count, subgenome_1_SD_1ay_count, all=TRUE)
     subgenome_1_SD_1a_count <- merge(subgenome_1_SD_1a_count, subgenome_1_SD_1az_count, all=TRUE)
     subgenome_1_SD_1a_count[][is.na(subgenome_1_SD_1a_count[])] <- "0"
-    subgenome_1_SD_1a_count <- transform(subgenome_1_SD_1a_count, GT00000111=as.numeric(GT00000111), 
+    subgenome_1_SD_1a_count <- transform(subgenome_1_SD_1a_count, GT00000111=as.numeric(GT00000111),
                                          GT00001111=as.numeric(GT00001111), GT00011111=as.numeric(GT00011111), GT00111111=as.numeric(GT00111111), GT01111111=as.numeric(GT01111111))
     subgenome_1_SD_1a_count$pvalue <- NA
     for (i in 1:nrow(subgenome_1_SD_1a_count)) {
@@ -1768,14 +1768,14 @@ SD_snpfiltering <- function() {
   } else {
     print ("all SNPs in G00000111G01111111 configuration failed segregation distortion test")
   }
-  
-  
+
+
   #############################################################
   #############################################################
   # Triplex x Octoplex
   # 00000111 x 11111111	->	00001111	00011111	00111111	01111111  ->	1:6:6:1
   # 00000111 x 11111111	->	00001111	00011111	00111111	01111111  ->	1:6:6:1
-  ### File Code: "subgenome_1_SD_1_G00000111G11111111"    
+  ### File Code: "subgenome_1_SD_1_G00000111G11111111"
   subgenome_1_SD_1a <- subgenome_1_SD_1
   subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2][subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2]=="0/0/0/0/0/0/0/0"] <- NA
   subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2][subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2]=="0/0/0/0/0/0/0/1"] <- NA
@@ -1832,14 +1832,14 @@ SD_snpfiltering <- function() {
   } else {
     print ("all SNPs in G00000111G11111111 configuration failed segregation distortion test")
   }
-  
-  
+
+
   #############################################################
   #############################################################
   # Quadruplex x Nulliplex
   # 00001111 x 00000000	->	00000000	00000001	00000011	00000111	00001111  ->	1:16:36:16:1
   # 00001111 x 00000000	->	00000000	00000001	00000011	00000111	00001111  ->	1:16:36:16:1
-  ### File Code: "subgenome_1_SD_1_G00001111G00000000"    
+  ### File Code: "subgenome_1_SD_1_G00001111G00000000"
   subgenome_1_SD_1a <- subgenome_1_SD_1
   subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2][subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2]=="0/0/0/1/1/1/1/1"] <- NA
   subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2][subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2]=="0/0/1/1/1/1/1/1"] <- NA
@@ -1884,7 +1884,7 @@ SD_snpfiltering <- function() {
     subgenome_1_SD_1a_count <- merge(subgenome_1_SD_1a_count, subgenome_1_SD_1ay_count, all=TRUE)
     subgenome_1_SD_1a_count <- merge(subgenome_1_SD_1a_count, subgenome_1_SD_1az_count, all=TRUE)
     subgenome_1_SD_1a_count[][is.na(subgenome_1_SD_1a_count[])] <- "0"
-    subgenome_1_SD_1a_count <- transform(subgenome_1_SD_1a_count, GT00000000=as.numeric(GT00000000), GT00000001=as.numeric(GT00000001), GT00000011=as.numeric(GT00000011), 
+    subgenome_1_SD_1a_count <- transform(subgenome_1_SD_1a_count, GT00000000=as.numeric(GT00000000), GT00000001=as.numeric(GT00000001), GT00000011=as.numeric(GT00000011),
                                          GT00000111=as.numeric(GT00000111), GT00001111=as.numeric(GT00001111))
     subgenome_1_SD_1a_count$pvalue <- NA
     for (i in 1:nrow(subgenome_1_SD_1a_count)) {
@@ -1900,14 +1900,14 @@ SD_snpfiltering <- function() {
   } else {
     print ("all SNPs in G00001111G00000000 configuration failed segregation distortion test")
   }
-  
-  
+
+
   #############################################################
   #############################################################
   # Quadruplex x Quadruplex
   # 00001111 x 00001111	->	00000000	00000001	00000011	00000111	00001111	00011111	00111111	01111111	11111111  ->	1:32:328:1184:1810:1184:328:32:1
   # 00001111 x 00001111	->	00000000	00000001	00000011	00000111	00001111	00011111	00111111	01111111	11111111  ->	1:32:328:1184:1810:1184:328:32:1
-  ### File Code: "subgenome_1_SD_1_G00001111G00001111"    
+  ### File Code: "subgenome_1_SD_1_G00001111G00001111"
   subgenome_1_SD_1a <- subgenome_1_SD_1
   subgenome_1_SD_1a$no_missing <- rowSums(is.na(subgenome_1_SD_1a))
   subgenome_1_SD_1a <- subset(subgenome_1_SD_1a, no_missing <= ((ncol(subgenome_1)-4)/2)*gmissingness)
@@ -1966,7 +1966,7 @@ SD_snpfiltering <- function() {
     subgenome_1_SD_1a_count <- merge(subgenome_1_SD_1a_count, subgenome_1_SD_1ay_count, all=TRUE)
     subgenome_1_SD_1a_count <- merge(subgenome_1_SD_1a_count, subgenome_1_SD_1az_count, all=TRUE)
     subgenome_1_SD_1a_count[][is.na(subgenome_1_SD_1a_count[])] <- "0"
-    subgenome_1_SD_1a_count <- transform(subgenome_1_SD_1a_count, GT00000000=as.numeric(GT00000000), GT00000001=as.numeric(GT00000001), 
+    subgenome_1_SD_1a_count <- transform(subgenome_1_SD_1a_count, GT00000000=as.numeric(GT00000000), GT00000001=as.numeric(GT00000001),
                                          GT00000011=as.numeric(GT00000011), GT00000111=as.numeric(GT00000111), GT00001111=as.numeric(GT00001111), GT00011111=as.numeric(GT00011111),
                                          GT00111111=as.numeric(GT00111111), GT01111111=as.numeric(GT01111111), GT11111111=as.numeric(GT11111111))
     subgenome_1_SD_1a_count$pvalue <- NA
@@ -1984,14 +1984,14 @@ SD_snpfiltering <- function() {
   } else {
     print ("all SNPs in G00001111G00001111 configuration failed segregation distortion test")
   }
-  
-  
+
+
   #############################################################
   #############################################################
   # Quadrplex x Pentaplex
   # 00001111 x 00011111	->	00000001	00000011	00000111	00001111	00011111	00111111	01111111	11111111  ->	1:22:138:329:329:138:22:1
   # 00001111 x 00011111	->	00000001	00000011	00000111	00001111	00011111	00111111	01111111	11111111  ->	1:22:138:329:329:138:22:1
-  ### File Code: "subgenome_1_SD_1_G00001111G00011111"    
+  ### File Code: "subgenome_1_SD_1_G00001111G00011111"
   subgenome_1_SD_1a <- subgenome_1_SD_1
   subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2][subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2]=="0/0/0/0/0/0/0/0"] <- NA
   subgenome_1_SD_1a$no_missing <- rowSums(is.na(subgenome_1_SD_1a))
@@ -2048,7 +2048,7 @@ SD_snpfiltering <- function() {
     subgenome_1_SD_1a_count <- merge(subgenome_1_SD_1a_count, subgenome_1_SD_1ay_count, all=TRUE)
     subgenome_1_SD_1a_count <- merge(subgenome_1_SD_1a_count, subgenome_1_SD_1az_count, all=TRUE)
     subgenome_1_SD_1a_count[][is.na(subgenome_1_SD_1a_count[])] <- "0"
-    subgenome_1_SD_1a_count <- transform(subgenome_1_SD_1a_count, GT00000001=as.numeric(GT00000001), 
+    subgenome_1_SD_1a_count <- transform(subgenome_1_SD_1a_count, GT00000001=as.numeric(GT00000001),
                                          GT00000011=as.numeric(GT00000011), GT00000111=as.numeric(GT00000111), GT00001111=as.numeric(GT00001111), GT00011111=as.numeric(GT00011111),
                                          GT00111111=as.numeric(GT00111111), GT01111111=as.numeric(GT01111111), GT11111111=as.numeric(GT11111111))
     subgenome_1_SD_1a_count$pvalue <- NA
@@ -2066,14 +2066,14 @@ SD_snpfiltering <- function() {
   } else {
     print ("all SNPs in G00001111G00011111 configuration failed segregation distortion test")
   }
-  
-  
+
+
   #############################################################
   #############################################################
   # Quadruplex x Hexaplex
   # 00001111 x 00111111	->	00000011	00000111	00001111	00011111	00111111	01111111	11111111  ->	3:56:239:384:239:56:3
   # 00001111 x 00111111	->	00000011	00000111	00001111	00011111	00111111	01111111	11111111  ->	3:56:239:384:239:56:3
-  ### File Code: "subgenome_1_SD_1_G00001111G00111111"    
+  ### File Code: "subgenome_1_SD_1_G00001111G00111111"
   subgenome_1_SD_1a <- subgenome_1_SD_1
   subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2][subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2]=="0/0/0/0/0/0/0/0"] <- NA
   subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2][subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2]=="0/0/0/0/0/0/0/1"] <- NA
@@ -2143,14 +2143,14 @@ SD_snpfiltering <- function() {
   } else {
     print ("all SNPs in G00001111G00111111 configuration failed segregation distortion test")
   }
-  
-  
+
+
   #############################################################
   #############################################################
   # Quadruplex x Heptaplex
   # 00001111 x 01111111	->	00000111	00001111	00011111	00111111	01111111	11111111  ->	1:17:52:52:17:1
   # 00001111 x 01111111	->	00000111	00001111	00011111	00111111	01111111	11111111  ->	1:17:52:52:17:1
-  ### File Code: "subgenome_1_SD_1_G00001111G01111111"    
+  ### File Code: "subgenome_1_SD_1_G00001111G01111111"
   subgenome_1_SD_1a <- subgenome_1_SD_1
   subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2][subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2]=="0/0/0/0/0/0/0/0"] <- NA
   subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2][subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2]=="0/0/0/0/0/0/0/1"] <- NA
@@ -2199,7 +2199,7 @@ SD_snpfiltering <- function() {
     subgenome_1_SD_1a_count <- merge(subgenome_1_SD_1a_count, subgenome_1_SD_1ay_count, all=TRUE)
     subgenome_1_SD_1a_count <- merge(subgenome_1_SD_1a_count, subgenome_1_SD_1az_count, all=TRUE)
     subgenome_1_SD_1a_count[][is.na(subgenome_1_SD_1a_count[])] <- "0"
-    subgenome_1_SD_1a_count <- transform(subgenome_1_SD_1a_count, GT00000111=as.numeric(GT00000111), GT00001111=as.numeric(GT00001111), GT00011111=as.numeric(GT00011111), 
+    subgenome_1_SD_1a_count <- transform(subgenome_1_SD_1a_count, GT00000111=as.numeric(GT00000111), GT00001111=as.numeric(GT00001111), GT00011111=as.numeric(GT00011111),
                                          GT00111111=as.numeric(GT00111111), GT01111111=as.numeric(GT01111111), GT11111111=as.numeric(GT11111111))
     subgenome_1_SD_1a_count$pvalue <- NA
     for (i in 1:nrow(subgenome_1_SD_1a_count)) {
@@ -2215,14 +2215,14 @@ SD_snpfiltering <- function() {
   } else {
     print ("all SNPs in G00001111G01111111 configuration failed segregation distortion test")
   }
-  
-  
+
+
   #############################################################
   #############################################################
   # Quadruplex x Octoplex
   # 00001111 x 11111111	->	00001111	00011111	00111111	01111111	11111111  ->	1:16:36:16:1
   # 00001111 x 11111111	->	00001111	00011111	00111111	01111111	11111111  ->	1:16:36:16:1
-  ### File Code: "subgenome_1_SD_1_G00001111G11111111"    
+  ### File Code: "subgenome_1_SD_1_G00001111G11111111"
   subgenome_1_SD_1a <- subgenome_1_SD_1
   subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2][subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2]=="0/0/0/0/0/0/0/0"] <- NA
   subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2][subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2]=="0/0/0/0/0/0/0/1"] <- NA
@@ -2283,14 +2283,14 @@ SD_snpfiltering <- function() {
   } else {
     print ("all SNPs in G00001111G11111111 configuration failed segregation distortion test")
   }
-  
-  
+
+
   #############################################################
   #############################################################
   # Pentaplex x Nulliplex
   # 00011111 x 00000000	->	00000001	00000011	00000111	00001111  ->	1:6:6:1
   # 00011111 x 00000000	->	00000001	00000011	00000111	00001111  ->	1:6:6:1
-  ### File Code: "subgenome_1_SD_1_G00011111G00000000"    
+  ### File Code: "subgenome_1_SD_1_G00011111G00000000"
   subgenome_1_SD_1a <- subgenome_1_SD_1
   subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2][subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2]=="0/0/0/0/0/0/0/0"] <- NA
   subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2][subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2]=="0/0/0/1/1/1/1/1"] <- NA
@@ -2347,14 +2347,14 @@ SD_snpfiltering <- function() {
   } else {
     print ("all SNPs in G00011111G00000000 configuration failed segregation distortion test")
   }
-  
-  
+
+
   #############################################################
   #############################################################
   # Pentaplex x Pentaplex
   # 00011111 x 00011111	->	00000011	00000111	00001111	00011111	00111111	01111111	11111111  ->	1:12:48:74:48:12:1
   # 00011111 x 00011111	->	00000011	00000111	00001111	00011111	00111111	01111111	11111111  ->	1:12:48:74:48:12:1
-  ### File Code: "subgenome_1_SD_1_G00011111G00011111"    
+  ### File Code: "subgenome_1_SD_1_G00011111G00011111"
   subgenome_1_SD_1a <- subgenome_1_SD_1
   subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2][subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2]=="0/0/0/0/0/0/0/0"] <- NA
   subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2][subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2]=="0/0/0/0/0/0/0/1"] <- NA
@@ -2422,14 +2422,14 @@ SD_snpfiltering <- function() {
   } else {
     print ("all SNPs in G00011111G00011111 configuration failed segregation distortion test")
   }
-  
-  
+
+
   #############################################################
   #############################################################
   # Pentaplex x Hexaplex
   # 00011111 x 00111111	->	00000111	00001111	00011111	00111111	01111111	11111111  ->	3:26:69:69:26:3
   # 00011111 x 00111111	->	00000111	00001111	00011111	00111111	01111111	11111111  ->	3:26:69:69:26:3
-  ### File Code: "subgenome_1_SD_1_G00011111G00111111"    
+  ### File Code: "subgenome_1_SD_1_G00011111G00111111"
   subgenome_1_SD_1a <- subgenome_1_SD_1
   subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2][subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2]=="0/0/0/0/0/0/0/0"] <- NA
   subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2][subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2]=="0/0/0/0/0/0/0/1"] <- NA
@@ -2478,7 +2478,7 @@ SD_snpfiltering <- function() {
     subgenome_1_SD_1a_count <- merge(subgenome_1_SD_1a_count, subgenome_1_SD_1ay_count, all=TRUE)
     subgenome_1_SD_1a_count <- merge(subgenome_1_SD_1a_count, subgenome_1_SD_1az_count, all=TRUE)
     subgenome_1_SD_1a_count[][is.na(subgenome_1_SD_1a_count[])] <- "0"
-    subgenome_1_SD_1a_count <- transform(subgenome_1_SD_1a_count, GT00000111=as.numeric(GT00000111), GT00001111=as.numeric(GT00001111), GT00011111=as.numeric(GT00011111), 
+    subgenome_1_SD_1a_count <- transform(subgenome_1_SD_1a_count, GT00000111=as.numeric(GT00000111), GT00001111=as.numeric(GT00001111), GT00011111=as.numeric(GT00011111),
                                          GT00111111=as.numeric(GT00111111), GT01111111=as.numeric(GT01111111), GT11111111=as.numeric(GT11111111))
     subgenome_1_SD_1a_count$pvalue <- NA
     for (i in 1:nrow(subgenome_1_SD_1a_count)) {
@@ -2494,14 +2494,14 @@ SD_snpfiltering <- function() {
   } else {
     print ("all SNPs in G00011111G00111111 configuration failed segregation distortion test")
   }
-  
-  
+
+
   #############################################################
   #############################################################
   # Pentaplex x Heptaplex
   # 00011111 x 01111111	->	00001111	00011111	00111111	01111111	11111111  ->	1:7:12:7:1
   # 00011111 x 01111111	->	00001111	00011111	00111111	01111111	11111111  ->	1:7:12:7:1
-  ### File Code: "subgenome_1_SD_1_G00011111G01111111"    
+  ### File Code: "subgenome_1_SD_1_G00011111G01111111"
   subgenome_1_SD_1a <- subgenome_1_SD_1
   subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2][subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2]=="0/0/0/0/0/0/0/0"] <- NA
   subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2][subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2]=="0/0/0/0/0/0/0/1"] <- NA
@@ -2562,14 +2562,14 @@ SD_snpfiltering <- function() {
   } else {
     print ("all SNPs in G00011111G01111111 configuration failed segregation distortion test")
   }
-  
-  
+
+
   #############################################################
   #############################################################
   # Pentaplex x Octoplex
   # 00011111 x 11111111	->	00011111	00111111	01111111	11111111  ->	1:6:6:1
   # 00011111 x 11111111	->	00011111	00111111	01111111	11111111  ->	1:6:6:1
-  ### File Code: "subgenome_1_SD_1_G00011111G11111111"    
+  ### File Code: "subgenome_1_SD_1_G00011111G11111111"
   subgenome_1_SD_1a <- subgenome_1_SD_1
   subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2][subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2]=="0/0/0/0/0/0/0/0"] <- NA
   subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2][subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2]=="0/0/0/0/0/0/0/1"] <- NA
@@ -2626,14 +2626,14 @@ SD_snpfiltering <- function() {
   } else {
     print ("all SNPs in G00011111G11111111 configuration failed segregation distortion test")
   }
-  
-  
+
+
   #############################################################
   #############################################################
   # Hexaplex x Nulliplex
   # 00111111 x 00000000	->	00000011	00000111	00001111  ->	3:8:3
   # 00111111 x 00000000	->	00000011	00000111	00001111  ->	3:8:3
-  ### File Code: "subgenome_1_SD_1_G00111111G00000000"    
+  ### File Code: "subgenome_1_SD_1_G00111111G00000000"
   subgenome_1_SD_1a <- subgenome_1_SD_1
   subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2][subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2]=="0/0/0/0/0/0/0/0"] <- NA
   subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2][subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2]=="0/0/0/0/0/0/0/1"] <- NA
@@ -2670,7 +2670,7 @@ SD_snpfiltering <- function() {
     subgenome_1_SD_1a_count <- merge(subgenome_1_SD_1ax_count, subgenome_1_SD_1ay_count, all=TRUE)
     subgenome_1_SD_1a_count <- merge(subgenome_1_SD_1a_count, subgenome_1_SD_1az_count, all=TRUE)
     subgenome_1_SD_1a_count[][is.na(subgenome_1_SD_1a_count[])] <- "0"
-    subgenome_1_SD_1a_count <- transform(subgenome_1_SD_1a_count, GT00000011=as.numeric(GT00000011), GT00000111=as.numeric(GT00000111), 
+    subgenome_1_SD_1a_count <- transform(subgenome_1_SD_1a_count, GT00000011=as.numeric(GT00000011), GT00000111=as.numeric(GT00000111),
                                          GT00001111=as.numeric(GT00001111))
     subgenome_1_SD_1a_count$pvalue <- NA
     for (i in 1:nrow(subgenome_1_SD_1a_count)) {
@@ -2686,14 +2686,14 @@ SD_snpfiltering <- function() {
   } else {
     print ("all SNPs in G00111111G00000000 configuration failed segregation distortion test")
   }
-  
-  
+
+
   #############################################################
   #############################################################
   # Hexaplex x Hexaplex
   # 00111111 x 00111111	->	00001111	00011111	00111111	01111111	11111111  ->	9:48:82:48:9
   # 00111111 x 00111111	->	00001111	00011111	00111111	01111111	11111111  ->	9:48:82:48:9
-  ### File Code: "subgenome_1_SD_1_G00111111G00111111"    
+  ### File Code: "subgenome_1_SD_1_G00111111G00111111"
   subgenome_1_SD_1a <- subgenome_1_SD_1
   subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2][subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2]=="0/0/0/0/0/0/0/0"] <- NA
   subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2][subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2]=="0/0/0/0/0/0/0/1"] <- NA
@@ -2752,14 +2752,14 @@ SD_snpfiltering <- function() {
   } else {
     print ("all SNPs in G00111111G00111111 configuration failed segregation distortion test")
   }
-  
-  
+
+
   #############################################################
   #############################################################
   # Hexaplex x Heptaplex
   # 00111111 x 01111111	->	00011111	00111111	01111111	11111111  ->	3:11:11:3
   # 00111111 x 01111111	->	00011111	00111111	01111111	11111111  ->	3:11:11:3
-  ### File Code: "subgenome_1_SD_1_G00111111G01111111"    
+  ### File Code: "subgenome_1_SD_1_G00111111G01111111"
   subgenome_1_SD_1a <- subgenome_1_SD_1
   subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2][subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2]=="0/0/0/0/0/0/0/0"] <- NA
   subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2][subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2]=="0/0/0/0/0/0/0/1"] <- NA
@@ -2816,14 +2816,14 @@ SD_snpfiltering <- function() {
   } else {
     print ("all SNPs in G00111111G01111111 configuration failed segregation distortion test")
   }
-  
-  
+
+
   #############################################################
   #############################################################
   # Hexaplex x Octoplex
   # 00111111 x 11111111	->	00111111	01111111	11111111  ->	3:8:3
   # 00111111 x 11111111	->	00111111	01111111	11111111  ->	3:8:3
-  ### File Code: "subgenome_1_SD_1_G00111111G11111111"    
+  ### File Code: "subgenome_1_SD_1_G00111111G11111111"
   subgenome_1_SD_1a <- subgenome_1_SD_1
   subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2][subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2]=="0/0/0/0/0/0/0/0"] <- NA
   subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2][subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2]=="0/0/0/0/0/0/0/1"] <- NA
@@ -2860,7 +2860,7 @@ SD_snpfiltering <- function() {
     subgenome_1_SD_1a_count <- merge(subgenome_1_SD_1ax_count, subgenome_1_SD_1ay_count, all=TRUE)
     subgenome_1_SD_1a_count <- merge(subgenome_1_SD_1a_count, subgenome_1_SD_1az_count, all=TRUE)
     subgenome_1_SD_1a_count[][is.na(subgenome_1_SD_1a_count[])] <- "0"
-    subgenome_1_SD_1a_count <- transform(subgenome_1_SD_1a_count, GT00111111=as.numeric(GT00111111), GT01111111=as.numeric(GT01111111), 
+    subgenome_1_SD_1a_count <- transform(subgenome_1_SD_1a_count, GT00111111=as.numeric(GT00111111), GT01111111=as.numeric(GT01111111),
                                          GT11111111=as.numeric(GT11111111))
     subgenome_1_SD_1a_count$pvalue <- NA
     for (i in 1:nrow(subgenome_1_SD_1a_count)) {
@@ -2876,8 +2876,8 @@ SD_snpfiltering <- function() {
   } else {
     print ("all SNPs in G00111111G11111111 configuration failed segregation distortion test")
   }
-  
-  
+
+
   #############################################################
   #############################################################
   # Heptalex x NUlliplex
@@ -2932,14 +2932,14 @@ SD_snpfiltering <- function() {
   } else {
     print ("all SNPs in G01111111G00000000 configuration failed segregation distortion test")
   }
-  
-  
+
+
   #############################################################
   #############################################################
   # Heptaplex x Heptaplex
   # 01111111 x 01111111	->	00111111	01111111	11111111  ->	1:2:1
   # 01111111 x 01111111	->	00111111	01111111	11111111  ->	1:2:1
-  ### File Code: "subgenome_1_SD_1_G01111111G01111111"    
+  ### File Code: "subgenome_1_SD_1_G01111111G01111111"
   subgenome_1_SD_1a <- subgenome_1_SD_1
   subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2][subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2]=="0/0/0/0/0/0/0/0"] <- NA
   subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2][subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2]=="0/0/0/0/0/0/0/1"] <- NA
@@ -2974,7 +2974,7 @@ SD_snpfiltering <- function() {
     subgenome_1_SD_1a_count <- merge(subgenome_1_SD_1ax_count, subgenome_1_SD_1ay_count, all=TRUE)
     subgenome_1_SD_1a_count <- merge(subgenome_1_SD_1a_count, subgenome_1_SD_1az_count, all=TRUE)
     subgenome_1_SD_1a_count[][is.na(subgenome_1_SD_1a_count[])] <- "0"
-    subgenome_1_SD_1a_count <- transform(subgenome_1_SD_1a_count, GT00111111=as.numeric(GT00111111), GT01111111=as.numeric(GT01111111), 
+    subgenome_1_SD_1a_count <- transform(subgenome_1_SD_1a_count, GT00111111=as.numeric(GT00111111), GT01111111=as.numeric(GT01111111),
                                          GT11111111=as.numeric(GT11111111))
     subgenome_1_SD_1a_count$pvalue <- NA
     for (i in 1:nrow(subgenome_1_SD_1a_count)) {
@@ -2990,8 +2990,8 @@ SD_snpfiltering <- function() {
   } else {
     print ("all SNPs in G01111111G01111111 configuration failed segregation distortion test")
   }
-  
-  
+
+
   #############################################################
   #############################################################
   # Heptaplex x Octaplex
@@ -3046,11 +3046,11 @@ SD_snpfiltering <- function() {
   } else {
     print ("all SNPs in G01111111G11111111 configuration failed segregation distortion test")
   }
-  
+
 }
 SD_snpfiltering()
 
-# set functions for RD and SD filtering..... remove samples with more than threshold (e.g. 20%) missing data 
+# set functions for RD and SD filtering..... remove samples with more than threshold (e.g. 20%) missing data
 sample_subsample <- function(){
   subgenome_1_noSD <- NULL
   if (file.exists(paste(pop,"_8x","_SD_1_G00000001G00000000.txt",sep=""))) {
@@ -3244,8 +3244,8 @@ final_summary <- function() {
     xlab(paste(p1," x ",p2," Biparental Mapping Population",sep="")) +
     ylab(paste("Number of Variants (",sum," loci)"))
   ggsave(filename="plot_SNP8x_wSD.tiff", plot=plot_SNP, width=10, height= 10, dpi=600, compression = "lzw")
-  
-  
+
+
   ########################################################################################################################################
   # Plot all markers (regular, restriction polymorphism-based):
   # noSD (no segregation distorted markers)
@@ -3378,7 +3378,7 @@ final_summary <- function() {
     subgenome_1_SD_1_G01111111G11111111 <- read.table(paste(pop,"_8x","_SD_1_G01111111G11111111.txt",sep=""), header=T, sep="\t",stringsAsFactors=FALSE,colClasses=c("character"), check.names = FALSE)
     subgenome_1_SD_1 <- rbind(subgenome_1_SD_1,subgenome_1_SD_1_G01111111G11111111) }
   subgenome_1_noSD <- subgenome_1_SD_1
-  
+
   subgenome_1_SD_1 <- subset(subgenome_1_SD_1, select=c(paste(p1,"_GT",sep=""),paste(p2,"_GT",sep="")))
   subgenome_1_SD_1$cross <- paste (subgenome_1_SD_1[,paste(p1,"_GT",sep="")], subgenome_1_SD_1[,paste(p2,"_GT",sep="")], sep=" x ")
   subgenome_1_SD_1 <- na.omit(subgenome_1_SD_1)
@@ -3390,7 +3390,7 @@ final_summary <- function() {
   max <- max*1.2
   SNP8x$percentage <- ((SNP8x$Freq)/sum)*100
   SNP8x[,3] <- round(SNP8x[,3], 2)
-  
+
   plot_SNP <- ggplot(SNP8x,aes(x=Var1, y=Freq, color=Var1)) +
     geom_col(fill="white") +
     coord_flip()+
@@ -3410,8 +3410,8 @@ final_summary <- function() {
     xlab(paste(p1," x ",p2," Biparental Mapping Population",sep="")) +
     ylab(paste("Number of Variants (",sum," loci)"))
   ggsave(filename="plot_SNP8x_noSD.tiff", plot=plot_SNP, width=10, height= 10, dpi=600, compression = "lzw")
-  
-  
+
+
   ########################################################################################################################################
   #Generate final filtered genotype file for "Regular Markers"
   names(subgenome_1_noSD) <- gsub("_GT", "", names(subgenome_1_noSD))
@@ -3425,20 +3425,20 @@ final_summary <- function() {
   subgenome_1_noSD <- subgenome_1_noSD[,c(which(colnames(subgenome_1_noSD)=="SNP"),which(colnames(subgenome_1_noSD)!="SNP"))]
   write.table (subgenome_1_noSD, file=paste(pop,"_8x","_rd",rd+1,"_noSDbinary.txt",sep=""), row.names=F, quote = FALSE, sep = "\t")
 
-  if (snpformats == "true") {  
+  if (snpformats == "true") {
     alleles <- unique(subset(subgenome_1_noSD, select=c(4,5)))
     rownames(alleles) <- NULL
     alleles[] <- lapply(alleles, as.character)
     alleles$ref0 <- alleles$REF; alleles$alt0 <- alleles$ALT
     for (i in 1:nrow(alleles)) {
       alleles[i,3] <- gsub(",.*", "", alleles[i,3])
-      alleles[i,4] <- gsub(",.*", "", alleles[i,4])      
+      alleles[i,4] <- gsub(",.*", "", alleles[i,4])
     }
     geno <- NULL
     for (i in 1:nrow(alleles)) {
       ref <- as.vector(alleles[i,3]); REFsub <- as.vector(alleles[i,1])
       alt <- as.vector(alleles[i,4]); ALTsub <- as.vector(alleles[i,2])
-      snplen = nchar(ref) + nchar(alt)    
+      snplen = nchar(ref) + nchar(alt)
       output <- subset(subgenome_1_noSD, REF == REFsub & ALT == ALTsub)
       output[] <- lapply(output, as.character)
       if (snplen == 2) {
@@ -3468,7 +3468,7 @@ final_summary <- function() {
     geno <- geno[order(geno$CHROM, geno$POS),]
     write.table (geno, file=paste(pop,"_8x","_rd",rd+1,"_noSDnucleotide.txt",sep=""), row.names=F, quote = FALSE, sep = "\t")
   }
-  
+
   subgenome_1_noSD[][subgenome_1_noSD[]=="0/0/0/0/0/0/0/0"] <- "0"
   subgenome_1_noSD[][subgenome_1_noSD[]=="0/0/0/0/0/0/0/1"] <- "1"
   subgenome_1_noSD[][subgenome_1_noSD[]=="0/0/0/0/0/0/1/1"] <- "2"
@@ -3479,7 +3479,7 @@ final_summary <- function() {
   subgenome_1_noSD[][subgenome_1_noSD[]=="0/1/1/1/1/1/1/1"] <- "7"
   subgenome_1_noSD[][subgenome_1_noSD[]=="1/1/1/1/1/1/1/1"] <- "8"
   write.table (subgenome_1_noSD, file=paste(pop,"_8x","_rd",rd+1,"_noSDdose.txt",sep=""), row.names=F, quote = FALSE, sep = "\t")
-  
+
   sumfreq <- read.table(paste(pop,"_8x","_rd",rd+1,"_noSDdose.txt",sep=""), header=T, sep="\t",stringsAsFactors=FALSE, check.names = FALSE)
   sumfreq <- subset(sumfreq, select=-c(1:5))
   sumfreq <- subset(sumfreq, select=-c(pvalue))
@@ -3523,27 +3523,27 @@ pop_struc <- function() {
       break
     }
   }
-  
+
   if (nrow(pop_data) >= 1000) {
     pop_data <- as.matrix(t(pop_data))
-    
+
     #Computing the full-autopolyploid matrix based on Slater 2016 (Eq. 8 and 9)
-    Gmatrix <- function (SNPmatrix = pop_data, method = "VanRaden", missingValue = NA, 
-                         maf = 0, thresh.missing = 0.1, verify.posdef = FALSE, ploidy = 8, 
-                         pseudo.diploid = FALSE, integer = FALSE, ratio = FALSE, impute.method = FALSE, 
+    Gmatrix <- function (SNPmatrix = pop_data, method = "VanRaden", missingValue = NA,
+                         maf = 0, thresh.missing = 0.1, verify.posdef = FALSE, ploidy = 8,
+                         pseudo.diploid = FALSE, integer = FALSE, ratio = FALSE, impute.method = FALSE,
                          ratio.check = FALSE) {
       Time = proc.time()
-      
+
       if(ratio){ #This allows to enter in the scaled crossprod condition
         method="VanRaden"
         ploidy=8
       }
-      
+
       if (!is.na(missingValue)) {
         m <- match(SNPmatrix, missingValue, 0)
         SNPmatrix[m > 0] <- NA
       }
-      
+
       # Internal function to check input Gmatrix arguments
       check_Gmatrix_data <- function(SNPmatrix,ploidy,method, ratio=FALSE, integer=TRUE){
         if (is.null(SNPmatrix)) {
@@ -3552,57 +3552,57 @@ pop_struc <- function() {
         if (all(method != c("Yang", "VanRaden", "Slater", "Su", "Vitezica", "MarkersMatrix","Endelman"))) {
           stop("Method to build Gmatrix has to be either `Yang` or `VanRaden` for marker-based additive relationship matrix, or `Su` or `Vitezica` or `Endelman` for marker-based dominance relationship matrx, or `MarkersMatrix` for matrix with amount of shared-marks by individuals pairs")
         }
-        
+
         #  if( method=="Yang" && ploidy>2)
         #    stop("Change method to 'VanRaden' for ploidies higher than 2 for marker-based additive relationship matrix")
-        
+
         if( method=="Su" && ploidy>2)
           stop("Change method to 'Slater' for ploidies higher than 2 for marker-based non-additive relationship matrix")
-        
+
         if( method=="Vitezica" && ploidy>2)
           stop("Change method to 'Slater' for ploidies higher than 2 for marker-based non-additive relationship matrix")
-        
+
         if(class(SNPmatrix)!="matrix"){
           cat("SNPmatrix class is:",class(SNPmatrix),"\n")
           stop("SNPmatrix class must be matrix. Please verify it.")
         }
-        
+
         if(!ratio){
           if( ploidy > 20 | (ploidy %% 2) != 0)
             stop(deparse("Only even ploidy from 2 to 20"))
-          
+
           t <- max(SNPmatrix,na.rm = TRUE)
           if( t > ploidy )
             stop(deparse("Check your data, it has values above ploidy number"))
-          
+
           t <- min(SNPmatrix,na.rm=TRUE)
           if( t < 0 )
             stop(deparse("Check your data, it has values under 0"))
-          
+
           if(integer)
             if(prod(SNPmatrix == round(SNPmatrix),na.rm = TRUE)==0)
               stop(deparse("Check your data, it has not integer values"))
         }
-        
+
         if(ratio){
           t <- max(SNPmatrix,na.rm = TRUE)
           if( t > 1)
             stop(deparse("Check your data, it has values above 1. It is expected a ratio values [0;1]."))
-          
+
           t <- min(SNPmatrix,na.rm=TRUE)
           if( t < 0 )
             stop(deparse("Check your data, it has values under 0. It is expected a ratio values [0;1]."))
         }
       }
       check_Gmatrix_data(SNPmatrix=SNPmatrix,method=method,ploidy=ploidy,ratio=ratio,integer=integer)
-      
+
       NumberMarkers <- ncol(SNPmatrix)
       nindTotal <- colSums(!is.na(SNPmatrix))
       nindAbs <- max(nindTotal)
       cat("Initial data: \n")
       cat("\tNumber of Individuals:", max(nindTotal), "\n")
       cat("\tNumber of Markers:", NumberMarkers, "\n")
-      
+
       # Function by Luis F. V. Ferrao
       # Internal function to maf cutoff and impute data
       snp.check = function(M = NULL,
@@ -3612,7 +3612,7 @@ pop_struc <- function() {
                            impute.method = "mean"){
         # SNP missing data
         ncol.init <- ncol(M)
-        
+
         missing <- apply(M, 2, function(x) sum(is.na(x))/nrow(M))
         missing.low = missing <= thresh.missing
         cat("\nMissing data check: \n")
@@ -3625,7 +3625,7 @@ pop_struc <- function() {
         } else{
           cat("\tNo SNPs with missing data, missing threshold of = ", thresh.missing,"\n")
         }
-        
+
         # Minor alele frequency
         MAF <- apply(M, 2, function(x) {
           AF <- mean(x, na.rm = T)/ploidy
@@ -3641,7 +3641,7 @@ pop_struc <- function() {
         } else{
           cat("\tNo SNPs with MAF below", thresh.maf,"\n")
         }
-        
+
         # SNPs monomorficos
         mono <- apply(M, 2, function(x) {
           equal <- isTRUE(all.equal(x, rep(x[1], length(x))))
@@ -3655,7 +3655,7 @@ pop_struc <- function() {
         } else{
           cat("\tNo monomorphic SNPs \n")
         }
-        
+
         # Imputing by mode
         if(impute.method=="mean"){
           ix <- which(is.na(M))
@@ -3663,54 +3663,54 @@ pop_struc <- function() {
             M[ix] <- mean(M,na.rm = TRUE)
           }
         }
-        
+
         if(impute.method=="mode"){
           ix <- which(is.na(M))
           if (length(ix) > 0) {
             M[ix] <- as.integer(names(which.max(table(M))))
           }
         }
-        
+
         # Total of SNPs
         cat("Summary check: \n")
         cat("\tInitial: ", ncol.init, "SNPs \n")
         cat("\tFinal: ", ncol(M), " SNPs (", ncol.init - ncol(M), " SNPs removed) \n \n")
         return(M)
       }
-      
+
       if(ratio==FALSE){
         SNPmatrix <- snp.check(SNPmatrix,
-                               ploidy = ploidy, 
-                               thresh.maf = maf, 
+                               ploidy = ploidy,
+                               thresh.maf = maf,
                                thresh.missing = thresh.missing,
                                impute.method = impute.method)
       }
-      
+
       ## Testing ratio check function: not final!
       if(ratio && ratio.check){
         SNPmatrix <- snp.check(SNPmatrix,
-                               ploidy = ploidy, 
-                               thresh.maf = maf, 
+                               ploidy = ploidy,
+                               thresh.maf = maf,
                                thresh.missing = thresh.missing,
                                impute.method = impute.method)
       }
-      
+
       ## Internal Functions ##
       # Coding SNPmatrix as Slater (2016) Full autotetraploid model including non-additive effects (Presence/Absence per Genotype per Marker)
       slater_par <- function(X,ploidy){
         prime.index <- c(3,5,7,11,13,17,19,23,29,31,37,
                          41,43,47,53,59,61,67,71,73,79)
-        
+
         NumberMarkers <- ncol(X)
         nindTotal <- nrow(X)
         X <- X+1
-        
+
         ## Breaking intervals to use less RAM
         temp <- seq(1,NumberMarkers,10000)
         temp <- cbind(temp,temp+9999)
         temp[length(temp)] <- NumberMarkers
         prime.index <- prime.index[1:(ploidy+1)]
-        
+
         ## Uses Diagonal (which is Sparse mode, uses less memmory)
         for(i in 1:nrow(temp)){
           X.temp <- X[,c(temp[i,1]:temp[i,2])]
@@ -3723,59 +3723,59 @@ pop_struc <- function() {
             X_out <- X.temp
           }else{
             X_out <- cbind(X_out,X.temp)
-          }   
+          }
         }
         gc()
         return(X_out)
       }
-      
+
       if(method=="Slater"){
         P <- colSums(SNPmatrix,na.rm = TRUE)/nrow(SNPmatrix)
         SNPmatrix[,which(P>ploidy/2)] <- ploidy-SNPmatrix[,which(P>(ploidy/2))]
         SNPmatrix <- slater_par(SNPmatrix,ploidy=ploidy)
         NumberMarkers <- ncol(SNPmatrix)
         Frequency <- colSums(SNPmatrix,na.rm=TRUE)/nrow(SNPmatrix)
-        FreqP <- matrix(rep(Frequency, each = nrow(SNPmatrix)), 
+        FreqP <- matrix(rep(Frequency, each = nrow(SNPmatrix)),
                         ncol = ncol(SNPmatrix))
       }
-      
+
       if(ploidy==2){
         alelleFreq <- function(x, y) {
-          (2 * length(which(x == y)) + length(which(x == 1)))/(2 * 
+          (2 * length(which(x == y)) + length(which(x == 1)))/(2 *
                                                                  length(which(!is.na(x))))
         }
         Frequency <- cbind(apply(SNPmatrix, 2, function(x) alelleFreq(x,0))
                            , apply(SNPmatrix, 2, function(x) alelleFreq(x, 2)))
-        
+
         #   if (any(Frequency[, 1] <= maf) & maf != 0) {
         #      cat("\t", length(which(Frequency[, 1] <= maf)), "markers dropped due to maf cutoff of", maf, "\n")
         #      SNPmatrix <- SNPmatrix[,-which(Frequency[, 1] <= maf)]
         #      cat("\t", ncol(SNPmatrix), "markers kept \n")
-        #      Frequency <- as.matrix(Frequency[-which(Frequency[,1] <= 
+        #      Frequency <- as.matrix(Frequency[-which(Frequency[,1] <=
         #                                                maf), ])
         #      NumberMarkers <- ncol(SNPmatrix)
         #    }
-        FreqP <- matrix(rep(Frequency[, 2], each = nrow(SNPmatrix)), 
+        FreqP <- matrix(rep(Frequency[, 2], each = nrow(SNPmatrix)),
                         ncol = ncol(SNPmatrix))
       }
-      
+
       if(ploidy>2 && pseudo.diploid){## Uses Pseudodiploid model
         P <- colSums(SNPmatrix,na.rm = TRUE)/nrow(SNPmatrix)
         SNPmatrix[,which(P>ploidy/2)] <- ploidy-SNPmatrix[,which(P>(ploidy/2))]
         Frequency <- colSums(SNPmatrix,na.rm=TRUE)/(ploidy*nrow(SNPmatrix))
         Frequency <- cbind(1-Frequency,Frequency)
-        FreqP <- matrix(rep(Frequency[, 2], each = nrow(SNPmatrix)), 
+        FreqP <- matrix(rep(Frequency[, 2], each = nrow(SNPmatrix)),
                         ncol = ncol(SNPmatrix))
         SNPmatrix[SNPmatrix %in% c(1:(ploidy-1))] <- 1
         SNPmatrix[SNPmatrix==ploidy] <- 2
       }
-      
+
       if (method == "MarkersMatrix") {
         Gmatrix <- !is.na(SNPmatrix)
         Gmatrix <- tcrossprod(Gmatrix, Gmatrix)
         return(Gmatrix)
       }
-      
+
       ## VanRaden ##
       if (method == "VanRaden") {
         if(ploidy==2){
@@ -3785,18 +3785,18 @@ pop_struc <- function() {
           Gmatrix <- (tcrossprod(SNPmatrix, SNPmatrix))/as.numeric(TwoPQ)
         }else{
           if(ploidy>2){
-            SNPmatrix<-scale(SNPmatrix,center=TRUE,scale=FALSE) 
+            SNPmatrix<-scale(SNPmatrix,center=TRUE,scale=FALSE)
             K<-sum(apply(X=SNPmatrix,FUN=var,MARGIN=2,na.rm=TRUE))
             SNPmatrix[which(is.na(SNPmatrix))] <- 0
             Gmatrix<-tcrossprod(SNPmatrix)/K
           }
         }
       }
-      
+
       if (method == "Yang") {
-        FreqPQ <- matrix(rep(2 * Frequency[, 1] * Frequency[, 
+        FreqPQ <- matrix(rep(2 * Frequency[, 1] * Frequency[,
                                                             2], each = nrow(SNPmatrix)), ncol = ncol(SNPmatrix))
-        G.all <- (SNPmatrix^2 - (1 + 2 * FreqP) * SNPmatrix + 
+        G.all <- (SNPmatrix^2 - (1 + 2 * FreqP) * SNPmatrix +
                     2 * (FreqP^2))/FreqPQ
         G.ii <- as.matrix(colSums(t(G.all), na.rm = T))
         SNPmatrix <- (SNPmatrix - (2 * FreqP))/sqrt(FreqPQ)
@@ -3805,16 +3805,16 @@ pop_struc <- function() {
         Gmatrix <- (tcrossprod(SNPmatrix, SNPmatrix))/NumberMarkers
         diag(Gmatrix) <- G.ii.hat
       }
-      
+
       if (method == "Su"){
         TwoPQ <- 2*(FreqP)*(1-FreqP)
         SNPmatrix[SNPmatrix==2 | SNPmatrix==0] <- 0
         SNPmatrix <- SNPmatrix - TwoPQ
         SNPmatrix[is.na(SNPmatrix)] <- 0
         Gmatrix <- tcrossprod(SNPmatrix,SNPmatrix)/
-          sum(TwoPQ[1,]*(1-TwoPQ[1,]))        
+          sum(TwoPQ[1,]*(1-TwoPQ[1,]))
       }
-      
+
       if (method == "Vitezica"){
         TwoPQ <- 2*(FreqP[1,])*(1-FreqP[1,])
         SNPmatrix[is.na(SNPmatrix)] <- 0
@@ -3823,7 +3823,7 @@ pop_struc <- function() {
           (SNPmatrix==2)*-2*((1-FreqP)^2)
         Gmatrix <- tcrossprod(SNPmatrix,SNPmatrix)/sum(TwoPQ^2)
       }
-      
+
       if (method == "Slater"){
         drop.alleles <- which(Frequency==0)
         if(length(drop.alleles)>0){
@@ -3843,7 +3843,7 @@ pop_struc <- function() {
         Gmatrix <- (tcrossprod(SNPmatrix, SNPmatrix))/NumberMarkers
         diag(Gmatrix) <- G.ii
       }
-      
+
       if( method == "Endelman" ){
         if( ploidy != 4 ){
           cat( stop( "'Endelman' method is just implemented for ploidy=4" ))
@@ -3851,25 +3851,25 @@ pop_struc <- function() {
         Frequency <- colSums(SNPmatrix)/(nrow(SNPmatrix)*ploidy)
         Frequency <- cbind(Frequency,1-Frequency)
         SixPQ <- 6 * t((Frequency[, 1]^2)) %*% (Frequency[, 2]^2)
-        SNPmatrix <- 6 * t((Frequency[, 1]^2)%*%t(rep(1,nrow(SNPmatrix)))) - 
+        SNPmatrix <- 6 * t((Frequency[, 1]^2)%*%t(rep(1,nrow(SNPmatrix)))) -
           3*t((Frequency[, 1])%*%t(rep(1,nrow(SNPmatrix))))*SNPmatrix + 0.5 * SNPmatrix*(SNPmatrix-1)
         Gmatrix <- (tcrossprod(SNPmatrix, SNPmatrix))/as.numeric(SixPQ)
       }
-      
+
       if (verify.posdef) {
         e.values <- eigen(Gmatrix, symmetric = TRUE)$values
         indicator <- length(which(e.values <= 0))
-        if (indicator > 0) 
-          cat("\t Matrix is NOT positive definite. It has ", indicator, 
+        if (indicator > 0)
+          cat("\t Matrix is NOT positive definite. It has ", indicator,
               " eigenvalues <= 0 \n \n")
       }
-      
+
       Time = as.matrix(proc.time() - Time)
       cat("Completed! Time =", Time[3], " seconds \n")
       gc()
       return(Gmatrix)
     }
-    
+
     Gmat <- Gmatrix()
     write.table (Gmat, file=paste(pop,"_8x","_rd",rd+1,"_Kinship_Matrix.txt",sep=""), row.names=F, quote = FALSE, sep = "\t")
     tiff(paste(pop,"_",ncol(pop_data),"markers_relatedness_heatmap_dendogram_8x.tiff",sep=""), width=30, height=30, units = 'in', res = 300, compression = 'lzw')
@@ -3883,10 +3883,10 @@ pop_struc <- function() {
       geom_text(size=5, color="cornflowerblue", nudge_y = -0.02)+
       geom_point(color="gray20", size=3) +
       geom_point(data=pedigree[c(p1,p2),], aes(x=Distance_p1,y=Distance_p2, label=row.names(pedigree[c(p1,p2),]), colour=c(p1,p2)), color="tomato") +
-      xlab("Kinship Coefficient Relative to Maternal Parent (P1)") + 
+      xlab("Kinship Coefficient Relative to Maternal Parent (P1)") +
       ylab("Kinship Coefficient Relative to Paternal Parent (P2)")
     ggsave(filename=paste(pop,"_",ncol(pop_data),"markers_Parentage_Inference_8x.tiff",sep=""), plot=ped, width=15, height= 15, dpi=600, compression = "lzw")
-    
+
   } else {
     print ("Not enough markers to compute Gmatrix (i.e. threshold of 100 markers)")
   }
@@ -3917,7 +3917,7 @@ rd_boxplot <- function(){
     subgenome_1_boxplot <- subset(subgenome_1_plots, select=c(2,3))
     names(subgenome_1_boxplot)[names(subgenome_1_boxplot) == "Var2"] <- "samples"
     names(subgenome_1_boxplot)[names(subgenome_1_boxplot) == "Freq"] <- "DP"
-    
+
     subgenome_1_boxplot$DP <- as.numeric(as.character(subgenome_1_boxplot$DP))
     subgenome_1_boxplot <- na.omit(subgenome_1_boxplot)
     quantile999 <- quantile(subgenome_1_boxplot$DP, probs = c(0.999), na.rm= TRUE)
@@ -3934,7 +3934,7 @@ rd_boxplot <- function(){
       xlab(paste(p1," x ",p2," Biparental Mapping Population",sep="")) +
       ylab("Read Depth (8x Genotypes)")
     ggsave(filename= paste(pop,"_8x","_boxplot_rd",t+1,".tiff",sep=""), plot=boxplot, width=15, height= 25, dpi=600, compression = "lzw")
-    
+
     meanDP <- mean(subgenome_1_boxplot$DP, na.rm=T)
     medianDP <- median(subgenome_1_boxplot$DP, na.rm=T)
     maxDP <- max(table(subgenome_1_boxplot$DP))
@@ -3954,7 +3954,7 @@ rd_boxplot <- function(){
       theme(axis.text.x=element_text(colour="cornflowerblue", size=24),
             axis.text.y=element_text(colour="cornflowerblue", size=24),
             axis.title=element_text(size=30)) +
-      ylab("Frequency") + 
+      ylab("Frequency") +
       xlab(paste("Read Depth Distribution (", p1," x ",p2," Biparental Mapping Population)",sep=""))
     ggsave(filename= paste(pop,"_8x","_histogram_rd",t+1,".tiff",sep=""), plot=histogram, width=25, height= 15, dpi=600, compression = "lzw")
 
@@ -3963,7 +3963,7 @@ rd_boxplot <- function(){
     subgenome_1_plots <- NULL
     gc()
   }
-  # Extract read depth values specifically for filtered SNPs, then plot boxplot 
+  # Extract read depth values specifically for filtered SNPs, then plot boxplot
   # Also, plot histogram of read depth across data set
   subgenome_1_plots <- subgenome_1
   subgenome_final <- read.table (file=paste(pop,"_8x","_rd",rd+1,"_noSDdose.txt",sep=""), header=T, sep="\t", check.names = FALSE)
@@ -3986,7 +3986,7 @@ rd_boxplot <- function(){
   subgenome_1_boxplot <- subset(subgenome_1_plots, select=c(2,3))
   names(subgenome_1_boxplot)[names(subgenome_1_boxplot) == "Var2"] <- "samples"
   names(subgenome_1_boxplot)[names(subgenome_1_boxplot) == "Freq"] <- "DP"
-  
+
   subgenome_1_boxplot$DP <- as.numeric(as.character(subgenome_1_boxplot$DP))
   subgenome_1_boxplot <- na.omit(subgenome_1_boxplot)
   quantile999 <- quantile(subgenome_1_boxplot$DP, probs = c(0.999), na.rm= TRUE)
@@ -4003,7 +4003,7 @@ rd_boxplot <- function(){
     xlab(paste(p1," x ",p2," Biparental Mapping Population",sep="")) +
     ylab("Read Depth (8x Genotypes)")
   ggsave(filename= paste(pop,"_8x","_boxplot_filtered.tiff",sep=""), plot=boxplot, width=15, height= 25, dpi=600, compression = "lzw")
-  
+
   meanDP <- mean(subgenome_1_boxplot$DP, na.rm=T)
   medianDP <- median(subgenome_1_boxplot$DP, na.rm=T)
   maxDP <- max(table(subgenome_1_boxplot$DP))
@@ -4023,7 +4023,7 @@ rd_boxplot <- function(){
     theme(axis.text.x=element_text(colour="cornflowerblue", size=24),
           axis.text.y=element_text(colour="cornflowerblue", size=24),
           axis.title=element_text(size=30)) +
-    ylab("Frequency") + 
+    ylab("Frequency") +
     xlab(paste("Read Depth Distribution (", p1," x ",p2," Biparental Mapping Population)",sep=""))
   ggsave(filename= paste(pop,"_8x","_histogram_filtered.tiff",sep=""), plot=histogram, width=25, height= 15, dpi=600, compression = "lzw")
   boxplot <- NULL
@@ -4061,7 +4061,7 @@ raw_alleles <- function(){
   subgenome_1_plots <- subset (subgenome_1_plots, DiffMethyl != 2)
   subgenome_1_plots <- subset(subgenome_1_plots, select=c(-7))
   subgenome_1_plots <- subset(subgenome_1_plots, select=c(5,6))
-  
+
   Cross <- subgenome_1_plots
   Cross <- na.omit(Cross)
   Cross$Cross <- paste (Cross[,paste(p1,"_GT",sep="")], Cross[,paste(p2,"_GT",sep="")], sep=" x ")
@@ -4093,7 +4093,7 @@ raw_alleles <- function(){
     xlab(paste(p1," x ",p2," Biparental Mapping Population",sep="")) +
     ylab(paste("Number of Genotypes with Various Allele Composition (",sum,")", sep=""))
   ggsave(filename="Multiallelic_cross_8x.tiff", plot=plot, width=15, height= 10, dpi=600, compression = "lzw")
-  
+
   Cross <- subset(Cross, Cross!="0/0/0/0/0/0/0/0 x 0/0/0/0/0/0/0/0")
   Cross <- subset(Cross, Cross!="1/1/1/1/1/1/1/1 x 1/1/1/1/1/1/1/1")
   Cross <- subset(Cross, Cross!="2/2/2/2/2/2/2/2 x 2/2/2/2/2/2/2/2")
@@ -4128,7 +4128,7 @@ raw_alleles <- function(){
     ylab(paste("Number of Genotypes with Various Allele Composition (",sum,")", sep=""))
   ggsave(filename="Multiallelic_cross_subset_8x.tiff", plot=plot, width=15, height= 10, dpi=600, compression = "lzw")
   plot <- NULL
-  
+
   Multiallelic_p1_8x <- as.data.frame(table(subgenome_1[,paste(p1,"_GT",sep="")]))
   names(Multiallelic_p1_8x)[names(Multiallelic_p1_8x) == "Var1"] <- "Genotype"
   Multiallelic_p1_8x <- subset(Multiallelic_p1_8x, Genotype != "./././././././.")
@@ -4169,13 +4169,8 @@ raw_alleles <- function(){
     ylab(paste("Number of Genotypes with Various Allele Composition (",sum,")", sep=""))
   ggsave(filename="Multiallelic_8x.tiff", plot=plot, width=15, height= 10, dpi=600, compression = "lzw")
   plot <- NULL
-  
+
 }
 raw_alleles()
 
 ####################################################################################################################
-
-
-
-
-
