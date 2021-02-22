@@ -1,0 +1,40 @@
+
+########################################################################################################################################
+# script splits reference genomes containing subgenomes and reformats the fasta headers
+########################################################################################################################################
+# Script splits polyploid reference genome into subgenome files.# input.fasta is the input file
+# Example header: CM022211.1 Triticum aestivum cultivar Chinese Spring chromosome 1A, whole genome shotgun sequence
+
+### Step_1: Assign parameters to variables
+###########################################
+input=wheat.fasta
+subgenomeID=("A" "B" "D")
+genome="Ta"
+pseudomolecule="chromosome"
+
+
+### Step_2: Run the script below (paste into terminal while in the directory containing the reference fasta file)
+##################################################################################################################
+awk '/^>/{close("file.fasta"f);f++} {print $0 > "file_seq"f}' "${input}"
+for i in file_seq*; do
+header=$(awk 'NR==1' $i | awk -v pseudomolecule=$pseudomolecule '$0 ~ pseudomolecule {print pseudomolecule}' )
+if [[ $header == $pseudomolecule ]]; then
+awk -v pseudomolecule=".*${pseudomolecule}" '{NR==1 && gsub(pseudomolecule,">Chr"); print}' $i > ${i}.txt
+rm $i
+else
+rm $i
+fi
+done
+for i in "${subgenomeID[@]}"; do
+for j in file_seq*.txt; do
+header=$(awk 'NR==1' $j | awk -v id="$i" '$0 ~ id {print id}' )
+if [[ $header == $i ]]; then
+awk -v id="$i" -v idtrim="${i}.*" '{NR==1 && gsub(idtrim,""); print}' $j | awk '{gsub(" ",""); print}' >> ${genome}${i}.fasta
+fi
+done
+done
+rm file_seq*
+mkdir original_ref-seq
+mv $input ./original_ref-seq
+
+

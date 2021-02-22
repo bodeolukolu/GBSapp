@@ -1,0 +1,30 @@
+
+########################################################################################################################################
+# reformat the fasta headers in single reference genome
+########################################################################################################################################
+# Example header: CM022211.1 Triticum aestivum cultivar Chinese Spring chromosome 1, whole genome shotgun sequence
+
+
+### Step_1: Assign parameters to variables
+###########################################
+input=test.fasta
+pseudomolecule="chromosome"
+
+
+### Step_2: Run the script below (paste into terminal while in the directory containing the reference fasta file)
+##################################################################################################################
+awk '/^>/{close("file.fasta"f);f++} {print $0 > "file_seq"f}' "${input}"
+rm $input
+for i in file_seq*; do
+header=$(awk 'NR==1' $i | awk -v pseudomolecule=$pseudomolecule '$0 ~ pseudomolecule {print pseudomolecule}' )
+if [[ $header == $pseudomolecule ]]; then
+awk -v pseudomolecule=".*${pseudomolecule}" '{NR==1 && gsub(pseudomolecule,">Chr"); print}' $i | tr -s " " | awk '{gsub(">Chr ",">Chr"); print}' > ${i}.txt
+rm $i
+else
+rm $i
+fi
+done
+for i in file_seq*.txt; do
+cut -d' ' -f1 $i | awk '{gsub(">Chr",">Chr\t"); print}' | awk -F"\t" '{gsub(/[^0-9]/,"",$2); print}' OFS='' >> $input
+done
+rm file_seq*

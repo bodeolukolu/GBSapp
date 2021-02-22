@@ -1,0 +1,21 @@
+
+########################################################################################################################################
+# reformat fastq filenames so they end in “_R1.fastq” or  “.R1.fastq” and “_R2.fastq” or “.R2.fastq”  
+########################################################################################################################################
+Example: "sample12_forward.fastq" and "sample12_reverse.fastq.gz"
+
+
+### Step_1: Assign the strings you want to replace to variables "string1_to_remove" and "string2_to_remove"
+############################################################################################################
+R1_string=_forward
+R2_string=_reverse
+
+
+### Step_2: Run the script below (paste into terminal while in the directory containing the fastq files)
+#########################################################################################################
+for f in $(ls *${R1_string}*); do 
+mv "${f}" "${f/$R1_string/_R1}"
+done
+for f in $(ls *${R2_string}*); do 
+mv "${f}" "${f/$R2_string/_R2}"
+done
