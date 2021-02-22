@@ -2,7 +2,7 @@
 # Introduction
 GBSapp (v. 0.2.1) is an automated pipeline variant and haplotype calling/filtering. The pipeline integrates existing and novel best practices, some of which can be controlled by user-defined parameters. It ensures accurate dosage-based variant/haplotype calling, fine-scale filtering based on each variant data point (rather than averaging across samples/variants). It optimizes memory and speed at various points in the pipeline such as a novel approach that performs sequence read compression/decompression independently on each unique read before and after pre-processing. Intermediate summary reports and visualizations allow for QC at each step of the pipeline.
 
-![alt text|1385x888, 50%](https://github.com/bodeolukolu/GBSapp/blob/master/misc/GBSapp_logo.PNG?raw=true)
+![alt text](https://github.com/bodeolukolu/GBSapp/blob/master/misc/GBSapp_logo.PNG?raw=true){:height="444px" width="690px"}
 
 For questions, bugs, and suggestions, please contact bolukolu@utk.edu.
 
@@ -42,7 +42,7 @@ $ git clone https://github.com/bodeolukolu/GBSapp.git
 
 **Dependencies:**<br />
 ```
-bwa, picard, samtools, bcftools, GATK, java, R, R-ggplot2, R-AGHmatrix.<br />
+bwa, picard, samtools, bcftools, GATK, java, R, R-ggplot2, R-AGHmatrix
 ```
 Install R before running GBSapp. R installation:
 ```
