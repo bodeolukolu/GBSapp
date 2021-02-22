@@ -26,7 +26,7 @@ For questions, bugs, and suggestions, please contact bolukolu@utk.edu.
   - [Overview of workflow](#Overview_of_workflow)
   - [Configuration](#Configuration)
 - [Related Software](#Related_Software)
-- [Select Article Referencing GBSapp](#Select_Article_Referencing GBSapp)
+- [Select Article Referencing GBSapp](#Select_Article_Referencing_GBSapp)
 - [Acknowledgment](#Acknowledgment)
 - [Troubleshooting](#Troubleshooting)
 - [Versioning](#Versioning)
