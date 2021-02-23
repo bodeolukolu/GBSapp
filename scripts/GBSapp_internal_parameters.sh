@@ -17,6 +17,7 @@ pop=${pop##*/}
 
 ######################################################################################################################################################
 # Software defined parameters
+mkdir -p ${GBSapp_dir}/tools
 cd ${GBSapp_dir}/tools
 bash ../scripts/install.sh
 

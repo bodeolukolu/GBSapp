@@ -107,17 +107,17 @@ file=*.dict
 if test -f $file; then
 	echo -e "${magenta}- indexed genome available ${white}\n"
 	if [ -z "$ref1" ]; then
-		for ref in $(ls *.dict); do 
+		for ref in $(ls *.dict); do
 			ref1=${ref%.dict*}.fasta
 		done
 	fi
 else
 	echo -e "${magenta}- indexing single reference subgenome ${white}\n"
 	if [ -z "$ref1" ]; then
-		for ref in $(ls *.f*); do 
+		for ref in $(ls *.f*); do
 			ref1=${ref%.fa*}.fasta
 		done
-	fi		
+	fi
 	awk '{ sub("\r$",""); print}' $ref1 | awk 'BEGIN{FS=" "}{if(!/>/){print toupper($0)}else{print $1}}' > ref.txt
 	n=">${ref1%.f*}_"
 	awk '{ sub("\r$",""); print}' ref.txt | awk -v n="$n" '{gsub(n,">"); print}' | awk -v n="$n" '{gsub(/>/,n); print}' > $ref1
@@ -329,7 +329,7 @@ else
 		fi
 		export LC_ALL=C; paste -d ~ ${i%.f*}_uniq.txt ${i%.f*}_R2_uniq.txt | expand -t $(( $(wc -L < $i ) + 2 )) | awk '{!seen[$0]++}END{for (i in seen) print seen[i], i}' | \
 		awk '{$1=$1};1' | awk '{gsub(" /"," "); print}' | awk '{gsub("/\n","\n"); print}' | awk '{gsub("/"," "); print}' | awk '{gsub(" ","\t"); print}' | awk -v scaleRD=$scaleRD '$1 >= scaleRD' | \
-		awk -v scaleRD=$scaleRD '{print int($1/scaleRD),"\t",$2,"\t",$3,"\t",$4}' | awk -v maxRD=$maxRD '$1 <= maxRD' | awk -v minRD=$minRD '$1 > minRD' > ${i%.f*}_rdrefseq.txt 
+		awk -v scaleRD=$scaleRD '{print int($1/scaleRD),"\t",$2,"\t",$3,"\t",$4}' | awk -v maxRD=$maxRD '$1 <= maxRD' | awk -v minRD=$minRD '$1 > minRD' > ${i%.f*}_rdrefseq.txt
 		awk 'NF==2 {print ">seq"NR"_se-"$1"\n"$2}' ${i%.f*}_rdrefseq.txt > ${i%.f*}_rdrefseq_se.txt
 		awk 'NF==3 {print ">seq"NR"_pe-"$0}' ${i%.f*}_rdrefseq.txt | awk '{print $1"\n"$3}' > ${i%.f*}_uniq_R2.fasta
 		awk 'NF==3 {print ">seq"NR"_pe-"$0}' ${i%.f*}_rdrefseq.txt | awk '{print $1"\n"$2}' | cat - ${i%.f*}_rdrefseq_se.txt > ${i%.f*}_uniq_R1.fasta
@@ -339,7 +339,7 @@ else
 		else
 			$bwa mem -t $loopthread ../refgenomes/$ref1 ${i%.f*}_uniq_R1.fasta > ../preprocess/${i%.f*}_del.sam
 		fi
-		rm ${i%.f*}_*_uniq* ${i%.f*}_uniq* ${i%.f*}_rdrefseq* 
+		rm ${i%.f*}_*_uniq* ${i%.f*}_uniq* ${i%.f*}_rdrefseq*
 		printf '\n###---'${i%.f*}'---###\n' > ../alignment_summaries/${i%.f*}_summ.txt && \
 		$samtools flagstat ../preprocess/${i%.f*}_del.sam >> ../alignment_summaries/${i%.f*}_summ.txt && \
 		printf '########################################################################################################\n\n' >> ../alignment_summaries/${i%.f*}_summ.txt && \
@@ -437,7 +437,7 @@ if [ "$paleopolyploid" == "true" ]; then
 		else
 			$bwa mem -t $loopthread ../refgenomes/$ref1 ${i%.f*}_uniq_R1.fasta > ../preprocess/${i%.f*}_del.sam
 		fi
-		rm ${i%.f*}_*_uniq* ${i%.f*}_uniq* ${i%.f*}_rdrefseq* 
+		rm ${i%.f*}_*_uniq* ${i%.f*}_uniq* ${i%.f*}_rdrefseq*
 		printf '\n###---'${i%.f*}'---###\n' > ../alignment_summaries/${i%.f*}_summ.txt && \
 		samtools flagstat ../preprocess/${i%.f*}_del.sam >> ../alignment_summaries/${i%.f*}_summ.txt && \
 		printf '########################################################################################################\n\n' >> ${i%.f*}_summ.txt && \
@@ -468,7 +468,7 @@ if [ "$paleopolyploid" == "true" ]; then
 		$java $Xmx1 -XX:ParallelGCThreads=$loopthread -jar $picard MarkDuplicates I=${j%.sam*}.bam O=${j%.sam*}_dup.bam METRICS_FILE= metrics.txt CREATE_INDEX=true && \
 		$java $Xmx1 -XX:ParallelGCThreads=$loopthread -jar $picard BuildBamIndex INPUT=${j%.sam*}_dup.bam && \
 		$java $Xmx1 -XX:ParallelGCThreads=$loopthread -jar $picard AddOrReplaceReadGroups I=${j%.sam*}_dup.bam O=${j%.sam*}_precall.bam RGLB=${i%.f*} RGPL=illumina RGPU=run RGSM=${i%.f*} && \
-		$samtools index ${j%.sam*}_precall.bam 
+		$samtools index ${j%.sam*}_precall.bam
 
 
 		awk '{if ($2=="@HD" || $2=="@SQ" || $2=="@PG") {print}}' ../preprocess/${i%.f*}_2del.sam > ../preprocess/${i%.f*}_3del.sam  && \
@@ -530,7 +530,7 @@ if [ "$paleopolyploid" == "true" ]; then
 			$java $Xmx1 -XX:ParallelGCThreads=$loopthread -jar $picard MarkDuplicates I=${j%.sam*}.bam O=${j%.sam*}_dup.bam METRICS_FILE= metrics.txt CREATE_INDEX=true && \
 			$java $Xmx1 -XX:ParallelGCThreads=$loopthread -jar $picard BuildBamIndex INPUT=${j%.sam*}_dup.bam && \
 			$java $Xmx1 -XX:ParallelGCThreads=$loopthread -jar $picard AddOrReplaceReadGroups I=${j%.sam*}_dup.bam O=${j%.sam*}_precall.bam RGLB=${i%.f*} RGPL=illumina RGPU=run RGSM=${i%.f*} && \
-			$samtools index ${j%.sam*}_precall.bam 
+			$samtools index ${j%.sam*}_precall.bam
 		fi
 
 		ls ${i%.f*}_* | grep -v precall | xargs rm && \
@@ -748,7 +748,7 @@ if [[ "$paleopolyploid" = false ]] && [[ "$ncohorts" != no ]]; then
 		let i++
 	done
 
-	for dir in cohorts*/; do 
+	for dir in cohorts*/; do
 		cd $dir
 		j=--variant; input=""; k=""
 		for i in $(ls *.g.vcf.gz); do
@@ -780,8 +780,8 @@ if [[ "$paleopolyploid" = false ]] && [[ "$ncohorts" != no ]]; then
 		grep -h '^#' ${pop}_${ploidy}x_*_raw.vcf | awk '!visited[$0]++' | awk '!/^##GATKCommandLine/' > vcf_header.txt
 		cat ${pop}_${ploidy}x_*_raw.vcf | awk '!/^#/' > all.vcf
 		cat vcf_header.txt all.vcf > ${pop}_${ploidy}x_raw.vcf
-		rm vcf_header.txt all.vcf 
-		rm ${pop}_${ploidy}x_*_raw.vcf ${pop}_${ploidy}x_*_raw.vcf.gz.tbi 
+		rm vcf_header.txt all.vcf
+		rm ${pop}_${ploidy}x_*_raw.vcf ${pop}_${ploidy}x_*_raw.vcf.gz.tbi
 		bgzip ${pop}_${ploidy}x_raw.vcf
 		tabix -p vcf ${pop}_${ploidy}x_raw.vcf.gz
 
@@ -904,8 +904,8 @@ if [[ "$paleopolyploid" = true ]] && [[ "$ncohorts" != no ]]; then
 			grep -h '^#' ${pop}_${m}x_*_raw.vcf | awk '!visited[$0]++' | awk '!/^##GATKCommandLine/' > vcf_header.txt
 			cat ${pop}_${m}x_*_raw.vcf | awk '!/^#/' > all.vcf
 			cat vcf_header.txt all.vcf > ${pop}_${m}x_raw.vcf
-			rm vcf_header.txt all.vcf 
-			rm ${pop}_${m}x_*_raw.vcf ${pop}_${m}x_*_raw.vcf.gz.tbi 
+			rm vcf_header.txt all.vcf
+			rm ${pop}_${m}x_*_raw.vcf ${pop}_${m}x_*_raw.vcf.gz.tbi
 			bgzip ${pop}_${m}x_raw.vcf
 			tabix -p vcf ${pop}_${m}x_raw.vcf.gz
 
@@ -944,7 +944,7 @@ if [[ "$checksplit" -gt 0 ]]; then
 	for i in $(ls *.vcf); do
 		awk '/^#CHROM/{close("file.vcf"f);f++}{print $0 > "file"f}' $i
 		awk 'NR==1{print}' file1 | cat file - > file0.vcf
-		for j in $(seq 1 10); do 
+		for j in $(seq 1 10); do
 			awk 'NR>1{print}' file1 | awk '{print $1,"\t",$2,"\t",$0}' | awk '{gsub(/_x0/,"\t"); print}' | \
 			awk -v splits=$j -F '\t' 'BEGIN{OFS="\t"} $2 ~ splits {$3=$3+500000000}1' | awk 'BEGIN{OFS="\t"} !($2="")' | awk 'BEGIN{OFS="\t"} !($3="")' | \
 			awk 'BEGIN{OFS="\t"} !($3="")' | awk 'BEGIN{OFS="\t"} !($3="")' | awk '{gsub(/\t\t/,"\t"); print }' | \
@@ -1019,6 +1019,7 @@ if [ "$paleopolyploid" == "true" ]; then
 	mkdir 8x
 fi
 cd ../snpcall
+gunzip *.gz
 
 file1xG=$( ls *_1x_DP_GT.txt | wc -l )
 file1xV=$( ls *1x_raw.vcf | wc -l )
@@ -1085,6 +1086,8 @@ for v in *_DP_GT.txt; do (
 		wait
 	fi
 done
+wait
+gzip *.vcf
 wait
 
 
@@ -1400,7 +1403,7 @@ for snpfilter_dir in $(ls -d */); do
 	cd "$snpfilter_dir"  && \
 	cd genotype_accuracy  && \
 	i=0  && \
-	for f in *; do 
+	for f in *; do
 	    d=Variants_Set_$(printf %04d $((i/1000+1)))  && \
 	    mkdir -p "$d"  && \
 	    mv "$f" "$d"  && \
@@ -1528,7 +1531,7 @@ for snpfilter_dir in $(ls -d */); do
 				haplo=$(awk '{print $3"/"}' ${sample%_align.txt}_haplotypes1.txt | tr -d '\n' )
 				printf "$i\t$haplo_RD\t$haplo\t$i" | awk '{gsub("/\t","\t"); print}' | awk '{print $1"\t"$2"\t"$3}' >> ./paralog_haplo_filter/${outfile}_haplotypes.txt
 			fi
-		done 
+		done
 		rm ${sample%_align.txt}_snp.txt ${sample%_align.txt}_haplotypes1.txt ${sample} ) &
 		if [[ $(jobs -r -p | wc -l) -ge $N ]]; then
 		wait
@@ -1546,7 +1549,7 @@ for snpfilter_dir in $(ls -d */); do
 	fi
 	done
 	rm ./paralog_haplo_filter/SNP_files.txt
-	
+
 	touch ./paralog_haplo_filter/consensus_haplos.txt
 	if [ -z "$p1" ]; then
 		if [ -z "$p2" ]; then
@@ -1581,7 +1584,7 @@ for snpfilter_dir in $(ls -d */); do
 
 	#source: http://www.dayofthenewdan.com/2012/12/26/AWK_Linear_Regression.html
 	fitline () {
-		awk 'BEGIN { FS = "[ ,\t]+" } 
+		awk 'BEGIN { FS = "[ ,\t]+" }
 		NF == 2 { x_sum += $1
 		y_sum += $2
 		xy_sum += $1*$2
@@ -1606,7 +1609,7 @@ for snpfilter_dir in $(ls -d */); do
 		printf("R-Squared  :  %g\n", r2)
 		}'
 	}
-	
+
 	ploidy_level=${snpfilter_dir%x_*}
 	if [[ "$ploidy_level" -eq 2 ]]; then
 		for i in $( ls -S ./paralog_haplo_filter/*_hapmissingSNP.txt); do
@@ -1616,11 +1619,11 @@ for snpfilter_dir in $(ls -d */); do
 			awk -v j=$j 'NR == j' ./paralog_haplo_filter/consensus_haplos.txt | tr '\t' '\n' | awk 'NR>1' | awk 'NF > 0' | awk '{print NR"\t"$1}' > ./paralog_haplo_filter/consensus_haplo_line.txt
 			for i in $(ls -S ./paralog_haplo_filter/*_hapmissingSNP.txt); do (
 				nhaplo=$(awk -v j=$j 'NR==j{print $3}' $i | tr '/' '\n' | awk 'NF > 0' | wc -l)
-				if [[ $nhaplo -eq 1 ]]; then 
+				if [[ $nhaplo -eq 1 ]]; then
 					awk -v j=$j 'NR==j{print $3}' $i | tr '/' '\n' | awk '{print ".\t"$0"\n.\t"$0}' | cat ./paralog_haplo_filter/consensus_haplo_line.txt - | sort -k2,2 | uniq -f1 -d | \
 					awk '{gsub(/.\tNA/,"NA\tNA"); print}' | awk '{print $1" "$1}' | tr ' ' '/' | awk '{gsub("NA/NA","NA"); print}' >> ${i%_hapmissingSNP.txt}_hapcoded.txt
 				fi
-				if [[ $nhaplo -eq 2 ]]; then 
+				if [[ $nhaplo -eq 2 ]]; then
 					awk -v j=$j 'NR==j{print $3}' $i | tr '/' '\n' | awk '{print ".\t"$0"\n.\t"$0}' | cat ./paralog_haplo_filter/consensus_haplo_line.txt -  | sort -k2,2 | uniq -f1 -d | \
 					awk '{gsub(/.\tNA/,"NA\tNA"); print}' | awk '{print $1}' | tr '\n' ' ' | awk '{$1=$1};1' | tr ' ' '/' | awk '{gsub("NA/NA","NA"); print}' >> ${i%_hapmissingSNP.txt}_hapcoded.txt
 				fi ) &
@@ -1639,11 +1642,11 @@ for snpfilter_dir in $(ls -d */); do
 			for i in $(ls -S ./paralog_haplo_filter/*_hapmissingSNP.txt); do (
 				nhaplo=$(awk -v j=$j 'NR==j{print $3}' $i | tr '/' '\n' | awk 'NF > 0' | wc -l)
 				exp=$(awk -v j=$j 'NR==j{print $3}' $i | tr '/' ' ' | awk 'NF > 0')
-				if [[ $nhaplo -eq 1 ]]; then 
+				if [[ $nhaplo -eq 1 ]]; then
 					awk -v j=$j 'NR==j{print $3}' $i | tr '/' '\n' | awk '{print ".\t"$0"\n.\t"$0}' | cat ./paralog_haplo_filter/consensus_haplo_line.txt - | sort -k2,2 | uniq -f1 -d | \
 					awk '{gsub(/.\tNA/,"NA\tNA"); print}' | awk '{print $1" "$1" "$1" "$1}' | tr ' ' '/' | awk '{gsub("NA/NA","NA"); print}' >> ${i%_hapmissingSNP.txt}_hapcoded.txt
 				fi
-if [[ $nhaplo -eq 2 ]]; then 
+if [[ $nhaplo -eq 2 ]]; then
 obs1=$(printf "0 1 3")
 obs2=$(printf "0 2 2")
 exp1=$(( paste <(printf '..%s..' "$obs1\n" | tr ' ' '\n') <(printf '..%s..' "$exp\n" | tr ' ' '\n') | fitline | awk 'NR==3{print $3}' ))
@@ -1652,11 +1655,11 @@ exp2=$(( paste <(printf '..%s..' "$obs2\n" | tr ' ' '\n') <(printf '..%s..' "$ex
 		awk -v j=$j 'NR==j{print $3}' $i | tr '/' '\n' | awk '{print ".\t"$0"\n.\t"$0}' | cat ./paralog_haplo_filter/consensus_haplo_line.txt - | sort -k2,2 | uniq -f1 -d | \
 		awk '{gsub(/.\tNA/,"NA\tNA"); print}' | awk '{print $1" "$1}' | tr ' ' '/' | awk '{gsub("NA/NA","NA"); print}' >> ${i%_hapmissingSNP.txt}_hapcoded.txt
 fi
-if [[ $nhaplo -eq 3 ]]; then 
+if [[ $nhaplo -eq 3 ]]; then
 	awk -v j=$j 'NR==j{print $3}' $i | tr '/' '\n' | awk '{print ".\t"$0"\n.\t"$0}' | cat ./paralog_haplo_filter/consensus_haplo_line.txt - | sort -k2,2 | uniq -f1 -d | \
 	awk '{gsub(/.\tNA/,"NA\tNA"); print}' | awk '{print $1" "$1" "$1}' | tr ' ' '/' | awk '{gsub("NA/NA","NA"); print}' >> ${i%_hapmissingSNP.txt}_hapcoded.txt
 fi
-				if [[ $nhaplo -eq 4 ]]; then 
+				if [[ $nhaplo -eq 4 ]]; then
 					awk -v j=$j 'NR==j{print $3}' $i | tr '/' '\n' | awk '{print ".\t"$0"\n.\t"$0}' | cat ./paralog_haplo_filter/consensus_haplo_line.txt -  | sort -k2,2 | uniq -f1 -d | \
 					awk '{gsub(/.\tNA/,"NA\tNA"); print}' | awk '{print $1}' | tr '\n' ' ' | awk '{$1=$1};1' | tr ' ' '/' | awk '{gsub("NA/NA","NA"); print}' >> ${i%_hapmissingSNP.txt}_hapcoded.txt
 				fi ) &
@@ -1674,11 +1677,11 @@ fi
 			awk -v j=$j 'NR == j' ./paralog_haplo_filter/consensus_haplos.txt | tr '\t' '\n' | awk 'NR>1' | awk 'NF > 0' | awk '{print NR"\t"$1}' > ./paralog_haplo_filter/consensus_haplo_line.txt
 			for i in $(ls -S ./paralog_haplo_filter/*_hapmissingSNP.txt); do (
 				nhaplo=$(awk -v j=$j 'NR==j{print $3}' $i | tr '/' '\n' | awk 'NF > 0' | wc -l)
-				if [[ $nhaplo -eq 1 ]]; then 
+				if [[ $nhaplo -eq 1 ]]; then
 					awk -v j=$j 'NR==j{print $3}' $i | tr '/' '\n' | awk '{print ".\t"$0"\n.\t"$0}' | cat ./paralog_haplo_filter/consensus_haplo_line.txt - | sort -k2,2 | uniq -f1 -d | \
 					awk '{gsub(/.\tNA/,"NA\tNA"); print}' | awk '{print $1" "$1" "$1" "$1" "$1" "$1}' | tr ' ' '/' | awk '{gsub("NA/NA","NA"); print}' >> ${i%_hapmissingSNP.txt}_hapcoded.txt
 				fi
-				if [[ $nhaplo -eq 6 ]]; then 
+				if [[ $nhaplo -eq 6 ]]; then
 					awk -v j=$j 'NR==j{print $3}' $i | tr '/' '\n' | awk '{print ".\t"$0"\n.\t"$0}' | cat ./paralog_haplo_filter/consensus_haplo_line.txt -  | sort -k2,2 | uniq -f1 -d | \
 					awk '{gsub(/.\tNA/,"NA\tNA"); print}' | awk '{print $1}' | tr '\n' ' ' | awk '{$1=$1};1' | tr ' ' '/' | awk '{gsub("NA/NA","NA"); print}' >> ${i%_hapmissingSNP.txt}_hapcoded.txt
 				fi ) &
@@ -1696,11 +1699,11 @@ fi
 			awk -v j=$j 'NR == j' ./paralog_haplo_filter/consensus_haplos.txt | tr '\t' '\n' | awk 'NR>1' | awk 'NF > 0' | awk '{print NR"\t"$1}' > ./paralog_haplo_filter/consensus_haplo_line.txt
 			for i in $(ls -S ./paralog_haplo_filter/*_hapmissingSNP.txt); do (
 				nhaplo=$(awk -v j=$j 'NR==j{print $3}' $i | tr '/' '\n' | awk 'NF > 0' | wc -l)
-				if [[ $nhaplo -eq 1 ]]; then 
+				if [[ $nhaplo -eq 1 ]]; then
 					awk -v j=$j 'NR==j{print $3}' $i | tr '/' '\n' | awk '{print ".\t"$0"\n.\t"$0}' | cat ./paralog_haplo_filter/consensus_haplo_line.txt - | sort -k2,2 | uniq -f1 -d | \
 					awk '{gsub(/.\tNA/,"NA\tNA"); print}' | awk '{print $1" "$1" "$1" "$1" "$1" "$1" "$1" "$1}' | tr ' ' '/' | awk '{gsub("NA/NA","NA"); print}' >> ${i%_hapmissingSNP.txt}_hapcoded.txt
 				fi
-				if [[ $nhaplo -eq 8 ]]; then 
+				if [[ $nhaplo -eq 8 ]]; then
 					awk -v j=$j 'NR==j{print $3}' $i | tr '/' '\n' | awk '{print ".\t"$0"\n.\t"$0}' | cat ./paralog_haplo_filter/consensus_haplo_line.txt -  | sort -k2,2 | uniq -f1 -d | \
 					awk '{gsub(/.\tNA/,"NA\tNA"); print}' | awk '{print $1}' | tr '\n' ' ' | awk '{$1=$1};1' | tr ' ' '/' | awk '{gsub("NA/NA","NA"); print}' >> ${i%_hapmissingSNP.txt}_hapcoded.txt
 				fi ) &
@@ -1720,7 +1723,7 @@ fi
 	hap=$( echo $line | awk '{print $1}' )
 	awk -v hap=$hap '$0~hap {print $1}' snplist.txt >> ./paralog_haplo_filter/haplo_filtered_snp.txt
 	done
-	
+
 	minRD=${snpfilter_dir%x*}
 	for i in $(ls ./paralog_haplo_filter/${pop}_${ploidy}x_rd${minRD}_maf${maf}_* | grep -v population_haplotype ) ; do (
 	awk 'BEGIN{OFS="\t"}NR==FNR {h[$1] = $0; next} {print $0,h[$1]}' haplo_filtered_snp.txt $i | awk  -F '\t' 'BEGIN{OFS="\t"}$NF!=""' | awk 'BEGIN{OFS="\t"}NF{NF-=1};1' > ./paralog_haplo_filter/${i%.txt}_hapfiltered.txt ) &

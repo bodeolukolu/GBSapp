@@ -89,7 +89,7 @@ else
 			done
 		done
 		cd ../
-		for i in *.f*; do ( 
+		for i in *.f*; do (
 			mv $i ./old_"${i%.f*}_fasta.txt"
 			cat ./split/${i%.f*}_Chr* > $i ) &
 		done
@@ -335,7 +335,7 @@ for i in $(ls -S *.f* | grep -v R2.f); do (
   else
 	$bwa mem -t $loopthread ../refgenomes/panref.fasta ${i%.f*}_uniq_R1.fasta > ../preprocess/${i%.f*}_del.sam
   fi
-  rm ${i%.f*}_*_uniq* ${i%.f*}_uniq* ${i%.f*}_rdrefseq* 
+  rm ${i%.f*}_*_uniq* ${i%.f*}_uniq* ${i%.f*}_rdrefseq*
   printf '\n###---'${i%.f*}'---###\n' > ../alignment_summaries/${i%.f*}_summ.txt && \
   $samtools flagstat ../preprocess/${i%.f*}_del.sam >> ../alignment_summaries/${i%.f*}_summ.txt && \
   printf '########################################################################################################\n\n' >> ../alignment_summaries/${i%.f*}_summ.txt && \
@@ -364,7 +364,7 @@ for i in $(ls -S *.f* | grep -v R2.f); do (
   done; wait
   awk '{print "seq"NR"_"$0}' ../preprocess/${i%.f*}_exp.sam | awk '{gsub(/ /,"\t"); print}' | awk '{$11 = $10; print}' | awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$11); print}' |\
   cat ../preprocess/${i%.f*}_heading.sam - > ../preprocess/${i%.f*}_${ref1%.f*}.sam
-  rm ../preprocess/${i%.f*}_exp.sam 
+  rm ../preprocess/${i%.f*}_exp.sam
 
   awk '{if ($5=="@HD" || $5=="@SQ" || $5=="@PG") {print}}' ../preprocess/${i%.f*}_2del.sam > ../preprocess/${i%.f*}_3del.sam  && \
   grep -vwE "(@HD|@SQ|@PG)" ../preprocess/${i%.f*}_2del.sam | awk -v paralogs=$paralogs '{ if (($1 == 0) && ($2 >= 1) && ($2 <= paralogs) && ($3 == 0) && ($4 == 0)) { print } }' >> ../preprocess/${i%.f*}_3del.sam   && \
@@ -376,7 +376,7 @@ for i in $(ls -S *.f* | grep -v R2.f); do (
   done; wait
   awk '{print "seq"NR"_"$0}' ../preprocess/${i%.f*}_exp.sam | awk '{gsub(/ /,"\t"); print}' | awk '{$11 = $10; print}' | awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$11); print}' |\
   cat ../preprocess/${i%.f*}_heading.sam - > ../preprocess/${i%.f*}_${ref2%.f*}.sam
-  rm ../preprocess/${i%.f*}_exp.sam 
+  rm ../preprocess/${i%.f*}_exp.sam
 
   awk '{if ($5=="@HD" || $5=="@SQ" || $5=="@PG") {print}}' ../preprocess/${i%.f*}_2del.sam > ../preprocess/${i%.f*}_3del.sam  && \
   grep -vwE "(@HD|@SQ|@PG)" ../preprocess/${i%.f*}_2del.sam | awk -v paralogs=$paralogs '{ if (($1 == 0) && ($2 == 0) && ($3 >= 1) && ($3 <= paralogs) && ($4 == 0)) { print } }' >> ../preprocess/${i%.f*}_3del.sam   && \
@@ -388,7 +388,7 @@ for i in $(ls -S *.f* | grep -v R2.f); do (
   done; wait
   awk '{print "seq"NR"_"$0}' ../preprocess/${i%.f*}_exp.sam | awk '{gsub(/ /,"\t"); print}' | awk '{$11 = $10; print}' | awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$11); print}' |\
   cat ../preprocess/${i%.f*}_heading.sam - > ../preprocess/${i%.f*}_${ref3%.f*}.sam
-  rm ../preprocess/${i%.f*}_exp.sam 
+  rm ../preprocess/${i%.f*}_exp.sam
 
   awk '{if ($5=="@HD" || $5=="@SQ" || $5=="@PG") {print}}' ../preprocess/${i%.f*}_2del.sam > ../preprocess/${i%.f*}_3del.sam  && \
   grep -vwE "(@HD|@SQ|@PG)" ../preprocess/${i%.f*}_2del.sam | awk -v paralogs=$paralogs '{ if (($1 == 0) && ($2 == 0) && ($3 == 0) && ($4 >= 1) && ($4 <= paralogs)) { print } }' >> ../preprocess/${i%.f*}_3del.sam   && \
@@ -400,7 +400,7 @@ for i in $(ls -S *.f* | grep -v R2.f); do (
   done; wait
   awk '{print "seq"NR"_"$0}' ../preprocess/${i%.f*}_exp.sam | awk '{gsub(/ /,"\t"); print}' | awk '{$11 = $10; print}' | awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$11); print}' |\
   cat ../preprocess/${i%.f*}_heading.sam - > ../preprocess/${i%.f*}_${ref4%.f*}.sam
-  rm ../preprocess/${i%.f*}_exp.sam 
+  rm ../preprocess/${i%.f*}_exp.sam
 
 
   awk '{if ($5=="@HD" || $5=="@SQ" || $5=="@PG") {print}}' ../preprocess/${i%.f*}_2del.sam > ../preprocess/${i%.f*}_3del.sam  && \
@@ -413,7 +413,7 @@ for i in $(ls -S *.f* | grep -v R2.f); do (
   done; wait
   awk '{print "seq"NR"_"$0}' ../preprocess/${i%.f*}_exp.sam | awk '{gsub(/ /,"\t"); print}' | awk '{$11 = $10; print}' | awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$11); print}' |\
   cat ../preprocess/${i%.f*}_heading.sam - > ../preprocess/${i%.f*}_${ref1%.f*}_${ref2%.f*}.sam
-  rm ../preprocess/${i%.f*}_exp.sam 
+  rm ../preprocess/${i%.f*}_exp.sam
 
   awk '{if ($5=="@HD" || $5=="@SQ" || $5=="@PG") {print}}' ../preprocess/${i%.f*}_2del.sam > ../preprocess/${i%.f*}_3del.sam  && \
   grep -vwE "(@HD|@SQ|@PG)" ../preprocess/${i%.f*}_2del.sam | awk -v paralogs=$paralogs '{ if (($1 >= 1) && ($1 <= paralogs) && ($2 == 0) && ($3 >= 1) && ($3 <= paralogs) && ($4 == 0)) { print } }' >> ../preprocess/${i%.f*}_3del.sam   && \
@@ -425,7 +425,7 @@ for i in $(ls -S *.f* | grep -v R2.f); do (
   done; wait
   awk '{print "seq"NR"_"$0}' ../preprocess/${i%.f*}_exp.sam | awk '{gsub(/ /,"\t"); print}' | awk '{$11 = $10; print}' | awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$11); print}' |\
   cat ../preprocess/${i%.f*}_heading.sam - > ../preprocess/${i%.f*}_${ref1%.f*}_${ref3%.f*}.sam
-  rm ../preprocess/${i%.f*}_exp.sam 
+  rm ../preprocess/${i%.f*}_exp.sam
 
   awk '{if ($5=="@HD" || $5=="@SQ" || $5=="@PG") {print}}' ../preprocess/${i%.f*}_2del.sam > ../preprocess/${i%.f*}_3del.sam  && \
   grep -vwE "(@HD|@SQ|@PG)" ../preprocess/${i%.f*}_2del.sam | awk -v paralogs=$paralogs '{ if (($1 >= 1) && ($1 <= paralogs) && ($2 == 0) && ($3 == 0) && ($4 >= 1) && ($4 <= paralogs)) { print } }' >> ../preprocess/${i%.f*}_3del.sam   && \
@@ -437,7 +437,7 @@ for i in $(ls -S *.f* | grep -v R2.f); do (
   done; wait
   awk '{print "seq"NR"_"$0}' ../preprocess/${i%.f*}_exp.sam | awk '{gsub(/ /,"\t"); print}' | awk '{$11 = $10; print}' | awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$11); print}' |\
   cat ../preprocess/${i%.f*}_heading.sam - > ../preprocess/${i%.f*}_${ref1%.f*}_${ref4%.f*}.sam
-  rm ../preprocess/${i%.f*}_exp.sam 
+  rm ../preprocess/${i%.f*}_exp.sam
 
   awk '{if ($5=="@HD" || $5=="@SQ" || $5=="@PG") {print}}' ../preprocess/${i%.f*}_2del.sam > ../preprocess/${i%.f*}_3del.sam  && \
   grep -vwE "(@HD|@SQ|@PG)" ../preprocess/${i%.f*}_2del.sam | awk -v paralogs=$paralogs '{ if (($1 == 0) && ($2 >= 1) && ($2 <= paralogs) && ($3 >= 1) && ($3 <= paralogs) && ($4 == 0)) { print } }' >> ../preprocess/${i%.f*}_3del.sam   && \
@@ -449,7 +449,7 @@ for i in $(ls -S *.f* | grep -v R2.f); do (
   done; wait
   awk '{print "seq"NR"_"$0}' ../preprocess/${i%.f*}_exp.sam | awk '{gsub(/ /,"\t"); print}' | awk '{$11 = $10; print}' | awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$11); print}' |\
   cat ../preprocess/${i%.f*}_heading.sam - > ../preprocess/${i%.f*}_${ref2%.f*}_${ref3%.f*}.sam
-  rm ../preprocess/${i%.f*}_exp.sam 
+  rm ../preprocess/${i%.f*}_exp.sam
 
   awk '{if ($5=="@HD" || $5=="@SQ" || $5=="@PG") {print}}' ../preprocess/${i%.f*}_2del.sam > ../preprocess/${i%.f*}_3del.sam  && \
   grep -vwE "(@HD|@SQ|@PG)" ../preprocess/${i%.f*}_2del.sam | awk -v paralogs=$paralogs '{ if (($1 == 0) && ($2 >= 1) && ($2 <= paralogs) && ($3 == 0) && ($4 >= 1) && ($4 <= paralogs)) { print } }' >> ../preprocess/${i%.f*}_3del.sam   && \
@@ -461,7 +461,7 @@ for i in $(ls -S *.f* | grep -v R2.f); do (
   done; wait
   awk '{print "seq"NR"_"$0}' ../preprocess/${i%.f*}_exp.sam | awk '{gsub(/ /,"\t"); print}' | awk '{$11 = $10; print}' | awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$11); print}' |\
   cat ../preprocess/${i%.f*}_heading.sam - > ../preprocess/${i%.f*}_${ref2%.f*}_${ref4%.f*}.sam
-  rm ../preprocess/${i%.f*}_exp.sam 
+  rm ../preprocess/${i%.f*}_exp.sam
 
   awk '{if ($5=="@HD" || $5=="@SQ" || $5=="@PG") {print}}' ../preprocess/${i%.f*}_2del.sam > ../preprocess/${i%.f*}_3del.sam  && \
   grep -vwE "(@HD|@SQ|@PG)" ../preprocess/${i%.f*}_2del.sam | awk -v paralogs=$paralogs '{ if (($1 == 0) && ($2 == 0) && ($3 >= 1) && ($3 <= paralogs) && ($4 >= 1) && ($4 <= paralogs)) { print } }' >> ../preprocess/${i%.f*}_3del.sam   && \
@@ -473,7 +473,7 @@ for i in $(ls -S *.f* | grep -v R2.f); do (
   done; wait
   awk '{print "seq"NR"_"$0}' ../preprocess/${i%.f*}_exp.sam | awk '{gsub(/ /,"\t"); print}' | awk '{$11 = $10; print}' | awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$11); print}' |\
   cat ../preprocess/${i%.f*}_heading.sam - > ../preprocess/${i%.f*}_${ref3%.f*}_${ref4%.f*}.sam
-  rm ../preprocess/${i%.f*}_exp.sam 
+  rm ../preprocess/${i%.f*}_exp.sam
 
 
   awk '{if ($5=="@HD" || $5=="@SQ" || $5=="@PG") {print}}' ../preprocess/${i%.f*}_2del.sam > ../preprocess/${i%.f*}_3del.sam  && \
@@ -485,8 +485,8 @@ for i in $(ls -S *.f* | grep -v R2.f); do (
   	awk -v n="^${j}" '$0~n{print $0}' ../preprocess/${i%.f*}_uniq.sam | awk -v n="$j" '{for(i=0;i<n;i++) print}' >> ../preprocess/${i%.f*}_exp.sam
   done; wait
   awk '{print "seq"NR"_"$0}' ../preprocess/${i%.f*}_exp.sam | awk '{gsub(/ /,"\t"); print}' | awk '{$11 = $10; print}' | awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$11); print}' |\
-  cat ../preprocess/${i%.f*}_heading.sam - > ../preprocess/${i%.f*}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}.sam 
-  rm ../preprocess/${i%.f*}_exp.sam 
+  cat ../preprocess/${i%.f*}_heading.sam - > ../preprocess/${i%.f*}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}.sam
+  rm ../preprocess/${i%.f*}_exp.sam
 
   awk '{if ($5=="@HD" || $5=="@SQ" || $5=="@PG") {print}}' ../preprocess/${i%.f*}_2del.sam > ../preprocess/${i%.f*}_3del.sam  && \
   grep -vwE "(@HD|@SQ|@PG)" ../preprocess/${i%.f*}_2del.sam | awk -v paralogs=$paralogs '{ if (($1 >= 1) && ($1 <= paralogs) && ($2 >= 1) && ($2 <= paralogs) && ($3 == 0) && ($4 >= 1) && ($4 <= paralogs)) { print } }' >> ../preprocess/${i%.f*}_3del.sam   && \
@@ -497,8 +497,8 @@ for i in $(ls -S *.f* | grep -v R2.f); do (
   	awk -v n="^${j}" '$0~n{print $0}' ../preprocess/${i%.f*}_uniq.sam | awk -v n="$j" '{for(i=0;i<n;i++) print}' >> ../preprocess/${i%.f*}_exp.sam
   done; wait
   awk '{print "seq"NR"_"$0}' ../preprocess/${i%.f*}_exp.sam | awk '{gsub(/ /,"\t"); print}' | awk '{$11 = $10; print}' | awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$11); print}' |\
-  cat ../preprocess/${i%.f*}_heading.sam - > ../preprocess/${i%.f*}_${ref1%.f*}_${ref2%.f*}_${ref4%.f*}.sam 
-  rm ../preprocess/${i%.f*}_exp.sam 
+  cat ../preprocess/${i%.f*}_heading.sam - > ../preprocess/${i%.f*}_${ref1%.f*}_${ref2%.f*}_${ref4%.f*}.sam
+  rm ../preprocess/${i%.f*}_exp.sam
 
   awk '{if ($5=="@HD" || $5=="@SQ" || $5=="@PG") {print}}' ../preprocess/${i%.f*}_2del.sam > ../preprocess/${i%.f*}_3del.sam  && \
   grep -vwE "(@HD|@SQ|@PG)" ../preprocess/${i%.f*}_2del.sam | awk -v paralogs=$paralogs '{ if (($1 >= 1) && ($1 <= paralogs) && ($2 == 0) && ($3 >= 1) && ($3 <= paralogs) && ($4 >= 1) && ($4 <= paralogs)) { print } }' >> ../preprocess/${i%.f*}_3del.sam   && \
@@ -509,8 +509,8 @@ for i in $(ls -S *.f* | grep -v R2.f); do (
   	awk -v n="^${j}" '$0~n{print $0}' ../preprocess/${i%.f*}_uniq.sam | awk -v n="$j" '{for(i=0;i<n;i++) print}' >> ../preprocess/${i%.f*}_exp.sam
   done; wait
   awk '{print "seq"NR"_"$0}' ../preprocess/${i%.f*}_exp.sam | awk '{gsub(/ /,"\t"); print}' | awk '{$11 = $10; print}' | awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$11); print}' |\
-  cat ../preprocess/${i%.f*}_heading.sam - > ../preprocess/${i%.f*}_${ref1%.f*}_${ref3%.f*}_${ref4%.f*}.sam 
-  rm ../preprocess/${i%.f*}_exp.sam 
+  cat ../preprocess/${i%.f*}_heading.sam - > ../preprocess/${i%.f*}_${ref1%.f*}_${ref3%.f*}_${ref4%.f*}.sam
+  rm ../preprocess/${i%.f*}_exp.sam
 
   awk '{if ($5=="@HD" || $5=="@SQ" || $5=="@PG") {print}}' ../preprocess/${i%.f*}_2del.sam > ../preprocess/${i%.f*}_3del.sam  && \
   grep -vwE "(@HD|@SQ|@PG)" ../preprocess/${i%.f*}_2del.sam | awk -v paralogs=$paralogs '{ if (($1 == 0) && ($2 >= 1) && ($2 <= paralogs) && ($3 >= 1) && ($3 <= paralogs) && ($4 >= 1) && ($4 <= paralogs)) { print } }' >> ../preprocess/${i%.f*}_3del.sam   && \
@@ -521,8 +521,8 @@ for i in $(ls -S *.f* | grep -v R2.f); do (
   	awk -v n="^${j}" '$0~n{print $0}' ../preprocess/${i%.f*}_uniq.sam | awk -v n="$j" '{for(i=0;i<n;i++) print}' >> ../preprocess/${i%.f*}_exp.sam
   done; wait
   awk '{print "seq"NR"_"$0}' ../preprocess/${i%.f*}_exp.sam | awk '{gsub(/ /,"\t"); print}' | awk '{$11 = $10; print}' | awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$11); print}' |\
-  cat ../preprocess/${i%.f*}_heading.sam - > ../preprocess/${i%.f*}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.sam 
-  rm ../preprocess/${i%.f*}_exp.sam 
+  cat ../preprocess/${i%.f*}_heading.sam - > ../preprocess/${i%.f*}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.sam
+  rm ../preprocess/${i%.f*}_exp.sam
 
 
   awk '{if ($5=="@HD" || $5=="@SQ" || $5=="@PG") {print}}' ../preprocess/${i%.f*}_2del.sam > ../preprocess/${i%.f*}_3del.sam  && \
@@ -535,7 +535,7 @@ for i in $(ls -S *.f* | grep -v R2.f); do (
   done; wait
   awk '{print "seq"NR"_"$0}' ../preprocess/${i%.f*}_exp.sam | awk '{gsub(/ /,"\t"); print}' | awk '{$11 = $10; print}' | awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$11); print}' |\
   cat ../preprocess/${i%.f*}_heading.sam - > ../preprocess/${i%.f*}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.sam
-  rm ../preprocess/${i%.f*}_exp.sam 
+  rm ../preprocess/${i%.f*}_exp.sam
 
 
   declare -a arr=("${i%.f*}_${ref1%.f*}.sam" "${i%.f*}_${ref2%.f*}.sam" "${i%.f*}_${ref3%.f*}.sam" "${i%.f*}_${ref4%.f*}.sam" \
@@ -1208,8 +1208,8 @@ if [ "$ncohorts" != no ]; then
 		grep -h '^#' ${pop}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}_${ploidy}x_*_raw.vcf | awk '!visited[$0]++' | awk '!/^##GATKCommandLine/' > vcf_header.txt
 		cat ${pop}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}_${ploidy}x_*_raw.vcf | awk '!/^#/' > all.vcf
 		cat vcf_header.txt all.vcf > ${pop}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}_${ploidy}x_raw.vcf
-		rm vcf_header.txt all.vcf 
-		rm ${pop}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}_${ploidy}x_*_raw.vcf ${pop}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}_${ploidy}x_*_raw.vcf.gz.tbi 
+		rm vcf_header.txt all.vcf
+		rm ${pop}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}_${ploidy}x_*_raw.vcf ${pop}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}_${ploidy}x_*_raw.vcf.gz.tbi
 		bgzip ${pop}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}_${ploidy}x_raw.vcf
 		tabix -p vcf ${pop}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}_${ploidy}x_raw.vcf.gz
 
@@ -1330,8 +1330,8 @@ if [ "$ncohorts" != no ]; then
 		grep -h '^#' ${pop}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${calcploidy}x_*_raw.vcf | awk '!visited[$0]++' | awk '!/^##GATKCommandLine/' > vcf_header.txt
 		cat ${pop}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${calcploidy}x_*_raw.vcf | awk '!/^#/' > all.vcf
 		cat vcf_header.txt all.vcf > ${pop}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${calcploidy}x_raw.vcf
-		rm vcf_header.txt all.vcf 
-		rm ${pop}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${calcploidy}x_*_raw.vcf ${pop}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${calcploidy}x_*_raw.vcf.gz.tbi 
+		rm vcf_header.txt all.vcf
+		rm ${pop}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${calcploidy}x_*_raw.vcf ${pop}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${calcploidy}x_*_raw.vcf.gz.tbi
 		bgzip ${pop}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${calcploidy}x_raw.vcf
 		tabix -p vcf ${pop}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${calcploidy}x_raw.vcf.gz
 
@@ -1452,8 +1452,8 @@ if [ "$ncohorts" != no ]; then
 		grep -h '^#' ${pop}_${ref1%.f*}_${ref2%.f*}_${ref4%.f*}_${calcploidy}x_*_raw.vcf | awk '!visited[$0]++' | awk '!/^##GATKCommandLine/' > vcf_header.txt
 		cat ${pop}_${ref1%.f*}_${ref2%.f*}_${ref4%.f*}_${calcploidy}x_*_raw.vcf | awk '!/^#/' > all.vcf
 		cat vcf_header.txt all.vcf > ${pop}_${ref1%.f*}_${ref2%.f*}_${ref4%.f*}_${calcploidy}x_raw.vcf
-		rm vcf_header.txt all.vcf 
-		rm ${pop}_${ref1%.f*}_${ref2%.f*}_${ref4%.f*}_${calcploidy}x_*_raw.vcf ${pop}_${ref1%.f*}_${ref2%.f*}_${ref4%.f*}_${calcploidy}x_*_raw.vcf.gz.tbi 
+		rm vcf_header.txt all.vcf
+		rm ${pop}_${ref1%.f*}_${ref2%.f*}_${ref4%.f*}_${calcploidy}x_*_raw.vcf ${pop}_${ref1%.f*}_${ref2%.f*}_${ref4%.f*}_${calcploidy}x_*_raw.vcf.gz.tbi
 		bgzip ${pop}_${ref1%.f*}_${ref2%.f*}_${ref4%.f*}_${calcploidy}x_raw.vcf
 		tabix -p vcf ${pop}_${ref1%.f*}_${ref2%.f*}_${ref4%.f*}_${calcploidy}x_raw.vcf.gz
 
@@ -1574,8 +1574,8 @@ if [ "$ncohorts" != no ]; then
 		grep -h '^#' ${pop}_${ref1%.f*}_${ref3%.f*}_${ref4%.f*}_${calcploidy}x_*_raw.vcf | awk '!visited[$0]++' | awk '!/^##GATKCommandLine/' > vcf_header.txt
 		cat ${pop}_${ref1%.f*}_${ref3%.f*}_${ref4%.f*}_${calcploidy}x_*_raw.vcf | awk '!/^#/' > all.vcf
 		cat vcf_header.txt all.vcf > ${pop}_${ref1%.f*}_${ref3%.f*}_${ref4%.f*}_${calcploidy}x_raw.vcf
-		rm vcf_header.txt all.vcf 
-		rm ${pop}_${ref1%.f*}_${ref3%.f*}_${ref4%.f*}_${calcploidy}x_*_raw.vcf ${pop}_${ref1%.f*}_${ref3%.f*}_${ref4%.f*}_${calcploidy}x_*_raw.vcf.gz.tbi 
+		rm vcf_header.txt all.vcf
+		rm ${pop}_${ref1%.f*}_${ref3%.f*}_${ref4%.f*}_${calcploidy}x_*_raw.vcf ${pop}_${ref1%.f*}_${ref3%.f*}_${ref4%.f*}_${calcploidy}x_*_raw.vcf.gz.tbi
 		rm ${pop}_${ref1%.f*}_${ref3%.f*}_${ref4%.f*}_${calcploidy}x_*_raw.g.vcf ${pop}_${ref1%.f*}_${ref3%.f*}_${ref4%.f*}_${calcploidy}x_*_raw.g.vcf.gz.tbi
 		bgzip ${pop}_${ref1%.f*}_${ref3%.f*}_${ref4%.f*}_${calcploidy}x_raw.vcf
 		tabix -p vcf ${pop}_${ref1%.f*}_${ref3%.f*}_${ref4%.f*}_${calcploidy}x_raw.vcf.gz
@@ -1697,8 +1697,8 @@ if [ "$ncohorts" != no ]; then
 		grep -h '^#' ${pop}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}_${calcploidy}x_*_raw.vcf | awk '!visited[$0]++' | awk '!/^##GATKCommandLine/' > vcf_header.txt
 		cat ${pop}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}_${calcploidy}x_*_raw.vcf | awk '!/^#/' > all.vcf
 		cat vcf_header.txt all.vcf > ${pop}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}_${calcploidy}x_raw.vcf
-		rm vcf_header.txt all.vcf 
-		rm ${pop}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}_${calcploidy}x_*_raw.vcf ${pop}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}_${calcploidy}x_*_raw.vcf.gz.tbi 
+		rm vcf_header.txt all.vcf
+		rm ${pop}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}_${calcploidy}x_*_raw.vcf ${pop}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}_${calcploidy}x_*_raw.vcf.gz.tbi
 		bgzip ${pop}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}_${calcploidy}x_raw.vcf
 		tabix -p vcf ${pop}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}_${calcploidy}x_raw.vcf.gz
 
@@ -1819,8 +1819,8 @@ if [ "$ncohorts" != no ]; then
 		grep -h '^#' ${pop}_${ref1%.f*}_${ref2%.f*}_${calcploidy}x_*_raw.vcf | awk '!visited[$0]++' | awk '!/^##GATKCommandLine/' > vcf_header.txt
 		cat ${pop}_${ref1%.f*}_${ref2%.f*}_${calcploidy}x_*_raw.vcf | awk '!/^#/' > all.vcf
 		cat vcf_header.txt all.vcf > ${pop}_${ref1%.f*}_${ref2%.f*}_${calcploidy}x_raw.vcf
-		rm vcf_header.txt all.vcf 
-		rm ${pop}_${ref1%.f*}_${ref2%.f*}_${calcploidy}x_*_raw.vcf ${pop}_${ref1%.f*}_${ref2%.f*}_${calcploidy}x_*_raw.vcf.gz.tbi 
+		rm vcf_header.txt all.vcf
+		rm ${pop}_${ref1%.f*}_${ref2%.f*}_${calcploidy}x_*_raw.vcf ${pop}_${ref1%.f*}_${ref2%.f*}_${calcploidy}x_*_raw.vcf.gz.tbi
 		bgzip ${pop}_${ref1%.f*}_${ref2%.f*}_${calcploidy}x_raw.vcf
 		tabix -p vcf ${pop}_${ref1%.f*}_${ref2%.f*}_${calcploidy}x_raw.vcf.gz
 
@@ -1941,8 +1941,8 @@ if [ "$ncohorts" != no ]; then
 		grep -h '^#' ${pop}_${ref1%.f*}_${ref3%.f*}_${calcploidy}x_*_raw.vcf | awk '!visited[$0]++' | awk '!/^##GATKCommandLine/' > vcf_header.txt
 		cat ${pop}_${ref1%.f*}_${ref3%.f*}_${calcploidy}x_*_raw.vcf | awk '!/^#/' > all.vcf
 		cat vcf_header.txt all.vcf > ${pop}_${ref1%.f*}_${ref3%.f*}_${calcploidy}x_raw.vcf
-		rm vcf_header.txt all.vcf 
-		rm ${pop}_${ref1%.f*}_${ref3%.f*}_${calcploidy}x_*_raw.vcf ${pop}_${ref1%.f*}_${ref3%.f*}_${calcploidy}x_*_raw.vcf.gz.tbi 
+		rm vcf_header.txt all.vcf
+		rm ${pop}_${ref1%.f*}_${ref3%.f*}_${calcploidy}x_*_raw.vcf ${pop}_${ref1%.f*}_${ref3%.f*}_${calcploidy}x_*_raw.vcf.gz.tbi
 		bgzip ${pop}_${ref1%.f*}_${ref3%.f*}_${calcploidy}x_raw.vcf
 		tabix -p vcf ${pop}_${ref1%.f*}_${ref3%.f*}_${calcploidy}x_raw.vcf.gz
 
@@ -2063,8 +2063,8 @@ if [ "$ncohorts" != no ]; then
 		grep -h '^#' ${pop}_${ref1%.f*}_${ref4%.f*}_${calcploidy}x_*_raw.vcf | awk '!visited[$0]++' | awk '!/^##GATKCommandLine/' > vcf_header.txt
 		cat ${pop}_${ref1%.f*}_${ref4%.f*}_${calcploidy}x_*_raw.vcf | awk '!/^#/' > all.vcf
 		cat vcf_header.txt all.vcf > ${pop}_${ref1%.f*}_${ref4%.f*}_${calcploidy}x_raw.vcf
-		rm vcf_header.txt all.vcf 
-		rm ${pop}_${ref1%.f*}_${ref4%.f*}_${calcploidy}x_*_raw.vcf ${pop}_${ref1%.f*}_${ref4%.f*}_${calcploidy}x_*_raw.vcf.gz.tbi 
+		rm vcf_header.txt all.vcf
+		rm ${pop}_${ref1%.f*}_${ref4%.f*}_${calcploidy}x_*_raw.vcf ${pop}_${ref1%.f*}_${ref4%.f*}_${calcploidy}x_*_raw.vcf.gz.tbi
 		bgzip ${pop}_${ref1%.f*}_${ref4%.f*}_${calcploidy}x_raw.vcf
 		tabix -p vcf ${pop}_${ref1%.f*}_${ref4%.f*}_${calcploidy}x_raw.vcf.gz
 
@@ -2185,8 +2185,8 @@ if [ "$ncohorts" != no ]; then
 		grep -h '^#' ${pop}_${ref2%.f*}_${ref3%.f*}_${calcploidy}x_*_raw.vcf | awk '!visited[$0]++' | awk '!/^##GATKCommandLine/' > vcf_header.txt
 		cat ${pop}_${ref2%.f*}_${ref3%.f*}_${calcploidy}x_*_raw.vcf | awk '!/^#/' > all.vcf
 		cat vcf_header.txt all.vcf > ${pop}_${ref2%.f*}_${ref3%.f*}_${calcploidy}x_raw.vcf
-		rm vcf_header.txt all.vcf 
-		rm ${pop}_${ref2%.f*}_${ref3%.f*}_${calcploidy}x_*_raw.vcf ${pop}_${ref2%.f*}_${ref3%.f*}_${calcploidy}x_*_raw.vcf.gz.tbi 
+		rm vcf_header.txt all.vcf
+		rm ${pop}_${ref2%.f*}_${ref3%.f*}_${calcploidy}x_*_raw.vcf ${pop}_${ref2%.f*}_${ref3%.f*}_${calcploidy}x_*_raw.vcf.gz.tbi
 		bgzip ${pop}_${ref2%.f*}_${ref3%.f*}_${calcploidy}x_raw.vcf
 		tabix -p vcf ${pop}_${ref2%.f*}_${ref3%.f*}_${calcploidy}x_raw.vcf.gz
 
@@ -2307,8 +2307,8 @@ if [ "$ncohorts" != no ]; then
 		grep -h '^#' ${pop}_${ref2%.f*}_${ref4%.f*}_${calcploidy}x_*_raw.vcf | awk '!visited[$0]++' | awk '!/^##GATKCommandLine/' > vcf_header.txt
 		cat ${pop}_${ref2%.f*}_${ref4%.f*}_${calcploidy}x_*_raw.vcf | awk '!/^#/' > all.vcf
 		cat vcf_header.txt all.vcf > ${pop}_${ref2%.f*}_${ref4%.f*}_${calcploidy}x_raw.vcf
-		rm vcf_header.txt all.vcf 
-		rm ${pop}_${ref2%.f*}_${ref4%.f*}_${calcploidy}x_*_raw.vcf ${pop}_${ref2%.f*}_${ref4%.f*}_${calcploidy}x_*_raw.vcf.gz.tbi 
+		rm vcf_header.txt all.vcf
+		rm ${pop}_${ref2%.f*}_${ref4%.f*}_${calcploidy}x_*_raw.vcf ${pop}_${ref2%.f*}_${ref4%.f*}_${calcploidy}x_*_raw.vcf.gz.tbi
 		bgzip ${pop}_${ref2%.f*}_${ref4%.f*}_${calcploidy}x_raw.vcf
 		tabix -p vcf ${pop}_${ref2%.f*}_${ref4%.f*}_${calcploidy}x_raw.vcf.gz
 
@@ -2429,8 +2429,8 @@ if [ "$ncohorts" != no ]; then
 		grep -h '^#' ${pop}_${ref3%.f*}_${ref4%.f*}_${calcploidy}x_*_raw.vcf | awk '!visited[$0]++' | awk '!/^##GATKCommandLine/' > vcf_header.txt
 		cat ${pop}_${ref3%.f*}_${ref4%.f*}_${calcploidy}x_*_raw.vcf | awk '!/^#/' > all.vcf
 		cat vcf_header.txt all.vcf > ${pop}_${ref3%.f*}_${ref4%.f*}_${calcploidy}x_raw.vcf
-		rm vcf_header.txt all.vcf 
-		rm ${pop}_${ref3%.f*}_${ref4%.f*}_${calcploidy}x_*_raw.vcf ${pop}_${ref3%.f*}_${ref4%.f*}_${calcploidy}x_*_raw.vcf.gz.tbi 
+		rm vcf_header.txt all.vcf
+		rm ${pop}_${ref3%.f*}_${ref4%.f*}_${calcploidy}x_*_raw.vcf ${pop}_${ref3%.f*}_${ref4%.f*}_${calcploidy}x_*_raw.vcf.gz.tbi
 		bgzip ${pop}_${ref3%.f*}_${ref4%.f*}_${calcploidy}x_raw.vcf
 		tabix -p vcf ${pop}_${ref3%.f*}_${ref4%.f*}_${calcploidy}x_raw.vcf.gz
 
@@ -2550,8 +2550,8 @@ if [ "$ncohorts" != no ]; then
 		grep -h '^#' ${pop}_${ref1%.f*}_${ploidy_ref1}x_*_raw.vcf | awk '!visited[$0]++' | awk '!/^##GATKCommandLine/' > vcf_header.txt
 		cat ${pop}_${ref1%.f*}_${ploidy_ref1}x_*_raw.vcf | awk '!/^#/' > all.vcf
 		cat vcf_header.txt all.vcf > ${pop}_${ref1%.f*}_${ploidy_ref1}x_raw.vcf
-		rm vcf_header.txt all.vcf 
-		rm ${pop}_${ref1%.f*}_${ploidy_ref1}x_*_raw.vcf ${pop}_${ref1%.f*}_${ploidy_ref1}x_*_raw.vcf.gz.tbi 
+		rm vcf_header.txt all.vcf
+		rm ${pop}_${ref1%.f*}_${ploidy_ref1}x_*_raw.vcf ${pop}_${ref1%.f*}_${ploidy_ref1}x_*_raw.vcf.gz.tbi
 		bgzip ${pop}_${ref1%.f*}_${ploidy_ref1}x_raw.vcf
 		tabix -p vcf ${pop}_${ref1%.f*}_${ploidy_ref1}x_raw.vcf.gz
 
@@ -2671,8 +2671,8 @@ if [ "$ncohorts" != no ]; then
 		grep -h '^#' ${pop}_${ref2%.f*}_${ploidy_ref2}x_*_raw.vcf | awk '!visited[$0]++' | awk '!/^##GATKCommandLine/' > vcf_header.txt
 		cat ${pop}_${ref2%.f*}_${ploidy_ref2}x_*_raw.vcf | awk '!/^#/' > all.vcf
 		cat vcf_header.txt all.vcf > ${pop}_${ref2%.f*}_${ploidy_ref2}x_raw.vcf
-		rm vcf_header.txt all.vcf 
-		rm ${pop}_${ref2%.f*}_${ploidy_ref2}x_*_raw.vcf ${pop}_${ref2%.f*}_${ploidy_ref2}x_*_raw.vcf.gz.tbi 
+		rm vcf_header.txt all.vcf
+		rm ${pop}_${ref2%.f*}_${ploidy_ref2}x_*_raw.vcf ${pop}_${ref2%.f*}_${ploidy_ref2}x_*_raw.vcf.gz.tbi
 		bgzip ${pop}_${ref2%.f*}_${ploidy_ref2}x_raw.vcf
 		tabix -p vcf ${pop}_${ref2%.f*}_${ploidy_ref2}x_raw.vcf.gz
 
@@ -2792,8 +2792,8 @@ if [ "$ncohorts" != no ]; then
 		grep -h '^#' ${pop}_${ref3%.f*}_${ploidy_ref3}x_*_raw.vcf | awk '!visited[$0]++' | awk '!/^##GATKCommandLine/' > vcf_header.txt
 		cat ${pop}_${ref3%.f*}_${ploidy_ref3}x_*_raw.vcf | awk '!/^#/' > all.vcf
 		cat vcf_header.txt all.vcf > ${pop}_${ref3%.f*}_${ploidy_ref3}x_raw.vcf
-		rm vcf_header.txt all.vcf 
-		rm ${pop}_${ref3%.f*}_${ploidy_ref3}x_*_raw.vcf ${pop}_${ref3%.f*}_${ploidy_ref3}x_*_raw.vcf.gz.tbi 
+		rm vcf_header.txt all.vcf
+		rm ${pop}_${ref3%.f*}_${ploidy_ref3}x_*_raw.vcf ${pop}_${ref3%.f*}_${ploidy_ref3}x_*_raw.vcf.gz.tbi
 		bgzip ${pop}_${ref3%.f*}_${ploidy_ref3}x_raw.vcf
 		tabix -p vcf ${pop}_${ref3%.f*}_${ploidy_ref3}x_raw.vcf.gz
 
@@ -2913,8 +2913,8 @@ if [ "$ncohorts" != no ]; then
 		grep -h '^#' ${pop}_${ref4%.f*}_${ploidy_ref4}x_*_raw.vcf | awk '!visited[$0]++' | awk '!/^##GATKCommandLine/' > vcf_header.txt
 		cat ${pop}_${ref4%.f*}_${ploidy_ref4}x_*_raw.vcf | awk '!/^#/' > all.vcf
 		cat vcf_header.txt all.vcf > ${pop}_${ref4%.f*}_${ploidy_ref4}x_raw.vcf
-		rm vcf_header.txt all.vcf 
-		rm ${pop}_${ref4%.f*}_${ploidy_ref4}x_*_raw.vcf ${pop}_${ref4%.f*}_${ploidy_ref4}x_*_raw.vcf.gz.tbi 
+		rm vcf_header.txt all.vcf
+		rm ${pop}_${ref4%.f*}_${ploidy_ref4}x_*_raw.vcf ${pop}_${ref4%.f*}_${ploidy_ref4}x_*_raw.vcf.gz.tbi
 		bgzip ${pop}_${ref4%.f*}_${ploidy_ref4}x_raw.vcf
 		tabix -p vcf ${pop}_${ref4%.f*}_${ploidy_ref4}x_raw.vcf.gz
 
@@ -2951,7 +2951,7 @@ if [[ "$checksplit" -gt 0 ]]; then
 	for i in $(ls *.vcf); do
 		awk '/^#CHROM/{close("file.vcf"f);f++}{print $0 > "file"f}' $i
 		awk 'NR==1{print}' file1 | cat file - > file0.vcf
-		for j in $(seq 1 10); do 
+		for j in $(seq 1 10); do
 			awk 'NR>1{print}' file1 | awk '{print $1,"\t",$2,"\t",$0}' | awk '{gsub(/_x0/,"\t"); print}' | \
 			awk -v splits=$j -F '\t' 'BEGIN{OFS="\t"} $2 ~ splits {$3=$3+500000000}1' | awk 'BEGIN{OFS="\t"} !($2="")' | awk 'BEGIN{OFS="\t"} !($3="")' | \
 			awk 'BEGIN{OFS="\t"} !($3="")' | awk 'BEGIN{OFS="\t"} !($3="")' | awk '{gsub(/\t\t/,"\t"); print }' | \
@@ -3009,6 +3009,8 @@ mkdir 4x
 mkdir 6x
 mkdir 8x
 cd ../snpcall
+gunzip *.gz
+
 file2xG=$( ls *_2x_DP_GT.txt | wc -l )
 file2xV=$( ls *2x_raw.vcf | wc -l )
 if [[ "${file2xG}" -lt 1 ]]; then
@@ -3063,6 +3065,8 @@ for v in *_DP_GT.txt; do (
 		wait
 	fi
 done
+wait
+gzip *.vcf
 wait
 
 
@@ -3386,7 +3390,7 @@ for snpfilter_dir in $(ls -d */); do
 	cd "$snpfilter_dir"  && \
 	cd genotype_accuracy  && \
 	i=0  && \
-	for f in *; do 
+	for f in *; do
 	    d=Variants_Set_$(printf %04d $((i/1000+1)))  && \
 	    mkdir -p "$d"  && \
 	    mv "$f" "$d"  && \
