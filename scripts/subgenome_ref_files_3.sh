@@ -832,9 +832,9 @@ if [ "$ncohorts" != no ]; then
 		done
 		Get_Chromosome=$(awk 'NR>1{print $2,"\t",$3}' ../../refgenomes/panref.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $0}' | sort -k2,2 -nr | awk '{print $1}' )
 		for selchr in $Get_Chromosome; do (
-			$GATK --java-options "$Xmx3 -XX:ParallelGCThreads=$gthreads" CombineGVCFs -R ../../refgenomes/panref.fasta -L $selchr $input -O ${pop}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${ploidy}x_"${selchr}"_raw.g.vcf.gz
-			$GATK --java-options "$Xmx3 -XX:ParallelGCThreads=$gthreads" GenotypeGVCFs -R ../../refgenomes/panref.fasta -L $selchr -V ${pop}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${ploidy}x_"${selchr}"_raw.g.vcf.gz -O ${pop}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${ploidy}x_"${selchr}"_raw.vcf.gz
-			rm ${pop}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${ploidy}x_"${selchr}"_raw.g.vcf.gz ${pop}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${ploidy}x_"${selchr}"_raw.g.vcf.gz.tbi
+			$GATK --java-options "$Xmx3 -XX:ParallelGCThreads=$gthreads" GenomicsDBImport $input -L $selchr --genomicsdb-workspace-path ${pop}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${ploidy}x_"${selchr}"_raw
+			$GATK --java-options "$Xmx3 -XX:ParallelGCThreads=$gthreads" GenotypeGVCFs -R ../../refgenomes/panref.fasta -L $selchr -V gendb://${pop}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${ploidy}x_"${selchr}"_raw -O ${pop}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${ploidy}x_"${selchr}"_raw.vcf.gz
+			rm -r ${pop}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${ploidy}x_"${selchr}"_raw
 			if LC_ALL=C gzip -l ${pop}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${ploidy}x_"${selchr}"_raw.vcf.gz | awk 'NR==2 {exit($2!=0)}'; then
 				:
 			else
@@ -954,9 +954,9 @@ if [ "$ncohorts" != no ]; then
 		done
 		Get_Chromosome=$(awk 'NR>1{print $2,"\t",$3}' ../../refgenomes/panref.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $0}' | sort -k2,2 -nr | awk '{print $1}' | awk -v pat1=${ref1%.f*} -v pat2=${ref2%.f*} 'pat1 || pat2')
 		for selchr in $Get_Chromosome; do (
-			$GATK --java-options "$Xmx3 -XX:ParallelGCThreads=$gthreads" CombineGVCFs -R ../../refgenomes/panref.fasta -L $selchr $input -O ${pop}_${ref1%.f*}_${ref2%.f*}_${calcploidy}x_"${selchr}"_raw.g.vcf.gz
-			$GATK --java-options "$Xmx3 -XX:ParallelGCThreads=$gthreads" GenotypeGVCFs -R ../../refgenomes/panref.fasta -L $selchr -V ${pop}_${ref1%.f*}_${ref2%.f*}_${calcploidy}x_"${selchr}"_raw.g.vcf.gz -O ${pop}_${ref1%.f*}_${ref2%.f*}_${calcploidy}x_"${selchr}"_raw.vcf.gz
-			rm ${pop}_${ref1%.f*}_${ref2%.f*}_${calcploidy}x_"${selchr}"_raw.g.vcf.gz ${pop}_${ref1%.f*}_${ref2%.f*}_${calcploidy}x_"${selchr}"_raw.g.vcf.gz.tbi
+			$GATK --java-options "$Xmx3 -XX:ParallelGCThreads=$gthreads" GenomicsDBImport $input -L $selchr --genomicsdb-workspace-path ${pop}_${ref1%.f*}_${ref2%.f*}_${calcploidy}x_"${selchr}"_raw
+			$GATK --java-options "$Xmx3 -XX:ParallelGCThreads=$gthreads" GenotypeGVCFs -R ../../refgenomes/panref.fasta -L $selchr -V gendb://${pop}_${ref1%.f*}_${ref2%.f*}_${calcploidy}x_"${selchr}"_raw -O ${pop}_${ref1%.f*}_${ref2%.f*}_${calcploidy}x_"${selchr}"_raw.vcf.gz
+			rm -r ${pop}_${ref1%.f*}_${ref2%.f*}_${calcploidy}x_"${selchr}"_raw
 			if LC_ALL=C gzip -l ${pop}_${ref1%.f*}_${ref2%.f*}_${calcploidy}x_"${selchr}"_raw.vcf.gz | awk 'NR==2 {exit($2!=0)}'; then
 				:
 			else
@@ -1076,9 +1076,9 @@ if [ "$ncohorts" != no ]; then
 		done
 		Get_Chromosome=$(awk 'NR>1{print $2,"\t",$3}' ../../refgenomes/panref.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $0}' | sort -k2,2 -nr | awk '{print $1}' | awk -v pat1=${ref1%.f*} -v pat2=${ref3%.f*} 'pat1 || pat2')
 		for selchr in $Get_Chromosome; do (
-			$GATK --java-options "$Xmx3 -XX:ParallelGCThreads=$gthreads" CombineGVCFs -R ../../refgenomes/panref.fasta -L $selchr $input -O ${pop}_${ref1%.f*}_${ref3%.f*}_${calcploidy}x_"${selchr}"_raw.g.vcf.gz
-			$GATK --java-options "$Xmx3 -XX:ParallelGCThreads=$gthreads" GenotypeGVCFs -R ../../refgenomes/panref.fasta -L $selchr -V ${pop}_${ref1%.f*}_${ref3%.f*}_${calcploidy}x_"${selchr}"_raw.g.vcf.gz -O ${pop}_${ref1%.f*}_${ref3%.f*}_${calcploidy}x_"${selchr}"_raw.vcf.gz
-			rm ${pop}_${ref1%.f*}_${ref3%.f*}_${calcploidy}x_*_raw.g.vcf.gz ${pop}_${ref1%.f*}_${ref3%.f*}_${calcploidy}x_*_raw.g.vcf.gz.tbi
+			$GATK --java-options "$Xmx3 -XX:ParallelGCThreads=$gthreads" GenomicsDBImport $input -L $selchr --genomicsdb-workspace-path ${pop}_${ref1%.f*}_${ref3%.f*}_${calcploidy}x_"${selchr}"_raw
+			$GATK --java-options "$Xmx3 -XX:ParallelGCThreads=$gthreads" GenotypeGVCFs -R ../../refgenomes/panref.fasta -L $selchr -V gendb://${pop}_${ref1%.f*}_${ref3%.f*}_${calcploidy}x_"${selchr}"_raw -O ${pop}_${ref1%.f*}_${ref3%.f*}_${calcploidy}x_"${selchr}"_raw.vcf.gz
+			rm -r ${pop}_${ref1%.f*}_${ref3%.f*}_${calcploidy}x_*_raw
 			if LC_ALL=C gzip -l ${pop}_${ref1%.f*}_${ref3%.f*}_${calcploidy}x_"${selchr}"_raw.vcf.gz | awk 'NR==2 {exit($2!=0)}'; then
 				:
 			else
@@ -1198,9 +1198,9 @@ if [ "$ncohorts" != no ]; then
 		done
 		Get_Chromosome=$(awk 'NR>1{print $2,"\t",$3}' ../../refgenomes/panref.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $0}' | sort -k2,2 -nr | awk '{print $1}' | awk -v pat1=${ref2%.f*} -v pat2=${ref3%.f*} 'pat1 || pat2')
 		for selchr in $Get_Chromosome; do (
-			$GATK --java-options "$Xmx3 -XX:ParallelGCThreads=$gthreads" CombineGVCFs -R ../../refgenomes/panref.fasta -L $selchr $input -O ${pop}_${ref2%.f*}_${ref3%.f*}_${calcploidy}x_"${selchr}"_raw.g.vcf.gz
-			$GATK --java-options "$Xmx3 -XX:ParallelGCThreads=$gthreads" GenotypeGVCFs -R ../../refgenomes/panref.fasta -L $selchr -V ${pop}_${ref2%.f*}_${ref3%.f*}_${calcploidy}x_"${selchr}"_raw.g.vcf.gz -O ${pop}_${ref2%.f*}_${ref3%.f*}_${calcploidy}x_"${selchr}"_raw.vcf.gz
-			rm ${pop}_${ref2%.f*}_${ref3%.f*}_${calcploidy}x_*_raw.g.vcf.gz ${pop}_${ref2%.f*}_${ref3%.f*}_${calcploidy}x_*_raw.g.vcf.gz.tbi
+			$GATK --java-options "$Xmx3 -XX:ParallelGCThreads=$gthreads" GenomicsDBImport $input -L $selchr --genomicsdb-workspace-path ${pop}_${ref2%.f*}_${ref3%.f*}_${calcploidy}x_"${selchr}"_raw
+			$GATK --java-options "$Xmx3 -XX:ParallelGCThreads=$gthreads" GenotypeGVCFs -R ../../refgenomes/panref.fasta -L $selchr -V gendb://${pop}_${ref2%.f*}_${ref3%.f*}_${calcploidy}x_"${selchr}"_raw -O ${pop}_${ref2%.f*}_${ref3%.f*}_${calcploidy}x_"${selchr}"_raw.vcf.gz
+			rm -r ${pop}_${ref2%.f*}_${ref3%.f*}_${calcploidy}x_*_raw
 			if LC_ALL=C gzip -l ${pop}_${ref2%.f*}_${ref3%.f*}_${calcploidy}x_"${selchr}"_raw.vcf.gz | awk 'NR==2 {exit($2!=0)}'; then
 				:
 			else
@@ -1319,9 +1319,9 @@ if [ "$ncohorts" != no ]; then
 		done
 		Get_Chromosome=$(awk 'NR>1{print $2,"\t",$3}' ../../refgenomes/panref.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $0}' | sort -k2,2 -nr | awk '{print $1}' | awk -v pat=${ref1%.f*} '$0 ~ pat')
 		for selchr in $Get_Chromosome; do (
-			$GATK --java-options "$Xmx3 -XX:ParallelGCThreads=$gthreads" CombineGVCFs -R ../../refgenomes/panref.fasta -L $selchr $input -O ${pop}_${ref1%.f*}_${ploidy_ref1}x_"${selchr}"_raw.g.vcf.gz
-			$GATK --java-options "$Xmx3 -XX:ParallelGCThreads=$gthreads" GenotypeGVCFs -R ../../refgenomes/panref.fasta -L $selchr -V ${pop}_${ref1%.f*}_${ploidy_ref1}x_"${selchr}"_raw.g.vcf.gz -O ${pop}_${ref1%.f*}_${ploidy_ref1}x_"${selchr}"_raw.vcf.gz
-			rm ${pop}_${ref1%.f*}_${ploidy_ref1}x_*_raw.g.vcf.gz ${pop}_${ref1%.f*}_${ploidy_ref1}x_*_raw.g.vcf.gz.tbi
+			$GATK --java-options "$Xmx3 -XX:ParallelGCThreads=$gthreads" GenomicsDBImport $input -L $selchr --genomicsdb-workspace-path ${pop}_${ref1%.f*}_${ploidy_ref1}x_"${selchr}"_raw
+			$GATK --java-options "$Xmx3 -XX:ParallelGCThreads=$gthreads" GenotypeGVCFs -R ../../refgenomes/panref.fasta -L $selchr -V gendb://${pop}_${ref1%.f*}_${ploidy_ref1}x_"${selchr}"_raw -O ${pop}_${ref1%.f*}_${ploidy_ref1}x_"${selchr}"_raw.vcf.gz
+			rm -r ${pop}_${ref1%.f*}_${ploidy_ref1}x_*_raw
 			if LC_ALL=C gzip -l ${pop}_${ref1%.f*}_${ploidy_ref1}x_"${selchr}"_raw.vcf.gz | awk 'NR==2 {exit($2!=0)}'; then
 				:
 			else
@@ -1440,9 +1440,9 @@ if [ "$ncohorts" != no ]; then
 		done
 		Get_Chromosome=$(awk 'NR>1{print $2,"\t",$3}' ../../refgenomes/panref.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $0}' | sort -k2,2 -nr | awk '{print $1}' | awk -v pat=${ref2%.f*} '$0 ~ pat')
 		for selchr in $Get_Chromosome; do (
-			$GATK --java-options "$Xmx3 -XX:ParallelGCThreads=$gthreads" CombineGVCFs -R ../../refgenomes/panref.fasta -L $selchr $input -O ${pop}_${ref2%.f*}_${ploidy_ref2}x_"${selchr}"_raw.g.vcf.gz
-			$GATK --java-options "$Xmx3 -XX:ParallelGCThreads=$gthreads" GenotypeGVCFs -R ../../refgenomes/panref.fasta -L $selchr -V ${pop}_${ref2%.f*}_${ploidy_ref2}x_"${selchr}"_raw.g.vcf.gz -O ${pop}_${ref2%.f*}_${ploidy_ref2}x_"${selchr}"_raw.vcf.gz
-			rm ${pop}_${ref2%.f*}_${ploidy_ref2}x_*_raw.g.vcf.gz ${pop}_${ref2%.f*}_${ploidy_ref2}x_*_raw.g.vcf.gz.tbi
+			$GATK --java-options "$Xmx3 -XX:ParallelGCThreads=$gthreads" GenomicsDBImport $input -L $selchr --genomicsdb-workspace-path ${pop}_${ref2%.f*}_${ploidy_ref2}x_"${selchr}"_raw
+			$GATK --java-options "$Xmx3 -XX:ParallelGCThreads=$gthreads" GenotypeGVCFs -R ../../refgenomes/panref.fasta -L $selchr -V gendb://${pop}_${ref2%.f*}_${ploidy_ref2}x_"${selchr}"_raw -O ${pop}_${ref2%.f*}_${ploidy_ref2}x_"${selchr}"_raw.vcf.gz
+			rm -r ${pop}_${ref2%.f*}_${ploidy_ref2}x_*_raw
 			if LC_ALL=C gzip -l ${pop}_${ref2%.f*}_${ploidy_ref2}x_"${selchr}"_raw.vcf.gz | awk 'NR==2 {exit($2!=0)}'; then
 				:
 			else
@@ -1561,9 +1561,9 @@ if [ "$ncohorts" != no ]; then
 		done
 		Get_Chromosome=$(awk 'NR>1{print $2,"\t",$3}' ../../refgenomes/panref.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $0}' | sort -k2,2 -nr | awk '{print $1}' | awk -v pat=${ref3%.f*} '$0 ~ pat')
 		for selchr in $Get_Chromosome; do (
-			$GATK --java-options "$Xmx3 -XX:ParallelGCThreads=$gthreads" CombineGVCFs -R ../../refgenomes/panref.fasta -L $selchr $input -O ${pop}_${ref3%.f*}_${ploidy_ref3}x_"${selchr}"_raw.g.vcf.gz
-			$GATK --java-options "$Xmx3 -XX:ParallelGCThreads=$gthreads" GenotypeGVCFs -R ../../refgenomes/panref.fasta -L $selchr -V ${pop}_${ref3%.f*}_${ploidy_ref3}x_"${selchr}"_raw.g.vcf.gz -O ${pop}_${ref3%.f*}_${ploidy_ref3}x_"${selchr}"_raw.vcf.gz
-			rm ${pop}_${ref3%.f*}_${ploidy_ref3}x_*_raw.g.vcf.gz ${pop}_${ref3%.f*}_${ploidy_ref3}x_*_raw.g.vcf.gz.tbi
+			$GATK --java-options "$Xmx3 -XX:ParallelGCThreads=$gthreads" GenomicsDBImport $input -L $selchr --genomicsdb-workspace-path ${pop}_${ref3%.f*}_${ploidy_ref3}x_"${selchr}"_raw
+			$GATK --java-options "$Xmx3 -XX:ParallelGCThreads=$gthreads" GenotypeGVCFs -R ../../refgenomes/panref.fasta -L $selchr -V gendb://${pop}_${ref3%.f*}_${ploidy_ref3}x_"${selchr}"_raw -O ${pop}_${ref3%.f*}_${ploidy_ref3}x_"${selchr}"_raw.vcf.gz
+			rm -r ${pop}_${ref3%.f*}_${ploidy_ref3}x_*_raw
 			if LC_ALL=C gzip -l ${pop}_${ref3%.f*}_${ploidy_ref3}x_"${selchr}"_raw.vcf.gz | awk 'NR==2 {exit($2!=0)}'; then
 				:
 			else

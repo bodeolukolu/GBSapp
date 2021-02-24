@@ -17,7 +17,6 @@ For questions, bugs, and suggestions, please contact bolukolu@utk.edu.
 - Additional haplotype-based filtering (useful for targeted sequencing of single locus variants).
 - Generates variant/haplotype calls and their sequence context.
 - Easy to learn, and use.
-- Designed by biologists (please don't run away!)
 
 ## Contents
 - [Installation](#installation)
@@ -84,9 +83,11 @@ Using a text editor, save a file containing any of the following variables as 'c
 
 |Variable      |Default       |Usage         |Input         |required/Optional|
 |:-------------|:-------------|:-------------|:-------------|:----------------|
-|threads|cores-2|numer of cores/processors|integer|Optional|
+|threads|na|numer of cores/processors|integer|Optional|
 |walkaway|true|run in walk-away or walk-through mode|true or false|Optional|
-|cluster|false|run on compute cluster node or workstation|true or false|Optional|
+|cluster|false|run on compute cluster node (currently only slurm-managed clusters) or workstation|true or false|Optional|
+
+**Note: na indicates that variable is user-defined or hard-coded/computed intuitively.*
 
 **Variant calling parameters**
 
@@ -99,13 +100,13 @@ Using a text editor, save a file containing any of the following variables as 'c
 |ref4|na|4th reference genome as .fasta file|integer|Optional|
 |copy|1|maximum copy number of sequence in genome/subgenome|integer|Optional|
 |paleopolyploid|false|capture/code variable dosage/copy number (i.e. 2x,4x,6x, and 8x)|true or false||Optional|
-|maxn_popallele|500|maximum number of alleles at a locus across individuals in a population|integer|Optional|
+|maxn_popallele|500|maximum number of alleles at a locus across individuals in a population. Value is matched to corresponding hard-coded SB (strand bias) threshold.|integer|Optional|
 |ncohorts|1|number of cohorts for Joint-genotyping. ncohorts=no (very slow) indicates multi-sample variant calling without generating single-sample gVCF files |integer, yes, or no|Optional|
 |scaleRD|1|downsampling approach that ensures all unique reads are represented in exact proportions |integer|Optional|
 |maxRD|.|threshold for reads with excessive coverage (likely derived from paralogs/repetitive sequences)|integer|Optional|
 |minRD|1|threshold for number of times a unique occurs. Attempts to eliminates haplotypes derived from bad base calls)|integer|Optional|
 
-**Note: na indicates that variable is user-defined or hard-coded as a function of ploidy.*
+**Note: na indicates that variable is user-defined or hard-coded/computed intuitively, as well as a function of ploidy.*
 
 **Variant filtering parameters**
 
