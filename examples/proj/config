@@ -37,5 +37,6 @@ minRD_2x=6
 minRD_4x=25
 minRD_6x=45
 minRD_8x=100
+pseg=0.001
 maf=0.02
 snpformats=true

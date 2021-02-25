@@ -32,13 +32,13 @@ For questions, bugs, and suggestions, please contact bolukolu@utk.edu.
 - [License](#License)
 
 ## Installation
-- Currently, GBSapp is only available for unix-based systems (i.e. macOS and linux).
+- Currently, GBSapp is only available for unix-based systems (i.e. macOS and Linux/UNIX).
 - Clone or download the Git repository to your desired folder.
 ```bash
 $ git clone https://github.com/bodeolukolu/GBSapp.git
 ```
 - Installation occurs automatically the first time you run the pipeline.
-- With the exception of R, all dependencies are intalled to a local directory within GBSapp.
+- With the exception of R, all dependencies are installed to a local directory within GBSapp.
 
 
 **Dependencies:**<br />
@@ -98,13 +98,13 @@ Using a text editor, save a file containing any of the following variables as 'c
 |ref2|na|2nd reference genome as .fasta file|integer|Optional|
 |ref3|na|3rd reference genome as .fasta file|integer|Optional|
 |ref4|na|4th reference genome as .fasta file|integer|Optional|
-|copy|1|maximum copy number of sequence in genome/subgenome|integer|Optional|
+|copy|1|maximum copy number of sequence in genome or in each subgenome|integer|Optional|
 |paleopolyploid|false|capture/code variable dosage/copy number (i.e. 2x,4x,6x, and 8x)|true or false||Optional|
 |maxn_popallele|500|maximum number of alleles at a locus across individuals in a population. Value is matched to corresponding hard-coded SB (strand bias) threshold.|integer|Optional|
 |ncohorts|1|number of cohorts for Joint-genotyping. ncohorts=no (very slow) indicates multi-sample variant calling without generating single-sample gVCF files |integer, yes, or no|Optional|
-|scaleRD|1|downsampling approach that ensures all unique reads are represented in exact proportions |integer|Optional|
-|maxRD|.|threshold for reads with excessive coverage (likely derived from paralogs/repetitive sequences)|integer|Optional|
+|scaleRD|1|downsampling approach that ensures all unique reads are represented in exact proportions. 1 indicates no down-sampling |integer|Optional|
 |minRD|1|threshold for number of times a unique occurs. Attempts to eliminates haplotypes derived from bad base calls)|integer|Optional|
+|maxRD|10,000|threshold for reads with excessive coverage (likely derived from paralogs/repetitive sequences)|integer|Optional|
 
 **Note: na indicates that variable is user-defined or hard-coded/computed intuitively, as well as a function of ploidy.*
 
@@ -121,6 +121,7 @@ Using a text editor, save a file containing any of the following variables as 'c
 |minRD_4x|25|minimum read depth threshold|integer|Optional|
 |minRD_6x|45|minimum read depth threshold|integer|Optional|
 |minRD_8x|100|minimum read depth threshold|integer|Optional|
+|pseg|0.001|p-value threshold for chi-square test of segregation distortion|decimal number|Optional|
 |maf|0.02|minor allele frequency threshold|decimal number|Optional|
 |snpformats|false|variant data set with alleles formatted as base (A,C,G,T) and/or degenerate notation|true or false|Optional|
 |exclude_samples|na|sample IDs to be exclude from filtered variant data set|comma delimited strings|Optional|

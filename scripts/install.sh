@@ -39,7 +39,11 @@ fi
 main () {
   echo -e "${blue}\n############################################## ${yellow}\n- downloading and installing bcftools ${blue}\n##############################################${white}"
   wget https://github.com/samtools/bcftools/releases/download/1.11/bcftools-1.11.tar.bz2
-  tar -vxjf bcftools-1.11.tar.bz2; rm bcftools-1.11.tar.bz2; cd bcftools*; ./configure --prefix=./; make; make install; cd ..
+  tar -vxjf bcftools-1.11.tar.bz2; rm bcftools-1.11.tar.bz2
+  for i in $(ls -d bcftools*); do
+	   cd bcftools*; ./configure --prefix=${GBSapp_dir}/tools/${i}/; make; make install; cd ..
+  done
+
 }
 dirtool=bcftools*
 if [ -d $dirtool ]; then

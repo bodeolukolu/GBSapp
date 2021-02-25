@@ -6,6 +6,8 @@
 # gmissingness <-
 # smissingness <-
 # minRD <-
+# snpformats <-
+# pseg <-
 # remove_id_list <- NULL
 # remove_id_list <- c("NA_1","NA_2")
 # remove_id_list <- paste(remove_id_list, "_GT", sep="")
@@ -26,6 +28,7 @@ remove_id_list <- unlist(strsplit(args[7],","))
 remove_id_list <- paste(remove_id_list, "_GT", sep="")
 libdir <- args[8]
 snpformats <- args[9]
+pseg <- args[10]
 gmissingness <- as.numeric(gmissingness)
 smissingness <- as.numeric(smissingness)
 minRD <- as.numeric(minRD)
@@ -73,7 +76,7 @@ RD_snpfiltering <- function(){
   subgenome_1_filtered_1_AB <- subset(subgenome_1_filtered_1, select=c(1:(((ncol(subgenome_1_filtered_1)-4)/2)+4)))
   for (i in 5:(((ncol(subgenome_1_filtered_1)-4)/2)+4)) {
     j <- i+((ncol(subgenome_1_filtered_1)-4)/2)
-    subgenome_1_filtered_1[,j][subgenome_1_filtered_1[,i] < 12] <- NA
+    subgenome_1_filtered_1[,j][subgenome_1_filtered_1[,i] < 18] <- NA
     subgenome_1_filtered_1[,i][subgenome_1_filtered_1[,j] == "0/0/0/0/0/0" ] <- minRD
     subgenome_1_filtered_1[,i][subgenome_1_filtered_1[,j] == "1/1/1/1/1/1" ] <- minRD
     subgenome_1_filtered_1[,j][subgenome_1_filtered_1[,i] <= rd] <- NA
@@ -223,7 +226,7 @@ SD_snpfiltering <- function() {
     subgenome_1_SD_1_G0001G0000 <- merge(subgenome_1_SD_1a, subgenome_1_SD_1a_count, by=c("CHROM", "POS"), all=TRUE)
     subgenome_1_SD_1_G0001G0000 <- subset(subgenome_1_SD_1_G0001G0000, select=c(-(((ncol(subgenome_1)-4)/2)+5),-(((ncol(subgenome_1)-4)/2)+6)))
     write.table (subgenome_1_SD_1_G0001G0000, file=paste(pop,"_4x","_SD_1_G0001G0000_plusSD.txt",sep=""), row.names=F, quote = FALSE, sep = "\t")
-    subgenome_1_SD_1_G0001G0000 <- subset(subgenome_1_SD_1_G0001G0000, pvalue >=0.001)
+    subgenome_1_SD_1_G0001G0000 <- subset(subgenome_1_SD_1_G0001G0000, pvalue >= pseg)
     write.table (subgenome_1_SD_1_G0001G0000, file=paste(pop,"_4x","_SD_1_G0001G0000.txt",sep=""), row.names=F, quote = FALSE, sep = "\t")
   } else {
     print ("all SNPs in G0001G0000 configuration failed segregation distortion test")
@@ -276,7 +279,7 @@ SD_snpfiltering <- function() {
     subgenome_1_SD_1_G0001G0001 <- merge(subgenome_1_SD_1a, subgenome_1_SD_1a_count, by=c("CHROM", "POS"), all=TRUE)
     subgenome_1_SD_1_G0001G0001 <- subset(subgenome_1_SD_1_G0001G0001, select=c(-(((ncol(subgenome_1)-4)/2)+5),-(((ncol(subgenome_1)-4)/2)+6),-(((ncol(subgenome_1)-4)/2)+7)))
     write.table (subgenome_1_SD_1_G0001G0001, file=paste(pop,"_4x","_SD_1_G0001G0001_plusSD.txt",sep=""), row.names=F, quote = FALSE, sep = "\t")
-    subgenome_1_SD_1_G0001G0001 <- subset(subgenome_1_SD_1_G0001G0001, pvalue >=0.001)
+    subgenome_1_SD_1_G0001G0001 <- subset(subgenome_1_SD_1_G0001G0001, pvalue >= pseg)
     write.table (subgenome_1_SD_1_G0001G0001, file=paste(pop,"_4x","_SD_1_G0001G0001.txt",sep=""), row.names=F, quote = FALSE, sep = "\t")
   } else {
     print ("all SNPs in G0001G0001 configuration failed segregation distortion test")
@@ -336,7 +339,7 @@ SD_snpfiltering <- function() {
     subgenome_1_SD_1_G0001G0011 <- merge(subgenome_1_SD_1a, subgenome_1_SD_1a_count, by=c("CHROM", "POS"), all=TRUE)
     subgenome_1_SD_1_G0001G0011 <- subset(subgenome_1_SD_1_G0001G0011, select=c(-(((ncol(subgenome_1)-4)/2)+5),-(((ncol(subgenome_1)-4)/2)+6),-(((ncol(subgenome_1)-4)/2)+7),-(((ncol(subgenome_1)-4)/2)+8)))
     write.table (subgenome_1_SD_1_G0001G0011, file=paste(pop,"_4x","_SD_1_G0001G0011_plusSD.txt",sep=""), row.names=F, quote = FALSE, sep = "\t")
-    subgenome_1_SD_1_G0001G0011 <- subset(subgenome_1_SD_1_G0001G0011, pvalue >=0.001)
+    subgenome_1_SD_1_G0001G0011 <- subset(subgenome_1_SD_1_G0001G0011, pvalue >= pseg)
     write.table (subgenome_1_SD_1_G0001G0011, file=paste(pop,"_4x","_SD_1_G0001G0011.txt",sep=""), row.names=F, quote = FALSE, sep = "\t")
   } else {
     print ("all SNPs in G0001G0011 configuration failed segregation distortion test")
@@ -392,7 +395,7 @@ SD_snpfiltering <- function() {
     subgenome_1_SD_1_G0001G0111 <- merge(subgenome_1_SD_1a, subgenome_1_SD_1a_count, by=c("CHROM", "POS"), all=TRUE)
     subgenome_1_SD_1_G0001G0111 <- subset(subgenome_1_SD_1_G0001G0111, select=c(-(((ncol(subgenome_1)-4)/2)+5),-(((ncol(subgenome_1)-4)/2)+6),-(((ncol(subgenome_1)-4)/2)+7)))
     write.table (subgenome_1_SD_1_G0001G0111, file=paste(pop,"_4x","_SD_1_G0001G0111_plusSD.txt",sep=""), row.names=F, quote = FALSE, sep = "\t")
-    subgenome_1_SD_1_G0001G0111 <- subset(subgenome_1_SD_1_G0001G0111, pvalue >=0.001)
+    subgenome_1_SD_1_G0001G0111 <- subset(subgenome_1_SD_1_G0001G0111, pvalue >= pseg)
     write.table (subgenome_1_SD_1_G0001G0111, file=paste(pop,"_4x","_SD_1_G0001G0111.txt",sep=""), row.names=F, quote = FALSE, sep = "\t")
   } else {
     print ("all SNPs in G0001G0111 configuration failed segregation distortion test")
@@ -445,7 +448,7 @@ SD_snpfiltering <- function() {
     subgenome_1_SD_1_G0001G1111 <- merge(subgenome_1_SD_1a, subgenome_1_SD_1a_count, by=c("CHROM", "POS"), all=TRUE)
     subgenome_1_SD_1_G0001G1111 <- subset(subgenome_1_SD_1_G0001G1111, select=c(-(((ncol(subgenome_1)-4)/2)+5),-(((ncol(subgenome_1)-4)/2)+6)))
     write.table (subgenome_1_SD_1_G0001G1111, file=paste(pop,"_4x","_SD_1_G0001G1111_plusSD.txt",sep=""), row.names=F, quote = FALSE, sep = "\t")
-    subgenome_1_SD_1_G0001G1111 <- subset(subgenome_1_SD_1_G0001G1111, pvalue >=0.001)
+    subgenome_1_SD_1_G0001G1111 <- subset(subgenome_1_SD_1_G0001G1111, pvalue >= pseg)
     write.table (subgenome_1_SD_1_G0001G1111, file=paste(pop,"_4x","_SD_1_G0001G1111.txt",sep=""), row.names=F, quote = FALSE, sep = "\t")
   } else {
     print ("all SNPs in G0001G1111 configuration failed segregation distortion test")
@@ -501,7 +504,7 @@ SD_snpfiltering <- function() {
     subgenome_1_SD_1_G0011G0000 <- merge(subgenome_1_SD_1a, subgenome_1_SD_1a_count, by=c("CHROM", "POS"), all=TRUE)
     subgenome_1_SD_1_G0011G0000 <- subset(subgenome_1_SD_1_G0011G0000, select=c(-(((ncol(subgenome_1)-4)/2)+5),-(((ncol(subgenome_1)-4)/2)+6),-(((ncol(subgenome_1)-4)/2)+7)))
     write.table (subgenome_1_SD_1_G0011G0000, file=paste(pop,"_4x","_SD_1_G0011G0000_plusSD.txt",sep=""), row.names=F, quote = FALSE, sep = "\t")
-    subgenome_1_SD_1_G0011G0000 <- subset(subgenome_1_SD_1_G0011G0000, pvalue >=0.001)
+    subgenome_1_SD_1_G0011G0000 <- subset(subgenome_1_SD_1_G0011G0000, pvalue >= pseg)
     write.table (subgenome_1_SD_1_G0011G0000, file=paste(pop,"_4x","_SD_1_G0011G0000.txt",sep=""), row.names=F, quote = FALSE, sep = "\t")
   } else {
     print ("all SNPs in G0011G0000 configuration failed segregation distortion test")
@@ -558,7 +561,7 @@ SD_snpfiltering <- function() {
     subgenome_1_SD_1_G0011G0011 <- merge(subgenome_1_SD_1a, subgenome_1_SD_1a_count, by=c("CHROM", "POS"), all=TRUE)
     subgenome_1_SD_1_G0011G0011 <- subset(subgenome_1_SD_1_G0011G0011, select=c(-(((ncol(subgenome_1)-4)/2)+5),-(((ncol(subgenome_1)-4)/2)+6),-(((ncol(subgenome_1)-4)/2)+7),-(((ncol(subgenome_1)-4)/2)+8),-(((ncol(subgenome_1)-4)/2)+9)))
     write.table (subgenome_1_SD_1_G0011G0011, file=paste(pop,"_4x","_SD_1_G0011G0011_plusSD.txt",sep=""), row.names=F, quote = FALSE, sep = "\t")
-    subgenome_1_SD_1_G0011G0011 <- subset(subgenome_1_SD_1_G0011G0011, pvalue >=0.001)
+    subgenome_1_SD_1_G0011G0011 <- subset(subgenome_1_SD_1_G0011G0011, pvalue >= pseg)
     write.table (subgenome_1_SD_1_G0011G0011, file=paste(pop,"_4x","_SD_1_G0011G0011.txt",sep=""), row.names=F, quote = FALSE, sep = "\t")
   } else {
     print ("all SNPs in G0011G0011 configuration failed segregation distortion test")
@@ -618,7 +621,7 @@ SD_snpfiltering <- function() {
     subgenome_1_SD_1_G0011G0111 <- merge(subgenome_1_SD_1a, subgenome_1_SD_1a_count, by=c("CHROM", "POS"), all=TRUE)
     subgenome_1_SD_1_G0011G0111 <- subset(subgenome_1_SD_1_G0011G0111, select=c(-(((ncol(subgenome_1)-4)/2)+5),-(((ncol(subgenome_1)-4)/2)+6),-(((ncol(subgenome_1)-4)/2)+7),-(((ncol(subgenome_1)-4)/2)+8)))
     write.table (subgenome_1_SD_1_G0011G0111, file=paste(pop,"_4x","_SD_1_G0011G0111_plusSD.txt",sep=""), row.names=F, quote = FALSE, sep = "\t")
-    subgenome_1_SD_1_G0011G0111 <- subset(subgenome_1_SD_1_G0011G0111, pvalue >=0.001)
+    subgenome_1_SD_1_G0011G0111 <- subset(subgenome_1_SD_1_G0011G0111, pvalue >= pseg)
     write.table (subgenome_1_SD_1_G0011G0111, file=paste(pop,"_4x","_SD_1_G0011G0111.txt",sep=""), row.names=F, quote = FALSE, sep = "\t")
   } else {
     print ("all SNPs in G0011G0111 configuration failed segregation distortion test")
@@ -674,7 +677,7 @@ SD_snpfiltering <- function() {
     subgenome_1_SD_1_G0011G1111 <- merge(subgenome_1_SD_1a, subgenome_1_SD_1a_count, by=c("CHROM", "POS"), all=TRUE)
     subgenome_1_SD_1_G0011G1111 <- subset(subgenome_1_SD_1_G0011G1111, select=c(-(((ncol(subgenome_1)-4)/2)+5),-(((ncol(subgenome_1)-4)/2)+6),-(((ncol(subgenome_1)-4)/2)+7)))
     write.table (subgenome_1_SD_1_G0011G1111, file=paste(pop,"_4x","_SD_1_G0011G1111_plusSD.txt",sep=""), row.names=F, quote = FALSE, sep = "\t")
-    subgenome_1_SD_1_G0011G1111 <- subset(subgenome_1_SD_1_G0011G1111, pvalue >=0.001)
+    subgenome_1_SD_1_G0011G1111 <- subset(subgenome_1_SD_1_G0011G1111, pvalue >= pseg)
     write.table (subgenome_1_SD_1_G0011G1111, file=paste(pop,"_4x","_SD_1_G0011G1111.txt",sep=""), row.names=F, quote = FALSE, sep = "\t")
   } else {
     print ("all SNPs in G0011G1111 configuration failed segregation distortion test")
@@ -728,7 +731,7 @@ SD_snpfiltering <- function() {
     subgenome_1_SD_1_G0111G0000 <- merge(subgenome_1_SD_1a, subgenome_1_SD_1a_count, by=c("CHROM", "POS"), all=TRUE)
     subgenome_1_SD_1_G0111G0000 <- subset(subgenome_1_SD_1_G0111G0000, select=c(-(((ncol(subgenome_1)-4)/2)+5),-(((ncol(subgenome_1)-4)/2)+6)))
     write.table (subgenome_1_SD_1_G0111G0000, file=paste(pop,"_4x","_SD_1_G0111G0000_plusSD.txt",sep=""), row.names=F, quote = FALSE, sep = "\t")
-    subgenome_1_SD_1_G0111G0000 <- subset(subgenome_1_SD_1_G0111G0000, pvalue >=0.001)
+    subgenome_1_SD_1_G0111G0000 <- subset(subgenome_1_SD_1_G0111G0000, pvalue >= pseg)
     write.table (subgenome_1_SD_1_G0111G0000, file=paste(pop,"_4x","_SD_1_G0111G0000.txt",sep=""), row.names=F, quote = FALSE, sep = "\t")
   } else {
     print ("all SNPs in G0111G0000 configuration failed segregation distortion test")
@@ -781,7 +784,7 @@ SD_snpfiltering <- function() {
     subgenome_1_SD_1_G0111G0111 <- merge(subgenome_1_SD_1a, subgenome_1_SD_1a_count, by=c("CHROM", "POS"), all=TRUE)
     subgenome_1_SD_1_G0111G0111 <- subset(subgenome_1_SD_1_G0111G0111, select=c(-(((ncol(subgenome_1)-4)/2)+5),-(((ncol(subgenome_1)-4)/2)+6),-(((ncol(subgenome_1)-4)/2)+7)))
     write.table (subgenome_1_SD_1_G0111G0111, file=paste(pop,"_4x","_SD_1_G0111G0111_plusSD.txt",sep=""), row.names=F, quote = FALSE, sep = "\t")
-    subgenome_1_SD_1_G0111G0111 <- subset(subgenome_1_SD_1_G0111G0111, pvalue >=0.001)
+    subgenome_1_SD_1_G0111G0111 <- subset(subgenome_1_SD_1_G0111G0111, pvalue >= pseg)
     write.table (subgenome_1_SD_1_G0111G0111, file=paste(pop,"_4x","_SD_1_G0111G0111.txt",sep=""), row.names=F, quote = FALSE, sep = "\t")
   } else {
     print ("all SNPs in G0111G0111 configuration failed segregation distortion test")
@@ -834,7 +837,7 @@ SD_snpfiltering <- function() {
     subgenome_1_SD_1_G0111G1111 <- merge(subgenome_1_SD_1a, subgenome_1_SD_1a_count, by=c("CHROM", "POS"), all=TRUE)
     subgenome_1_SD_1_G0111G1111 <- subset(subgenome_1_SD_1_G0111G1111, select=c(-(((ncol(subgenome_1)-4)/2)+5),-(((ncol(subgenome_1)-4)/2)+6)))
     write.table (subgenome_1_SD_1_G0111G1111, file=paste(pop,"_4x","_SD_1_G0111G1111_plusSD.txt",sep=""), row.names=F, quote = FALSE, sep = "\t")
-    subgenome_1_SD_1_G0111G1111 <- subset(subgenome_1_SD_1_G0111G1111, pvalue >=0.001)
+    subgenome_1_SD_1_G0111G1111 <- subset(subgenome_1_SD_1_G0111G1111, pvalue >= pseg)
     write.table (subgenome_1_SD_1_G0111G1111, file=paste(pop,"_4x","_SD_1_G0111G1111.txt",sep=""), row.names=F, quote = FALSE, sep = "\t")
   } else {
     print ("all SNPs in G0111G1111 configuration failed segregation distortion test")

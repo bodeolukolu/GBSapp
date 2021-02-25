@@ -20,23 +20,11 @@ if [ -z "$scaleRD" ]; then
 	scaleRD=1
 fi
 if [ -z "$minRD" ]; then
-	minRD=0
+	minRD=1
 fi
 
-if [[ -z "$maxRD" ]] && [[ "$ploidy" -gt 6 ]]; then
-	maxRD=500
-fi
-if [[ -z "$maxRD" ]] && [[ "$ploidy" -gt 4 ]]; then
-	maxRD=250
-fi
-if [[ -z "$maxRD" ]] && [[ "$ploidy" -gt 2 ]]; then
-	maxRD=125
-fi
-if [[ -z "$maxRD" ]] && [[ "$ploidy" -gt 1 ]]; then
-	maxRD=50
-fi
-if [[ -z "$maxRD" ]] && [[ "$ploidy" -eq 1 ]]; then
-	maxRD=25
+if [[ -z "$maxRD" ]]; then
+	maxRD=10000
 fi
 
 if [ -z "$maxn_popallele" ]; then
@@ -57,6 +45,7 @@ fi
 if [[ "$maxn_popallele" -le 50 ]]; then
 	SB=1500
 fi
+
 
 
 cd $projdir
@@ -324,7 +313,7 @@ for i in $(ls -S *.f* | grep -v R2.f); do (
   fi
   export LC_ALL=C; paste -d ~ ${i%.f*}_uniq.txt ${i%.f*}_R2_uniq.txt | expand -t $(( $(wc -L < $i ) + 2 )) | awk '{!seen[$0]++}END{for (i in seen) print seen[i], i}' | awk '{$1=$1};1' | \
   awk '{gsub(" /"," "); print}' | awk '{gsub("/\n","\n"); print}' | awk '{gsub("/"," "); print}' | awk '{gsub(" ","\t"); print}' | awk -v scaleRD=$scaleRD '$1 >= scaleRD' | \
-  awk -v scaleRD=$scaleRD '{print int($1/scaleRD),"\t",$2,"\t",$3,"\t",$4}' | awk -v maxRD=$maxRD '$1 <= maxRD' | awk -v minRD=$minRD '$1 > minRD' > ${i%.f*}_rdrefseq.txt
+  awk -v scaleRD=$scaleRD '{print int($1/scaleRD),"\t",$2,"\t",$3,"\t",$4}' | awk -v maxRD=$maxRD '$1 <= maxRD' | awk -v minRD=$minRD '$1 >= minRD' > ${i%.f*}_rdrefseq.txt
   awk 'NF==2 {print ">seq"NR"_se-"$1"\n"$2}' ${i%.f*}_rdrefseq.txt > ${i%.f*}_rdrefseq_se.txt
   awk 'NF==3 {print ">seq"NR"_pe-"$0}' ${i%.f*}_rdrefseq.txt | awk '{print $1"\n"$3}' > ${i%.f*}_uniq_R2.fasta
   awk 'NF==3 {print ">seq"NR"_pe-"$0}' ${i%.f*}_rdrefseq.txt | awk '{print $1"\n"$2}' | cat - ${i%.f*}_rdrefseq_se.txt > ${i%.f*}_uniq_R1.fasta
@@ -1010,8 +999,15 @@ fi
 echo -e "${blue}\n############################################################################## ${yellow}\n- GBSapp is Performing SNP Filtering\n${blue}##############################################################################${white}\n"
 main () {
 cd $projdir
+
+if [[ -d "snpfilter" ]]; then
+	number_snpfilter=$( ls -d snpfilter* | wc -l )
+	mv snpfilter snpfilter_"${number_snpfilter}"
+fi
+
 mkdir snpfilter
 cd snpfilter
+
 mkdir 2x
 mkdir 4x
 mkdir 6x
@@ -1112,6 +1108,9 @@ fi
 if [ -z $minRD_8x ]; then
 	minRD_8x=100
 fi
+if [[ -z "$pseg"]]; then
+	pseg=0.001
+fi
 if [ -z $maf ]; then
 	maf=0.02
 fi
@@ -1197,7 +1196,7 @@ if [[ "$p1" ]]; then
 		cd ${projdir}/snpfilter
 		cp -r 2x 2x_biparental_gmiss"${gmiss}"_smiss"${smiss}"
 		cd ./2x_biparental_gmiss"${gmiss}"_smiss"${smiss}"
-		Rscript "${GBSapp_dir}"/scripts/R/GBSapp_Filter_2x.R "$pop" "$p1" "$p2" "$gmiss" "$smiss" "$minRD_2x" "$exclude_samples" "${GBSapp_dir}/tools/R" "$snpformats"
+		Rscript "${GBSapp_dir}"/scripts/R/GBSapp_Filter_2x.R "$pop" "$p1" "$p2" "$gmiss" "$smiss" "$minRD_2x" "$exclude_samples" "${GBSapp_dir}/tools/R" "$snpformats" "$pseg"
 		wait
 		awk 'NR>1{print $1,"\t",$2,"\t",$3}' *dose.txt | sort -V -k2,2 -k3,3 >  snplist_rd.txt
 		chrid=$(LC_ALL=C; sort -n -k2,2 -S 50% snplist_rd.txt | awk '{print $2}' | uniq)
@@ -1214,7 +1213,7 @@ if [[ "$p1" ]]; then
 		cd ${projdir}/snpfilter
 		cp -r 4x 4x_biparental_gmiss"${gmiss}"_smiss"${smiss}"
 		cd ./4x_biparental_gmiss"${gmiss}"_smiss"${smiss}"
-		Rscript "${GBSapp_dir}"/scripts/R/GBSapp_Filter_4x.R "$pop" "$p1" "$p2" "$gmiss" "$smiss" "$minRD_4x" "$exclude_samples" "${GBSapp_dir}/tools/R" "$snpformats"
+		Rscript "${GBSapp_dir}"/scripts/R/GBSapp_Filter_4x.R "$pop" "$p1" "$p2" "$gmiss" "$smiss" "$minRD_4x" "$exclude_samples" "${GBSapp_dir}/tools/R" "$snpformats" "$pseg"
 		wait
 		awk 'NR>1{print $1,"\t",$2,"\t",$3}' *dose.txt | sort -V -k2,2 -k3,3 >  snplist_rd.txt
 		chrid=$(LC_ALL=C; sort -n -k2,2 -S 50% snplist_rd.txt | awk '{print $2}' | uniq)
@@ -1231,7 +1230,7 @@ if [[ "$p1" ]]; then
 		cd ${projdir}/snpfilter
 		cp -r 6x 6x_biparental_gmiss"${gmiss}"_smiss"${smiss}"
 		cd ./6x_biparental_gmiss"${gmiss}"_smiss"${smiss}"
-		Rscript "${GBSapp_dir}"/scripts/R/GBSapp_Filter_6x.R "$pop" "$p1" "$p2" "$gmiss" "$smiss" "$minRD_6x" "$exclude_samples" "${GBSapp_dir}/tools/R" "$snpformats"
+		Rscript "${GBSapp_dir}"/scripts/R/GBSapp_Filter_6x.R "$pop" "$p1" "$p2" "$gmiss" "$smiss" "$minRD_6x" "$exclude_samples" "${GBSapp_dir}/tools/R" "$snpformats" "$pseg"
 		wait
 		awk 'NR>1{print $1,"\t",$2,"\t",$3}' *dose.txt | sort -V -k2,2 -k3,3 >  snplist_rd.txt
 		chrid=$(LC_ALL=C; sort -n -k2,2 -S 50% snplist_rd.txt | awk '{print $2}' | uniq)
@@ -1248,7 +1247,7 @@ if [[ "$p1" ]]; then
 		cd ${projdir}/snpfilter
 		cp -r 8x 8x_biparental_gmiss"${gmiss}"_smiss"${smiss}"
 		cd ./8x_biparental_gmiss"${gmiss}"_smiss"${smiss}"
-		Rscript "${GBSapp_dir}"/scripts/R/GBSapp_Filter_8x.R "$pop" "$p1" "$p2" "$gmiss" "$smiss" "$minRD_8x" "$exclude_samples" "${GBSapp_dir}/tools/R" "$snpformats"
+		Rscript "${GBSapp_dir}"/scripts/R/GBSapp_Filter_8x.R "$pop" "$p1" "$p2" "$gmiss" "$smiss" "$minRD_8x" "$exclude_samples" "${GBSapp_dir}/tools/R" "$snpformats" "$pseg"
 		wait
 		awk 'NR>1{print $1,"\t",$2,"\t",$3}' *dose.txt | sort -V -k2,2 -k3,3 >  snplist_rd.txt
 		chrid=$(LC_ALL=C; sort -n -k2,2 -S 50% snplist_rd.txt | awk '{print $2}' | uniq)
