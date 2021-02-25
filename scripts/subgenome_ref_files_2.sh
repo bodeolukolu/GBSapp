@@ -1108,7 +1108,7 @@ fi
 if [ -z $minRD_8x ]; then
 	minRD_8x=100
 fi
-if [[ -z "$pseg"]]; then
+if [ -z $pseg ]; then
 	pseg=0.001
 fi
 if [ -z $maf ]; then
