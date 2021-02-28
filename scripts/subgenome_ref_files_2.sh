@@ -1141,8 +1141,8 @@ if [[ "$p1" ]]; then
 fi
 done
 done
-cd ${projdir}/snpcall/
-rm *SPLIT*
+
+
 cd ${projdir}/snpfilter/
 find . -type f -empty -delete
 find . -type d -empty -delete
@@ -1254,8 +1254,9 @@ for snpfilter_dir in $(ls -d */); do
 		cd $snpfilter_dir
 		for v in *dose.txt; do
 			vcfdose=${v%_rd*}; vcfdose=${vcfdose#*_}
-			grep '^#' ../../snpcall/*${vcfdose}.vcf  > ${v%.txt}.vcf
-			awk 'FNR==NR{a[$1,$2]=$0;next}{if(b=a[$2,$3]){print b}}' ../../snpcall/*${vcfdose}.vcf $v >> ${v%.txt}.vcf
+			zcat ../../snpcall/*${vcfdose}.vcf.gz | grep '^#' > ${v%.txt}.vcf
+			awk 'FNR==NR{a[$1,$2]=$0;next}{if(b=a[$2,$3]){print b}}' <(gzip -dc ../../snpcall/*${vcfdose}.vcf.gz) $v >> ${v%.txt}.vcf
+			gzip ${v%.txt}.vcf
 		done
 		cd ../
 	fi
