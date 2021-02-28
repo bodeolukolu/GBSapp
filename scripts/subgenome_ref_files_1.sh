@@ -5,10 +5,10 @@ if [ -z "$threads" ]; then
 		threads=$((threads-2))
 	fi
 fi
-if [ -z "$copy" ]; then
+if [ -z "$copyN_ref" ]; then
 	paralogs=1
 else
-	paralogs=$((copy))
+	paralogs=$((copyN_ref))
 fi
 if [ -z "$p2" ]; then
 	p2=$p1
@@ -18,35 +18,6 @@ if [ -z "$paleopolyploid" ]; then
 fi
 if [ -z "$ncohorts" ]; then
 	ncohorts=1
-fi
-if [ -z "$scaleRD" ]; then
-	scaleRD=1
-fi
-if [ -z "$minRD" ]; then
-	minRD=1
-fi
-
-if [[ -z "$maxRD" ]]; then
-	maxRD=10000
-fi
-
-if [ -z "$maxn_popallele" ]; then
-	maxn_popallele=500 && SB=15000
-fi
-if [[ "$maxn_popallele" -gt 300 ]] && [[ "$maxn_popallele" -le 400 ]]; then
-	SB=11000
-fi
-if [[ "$maxn_popallele" -gt 200 ]] && [[ "$maxn_popallele" -le 300 ]]; then
-	SB=8000
-fi
-if [[ "$maxn_popallele" -gt 100 ]] && [[ "$maxn_popallele" -le 200 ]]; then
-	SB=5000
-fi
-if [[ "$maxn_popallele" -gt 50 ]] && [[ "$maxn_popallele" -le 100 ]]; then
-	SB=2500
-fi
-if [[ "$maxn_popallele" -le 50 ]]; then
-	SB=1500
 fi
 
 
@@ -316,8 +287,7 @@ else
 			touch "${i%.f*}_R2_uniq.txt"
 		fi
 		export LC_ALL=C; paste -d ~ ${i%.f*}_uniq.txt ${i%.f*}_R2_uniq.txt | expand -t $(( $(wc -L < $i ) + 2 )) | awk '{!seen[$0]++}END{for (i in seen) print seen[i], i}' | \
-		awk '{$1=$1};1' | awk '{gsub(" /"," "); print}' | awk '{gsub("/\n","\n"); print}' | awk '{gsub("/"," "); print}' | awk '{gsub(" ","\t"); print}' | awk -v scaleRD=$scaleRD '$1 >= scaleRD' | \
-		awk -v scaleRD=$scaleRD '{print int($1/scaleRD),"\t",$2,"\t",$3,"\t",$4}' | awk -v maxRD=$maxRD '$1 <= maxRD' | awk -v minRD=$minRD '$1 >= minRD' > ${i%.f*}_rdrefseq.txt
+		awk '{$1=$1};1' | awk '{gsub(" /"," "); print}' | awk '{gsub("/\n","\n"); print}' | awk '{gsub("/"," "); print}' | awk '{gsub(" ","\t"); print}' > ${i%.f*}_rdrefseq.txt
 		awk 'NF==2 {print ">seq"NR"_se-"$1"\n"$2}' ${i%.f*}_rdrefseq.txt > ${i%.f*}_rdrefseq_se.txt
 		awk 'NF==3 {print ">seq"NR"_pe-"$0}' ${i%.f*}_rdrefseq.txt | awk '{print $1"\n"$3}' > ${i%.f*}_uniq_R2.fasta
 		awk 'NF==3 {print ">seq"NR"_pe-"$0}' ${i%.f*}_rdrefseq.txt | awk '{print $1"\n"$2}' | cat - ${i%.f*}_rdrefseq_se.txt > ${i%.f*}_uniq_R1.fasta
@@ -414,8 +384,7 @@ if [ "$paleopolyploid" == "true" ]; then
 			touch "${i%.f*}_R2_uniq.txt"
 		fi
 		export LC_ALL=C; paste -d ~ ${i%.f*}_uniq.txt ${i%.f*}_R2_uniq.txt | expand -t $(( $(wc -L < $i ) + 2 )) | awk '{!seen[$0]++}END{for (i in seen) print seen[i], i}' | awk '{$1=$1};1' | \
-		awk '{gsub(" /"," "); print}' | awk '{gsub("/\n","\n"); print}' | awk '{gsub("/"," "); print}' | awk '{gsub(" ","\t"); print}' | awk -v scaleRD=$scaleRD '$1 >= scaleRD' | \
-		awk -v scaleRD=$scaleRD '{print int($1/scaleRD),"\t",$2,"\t",$3,"\t",$4}' | awk -v maxRD=$maxRD '$1 <= maxRD' | awk -v minRD=$minRD '$1 >= minRD' > ${i%.f*}_rdrefseq.txt
+		awk '{gsub(" /"," "); print}' | awk '{gsub("/\n","\n"); print}' | awk '{gsub("/"," "); print}' | awk '{gsub(" ","\t"); print}' > ${i%.f*}_rdrefseq.txt
 		awk 'NF==2 {print ">seq"NR"_se-"$1"\n"$2}' ${i%.f*}_rdrefseq.txt > ${i%.f*}_rdrefseq_se.txt
 		awk 'NF==3 {print ">seq"NR"_pe-"$0}' ${i%.f*}_rdrefseq.txt | awk '{print $1"\n"$3}' > ${i%.f*}_uniq_R2.fasta
 		awk 'NF==3 {print ">seq"NR"_pe-"$0}' ${i%.f*}_rdrefseq.txt | awk '{print $1"\n"$2}' | cat - ${i%.f*}_rdrefseq_se.txt > ${i%.f*}_uniq_R1.fasta
@@ -615,7 +584,7 @@ if [[ "$paleopolyploid" != true ]] && [[ "$ncohorts" == no ]]; then
 	Get_Chromosome=$(awk 'NR>1{print $2,"\t",#3}' ../refgenomes/${ref1%.*}.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $0}' | sort -k2,2 -nr | awk '{print $1}' | awk -v pat=${ref1%.f*} '$0 ~ pat')
 	if [[ "$Get_Chromosome" -gt 2000 ]]; then
 		for selchr in $Get_Chromosome; do (
-			$GATK --java-options "$Xmx3 -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ../refgenomes/$ref1 -L $selchr $input -ploidy $ploidy -O ../snpcall/${pop}_${ploidy}x_"${selchr}"_raw.vcf.gz --max-reads-per-alignment-start 0 )&
+			$GATK --java-options "$Xmx3 -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ../refgenomes/$ref1 -L $selchr $input -ploidy $ploidy -O ../snpcall/${pop}_${ploidy}x_"${selchr}"_raw.vcf.gz --max-reads-per-alignment-start 0 --max-num-haplotypes-in-population $ploidy )&
 			if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
 				wait
 			fi
@@ -628,7 +597,7 @@ if [[ "$paleopolyploid" != true ]] && [[ "$ncohorts" == no ]]; then
 		cat vcf_header.txt all.vcf > ${pop}_${ploidy}x_raw.vcf
 		rm vcf_header.txt all.vcf *.vcf.gz.tbi ${pop}_${ploidy}x_*_raw.vcf
 	else
-		$GATK --java-options "$Xmx3 -XX:ParallelGCThreads=$threads" HaplotypeCaller -R ../refgenomes/$ref1 $input -ploidy $ploidy -O ../snpcall/${pop}_${ploidy}x_raw.vcf.gz --max-reads-per-alignment-start 0
+		$GATK --java-options "$Xmx3 -XX:ParallelGCThreads=$threads" HaplotypeCaller -R ../refgenomes/$ref1 $input -ploidy $ploidy -O ../snpcall/${pop}_${ploidy}x_raw.vcf.gz --max-reads-per-alignment-start 0 --max-num-haplotypes-in-population $ploidy
 
 	fi
 	cd ${projdir}/preprocess
@@ -649,7 +618,7 @@ if [[ "$paleopolyploid" = true ]] && [[ "$ncohorts" == no ]]; then
 		Get_Chromosome=$(awk 'NR>1{print $2,"\t",$3}' ../refgenomes/${ref1%.*}.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $0}' | sort -k2,2 -nr | awk '{print $1}' | awk -v pat=${ref1%.f*} '$0 ~ pat')
 		if [[ "$Get_Chromosome" -gt 2000 ]]; then
 			for selchr in $Get_Chromosome; do (
-				$GATK --java-options "$Xmx3 -XX:ParallelGCThreads=$gthreads"  HaplotypeCaller -R ../refgenomes/$ref1 -L $selchr $input -ploidy $m -O ../snpcall/${pop}_${m}x_"${selchr}"_raw.vcf.gz --max-reads-per-alignment-start 0 )&
+				$GATK --java-options "$Xmx3 -XX:ParallelGCThreads=$gthreads"  HaplotypeCaller -R ../refgenomes/$ref1 -L $selchr $input -ploidy $m -O ../snpcall/${pop}_${m}x_"${selchr}"_raw.vcf.gz --max-reads-per-alignment-start 0 --max-num-haplotypes-in-population $m )&
 				if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
 					wait
 				fi
@@ -663,7 +632,7 @@ if [[ "$paleopolyploid" = true ]] && [[ "$ncohorts" == no ]]; then
 			rm vcf_header.txt all.vcf *.vcf.gz.tbi ${pop}_${m}x_*_raw.vcf
 			cd ${projdir}/preprocess
 		else
-			$GATK --java-options "$Xmx3 -XX:ParallelGCThreads=$gthreads"  HaplotypeCaller -R ../refgenomes/$ref1 $input -ploidy $m -O ../snpcall/${pop}_${m}x_raw.vcf.gz --max-reads-per-alignment-start 0
+			$GATK --java-options "$Xmx3 -XX:ParallelGCThreads=$gthreads"  HaplotypeCaller -R ../refgenomes/$ref1 $input -ploidy $m -O ../snpcall/${pop}_${m}x_raw.vcf.gz --max-reads-per-alignment-start 0 --max-num-haplotypes-in-population $m
 		fi
 	done
 	cd ${projdir}/preprocess
@@ -682,7 +651,7 @@ if [[ "$paleopolyploid" = false ]] && [[ "$ncohorts" != no ]]; then
 		echo -e "${magenta}- skipping HaplotypeCaller. Using previously generated .g.vcf.gz files ${white}\n"
 	else
 		for i in $(ls -S *_precall.bam); do (
-			$GATK --java-options "$Xmx3 -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ../refgenomes/$ref1 -I $i -ploidy $ploidy -O ../snpcall/${i%_precall.bam}.g.vcf.gz -ERC GVCF --max-reads-per-alignment-start 0
+			$GATK --java-options "$Xmx3 -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ../refgenomes/$ref1 -I $i -ploidy $ploidy -O ../snpcall/${i%_precall.bam}.g.vcf.gz -ERC GVCF --max-reads-per-alignment-start 0 --max-num-haplotypes-in-population $ploidy
 			cp ../snpcall/${i%_precall.bam}.g.vcf.gz* ../snpcall/processed/ ) &
 			if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
 				wait
@@ -691,34 +660,6 @@ if [[ "$paleopolyploid" = false ]] && [[ "$ncohorts" != no ]]; then
 		wait
 	fi
 	cd ../snpcall
-
-	for i in *.g.vcf.gz; do
-		zcat $i | grep -v '^#' | awk '{print $1"__"$2"\t"$5}' >> allraw1.vcf
-	done
-	sort -k1,1 allraw1.vcf | awk '{gsub(/<NON_REF>/,""); print $0}' | \
-	awk 'BEGIN{FS="\t"} {for(i=2; i<=NF; i++) { if (!a[$1]) a[$1]=$1FS$i ;else a[$1]=a[$1]""$i};if ($1 != old) b[j++] = a[old];old=$1 } END{for (i=0; i<j; i++) print b[i] }' | \
-	awk -F\, '{print NF-1"\t"$0}' | awk -F "\t" 'NR>1{print $2"\t"$1}' | \
-	awk '{print $1"\t"$2}' > highallelic1.vcf
-
-	for i in *.g.vcf.gz; do
-		zcat $i | grep -v '^#' | awk '{print $1"__"$2"\t"$10}' | awk '{gsub(/:/,"\t",$2); print}' | awk '{gsub(/ /,"\t"); print $1"\t"$6}' >> allraw2.vcf
-	done
-	sort -k1,1 allraw2.vcf | awk '{gsub(/<NON_REF>/,""); print $0}' | \
-	awk 'BEGIN{FS="\t"} {for(i=2; i<=NF; i++) { if (!a[$1]) a[$1]=$1FS$i ;else a[$1]=a[$1]""$i};if ($1 != old) b[j++] = a[old];old=$1 } END{for (i=0; i<j; i++) print b[i] }' | \
-	awk -F\, '{print NF-1"\t"$0}' | awk -F "\t" 'NR>1{print $2"\t"$1}' | \
-	awk '{print $1"\t"$2}' > highallelic2.vcf
-
-	awk 'FNR==NR{a[$1]=$2;next} ($1 in a) {print $1,a[$1],$2}' highallelic1.vcf highallelic2.vcf | awk '{gsub(/__/,"\t"); print}' | \
-	awk '{gsub(/ /,"\t"); print}' | awk -v maxn_popallele=$maxn_popallele -v SB=$SB '$3 > maxn_popallele || $4 > SB' | awk '{print $1"\t"$2}' > highallelic.vcf
-	rm allraw1.vcf allraw2.vcf highallelic1.vcf highallelic2.vcf
-
-	for i in *.g.vcf.gz; do
-		zcat $i | awk 'NR==FNR{a[$0];next} !($0 in a)' highallelic.vcf - >  lowerallelic.g.vcf
-		bgzip lowerallelic.g.vcf && mv  lowerallelic.g.vcf.gz ${i}
-		tabix -p vcf ${i}
-		wait
-	done
-	rm highallelic.vcf
 
 	if [[ "$ncohorts" = yes ]] || [[  "$ncohorts" -eq "1" ]]; then
 		cz=$(ls *.g.vcf.gz | wc -l)
@@ -754,7 +695,6 @@ if [[ "$paleopolyploid" = false ]] && [[ "$ncohorts" != no ]]; then
 				rm ../cohorts*/${pop}_${ploidy}x_raw.vcf*
 				rm ../${pop}_${ploidy}x_raw_cohorts*.vcf*
 				echo -e "${magenta}- \n- SNP calling failed probably due to insufficient memory ${white}\n"
-				echo -e "${magenta}- \n- Set parameter maxn_popallele to lower value (default=500) or cohort_size to higher value (default=1) ${white}\n"
 				echo -e "${magenta}- \n- Exiting pipeline in 5 seconds ${white}\n"
 				sleep 5 && exit 1
 			fi
@@ -806,7 +746,7 @@ if [[ "$paleopolyploid" = true ]] && [[ "$ncohorts" != no ]]; then
 			echo -e "${magenta}- skipping HaplotypeCaller. Using previously generated .g.vcf.gz files ${white}\n"
 		else
 			for i in $(ls -S *${m}x_precall.bam); do (
-				$GATK --java-options "$Xmx3 -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ../refgenomes/$ref1 -I $i -ploidy $m -O ../snpcall/${i%_precall.bam}.g.vcf.gz -ERC GVCF --max-reads-per-alignment-start 0
+				$GATK --java-options "$Xmx3 -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ../refgenomes/$ref1 -I $i -ploidy $m -O ../snpcall/${i%_precall.bam}.g.vcf.gz -ERC GVCF --max-reads-per-alignment-start 0 --max-num-haplotypes-in-population $m
 				cp ../snpcall/${i%_precall.bam}.g.vcf.gz* ../snpcall/processed/ ) &
 				if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
 					wait
@@ -815,34 +755,6 @@ if [[ "$paleopolyploid" = true ]] && [[ "$ncohorts" != no ]]; then
 			wait
 		fi
 		cd ../snpcall
-
-		for i in *.g.vcf.gz; do
-			zcat $i | grep -v '^#' | awk '{print $1"__"$2"\t"$5}' >> allraw1.vcf
-		done
-		sort -k1,1 allraw1.vcf | awk '{gsub(/<NON_REF>/,""); print $0}' | \
-		awk 'BEGIN{FS="\t"} {for(i=2; i<=NF; i++) { if (!a[$1]) a[$1]=$1FS$i ;else a[$1]=a[$1]""$i};if ($1 != old) b[j++] = a[old];old=$1 } END{for (i=0; i<j; i++) print b[i] }' | \
-		awk -F\, '{print NF-1"\t"$0}' | awk -F "\t" 'NR>1{print $2"\t"$1}' | \
-		awk '{print $1"\t"$2}' > highallelic1.vcf
-
-		for i in *.g.vcf.gz; do
-			zcat $i | grep -v '^#' | awk '{print $1"__"$2"\t"$10}' | awk '{gsub(/:/,"\t",$2); print}' | awk '{gsub(/ /,"\t"); print $1"\t"$6}' >> allraw2.vcf
-		done
-		sort -k1,1 allraw2.vcf | awk '{gsub(/<NON_REF>/,""); print $0}' | \
-		awk 'BEGIN{FS="\t"} {for(i=2; i<=NF; i++) { if (!a[$1]) a[$1]=$1FS$i ;else a[$1]=a[$1]""$i};if ($1 != old) b[j++] = a[old];old=$1 } END{for (i=0; i<j; i++) print b[i] }' | \
-		awk -F\, '{print NF-1"\t"$0}' | awk -F "\t" 'NR>1{print $2"\t"$1}' | \
-		awk '{print $1"\t"$2}' > highallelic2.vcf
-
-		awk 'FNR==NR{a[$1]=$2;next} ($1 in a) {print $1,a[$1],$2}' highallelic1.vcf highallelic2.vcf | awk '{gsub(/__/,"\t"); print}' | \
-		awk '{gsub(/ /,"\t"); print}' | awk -v maxn_popallele=$maxn_popallele -v SB=$SB '$3 > maxn_popallele || $4 > SB' | awk '{print $1"\t"$2}' > highallelic.vcf
-		rm allraw1.vcf allraw2.vcf highallelic1.vcf highallelic2.vcf
-
-		for i in *.g.vcf.gz; do
-			zcat $i | awk 'NR==FNR{a[$0];next} !($0 in a)' highallelic.vcf - >  lowerallelic.g.vcf
-			bgzip lowerallelic.g.vcf && mv  lowerallelic.g.vcf.gz ${i}
-			tabix -p vcf ${i}
-			wait
-		done
-		rm highallelic.vcf
 
 		if [[ "$ncohorts" = yes ]] || [[  "$ncohorts" -eq "1" ]]; then
 			cz=$(ls *.g.vcf.gz | wc -l)
@@ -878,7 +790,6 @@ if [[ "$paleopolyploid" = true ]] && [[ "$ncohorts" != no ]]; then
 					rm ../cohorts*/${pop}_${m}x_raw.vcf*
 					rm ../${pop}_${m}x_raw_cohorts*.vcf*
 					echo -e "${magenta}- \n- SNP calling failed probably due to insufficient memory ${white}\n"
-					echo -e "${magenta}- \n- Set parameter maxn_popallele to lower value (default=500) or cohort_size to higher value (default=1) ${white}\n"
 					echo -e "${magenta}- \n- Exiting pipeline in 5 seconds ${white}\n"
 					sleep 5 && exit 1
 				fi

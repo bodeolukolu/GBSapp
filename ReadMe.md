@@ -4,8 +4,7 @@
 </p>
 
 # Introduction
-GBSapp (v. 0.2.1) is an automated pipeline variant and haplotype calling/filtering. The pipeline integrates existing and novel best practices, some of which can be controlled by user-defined parameters. It ensures accurate dosage-based variant/haplotype calling, fine-scale filtering based on each variant data point (rather than averaging across samples/variants). It optimizes memory and speed at various points in the pipeline such as a novel approach that performs sequence read compression/decompression independently on each unique read before and after pre-processing. Intermediate summary reports and visualizations allow for QC at each step of the pipeline.
-
+GBSapp (v. 0.2.2) is an automated pipeline variant and haplotype calling/filtering. The pipeline integrates existing and novel best practices intuitively, some of which can be controlled by user-defined parameters. It ensures accurate dosage-sensitive variant calling, fine-scale filtering rather than averaging across samples/variants. It optimizes memory and speed at various points in the pipeline, for example, a novel approach performs compression and decompression independently on unique reads before and after pre-processing, respectively. Summary reports and visualizations allow for QC at each step of the pipeline.
 
 For questions, bugs, and suggestions, please contact bolukolu@utk.edu.
 
@@ -75,7 +74,7 @@ $ bash	<path-to-GBSapp-directory/GBSapp.sh>	<path-to-project-directory>
 
 ### Overview of workflow
 The figure below outlines the order of steps in the GBSapp pipeline
-- DESIGN IN PROGRESS
+- In Progress
 
 ### configuration
 Using a text editor, save a file containing any of the following variables as 'config' file (no file extension) and include it in your project directory.
@@ -84,11 +83,9 @@ Using a text editor, save a file containing any of the following variables as 'c
 
 |Variable      |Default       |Usage         |Input         |required/Optional|
 |:-------------|:-------------|:-------------|:-------------|:----------------|
-|threads|na|numer of cores/processors|integer|Optional|
+|threads|cores-2|numer of cores/processors|integer|Optional|
 |walkaway|true|run in walk-away or walk-through mode|true or false|Optional|
 |cluster|false|run on compute cluster node (currently only slurm-managed clusters) or workstation|true or false|Optional|
-
-**Note: na indicates that variable is user-defined or hard-coded/computed intuitively.*
 
 **Variant calling parameters**
 
@@ -96,16 +93,12 @@ Using a text editor, save a file containing any of the following variables as 'c
 |:-------------|:-------------|:-------------|:-------------|:----------------|
 |ploidy|na|ploid level = 1,2,4,6, or 8 (ploidy>8 allowed for autopolyploid)|integer|Required|
 |ref1|na|reference genome as .fasta file (haploids, diploids, autopolyploids, or 1st subgenome in allopolyploids)|integer|Optional|
-|ref2|na|2nd reference genome as .fasta file|integer|Optional|
-|ref3|na|3rd reference genome as .fasta file|integer|Optional|
-|ref4|na|4th reference genome as .fasta file|integer|Optional|
-|copy|1|maximum copy number of sequence in genome or in each subgenome|integer|Optional|
+|ref2|na|2nd reference genome as fasta file|integer|Optional|
+|ref3|na|3rd reference genome as fasta file|integer|Optional|
+|ref4|na|4th reference genome as fasta file|integer|Optional|
+|copyN_ref|1|maximum copy number of each unique read in reference genome or in each subgenome|integer|Optional|
 |paleopolyploid|false|capture/code variable dosage/copy number (i.e. 2x,4x,6x, and 8x)|true or false||Optional|
-|maxn_popallele|500|maximum number of alleles at a locus across individuals in a population. Value is matched to corresponding hard-coded SB (strand bias) threshold.|integer|Optional|
 |ncohorts|1|number of cohorts for Joint-genotyping. ncohorts=no (very slow) indicates multi-sample variant calling without generating single-sample gVCF files |integer, yes, or no|Optional|
-|scaleRD|1|downsampling approach that ensures all unique reads are represented in exact proportions. 1 indicates no down-sampling |integer|Optional|
-|minRD|1|threshold for number of times a unique occurs. Attempts to eliminates haplotypes derived from bad base calls)|integer|Optional|
-|maxRD|10,000|threshold for reads with excessive coverage (likely derived from paralogs/repetitive sequences)|integer|Optional|
 
 **Note: na indicates that variable is user-defined or hard-coded/computed intuitively, as well as a function of ploidy.*
 
@@ -117,6 +110,7 @@ Using a text editor, save a file containing any of the following variables as 'c
 |p2|na|paternal parent (specified only for biparental populations)|string|Optional|
 |genotype_missingness|0.2|maximum proportion of missing genotypes allowed per sample (multiple comma delimited thresholds permitted)|decimal number|Optional|
 |sample_missingness|0.2|maximum proportion of missing samples allowed per variant (multiple comma delimited thresholds permitted)|decimal number|Optional|
+|exclude_samples|na|sample IDs to be exclude from filtered variant data set|comma delimited strings|Optional|
 |minRD_1x|2|minimum read depth threshold|integer|Optional|
 |minRD_2x|6|minimum read depth threshold|integer|Optional|
 |minRD_4x|25|minimum read depth threshold|integer|Optional|
@@ -125,7 +119,6 @@ Using a text editor, save a file containing any of the following variables as 'c
 |pseg|0.001|p-value threshold for chi-square test of segregation distortion|decimal number|Optional|
 |maf|0.02|minor allele frequency threshold|decimal number|Optional|
 |snpformats|false|variant data set with alleles formatted as base (A,C,G,T) and/or degenerate notation|true or false|Optional|
-|exclude_samples|na|sample IDs to be exclude from filtered variant data set|comma delimited strings|Optional|
 
 Below is an example of a configuration file:
 
@@ -144,8 +137,9 @@ ref1=TF.fasta
 ref2=TL.fasta
 ploidy_ref1=4
 ploidy_ref2=2
-copy=1
+copyN_ref=1
 paleopolyploid=false
+ncohorts=no
 
 # SNP-filtering:
 ####################################################
@@ -153,12 +147,13 @@ p1=Beauregard
 p2=Tanzania
 genotype_missingness=0.1,0.2,0.3
 sample_missingness=0.1,0.2,0.3
+exclude_samples=S1,S2,S3
 minRD_2x=6
 minRD_4x=25
 minRD_6x=45
+pseg=0.001
 maf=0.02
-snpformats=false
-exclude_samples=S1,S1,S1
+snpformats=true
 ```
 
 Alternatively, a configuration file (outlined below) may only need to include the parameters for a run.
@@ -186,7 +181,7 @@ Since most if the parameters are hard-coded in an intuitive manner, by specifyin
 This package has been developed as part of the [Genomic Tools for Sweetpotato Improvement project](https://sweetpotatogenomics.cals.ncsu.edu/) (GT4SP) and [SweetGAINS](https://cgspace.cgiar.org/handle/10568/106838), both funded by [Bill & Melinda Gates Foundation](https://www.gatesfoundation.org/).
 ss
 ## Troubleshooting
-- IN PROGRESS
+- In Progress
 
 ## Versioning
 Versioning will follow major.minor.patch <a href="https://semver.org">semantic versioning format</a>.

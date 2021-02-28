@@ -16,13 +16,9 @@ ploidy_ref1=2
 ploidy_ref2=
 ploidy_ref3=
 ploidy_ref4=
-copy=1
+copyN_ref=1
 paleopolyploid=false
-maxn_popallele=500
 ncohorts=no
-scaleRD=1
-maxRD=250
-minRD=0
 
 
 # SNP-filtering:

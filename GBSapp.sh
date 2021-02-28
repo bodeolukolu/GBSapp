@@ -71,7 +71,7 @@ fi
 cd $projdir
 echo -e "${white}\n##################################################################################\n"
 echo -e "${yellow}- Program:	GBSapp"
-echo -e "${yellow}- Version:	0.2.1"
+echo -e "${yellow}- Version:	0.2.2"
 echo -e "${yellow}- Description:	Automated Pipeline for Variant/Haplotype Calling and Filtering"
 echo -e "${yellow}- Contact:	Bode Olukolu <bolukolu@utk.edu> ${white}"
 echo -e "${white}\n##################################################################################\n"
