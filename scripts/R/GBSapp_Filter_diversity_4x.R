@@ -53,7 +53,7 @@ RD_snpfiltering <- function() {
   }
   
   subgenome_filtered <- subgenome_1
-  subgenome_filtered$no_missing <- rowSums(is.na(subgenome_filtered))
+  subgenome_filtered$no_missing <- apply(subgenome_filtered, 1, function(x) sum(is.na(x)))
   subgenome_filtered <- subset(subgenome_filtered, no_missing <= ((ncol(subgenome_filtered)-5)/2)*gmissingness)
   subgenome_filtered <- subset(subgenome_filtered, select=-c(no_missing))
   
@@ -68,11 +68,11 @@ RD_snpfiltering <- function() {
   }
   subgenome_filtered_C <- subset(subgenome_filtered, select=c((((ncol(subgenome_filtered)-4)/2)+5):ncol(subgenome_filtered)))
   subgenome_filtered <- cbind(subgenome_filtered_AB, subgenome_filtered_C)
-  write.table (subgenome_filtered, file=paste(pop,"_4x","rawRD",rd+1,"_DP_GT.txt",sep=""), row.names=F, quote = FALSE, sep = "\t")
+  write.table (subgenome_filtered, file=paste(pop,"_4x_rawRD",rd+1,"_DP_GT.txt",sep=""), row.names=F, quote = FALSE, sep = "\t")
   subgenome_SD <- subgenome_filtered
   
   subgenome_SD <- subset(subgenome_SD, select=c(1:4,(((ncol(subgenome_SD)-4)/2)+5):ncol(subgenome_SD)))
-  subgenome_SD$no_missing <- rowSums(is.na(subgenome_SD))
+  subgenome_SD$no_missing <- apply(subgenome_SD, 1, function(x) sum(is.na(x)))
   subgenome_SD <- subset(subgenome_SD, no_missing <= (ncol(subgenome_SD)-5)*gmissingness)
   subgenome_SD <- subset(subgenome_SD, select=c(-no_missing))
   nonbiallelic <- as.vector(as.matrix(subgenome_SD[,5:ncol(subgenome_SD)]))
@@ -87,7 +87,7 @@ RD_snpfiltering <- function() {
       subgenome_SD[][subgenome_SD[]==nonbiallelic[i]] <- NA
     }
   }
-  subgenome_SD$no_missing <- rowSums(is.na(subgenome_SD))
+  subgenome_SD$no_missing <- apply(subgenome_SD, 1, function(x) sum(is.na(x)))
   subgenome_SD <- subset(subgenome_SD, no_missing <= ((ncol(subgenome_SD)-5))*gmissingness)
   subgenome_SD <- subset(subgenome_SD, select=c(-no_missing))
   names(subgenome_SD) <- gsub("X", "", names(subgenome_SD))
@@ -118,7 +118,7 @@ RD_snpfiltering <- function() {
   
   subgenome_1 <- read.table (file=paste(pop,"_4x","_DP_GT.txt",sep=""), header=T, sep="\t", check.names = FALSE)
   subgenome_filtered <- subgenome_1
-  subgenome_filtered$no_missing <- rowSums(is.na(subgenome_filtered))
+  subgenome_filtered$no_missing <- apply(subgenome_filtered, 1, function(x) sum(is.na(x)))
   subgenome_filtered <- subset(subgenome_filtered, no_missing <= ((ncol(subgenome_filtered)-5)/2)*gmissingness)
   subgenome_filtered <- subset(subgenome_filtered, select=-c(no_missing))
   
@@ -136,7 +136,7 @@ RD_snpfiltering <- function() {
   subgenome_SD <- subgenome_filtered
   
   subgenome_SD <- subset(subgenome_SD, select=c(1:4,(((ncol(subgenome_SD)-4)/2)+5):ncol(subgenome_SD)))
-  subgenome_SD$no_missing <- rowSums(is.na(subgenome_SD))
+  subgenome_SD$no_missing <- apply(subgenome_SD, 1, function(x) sum(is.na(x)))
   subgenome_SD <- subset(subgenome_SD, no_missing <= (ncol(subgenome_SD)-5)*gmissingness)
   subgenome_SD <- subset(subgenome_SD, select=c(-no_missing))
   nonbiallelic <- as.vector(as.matrix(subgenome_SD[,5:ncol(subgenome_SD)]))
@@ -151,7 +151,7 @@ RD_snpfiltering <- function() {
       subgenome_SD[][subgenome_SD[]==nonbiallelic[i]] <- NA
     }
   }
-  subgenome_SD$no_missing <- rowSums(is.na(subgenome_SD))
+  subgenome_SD$no_missing <- apply(subgenome_SD, 1, function(x) sum(is.na(x)))
   subgenome_SD <- subset(subgenome_SD, no_missing <= ((ncol(subgenome_SD)-5))*gmissingness)
   subgenome_SD <- subset(subgenome_SD, select=c(-no_missing))
   names(subgenome_SD) <- gsub("X", "", names(subgenome_SD))
@@ -763,12 +763,12 @@ rd_boxplot <- function() {
   for (t in c(0,rd)) {
     subgenome_1_plots <- subgenome_1[c(5:(((ncol(subgenome_1)-4)/2)+4))]
     subgenome_1_plots[][subgenome_1_plots[]=="0"] <- NA
-    subgenome_1_plots$no_missing <- rowSums(is.na(subgenome_1_plots))
+    subgenome_1_plots$no_missing <- apply(subgenome_1_plots, 1, function(x) sum(is.na(x)))
     subgenome_1_plots <- subset(subgenome_1_plots, no_missing <= (ncol(subgenome_1_plots)-5)*gmissingness)
     subgenome_1_plots <- subset(subgenome_1_plots, select=-c(no_missing))
     subgenome_1_plots[][subgenome_1_plots[] <= t] <- NA
     names(subgenome_1_plots) <- gsub(paste("_DP",sep=""), "", names(subgenome_1_plots))
-    subgenome_1_plots$no_missing <- rowSums(is.na(subgenome_1_plots))
+    subgenome_1_plots$no_missing <- apply(subgenome_1_plots, 1, function(x) sum(is.na(x)))
     subgenome_1_plots <- subset(subgenome_1_plots, no_missing <= (ncol(subgenome_1_plots)-5)*gmissingness)
     subgenome_1_plots <- subset(subgenome_1_plots, select=c(-no_missing))
     subgenome_1_plots <- as.matrix(subgenome_1_plots)

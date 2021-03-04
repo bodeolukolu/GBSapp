@@ -726,7 +726,7 @@ if [[ "$paleopolyploid" = false ]] && [[ "$ncohorts" != no ]]; then
 		cp *cohorts*.vcf.gz ${pop}_${ploidy}x_raw.vcf.gz
 		gunzip ${pop}_${ploidy}x_raw.vcf.gz
 	fi
-	rm ./cohorts/*.g.vcf.gz*
+
 	rm -r cohorts*
 	rm *cohorts*
 	cd ${projdir}/preprocess
@@ -821,7 +821,7 @@ if [[ "$paleopolyploid" = true ]] && [[ "$ncohorts" != no ]]; then
 			cp *cohorts*.vcf.gz ${pop}_${m}x_raw.vcf.gz
 			gunzip ${pop}_${m}x_raw.vcf.gz
 		fi
-		rm ./cohorts/*.g.vcf.gz*
+	
 		rm -r cohorts*
 		rm *cohorts*
 		cd ../preprocess

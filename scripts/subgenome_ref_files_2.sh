@@ -440,7 +440,6 @@ if [ "$ncohorts" == no ]; then
 	echo -e "${magenta}- performing SNP calling across entire genome (subgenome 1 and 2) ${white}\n"
 	cd $projdir
 	cd preprocess
-	mkdir processed
 	j=-I; input=""; k=""
 	for i in $(ls *_${ref1%.f*}_${ref2%.f*}_precall.bam); do
 		k="${j} ${i}"; input="${input} ${k}"
@@ -471,7 +470,6 @@ if [ "$ncohorts" == no ]; then
 	echo -e "${magenta}- performing SNP calling on subgenome-1 ${white}\n"
 	cd $projdir
 	cd preprocess
-	mkdir processed
 	j=-I; input=""; k=""
 	for i in $(ls *_${ref1%.f*}_precall.bam); do
 		k="${j} ${i}"; input="${input} ${k}"
@@ -502,7 +500,6 @@ if [ "$ncohorts" == no ]; then
 	echo -e "${magenta}- performing SNP calling on subgenome-2 ${white}\n"
 	cd $projdir
 	cd preprocess
-	mkdir processed
 	j=-I; input=""; k=""
 	for i in $(ls *_${ref2%.f*}_precall.bam); do
 		k="${j} ${i}"; input="${input} ${k}"
@@ -616,7 +613,7 @@ if [ "$ncohorts" != no ]; then
 		cp *cohorts*.vcf.gz ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_raw.vcf.gz
 		gunzip ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_raw.vcf.gz
 	fi
-	rm ./cohorts/*.g.vcf.gz*
+
 	rm -r cohorts*
 	rm *cohorts*
 	cd ${projdir}/preprocess
@@ -635,7 +632,7 @@ if [ "$ncohorts" != no ]; then
 	else
 		awk 'NR>1{print $2,"\t",$3}' ../refgenomes/panref.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $0}' | sort -k2,2 -nr | awk '{print $1}'| awk -v pat=${ref1%.f*} '$0 ~ pat' > ../refgenomes/intervals.list
 		for i in $(ls -S *_${ref1%.f*}_precall.bam); do (
-			$GATK --java-options "$Xmx3 -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ../refgenomes/panref.fasta -L ../refgenomes/intervals.list -I $i -ploidy $ploidy_ref1 -O ../snpcall/${i%_precall.bam}.g.vcf.gz -ERC GVCF --max-reads-per-alignment-start 0--max-num-haplotypes-in-population $ploidy_ref1
+			$GATK --java-options "$Xmx3 -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ../refgenomes/panref.fasta -L ../refgenomes/intervals.list -I $i -ploidy $ploidy_ref1 -O ../snpcall/${i%_precall.bam}.g.vcf.gz -ERC GVCF --max-reads-per-alignment-start 0 --max-num-haplotypes-in-population $ploidy_ref1
 			cp ../snpcall/${i%_precall.bam}.g.vcf.gz* ../snpcall/processed/ ) &
 			if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
 				wait
@@ -710,7 +707,7 @@ if [ "$ncohorts" != no ]; then
 		cp *cohorts*.vcf.gz ${pop}_${ref1%.f*}_${ploidy_ref1}x_raw.vcf.gz
 		gunzip ${pop}_${ref1%.f*}_${ploidy_ref1}x_raw.vcf.gz
 	fi
-	rm ./cohorts/*.g.vcf.gz*
+
 	rm -r cohorts*
 	rm *cohorts*
 	cd ${projdir}/preprocess
@@ -729,7 +726,7 @@ if [ "$ncohorts" != no ]; then
 	else
 		awk 'NR>1{print $2,"\t",$3}' ../refgenomes/panref.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $0}' | sort -k2,2 -nr | awk '{print $1}'| awk -v pat=${ref2%.f*} '$0 ~ pat' > ../refgenomes/intervals.list
 		for i in $(ls -S *_${ref2%.f*}_precall.bam); do (
-			$GATK --java-options "$Xmx3 -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ../refgenomes/panref.fasta -L ../refgenomes/intervals.list -I $i -ploidy $ploidy_ref2 -O ../snpcall/${i%_precall.bam}.g.vcf.gz -ERC GVCF --max-reads-per-alignment-start 0--max-num-haplotypes-in-population $ploidy_ref2
+			$GATK --java-options "$Xmx3 -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ../refgenomes/panref.fasta -L ../refgenomes/intervals.list -I $i -ploidy $ploidy_ref2 -O ../snpcall/${i%_precall.bam}.g.vcf.gz -ERC GVCF --max-reads-per-alignment-start 0 --max-num-haplotypes-in-population $ploidy_ref2
 			cp ../snpcall/${i%_precall.bam}.g.vcf.gz* ../snpcall/processed/ ) &
 			if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
 				wait
@@ -805,7 +802,7 @@ if [ "$ncohorts" != no ]; then
 		cp *cohorts*.vcf.gz ${pop}_${ref2%.f*}_${ploidy_ref2}x_raw.vcf.gz
 		gunzip ${pop}_${ref2%.f*}_${ploidy_ref2}x_raw.vcf.gz
 	fi
-	rm ./cohorts/*.g.vcf.gz*
+
 	rm -r cohorts*
 	rm *cohorts*
 	cd ${projdir}/preprocess

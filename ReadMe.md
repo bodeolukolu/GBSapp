@@ -91,7 +91,7 @@ Using a text editor, save a file containing any of the following variables as 'c
 
 |Variable      |Default       |Usage         |Input         |required/Optional|
 |:-------------|:-------------|:-------------|:-------------|:----------------|
-|ploidy|na|ploid level = 1,2,4,6, or 8 (ploidy>8 allowed for autopolyploid)|integer|Required|
+|ploidy|na|ploid level = 1,2,4,6, or 8 (ploidy>8 allowed for autopolyploid). Used to determine maximum number of haplotypes per sample|integer|Required|
 |ref1|na|reference genome as .fasta file (haploids, diploids, autopolyploids, or 1st subgenome in allopolyploids)|integer|Optional|
 |ref2|na|2nd reference genome as fasta file|integer|Optional|
 |ref3|na|3rd reference genome as fasta file|integer|Optional|

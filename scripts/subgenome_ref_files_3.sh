@@ -801,7 +801,7 @@ if [ "$ncohorts" != no ]; then
 		cp *cohorts*.vcf.gz ${pop}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${ploidy}x_raw.vcf.gz
 		gunzip ${pop}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${ploidy}x_raw.vcf.gz
 	fi
-	rm ./cohorts/*.g.vcf.gz*
+
 	rm -r cohorts*
 	rm *cohorts*
 	cd ${projdir}/preprocess
@@ -893,7 +893,7 @@ if [ "$ncohorts" != no ]; then
 		cp *cohorts*.vcf.gz ${pop}_${ref1%.f*}_${ref2%.f*}_${calcploidy}x_raw.vcf.gz
 		gunzip ${pop}_${ref1%.f*}_${ref2%.f*}_${calcploidy}x_raw.vcf.gz
 	fi
-	rm ./cohorts/*.g.vcf.gz*
+
 	rm -r cohorts*
 	rm *cohorts*
 	cd ${projdir}/preprocess
@@ -985,7 +985,7 @@ if [ "$ncohorts" != no ]; then
 		cp *cohorts*.vcf.gz ${pop}_${ref1%.f*}_${ref3%.f*}_${calcploidy}x_raw.vcf.gz
 		gunzip ${pop}_${ref1%.f*}_${ref3%.f*}_${calcploidy}x_raw.vcf.gz
 	fi
-	rm ./cohorts/*.g.vcf.gz*
+
 	rm -r cohorts*
 	rm *cohorts*
 	cd ${projdir}/preprocess
@@ -1077,7 +1077,7 @@ if [ "$ncohorts" != no ]; then
 		cp *cohorts*.vcf.gz ${pop}_${ref2%.f*}_${ref3%.f*}_${calcploidy}x_raw.vcf.gz
 		gunzip ${pop}_${ref2%.f*}_${ref3%.f*}_${calcploidy}x_raw.vcf.gz
 	fi
-	rm ./cohorts/*.g.vcf.gz*
+
 	rm -r cohorts*
 	rm *cohorts*
 	cd ${projdir}/preprocess
@@ -1168,7 +1168,7 @@ if [ "$ncohorts" != no ]; then
 		cp *cohorts*.vcf.gz ${pop}_${ref1%.f*}_${ploidy_ref1}x_raw.vcf.gz
 		gunzip ${pop}_${ref1%.f*}_${ploidy_ref1}x_raw.vcf.gz
 	fi
-	rm ./cohorts/*.g.vcf.gz*
+
 	rm -r cohorts*
 	rm *cohorts*
 	cd ${projdir}/preprocess
@@ -1259,7 +1259,7 @@ if [ "$ncohorts" != no ]; then
 		cp *cohorts*.vcf.gz ${pop}_${ref2%.f*}_${ploidy_ref2}x_raw.vcf.gz
 		gunzip ${pop}_${ref2%.f*}_${ploidy_ref2}x_raw.vcf.gz
 	fi
-	rm ./cohorts/*.g.vcf.gz*
+
 	rm -r cohorts*
 	rm *cohorts*
 	cd ${projdir}/preprocess
@@ -1350,7 +1350,7 @@ if [ "$ncohorts" != no ]; then
 		cp *cohorts*.vcf.gz ${pop}_${ref3%.f*}_${ploidy_ref3}x_raw.vcf.gz
 		gunzip ${pop}_${ref3%.f*}_${ploidy_ref3}x_raw.vcf.gz
 	fi
-	rm ./cohorts/*.g.vcf.gz*
+
 	rm -r cohorts*
 	rm *cohorts*
 	cd ${projdir}/preprocess
