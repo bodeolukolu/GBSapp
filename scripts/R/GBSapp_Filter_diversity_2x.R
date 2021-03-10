@@ -970,7 +970,7 @@ raw_alleles <- function() {
   #######################################################################################################################################################################################
   # Let's plot the distribution of multi-allelic variants
   
-  subgenome_1_plots <- read.table(file=paste(pop,"_2x","rawRD",rd+1,"_DP_GT.txt",sep=""), header=T, sep="\t", check.names = FALSE)
+  subgenome_1_plots <- read.table(file=paste(pop,"_2x_","rawRD",rd+1,"_DP_GT.txt",sep=""), header=T, sep="\t", check.names = FALSE)
   subgenome_1_plots <- subset(subgenome_1_plots, select=c((((ncol(subgenome_1_plots)-4)/2)+5):ncol(subgenome_1_plots)))
   Multiallelic <- as.data.frame(table(as.matrix(subgenome_1_plots)))
   names(Multiallelic)[names(Multiallelic) == "Var1"] <- "Genotype"
