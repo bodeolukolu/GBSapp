@@ -1,10 +1,10 @@
 
 <p align="right">
-<img src="https://github.com/bodeolukolu/GBSapp/blob/master/misc/GBSapp_logo.PNG" width="346" height="222">
+<img src="https://github.com/bodeolukolu/GBSapp/blob/master/misc/GBSapp_logo.PNG" width="173" height="111">
 </p>
 
 # Introduction
-GBSapp (v. 0.2.2) is an automated pipeline variant and haplotype calling/filtering. The pipeline integrates existing and novel best practices intuitively, some of which can be controlled by user-defined parameters. It ensures accurate dosage-sensitive variant calling, fine-scale filtering rather than averaging across samples/variants. It optimizes memory and speed at various points in the pipeline, for example, a novel approach performs compression and decompression independently on unique reads before and after pre-processing, respectively. Summary reports and visualizations allow for QC at each step of the pipeline.
+GBSapp (v. 0.2.3) is an automated pipeline variant and haplotype calling/filtering. The pipeline integrates existing and novel best practices intuitively, some of which can be controlled by user-defined parameters. It ensures accurate dosage-sensitive variant calling, fine-scale filtering rather than averaging across samples/variants. It optimizes memory and speed at various points in the pipeline, for example, a novel approach performs compression and decompression independently on unique reads before and after pre-processing, respectively. Summary reports and visualizations allow for QC at each step of the pipeline.
 
 For questions, bugs, and suggestions, please contact bolukolu@utk.edu.
 

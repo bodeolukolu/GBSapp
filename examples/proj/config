@@ -1,7 +1,7 @@
 
 # General parameters
 ####################################################
-threads=12
+threads=24
 walkaway=true
 cluster=false
 
@@ -18,7 +18,7 @@ ploidy_ref3=
 ploidy_ref4=
 copyN_ref=1
 paleopolyploid=false
-ncohorts=no
+ncohorts=1
 
 
 # SNP-filtering:
