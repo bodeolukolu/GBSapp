@@ -4,65 +4,67 @@ magenta=$'\e[1;35m'
 white=$'\e[0m'
 yellow=$'\e[1;33m'
 blue=$'\e[1;34m'
-GBSapp_dir=$(dirname "$0")
-projdir=$1
+# GBSapp_dir=$(dirname "$0")
+# projdir=$1
 threads=""
-relpath=$(pwd)
+# relpath=$(pwd)
+
+GBSapp_dir="$( cd -- "$(dirname "$0 ")" >/dev/null 2>&1 ; pwd -P )/"
+projdir="$( cd -- "$(dirname "$1 ")" >/dev/null 2>&1 ; pwd -P )/"
 
 
-if [ "${GBSapp_dir:0:1}" = "." ]; then
-  if [ "${GBSapp_dir:0:15}" = "../../../../../" ]; then
-    GBSapp_dir="${relpath%/*/*/*/*/*}${GBSapp_dir//*..}"
-  fi
-  if [ "${GBSapp_dir:0:12}" = "../../../../" ]; then
-    GBSapp_dir="${relpath%/*/*/*/*}${GBSapp_dir//*..}"
-  fi
-  if [ "${GBSapp_dir:0:9}" = "../../../" ]; then
-    GBSapp_dir="${relpath%/*/*/*}${GBSapp_dir//*..}"
-  fi
-  if [ "${GBSapp_dir:0:6}" = "../../" ]; then
-    GBSapp_dir="${relpath%/*/*}${GBSapp_dir//*..}"
-  fi
-  if [ "${GBSapp_dir:0:3}" = "../" ]; then
-    GBSapp_dir="${relpath%/*}${GBSapp_dir//*..}"
-  fi
-  if [ "${GBSapp_dir:0:2}" != ".." ]; then
-    if [ "${GBSapp_dir:0:1}" = "." ]; then
-      GBSapp_dir="${relpath}${GBSapp_dir:1}"
-    fi
-  fi
-fi
-if [ "${GBSapp_dir: -1}" != "/" ]; then
-  GBSapp_dir="${GBSapp_dir}/"
-fi
-
-
-if [ "${projdir:0:1}" = "." ]; then
-  if [ "${projdir:0:15}" = "../../../../../" ]; then
-    projdir="${relpath%/*/*/*/*/*}${projdir//*..}"
-  fi
-  if [ "${projdir:0:12}" = "../../../../" ]; then
-    projdir="${relpath%/*/*/*/*}${projdir//*..}"
-  fi
-  if [ "${projdir:0:9}" = "../../../" ]; then
-    projdir="${relpath%/*/*/*}${projdir//*..}"
-  fi
-  if [ "${projdir:0:6}" = "../../" ]; then
-    projdir="{relpath%/*/*}${projdir//*..}"
-  fi
-  if [ "${projdir:0:3}" = "../" ]; then
-    projdir="${relpath%/*}${projdir//*..}"
-  fi
-  if [ "${projdir:0:2}" = "./" ]; then
-    projdir="${relpath}${projdir:1}"
-  fi
-  if [ "${projdir}" = . ]; then
-    projdir="${relpath}"
-  fi
-fi
-if [ "${projdir:-1}" != "/" ]; then
-  projdir="${projdir}/"
-fi
+# if [ "${GBSapp_dir:0:1}" = "." ]; then
+#   if [ "${GBSapp_dir:0:15}" = "../../../../../" ]; then
+#     GBSapp_dir="${relpath%/*/*/*/*/*}${GBSapp_dir//*..}"
+#   fi
+#   if [ "${GBSapp_dir:0:12}" = "../../../../" ]; then
+#     GBSapp_dir="${relpath%/*/*/*/*}${GBSapp_dir//*..}"
+#   fi
+#   if [ "${GBSapp_dir:0:9}" = "../../../" ]; then
+#     GBSapp_dir="${relpath%/*/*/*}${GBSapp_dir//*..}"
+#   fi
+#   if [ "${GBSapp_dir:0:6}" = "../../" ]; then
+#     GBSapp_dir="${relpath%/*/*}${GBSapp_dir//*..}"
+#   fi
+#   if [ "${GBSapp_dir:0:3}" = "../" ]; then
+#     GBSapp_dir="${relpath%/*}${GBSapp_dir//*..}"
+#   fi
+#   if [ "${GBSapp_dir:0:2}" != ".." ]; then
+#     if [ "${GBSapp_dir:0:1}" = "." ]; then
+#       GBSapp_dir="${relpath}${GBSapp_dir:1}"
+#     fi
+#   fi
+# fi
+# if [ "${GBSapp_dir: -1}" != "/" ]; then
+#   GBSapp_dir="${GBSapp_dir}/"
+# fi
+#
+# if [ "${projdir:0:1}" = "." ]; then
+#   if [ "${projdir:0:15}" = "../../../../../" ]; then
+#     projdir="${relpath%/*/*/*/*/*}${projdir//*..}"
+#   fi
+#   if [ "${projdir:0:12}" = "../../../../" ]; then
+#     projdir="${relpath%/*/*/*/*}${projdir//*..}"
+#   fi
+#   if [ "${projdir:0:9}" = "../../../" ]; then
+#     projdir="${relpath%/*/*/*}${projdir//*..}"
+#   fi
+#   if [ "${projdir:0:6}" = "../../" ]; then
+#     projdir="{relpath%/*/*}${projdir//*..}"
+#   fi
+#   if [ "${projdir:0:3}" = "../" ]; then
+#     projdir="${relpath%/*}${projdir//*..}"
+#   fi
+#   if [ "${projdir:0:2}" = "./" ]; then
+#     projdir="${relpath}${projdir:1}"
+#   fi
+#   if [ "${projdir}" = . ]; then
+#     projdir="${relpath}"
+#   fi
+# fi
+# if [ "${projdir:-1}" != "/" ]; then
+#   projdir="${projdir}/"
+# fi
 
 ####################################################################################################################
 ####################################################################################################################
@@ -71,7 +73,7 @@ fi
 cd $projdir
 echo -e "${white}\n##################################################################################\n"
 echo -e "${yellow}- Program:	GBSapp"
-echo -e "${yellow}- Version:	0.2.2"
+echo -e "${yellow}- Version:	0.2.3"
 echo -e "${yellow}- Description:	Automated Pipeline for Variant/Haplotype Calling and Filtering"
 echo -e "${yellow}- Contact:	Bode Olukolu <bolukolu@utk.edu> ${white}"
 echo -e "${white}\n##################################################################################\n"
@@ -293,7 +295,7 @@ if [ -z $cluster ]; then
   printf "GBSapp_dir=${GBSapp_dir}\n" > fetchdir.txt
   printf "projdir=${projdir}" >> fetchdir.txt
   cat header.txt steps.txt config walkaway.txt fetchdir.txt $string2 $string3 | awk '{ sub("\r$",""); print}' > GBSapp_run.sh
-  rm header.txt walkaway.txt fetchdir.txt steps.txt 
+  rm header.txt walkaway.txt fetchdir.txt steps.txt
   nohup bash ${projdir}GBSapp_run.sh > terminal.out 2>&1 &
 fi
 fi
@@ -388,3 +390,6 @@ fi
 }
 cd $projdir
 time main
+
+echo -e "${magenta}- For jobs running in background, monitor progress in terminal.out/slurm-xxxxxx.out ${white}"
+echo -e "${magenta}- The log.out file can help with troubleshooting and when reporting a bug ${white}"

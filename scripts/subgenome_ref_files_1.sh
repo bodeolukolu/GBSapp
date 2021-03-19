@@ -25,6 +25,9 @@ echo -e "${blue}\n##############################################################
 main () {
 cd $projdir
 cd refgenomes
+for i in *.gz; do
+	gunzip $i >/dev/null 2>&1
+done
 if ls *.dict 1> /dev/null 2>&1; then
 	:
 else
@@ -821,7 +824,7 @@ if [[ "$paleopolyploid" = true ]] && [[ "$ncohorts" != no ]]; then
 			cp *cohorts*.vcf.gz ${pop}_${m}x_raw.vcf.gz
 			gunzip ${pop}_${m}x_raw.vcf.gz
 		fi
-	
+
 		rm -r cohorts*
 		rm *cohorts*
 		cd ../preprocess
@@ -1668,4 +1671,4 @@ fi
 
 ######################################################################################################################################################
 wait
-echo -e "${magenta}- Analysis Completed. ${white}\n"
+echo -e "${magenta}- Run Complete. ${white}\n"

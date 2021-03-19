@@ -23,6 +23,9 @@ echo -e "${blue}\n##############################################################
 main () {
 cd $projdir
 cd refgenomes
+for i in *.gz; do
+	gunzip $i >/dev/null 2>&1
+done
 file=panref.dict
 if [[ -f "$file" ]]; then
 	:
@@ -1716,7 +1719,7 @@ if [ "$ploidy" == 6 ]; then
 		if [ -d "$snpfilter_dir" ]; then
 			cd $snpfilter_dir
 			touch  refpos.fasta
-			awk 'NR >= 2 {print "$samtools faidx ${projdir}/refgenomes/panref.fasta "$2":"$3"-"($3 + 1000)" >> refpos.fasta;"}' *_dose.txt > snpseq_context.sh
+			awk 'NR >= 2 {print "$samtools faidx ${projdir}/refgenomes/panref.fasta "$2":"$3"-"($3 + 1000)" >> refpos.fasta;"}' *dose.txt > snpseq_context.sh
 			bash snpseq_context.sh
 			wait
 			$bwa mem -t $loopthread ${projdir}/refgenomes/${ref1} refpos.fasta > snpseq_context.sam
@@ -1743,7 +1746,7 @@ if [ "$ploidy" == 8 ]; then
 		if [ -d "$snpfilter_dir" ]; then
 			cd $snpfilter_dir
 			touch  refpos.fasta
-			awk 'NR >= 2 {print "$samtools faidx ${projdir}/refgenomes/panref.fasta "$2":"$3"-"($3 + 1000)" >> refpos.fasta;"}' *_dose.txt > snpseq_context.sh
+			awk 'NR >= 2 {print "$samtools faidx ${projdir}/refgenomes/panref.fasta "$2":"$3"-"($3 + 1000)" >> refpos.fasta;"}' *dose.txt > snpseq_context.sh
 			bash snpseq_context.sh
 			wait
 			$bwa mem -t $loopthread ${projdir}/refgenomes/${ref1} refpos.fasta > snpseq_context.sam
@@ -1913,4 +1916,4 @@ fi
 
 ######################################################################################################################################################
 wait
-echo -e "${magenta}- Analysis Completed. ${white}\n"
+echo -e "${magenta}- Run Complete. ${white}\n"
