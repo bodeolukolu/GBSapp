@@ -164,20 +164,21 @@ RD_snpfiltering <- function() {
     subgenome_SDmafn <- subset(subgenome_SDmafn, select=-c(freq0,freq1,min,maf,sum))
     write.table (subgenome_SDmafn, file=paste(pop,"_1x","_rd",rd+1,"_maf",MinorAlleleFreq,".txt",sep=""), row.names=F, quote = FALSE, sep = "\t")
   }
-  maf <- subset(subgenome_SDmaf, select="maf")
-  mean <- mean(maf$maf, na.rm = TRUE)
-  median <- median(maf$maf, na.rm = TRUE)
-  plot <- ggplot(data=maf, aes(x=maf)) + 
-    geom_density(aes(y= ..scaled..), alpha=0.2, fill="cornflowerblue", colour="cornflowerblue") +
-    geom_vline(aes(xintercept=mean), color="cornflowerblue", linetype="dashed", size=0.75, alpha=0.5)+
-    geom_vline(aes(xintercept=median), color="tomato", linetype="dotted", size=0.75, alpha=0.5)+
-    geom_text(aes(x=mean, label=paste("mean = ",round(mean, digits=2),sep=""), y=(0.25)), colour="cornflowerblue", angle=90, vjust = 1.2, size=3.5) +
-    geom_text(aes(x=median, label=paste("median = ",round(median, digits=2),sep=""), y=(0.5)), colour="tomato", angle=90, vjust = 1.2, size=3.5) +
-    xlab("Allele Frequency") +
-    ylab(paste("Density"))
-  ggsave(filename=paste(pop,"_1x","_maf_rd",rd+1,".tiff",sep=""), plot=plot, width=5, height= 5, dpi=600, compression = "lzw")
   
   if (MinorAlleleFreq != 0.02) {
+    maf <- subset(subgenome_SDmafn, select="maf")
+    mean <- mean(maf$maf, na.rm = TRUE)
+    median <- median(maf$maf, na.rm = TRUE)
+    plot <- ggplot(data=maf, aes(x=maf)) + 
+      geom_density(aes(y= ..scaled..), alpha=0.2, fill="cornflowerblue", colour="cornflowerblue") +
+      geom_vline(aes(xintercept=mean), color="cornflowerblue", linetype="dashed", size=0.75, alpha=0.5)+
+      geom_vline(aes(xintercept=median), color="tomato", linetype="dotted", size=0.75, alpha=0.5)+
+      geom_text(aes(x=mean, label=paste("mean = ",round(mean, digits=2),sep=""), y=(0.25)), colour="cornflowerblue", angle=90, vjust = 1.2, size=3.5) +
+      geom_text(aes(x=median, label=paste("median = ",round(median, digits=2),sep=""), y=(0.5)), colour="tomato", angle=90, vjust = 1.2, size=3.5) +
+      xlab("Allele Frequency") +
+      ylab(paste("Density"))
+    ggsave(filename=paste(pop,"_1x","_maf_rd",rd+1,".tiff",sep=""), plot=plot, width=5, height= 5, dpi=600, compression = "lzw")
+    
     subgenome_SDmafn$SNP <- paste (subgenome_SDmafn$CHROM,"_",subgenome_SDmafn$POS, sep="")
     subgenome_SDmafn <- subgenome_SDmafn[,c(which(colnames(subgenome_SDmafn)=="ALT"),which(colnames(subgenome_SDmafn)!="ALT"))]
     subgenome_SDmafn <- subgenome_SDmafn[,c(which(colnames(subgenome_SDmafn)=="REF"),which(colnames(subgenome_SDmafn)!="REF"))]
@@ -232,6 +233,19 @@ RD_snpfiltering <- function() {
   }
   
   if (MinorAlleleFreq == 0.02) {
+    maf <- subset(subgenome_SDmaf0.02, select="maf")
+    mean <- mean(maf$maf, na.rm = TRUE)
+    median <- median(maf$maf, na.rm = TRUE)
+    plot <- ggplot(data=maf, aes(x=maf)) + 
+      geom_density(aes(y= ..scaled..), alpha=0.2, fill="cornflowerblue", colour="cornflowerblue") +
+      geom_vline(aes(xintercept=mean), color="cornflowerblue", linetype="dashed", size=0.75, alpha=0.5)+
+      geom_vline(aes(xintercept=median), color="tomato", linetype="dotted", size=0.75, alpha=0.5)+
+      geom_text(aes(x=mean, label=paste("mean = ",round(mean, digits=2),sep=""), y=(0.25)), colour="cornflowerblue", angle=90, vjust = 1.2, size=3.5) +
+      geom_text(aes(x=median, label=paste("median = ",round(median, digits=2),sep=""), y=(0.5)), colour="tomato", angle=90, vjust = 1.2, size=3.5) +
+      xlab("Allele Frequency") +
+      ylab(paste("Density"))
+    ggsave(filename=paste(pop,"_1x","_maf_rd",rd+1,".tiff",sep=""), plot=plot, width=5, height= 5, dpi=600, compression = "lzw")
+    
     subgenome_SDmaf0.02$SNP <- paste (subgenome_SDmaf0.02$CHROM,"_",subgenome_SDmaf0.02$POS, sep="")
     subgenome_SDmaf0.02 <- subgenome_SDmaf0.02[,c(which(colnames(subgenome_SDmaf0.02)=="ALT"),which(colnames(subgenome_SDmaf0.02)!="ALT"))]
     subgenome_SDmaf0.02 <- subgenome_SDmaf0.02[,c(which(colnames(subgenome_SDmaf0.02)=="REF"),which(colnames(subgenome_SDmaf0.02)!="REF"))]
@@ -329,7 +343,7 @@ pop_struc <- function() {
     }
   }
   
-  if (nrow(pop_data) >= 1000) {
+  if (nrow(pop_data) >= 100) {
     pop_data <- as.matrix(t(pop_data))
     
     #Computing the full-autopolyploid matrix based on Slater 2016 (Eq. 8 and 9)

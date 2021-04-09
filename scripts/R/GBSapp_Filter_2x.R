@@ -528,6 +528,31 @@ final_summary <- function(){
     xlim(-5,105) +
     labs(title="missing rate per sample",x="Percent", y = "Count")
   ggsave(filename=paste(pop,"_2x","_sample_missing_rate_rd",rd+1,".tiff",sep=""), plot=plot, width=5, height= 5, dpi=600, compression = "lzw")
+  
+  subgenome_noSDmaf <- read.table(paste(pop,"_2x","_rd",rd+1,"_noSDbinary.txt",sep=""), header=T, sep="\t",stringsAsFactors=FALSE, check.names = FALSE)
+  subgenome_noSDmaf$freq00 <-rowSums(subgenome_noSDmaf == "0/0", na.rm = TRUE)
+  subgenome_noSDmaf$freq01 <-rowSums(subgenome_noSDmaf == "0/1", na.rm = TRUE)
+  subgenome_noSDmaf$freq11 <-rowSums(subgenome_noSDmaf == "1/1", na.rm = TRUE)
+  subgenome_noSDmaf$freq0 <- subgenome_noSDmaf$freq00*2 + subgenome_noSDmaf$freq01
+  subgenome_noSDmaf$freq1 <- subgenome_noSDmaf$freq11*2 + subgenome_noSDmaf$freq01
+  subgenome_noSDmaf <- subset(subgenome_noSDmaf, select=-c(freq00,freq01,freq11))
+  maxn <- function(n) function(x) order(x, decreasing = TRUE)[n]
+  subgenome_noSDmaf$min <- apply(subgenome_noSDmaf[,(ncol(subgenome_noSDmaf)-1):ncol(subgenome_noSDmaf)], 1, function(x)x[maxn(2)(x)])
+  subgenome_noSDmaf$sum <- rowSums(subgenome_noSDmaf[,c("freq0","freq1")], na.rm=TRUE)
+  subgenome_noSDmaf$maf <- subgenome_noSDmaf$min/subgenome_noSDmaf$sum
+
+  maf <- subset(subgenome_noSDmaf, select="maf")
+  mean <- mean(maf$maf, na.rm = TRUE)
+  median <- median(maf$maf, na.rm = TRUE)
+  plot <- ggplot(data=maf, aes(x=maf)) +
+    geom_density(aes(y= ..scaled..), alpha=0.2, fill="cornflowerblue", colour="cornflowerblue") +
+    geom_vline(aes(xintercept=mean), color="cornflowerblue", linetype="dashed", size=0.75, alpha=0.5)+
+    geom_vline(aes(xintercept=median), color="tomato", linetype="dotted", size=0.75, alpha=0.5)+
+    geom_text(aes(x=mean, label=paste("mean = ",round(mean, digits=2),sep=""), y=(0.25)), colour="cornflowerblue", angle=90, vjust = 1.2, size=3.5) +
+    geom_text(aes(x=median, label=paste("median = ",round(median, digits=2),sep=""), y=(0.5)), colour="tomato", angle=90, vjust = 1.2, size=3.5) +
+    xlab("Allele Frequency") +
+    ylab(paste("Density"))
+  ggsave(filename=paste(pop,"_2x","_maf_rd",rd+1,".tiff",sep=""), plot=plot, width=5, height= 5, dpi=600, compression = "lzw")
 }
 final_summary()
 
@@ -544,7 +569,7 @@ pop_struc <- function() {
       break
     }
   }
-  if (nrow(pop_data) >= 1000) {
+  if (nrow(pop_data) >= 100) {
     pop_data <- as.matrix(t(pop_data))
     #Computing the full-autopolyploid matrix based on Slater 2016 (Eq. 8 and 9)
     Gmatrix <- function (SNPmatrix = pop_data, method = "VanRaden", missingValue = NA, 
