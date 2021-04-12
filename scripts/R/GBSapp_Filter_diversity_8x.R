@@ -285,7 +285,7 @@ RD_snpfiltering <- function() {
   
   if (MinorAlleleFreq == 0.02) {
     maf <- subset(subgenome_SDmaf, maf > 0.02)
-    maf <- subset(smaf, select="maf")
+    maf <- subset(maf, select="maf")
     mean <- mean(maf$maf, na.rm = TRUE)
     median <- median(maf$maf, na.rm = TRUE)
     plot <- ggplot(data=maf, aes(x=maf)) + 
