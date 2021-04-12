@@ -196,7 +196,8 @@ RD_snpfiltering <- function() {
   }
   
   if (MinorAlleleFreq != 0.02) {
-    maf <- subset(subgenome_SDmafn, select="maf")
+    maf <- subset(subgenome_SDmaf, maf > MinorAlleleFreq)
+    maf <- subset(maf, select="maf")
     mean <- mean(maf$maf, na.rm = TRUE)
     median <- median(maf$maf, na.rm = TRUE)
     plot <- ggplot(data=maf, aes(x=maf)) + 
@@ -274,7 +275,8 @@ RD_snpfiltering <- function() {
   }
   
   if (MinorAlleleFreq == 0.02) {
-    maf <- subset(subgenome_SDmaf0.02, select="maf")
+    maf <- subset(subgenome_SDmaf, maf > 0.02)
+    maf <- subset(smaf, select="maf")
     mean <- mean(maf$maf, na.rm = TRUE)
     median <- median(maf$maf, na.rm = TRUE)
     plot <- ggplot(data=maf, aes(x=maf)) + 
