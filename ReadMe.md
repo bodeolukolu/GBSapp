@@ -4,7 +4,7 @@
 </p>
 
 # Introduction
-GBSapp (v. 0.2.3) is an automated pipeline variant and haplotype calling/filtering. The pipeline integrates existing and novel best practices intuitively, some of which can be controlled by user-defined parameters. It ensures accurate dosage-sensitive variant calling, fine-scale filtering rather than averaging across samples/variants. It optimizes memory and speed at various points in the pipeline, for example, a novel approach performs compression and decompression independently on unique reads before and after pre-processing, respectively. Summary reports and visualizations allow for QC at each step of the pipeline.
+GBSapp (v. 0.2.3) is an automated pipeline for variant calling and filtering. The pipeline integrates existing and novel best practices intuitively, some of which can be controlled by user-defined parameters. It ensures accurate dosage-sensitive variant calling, read depth filtering applied to each data point rather than averaging across samples/variants. It optimizes memory and speed at various points in the pipeline, for example, a novel approach performs compression and decompression independently on unique reads before and after pre-processing, respectively. Summary reports and visualizations allow for QC at each step of the pipeline.
 
 For questions, bugs, and suggestions, please contact bolukolu@utk.edu.
 
@@ -83,9 +83,9 @@ Using a text editor, save a file containing any of the following variables as 'c
 
 |Variable      |Default       |Usage         |Input         |required/Optional|
 |:-------------|:-------------|:-------------|:-------------|:----------------|
-|threads|cores-2|numer of cores/processors|integer|Optional|
+|threads|cores-2|number of cores/processors|integer|Optional|
 |walkaway|true|run in walk-away or walk-through mode|true or false|Optional|
-|cluster|false|run on compute cluster node (currently only slurm-managed clusters) or workstation|true or false|Optional|
+|cluster|false|run on compute cluster node (default: slurm) or workstation|true or false|Optional|
 
 **Variant calling parameters**
 
@@ -96,7 +96,7 @@ Using a text editor, save a file containing any of the following variables as 'c
 |ref2|na|2nd reference genome as fasta file|integer|Optional|
 |ref3|na|3rd reference genome as fasta file|integer|Optional|
 |ref4|na|4th reference genome as fasta file|integer|Optional|
-|copyN_ref|1|maximum copy number of each unique read in reference genome or in each subgenome|integer|Optional|
+|copy_number|3|maximum copy number of each unique read|integer|Optional|
 |paleopolyploid|false|capture/code variable dosage/copy number (i.e. 2x,4x,6x, and 8x)|true or false||Optional|
 |ncohorts|1|number of cohorts for Joint-genotyping. ncohorts=no (very slow) indicates multi-sample variant calling without generating single-sample gVCF files |integer, yes, or no|Optional|
 
@@ -137,7 +137,7 @@ ref1=TF.fasta
 ref2=TL.fasta
 ploidy_ref1=4
 ploidy_ref2=2
-copyN_ref=1
+copy_number=1
 paleopolyploid=false
 ncohorts=no
 

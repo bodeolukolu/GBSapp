@@ -224,7 +224,7 @@ RD_snpfiltering <- function() {
     subgenome_SDmafn <- subgenome_SDmafn[,c(which(colnames(subgenome_SDmafn)=="POS"),which(colnames(subgenome_SDmafn)!="POS"))]
     subgenome_SDmafn <- subgenome_SDmafn[,c(which(colnames(subgenome_SDmafn)=="CHROM"),which(colnames(subgenome_SDmafn)!="CHROM"))]
     subgenome_SDmafn <- subgenome_SDmafn[,c(which(colnames(subgenome_SDmafn)=="SNP"),which(colnames(subgenome_SDmafn)!="SNP"))]
-    write.table (subgenome_SDmafn, file=paste(pop,"_1x","_rd",rd+1,"_maf",MinorAlleleFreq,"_binary.txt",sep=""), row.names=F, quote = FALSE, sep = "\t")
+    write.table (subgenome_SDmafn, file=paste(pop,"_8x","_rd",rd+1,"_maf",MinorAlleleFreq,"_binary.txt",sep=""), row.names=F, quote = FALSE, sep = "\t")
 
     if (snpformats == "true") {    
       alleles <- unique(subset(subgenome_SDmafn, select=c(4,5)))

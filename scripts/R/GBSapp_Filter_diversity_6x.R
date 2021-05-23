@@ -192,7 +192,7 @@ RD_snpfiltering <- function() {
   if (MinorAlleleFreq != 0.02) {
     subgenome_SDmafn <- subset(subgenome_SDmaf, maf > MinorAlleleFreq)
     subgenome_SDmafn <- subset(subgenome_SDmafn, select=-c(freq0,freq1,min,maf,sum))
-    write.table (subgenome_SDmafn, file=paste(pop,"_1x","_rd",rd+1,"_maf",MinorAlleleFreq,".txt",sep=""), row.names=F, quote = FALSE, sep = "\t")
+    write.table (subgenome_SDmafn, file=paste(pop,"_6x","_rd",rd+1,"_maf",MinorAlleleFreq,".txt",sep=""), row.names=F, quote = FALSE, sep = "\t")
   }
   
   if (MinorAlleleFreq != 0.02) {

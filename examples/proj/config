@@ -16,7 +16,7 @@ ploidy_ref1=2
 ploidy_ref2=
 ploidy_ref3=
 ploidy_ref4=
-copyN_ref=1
+copy_number=1
 paleopolyploid=false
 ncohorts=1
 

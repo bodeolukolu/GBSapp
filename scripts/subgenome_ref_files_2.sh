@@ -5,10 +5,10 @@ if [ -z "$threads" ]; then
 		threads=$((threads-2))
 	fi
 fi
-if [ -z "$copyN_ref" ]; then
-	paralogs=1
+if [ -z "$copy_number" ]; then
+	paralogs=3
 else
-	paralogs=$((copyN_ref))
+	paralogs=$((copy_number))
 fi
 if [ -z "$p2" ]; then
 	p2=$p1
@@ -86,7 +86,7 @@ else
 	echo -e "${magenta}- indexing reference genome ${white}\n"
 	$bwa index -a bwtsw panref.fasta
 	$samtools faidx panref.fasta
-	$java -jar $picard CreateSequenceDictionary REFERENCE= panref.fasta OUTPUT=panref.dict
+	$java $Xmx3 -XX:ParallelGCThreads=$gthreads -jar $picard CreateSequenceDictionary REFERENCE= panref.fasta OUTPUT=panref.dict
 fi
 
 declare -a arr=("panref*.dict" "panref*.amb" "panref*.bwt" "panref*.pac" "panref.fasta" "panref*.ann" "panref*.fai" "panref*.sa")
@@ -371,11 +371,11 @@ awk  'gsub(/---###/, "\t", $0)' | awk  'gsub(/###---/, "", $0)' | tr ' ' '\n' > 
 # Total number of mapped reads per samples
 cat ../alignment_summaries/alignment_summaries_unique_reads.txt | tr ' ' '_' | tr '(' '_' |  tr ')' '_' | awk '/###---/ || /0_mapped/{print}' |\
 tr -d '\n' | awk 'gsub(/###---/, "\n", $0)' | awk 'gsub(/---###/, "\t", $0)' | awk 'gsub(/_/, "", $2)' | \
-awk 'gsub(/+0mapped/, "\t", $0)' | tr ":" "\t" | cut -d\: -f1 | awk 'gsub(/ /, "\t")' > ../alignment_summaries/total_unique_reads_mapped.txt
+awk 'gsub("\\+0mapped", "\t", $0)' | tr ":" "\t" | cut -d\: -f1 | awk 'gsub(/ /, "\t")' > ../alignment_summaries/total_unique_reads_mapped.txt
 # Total number of mapped reads per samples
 cat ../alignment_summaries/alignment_summaries_unique_reads.txt | tr ' ' '_' | tr '(' '_' |  tr ')' '_' | awk '/###---/ || /properly_paired/{print}' |\
 tr -d '\n' | awk 'gsub(/###---/, "\n", $0)' | awk 'gsub(/---###/, "\t", $0)' | awk 'gsub(/_/, "", $2)' | \
-awk 'gsub(/+0properlypaired/, "\t", $0)' | tr ":" "\t" | cut -d\: -f1 | awk 'gsub(/ /, "\t")' > ../alignment_summaries/total_unique_reads_paired.txt
+awk 'gsub("\\+0properlypaired", "\t", $0)' | tr ":" "\t" | cut -d\: -f1 | awk 'gsub(/ /, "\t")' > ../alignment_summaries/total_unique_reads_paired.txt
 echo -e "Samples\tTotal\tMapped\tPerc_Mapped\tPE_Mapped\t%_PE_Mapped" > ../alignment_summaries/summary_precall.txt
 awk 'FNR==NR{a[$1]=$2 FS $3;next} ($1 in a) {print $0,a[$1]}' ../alignment_summaries/total_unique_reads_mapped.txt  ../alignment_summaries/total_unique_reads.txt  | \
 awk 'FNR==NR{a[$1]=$2 FS $3;next} ($1 in a) {print $0,a[$1]}' ../alignment_summaries/total_unique_reads_paired.txt - | awk '{gsub(/ /,"\t"); print $0}' | \
@@ -431,7 +431,7 @@ else
 	ram3=$(( ram2 / gN ))
 	Xmx3=-Xmx${ram3}G
 fi
-if [ "$ncohorts" != no ]; then
+if [ "$ncohorts" != 1 ]; then
 	mkdir $projdir/snpcall/processed
 fi
 cd $projdir
@@ -439,7 +439,7 @@ cd preprocess
 mkdir processed
 
 ######################
-if [ "$ncohorts" == no ]; then
+if [ "$ncohorts" == 1 ]; then
 	echo -e "${magenta}- performing SNP calling across entire genome (subgenome 1 and 2) ${white}\n"
 	cd $projdir
 	cd preprocess
@@ -448,9 +448,9 @@ if [ "$ncohorts" == no ]; then
 		k="${j} ${i}"; input="${input} ${k}"
 	done
 	Get_Chromosome=$(awk 'NR>1{print $2,"\t",$3}' ../refgenomes/panref.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $0}' | sort -k2,2 -nr | awk '{print $1}' )
-	if [[ "$Get_Chromosome" -gt 2000 ]]; then
+	if [[ "$(wc -l ../refgenomes/panref.dict | awk '{print $1}')" -gt 2000 ]]; then
 		for selchr in $Get_Chromosome; do (
-			$GATK --java-options "$Xmx3 -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ../refgenomes/panref.fasta -L $selchr $input -ploidy $ploidy -O ../snpcall/${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_"${selchr}"_raw.vcf.gz --max-reads-per-alignment-start 0 --max-num-haplotypes-in-population $ploidy )&
+			$java $Xmx3 -XX:ParallelGCThreads=$gthreads -jar $GATK HaplotypeCaller -R ../refgenomes/panref.fasta -L $selchr $input -ploidy $ploidy -O ../snpcall/${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_"${selchr}"_raw.vcf.gz --max-reads-per-alignment-start 0 --max-num-haplotypes-in-population $((ploidy * paralogs)) )&
 			if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
 				wait
 			fi
@@ -463,13 +463,13 @@ if [ "$ncohorts" == no ]; then
 		cat vcf_header.txt all.vcf > ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_raw.vcf
 		rm vcf_header.txt all.vcf *.vcf.gz.tbi ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_*_raw.vcf
 	else
-		$GATK --java-options "$Xmx3 -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ../refgenomes/panref.fasta $input -ploidy $ploidy -O ../snpcall/${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_raw.vcf.gz --max-reads-per-alignment-start 0 --max-num-haplotypes-in-population $ploidy
+		$java $Xmx3 -XX:ParallelGCThreads=$gthreads -jar $GATK HaplotypeCaller -R ../refgenomes/panref.fasta $input -ploidy $ploidy -O ../snpcall/${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_raw.vcf.gz --max-reads-per-alignment-start 0 --max-num-haplotypes-in-population $((ploidy * paralogs))
 	fi
 	cd ${projdir}/preprocess
 	mv *_${ref1%.f*}_${ref2%.f*}_precall* ./processed/
 fi
 
-if [ "$ncohorts" == no ]; then
+if [ "$ncohorts" == 1 ]; then
 	echo -e "${magenta}- performing SNP calling on subgenome-1 ${white}\n"
 	cd $projdir
 	cd preprocess
@@ -478,9 +478,9 @@ if [ "$ncohorts" == no ]; then
 		k="${j} ${i}"; input="${input} ${k}"
 	done
 	Get_Chromosome=$(awk 'NR>1{print $2,"\t",$3}' ../refgenomes/panref.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $0}' | sort -k2,2 -nr | awk '{print $1}'| awk -v pat=${ref1%.f*} '$0 ~ pat' )
-	if [[ "$Get_Chromosome" -gt 2000 ]]; then
+	if [[ "$(wc -l ../refgenomes/panref.dict | awk '{print $1}')" -gt 2000 ]]; then
 		for selchr in $Get_Chromosome; do (
-			$GATK --java-options "$Xmx3 -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ../refgenomes/panref.fasta -L $selchr $input -ploidy $ploidy_ref1 -O ../snpcall/${pop}_${ref1%.f*}_${ploidy_ref1}x_"${selchr}"_raw.vcf.gz --max-reads-per-alignment-start 0 --max-num-haplotypes-in-population $ploidy_ref1 )&
+			$java $Xmx3 -XX:ParallelGCThreads=$gthreads -jar $GATK HaplotypeCaller -R ../refgenomes/panref.fasta -L $selchr $input -ploidy $ploidy_ref1 -O ../snpcall/${pop}_${ref1%.f*}_${ploidy_ref1}x_"${selchr}"_raw.vcf.gz --max-reads-per-alignment-start 0 --max-num-haplotypes-in-population $((ploidy_ref1 * paralogs)) )&
 			if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
 				wait
 			fi
@@ -493,13 +493,13 @@ if [ "$ncohorts" == no ]; then
 		cat vcf_header.txt all.vcf > ${pop}_${ref1%.f*}_${ploidy_ref1}x_raw.vcf
 		rm vcf_header.txt all.vcf *.vcf.gz.tbi ${pop}_${ref1%.f*}_${ploidy_ref1}x_*_raw.vcf
 	else
-		$GATK --java-options "$Xmx3 -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ../refgenomes/panref.fasta $input -ploidy $ploidy_ref1 -O ../snpcall/${pop}_${ref1%.f*}_${ploidy_ref1}x_raw.vcf.gz --max-reads-per-alignment-start 0 --max-num-haplotypes-in-population $ploidy_ref1
+		$java $Xmx3 -XX:ParallelGCThreads=$gthreads -jar $GATK HaplotypeCaller -R ../refgenomes/panref.fasta $input -ploidy $ploidy_ref1 -O ../snpcall/${pop}_${ref1%.f*}_${ploidy_ref1}x_raw.vcf.gz --max-reads-per-alignment-start 0 --max-num-haplotypes-in-population $((ploidy_ref1 * paralogs))
 	fi
 	cd ${projdir}/preprocess
 	mv *_${ref1%.f*}_precall* ./processed/
 fi
 
-if [ "$ncohorts" == no ]; then
+if [ "$ncohorts" == 1 ]; then
 	echo -e "${magenta}- performing SNP calling on subgenome-2 ${white}\n"
 	cd $projdir
 	cd preprocess
@@ -508,9 +508,9 @@ if [ "$ncohorts" == no ]; then
 		k="${j} ${i}"; input="${input} ${k}"
 	done
 	Get_Chromosome=$(awk 'NR>1{print $2,"\t",$3}' ../refgenomes/panref.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $0}' | sort -k2,2 -nr | awk '{print $1}' | awk -v pat=${ref2%.f*} '$0 ~ pat')
-	if [[ "$Get_Chromosome" -gt 2000 ]]; then
+	if [[ "$(wc -l ../refgenomes/panref.dict | awk '{print $1}')" -gt 2000 ]]; then
 		for selchr in $Get_Chromosome; do (
-			$GATK --java-options "$Xmx3 -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ../refgenomes/panref.fasta -L $selchr $input -ploidy $ploidy_ref2 -O ../snpcall/${pop}_${ref2%.f*}_${ploidy_ref2}x_"${selchr}"_raw.vcf.gz --max-reads-per-alignment-start 0 --max-num-haplotypes-in-population $ploidy_ref2 )&
+			$java $Xmx3 -XX:ParallelGCThreads=$gthreads -jar $GATK HaplotypeCaller -R ../refgenomes/panref.fasta -L $selchr $input -ploidy $ploidy_ref2 -O ../snpcall/${pop}_${ref2%.f*}_${ploidy_ref2}x_"${selchr}"_raw.vcf.gz --max-reads-per-alignment-start 0 --max-num-haplotypes-in-population $((ploidy_ref2 * paralogs)) )&
 			if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
 				wait
 			fi
@@ -523,26 +523,26 @@ if [ "$ncohorts" == no ]; then
 		cat vcf_header.txt all.vcf > ${pop}_${ref2%.f*}_${ploidy_ref2}x_raw.vcf.gz
 		rm vcf_header.txt all.vcf *.vcf.gz.tbi ${pop}_${ref2%.f*}_${ploidy_ref2}x_*_raw.vcf
 	else
-		$GATK --java-options "$Xmx3 -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ../refgenomes/panref.fasta $input -ploidy $ploidy_ref2 -O ../snpcall/${pop}_${ref2%.f*}_${ploidy_ref2}x_raw.vcf.gz --max-reads-per-alignment-start 0 --max-num-haplotypes-in-population $ploidy_ref2
+		$java $Xmx3 -XX:ParallelGCThreads=$gthreads -jar $GATK HaplotypeCaller -R ../refgenomes/panref.fasta $input -ploidy $ploidy_ref2 -O ../snpcall/${pop}_${ref2%.f*}_${ploidy_ref2}x_raw.vcf.gz --max-reads-per-alignment-start 0 --max-num-haplotypes-in-population $((ploidy_ref2 * paralogs))
 	fi
 	cd ${projdir}/preprocess
 	mv *_${ref2%.f*}_precall* ./processed/
 fi
 
 
-if [ "$ncohorts" != no ]; then
+if [ "$ncohorts" != 1 ]; then
 	mkdir ../snpcall/transit; cp ../snpcall/processed/*.g.vcf.gz* ../snpcall/transit
 fi
 
 
-if [ "$ncohorts" != no ]; then
+if [ "$ncohorts" != 1 ]; then
 	echo -e "${magenta}- performing SNP calling across entire genome (subgenome 1 and 2) ${white}\n"
 	mv ../snpcall/transit/*_${ref1%.f*}_${ref2%.f*}.g.vcf.gz* ../snpcall/
 	if ls ../snpcall/*.g.vcf.gz >/dev/null 2>&1; then
 		echo -e "${magenta}- skipping HaplotypeCaller. Using previously generated .g.vcf.gz files ${white}\n"
 	else
 		for i in $(ls -S *_${ref1%.f*}_${ref2%.f*}_precall.bam); do (
-			$GATK --java-options "$Xmx3 -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ../refgenomes/panref.fasta -I $i -ploidy $ploidy -O ../snpcall/${i%_precall.bam}.g.vcf.gz -ERC GVCF --max-reads-per-alignment-start 0 --max-num-haplotypes-in-population $ploidy
+			$java $Xmx3 -XX:ParallelGCThreads=$gthreads -jar $GATK HaplotypeCaller -R ../refgenomes/panref.fasta -I $i -ploidy $ploidy -O ../snpcall/${i%_precall.bam}.g.vcf.gz -ERC GVCF --max-reads-per-alignment-start 0 --max-num-haplotypes-in-population $((ploidy * paralogs))
 			cp ../snpcall/${i%_precall.bam}.g.vcf.gz* ../snpcall/processed/ ) &
 			if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
 				wait
@@ -575,8 +575,8 @@ if [ "$ncohorts" != no ]; then
 		done
 		Get_Chromosome=$(awk 'NR>1{print $2,"\t",$3}' ../../refgenomes/panref.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $0}' | sort -k2,2 -nr | awk '{print $1}' )
 		for selchr in $Get_Chromosome; do (
-			$GATK --java-options "$Xmx3 -XX:ParallelGCThreads=$gthreads" GenomicsDBImport $input -L $selchr --genomicsdb-workspace-path ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_"${selchr}"_raw
-			$GATK --java-options "$Xmx3 -XX:ParallelGCThreads=$gthreads" GenotypeGVCFs -R ../../refgenomes/panref.fasta -L $selchr -V gendb://${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_"${selchr}"_raw -O ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_"${selchr}"_raw.vcf.gz
+			$java $Xmx3 -XX:ParallelGCThreads=$gthreads -jar $GATK GenomicsDBImport $input -L $selchr --genomicsdb-workspace-path ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_"${selchr}"_raw
+			$java $Xmx3 -XX:ParallelGCThreads=$gthreads -jar $GATK GenotypeGVCFs -R ../../refgenomes/panref.fasta -L $selchr -V gendb://${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_"${selchr}"_raw -O ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_"${selchr}"_raw.vcf.gz
 			rm -r ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_"${selchr}"_raw
 			if LC_ALL=C gzip -l ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_"${selchr}"_raw.vcf.gz | awk 'NR==2 {exit($2!=0)}'; then
 				:
@@ -627,7 +627,7 @@ fi
 ######################
 
 ######################
-if [ "$ncohorts" != no ]; then
+if [ "$ncohorts" != 1 ]; then
 	echo -e "${magenta}- performing SNP calling on subgenome-1 ${white}\n"
 	mv ../snpcall/transit/*_${ref1%.f*}.g.vcf.gz* ../snpcall/
 	if ls ../snpcall/*.g.vcf.gz >/dev/null 2>&1; then
@@ -635,7 +635,7 @@ if [ "$ncohorts" != no ]; then
 	else
 		awk 'NR>1{print $2,"\t",$3}' ../refgenomes/panref.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $0}' | sort -k2,2 -nr | awk '{print $1}'| awk -v pat=${ref1%.f*} '$0 ~ pat' > ../refgenomes/intervals.list
 		for i in $(ls -S *_${ref1%.f*}_precall.bam); do (
-			$GATK --java-options "$Xmx3 -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ../refgenomes/panref.fasta -L ../refgenomes/intervals.list -I $i -ploidy $ploidy_ref1 -O ../snpcall/${i%_precall.bam}.g.vcf.gz -ERC GVCF --max-reads-per-alignment-start 0 --max-num-haplotypes-in-population $ploidy_ref1
+			$java $Xmx3 -XX:ParallelGCThreads=$gthreads -jar $GATK HaplotypeCaller -R ../refgenomes/panref.fasta -L ../refgenomes/intervals.list -I $i -ploidy $ploidy_ref1 -O ../snpcall/${i%_precall.bam}.g.vcf.gz -ERC GVCF --max-reads-per-alignment-start 0 --max-num-haplotypes-in-population $((ploidy_ref1 * paralogs))
 			cp ../snpcall/${i%_precall.bam}.g.vcf.gz* ../snpcall/processed/ ) &
 			if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
 				wait
@@ -669,8 +669,8 @@ if [ "$ncohorts" != no ]; then
 		done
 		Get_Chromosome=$(awk 'NR>1{print $2,"\t",$3}' ../../refgenomes/panref.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $0}' | sort -k2,2 -nr | awk '{print $1}'| awk -v pat=${ref1%.f*} '$0 ~ pat' )
 		for selchr in $Get_Chromosome; do (
-			$GATK --java-options "$Xmx3 -XX:ParallelGCThreads=$gthreads" GenomicsDBImport $input -L $selchr --genomicsdb-workspace-path ${pop}_${ref1%.f*}_${ploidy_ref1}x_"${selchr}"_raw
-			$GATK --java-options "$Xmx3 -XX:ParallelGCThreads=$gthreads" GenotypeGVCFs -R ../../refgenomes/panref.fasta -L $selchr -V gendb://${pop}_${ref1%.f*}_${ploidy_ref1}x_"${selchr}"_raw -O ${pop}_${ref1%.f*}_${ploidy_ref1}x_"${selchr}"_raw.vcf.gz
+			$java $Xmx3 -XX:ParallelGCThreads=$gthreads -jar $GATK GenomicsDBImport $input -L $selchr --genomicsdb-workspace-path ${pop}_${ref1%.f*}_${ploidy_ref1}x_"${selchr}"_raw
+			$java $Xmx3 -XX:ParallelGCThreads=$gthreads -jar $GATK GenotypeGVCFs -R ../../refgenomes/panref.fasta -L $selchr -V gendb://${pop}_${ref1%.f*}_${ploidy_ref1}x_"${selchr}"_raw -O ${pop}_${ref1%.f*}_${ploidy_ref1}x_"${selchr}"_raw.vcf.gz
 			rm -r ${pop}_${ref1%.f*}_${ploidy_ref1}x_"${selchr}"_raw
 			if LC_ALL=C gzip -l ${pop}_${ref1%.f*}_${ploidy_ref1}x_"${selchr}"_raw.vcf.gz | awk 'NR==2 {exit($2!=0)}'; then
 				:
@@ -721,7 +721,7 @@ fi
 ######################
 
 ######################
-if [ "$ncohorts" != no ]; then
+if [ "$ncohorts" != 1 ]; then
 	echo -e "${magenta}- performing SNP calling on subgenome-2 ${white}\n"
 	mv ../snpcall/transit/*_${ref2%.f*}.g.vcf.gz* ../snpcall/
 	if ls ../snpcall/*.g.vcf.gz >/dev/null 2>&1; then
@@ -729,7 +729,7 @@ if [ "$ncohorts" != no ]; then
 	else
 		awk 'NR>1{print $2,"\t",$3}' ../refgenomes/panref.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $0}' | sort -k2,2 -nr | awk '{print $1}'| awk -v pat=${ref2%.f*} '$0 ~ pat' > ../refgenomes/intervals.list
 		for i in $(ls -S *_${ref2%.f*}_precall.bam); do (
-			$GATK --java-options "$Xmx3 -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ../refgenomes/panref.fasta -L ../refgenomes/intervals.list -I $i -ploidy $ploidy_ref2 -O ../snpcall/${i%_precall.bam}.g.vcf.gz -ERC GVCF --max-reads-per-alignment-start 0 --max-num-haplotypes-in-population $ploidy_ref2
+			$java $Xmx3 -XX:ParallelGCThreads=$gthreads -jar $GATK HaplotypeCaller -R ../refgenomes/panref.fasta -L ../refgenomes/intervals.list -I $i -ploidy $ploidy_ref2 -O ../snpcall/${i%_precall.bam}.g.vcf.gz -ERC GVCF --max-reads-per-alignment-start 0 --max-num-haplotypes-in-population $((ploidy_ref2 * paralogs))
 			cp ../snpcall/${i%_precall.bam}.g.vcf.gz* ../snpcall/processed/ ) &
 			if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
 				wait
@@ -764,8 +764,8 @@ if [ "$ncohorts" != no ]; then
 		done
 		Get_Chromosome=$(awk 'NR>1{print $2,"\t",$3}' ../../refgenomes/panref.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $0}' | sort -k2,2 -nr | awk '{print $1}' | awk -v pat=${ref2%.f*} '$0 ~ pat')
 		for selchr in $Get_Chromosome; do (
-			$GATK --java-options "$Xmx3 -XX:ParallelGCThreads=$gthreads" GenomicsDBImport $input -L $selchr --genomicsdb-workspace-path ${pop}_${ref2%.f*}_${ploidy_ref2}x_"${selchr}"_raw
-			$GATK --java-options "$Xmx3 -XX:ParallelGCThreads=$gthreads" GenotypeGVCFs -R ../../refgenomes/panref.fasta -L $selchr -V gendb://${pop}_${ref2%.f*}_${ploidy_ref2}x_"${selchr}"_raw -O ${pop}_${ref2%.f*}_${ploidy_ref2}x_"${selchr}"_raw.vcf.gz
+			$java $Xmx3 -XX:ParallelGCThreads=$gthreads -jar $GATK GenomicsDBImport $input -L $selchr --genomicsdb-workspace-path ${pop}_${ref2%.f*}_${ploidy_ref2}x_"${selchr}"_raw
+			$java $Xmx3 -XX:ParallelGCThreads=$gthreads -jar $GATK GenotypeGVCFs -R ../../refgenomes/panref.fasta -L $selchr -V gendb://${pop}_${ref2%.f*}_${ploidy_ref2}x_"${selchr}"_raw -O ${pop}_${ref2%.f*}_${ploidy_ref2}x_"${selchr}"_raw.vcf.gz
 			rm -r ${pop}_${ref2%.f*}_${ploidy_ref2}x_"${selchr}"_raw
 			if LC_ALL=C gzip -l ${pop}_${ref2%.f*}_${ploidy_ref2}x_"${selchr}"_raw.vcf.gz | awk 'NR==2 {exit($2!=0)}'; then
 				:
@@ -1162,7 +1162,7 @@ if test -f "$file"; then
 else
 	$bwa index -a bwtsw ${ref1}
 	$samtools faidx ${ref1}
-	$java -jar $picard CreateSequenceDictionary REFERENCE= ${ref1} OUTPUT=${ref1%.f*}.dict
+	$java $Xmx3 -XX:ParallelGCThreads=$gthreads -jar $picard CreateSequenceDictionary REFERENCE= ${ref1} OUTPUT=${ref1%.f*}.dict
 fi
 
 cd $projdir
