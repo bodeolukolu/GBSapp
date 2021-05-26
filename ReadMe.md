@@ -98,7 +98,7 @@ Using a text editor, save a file containing any of the following variables as 'c
 |ref4|na|4th reference genome as fasta file|integer|Optional|
 |copy_number|3|maximum copy number of each unique read|integer|Optional|
 |paleopolyploid|false|capture/code variable dosage/copy number (i.e. 2x,4x,6x, and 8x)|true or false||Optional|
-|ncohorts|1|number of cohorts for Joint-genotyping. ncohorts=no (very slow) indicates multi-sample variant calling without generating single-sample gVCF files |integer, yes, or no|Optional|
+|ncohorts|1|number of cohorts for Joint-genotyping |integer|Optional|
 
 **Note: na indicates that variable is user-defined or hard-coded/computed intuitively, as well as a function of ploidy.*
 

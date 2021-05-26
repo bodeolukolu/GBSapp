@@ -448,7 +448,7 @@ if [ "$ncohorts" == 1 ]; then
 		k="${j} ${i}"; input="${input} ${k}"
 	done
 	Get_Chromosome=$(awk 'NR>1{print $2,"\t",$3}' ../refgenomes/panref.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $0}' | sort -k2,2 -nr | awk '{print $1}' )
-	if [[ "$(wc -l ../refgenomes/panref.dict | awk '{print $1}')" -gt 2000 ]]; then
+	if [[ "$(wc -l ../refgenomes/panref.dict | awk '{print $1}')" -le 2000 ]]; then
 		for selchr in $Get_Chromosome; do (
 			$java $Xmx3 -XX:ParallelGCThreads=$gthreads -jar $GATK HaplotypeCaller -R ../refgenomes/panref.fasta -L $selchr $input -ploidy $ploidy -O ../snpcall/${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_"${selchr}"_raw.vcf.gz --max-reads-per-alignment-start 0 --max-num-haplotypes-in-population $((ploidy * paralogs)) )&
 			if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
@@ -478,7 +478,7 @@ if [ "$ncohorts" == 1 ]; then
 		k="${j} ${i}"; input="${input} ${k}"
 	done
 	Get_Chromosome=$(awk 'NR>1{print $2,"\t",$3}' ../refgenomes/panref.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $0}' | sort -k2,2 -nr | awk '{print $1}'| awk -v pat=${ref1%.f*} '$0 ~ pat' )
-	if [[ "$(wc -l ../refgenomes/panref.dict | awk '{print $1}')" -gt 2000 ]]; then
+	if [[ "$(wc -l ../refgenomes/panref.dict | awk '{print $1}')" -le 2000 ]]; then
 		for selchr in $Get_Chromosome; do (
 			$java $Xmx3 -XX:ParallelGCThreads=$gthreads -jar $GATK HaplotypeCaller -R ../refgenomes/panref.fasta -L $selchr $input -ploidy $ploidy_ref1 -O ../snpcall/${pop}_${ref1%.f*}_${ploidy_ref1}x_"${selchr}"_raw.vcf.gz --max-reads-per-alignment-start 0 --max-num-haplotypes-in-population $((ploidy_ref1 * paralogs)) )&
 			if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
@@ -508,7 +508,7 @@ if [ "$ncohorts" == 1 ]; then
 		k="${j} ${i}"; input="${input} ${k}"
 	done
 	Get_Chromosome=$(awk 'NR>1{print $2,"\t",$3}' ../refgenomes/panref.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $0}' | sort -k2,2 -nr | awk '{print $1}' | awk -v pat=${ref2%.f*} '$0 ~ pat')
-	if [[ "$(wc -l ../refgenomes/panref.dict | awk '{print $1}')" -gt 2000 ]]; then
+	if [[ "$(wc -l ../refgenomes/panref.dict | awk '{print $1}')" -le 2000 ]]; then
 		for selchr in $Get_Chromosome; do (
 			$java $Xmx3 -XX:ParallelGCThreads=$gthreads -jar $GATK HaplotypeCaller -R ../refgenomes/panref.fasta -L $selchr $input -ploidy $ploidy_ref2 -O ../snpcall/${pop}_${ref2%.f*}_${ploidy_ref2}x_"${selchr}"_raw.vcf.gz --max-reads-per-alignment-start 0 --max-num-haplotypes-in-population $((ploidy_ref2 * paralogs)) )&
 			if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
