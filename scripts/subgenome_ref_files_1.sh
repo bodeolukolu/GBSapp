@@ -565,8 +565,10 @@ if [[ "$threads" -le 4 ]]; then
 	Xmx3=$Xmx2
 	gN=1
 else
-	gthreads=4
-	gN=$(( threads / 4 ))
+	if [ -z "$gthreads" ]; then
+		gthreads=2
+	fi
+	gN=$(( threads / gthreads ))
 	ram3=$(( ram2 / gN ))
 	Xmx3=-Xmx${ram3}G
 fi
@@ -587,7 +589,7 @@ if [[ "$paleopolyploid" != true ]] && [[ "$ncohorts" == 1 ]]; then
 	Get_Chromosome=$(awk 'NR>1{print $2,"\t",#3}' ../refgenomes/${ref1%.*}.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $0}' | sort -k2,2 -nr | awk '{print $1}' | awk -v pat=${ref1%.f*} '$0 ~ pat')
 	if [[ "$(wc -l ../refgenomes/${ref1%.*}.dict | awk '{print $1}')" -le 2000 ]]; then
 		for selchr in $Get_Chromosome; do (
-			$java $Xmx3 -XX:ParallelGCThreads=$ParallelGCThreads -jar $GATK HaplotypeCaller -R ../refgenomes/$ref1 -L $selchr $input -ploidy $ploidy -O ../snpcall/${pop}_${ploidy}x_"${selchr}"_raw.vcf.gz --max-reads-per-alignment-start 0 --max-num-haplotypes-in-population $((ploidy * paralogs)) )&
+			$java $Xmx3 -XX:ParallelGCThreads=$gthreads -jar $GATK HaplotypeCaller -R ../refgenomes/$ref1 -L $selchr $input -ploidy $ploidy -O ../snpcall/${pop}_${ploidy}x_"${selchr}"_raw.vcf.gz --max-reads-per-alignment-start 0 --max-num-haplotypes-in-population $((ploidy * paralogs)) )&
 			if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
 				wait
 			fi
@@ -600,7 +602,7 @@ if [[ "$paleopolyploid" != true ]] && [[ "$ncohorts" == 1 ]]; then
 		cat vcf_header.txt all.vcf > ${pop}_${ploidy}x_raw.vcf
 		rm vcf_header.txt all.vcf *.vcf.gz.tbi ${pop}_${ploidy}x_*_raw.vcf
 	else
-		$java $Xmx3 -XX:ParallelGCThreads=$threads -jar $GATK HaplotypeCaller -R ../refgenomes/$ref1 $input -ploidy $ploidy -O ../snpcall/${pop}_${ploidy}x_raw.vcf.gz --max-reads-per-alignment-start 0 --max-num-haplotypes-in-population $((ploidy * paralogs))
+		$java $Xmx3 -XX:ParallelGCThreads=$gthreads -jar $GATK HaplotypeCaller -R ../refgenomes/$ref1 $input -ploidy $ploidy -O ../snpcall/${pop}_${ploidy}x_raw.vcf.gz --max-reads-per-alignment-start 0 --max-num-haplotypes-in-population $((ploidy * paralogs))
 
 	fi
 	cd ${projdir}/preprocess

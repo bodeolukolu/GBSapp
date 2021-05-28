@@ -426,8 +426,10 @@ if [[ "$threads" -le 4 ]]; then
 	Xmx3=$Xmx2
 	gN=1
 else
-	gthreads=4
-	gN=$(( threads / 4 ))
+	if [ -z "$gthreads" ]; then
+		gthreads=2
+	fi
+	gN=$(( threads / gthreads ))
 	ram3=$(( ram2 / gN ))
 	Xmx3=-Xmx${ram3}G
 fi

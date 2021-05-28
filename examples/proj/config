@@ -19,7 +19,7 @@ ploidy_ref4=
 copy_number=1
 paleopolyploid=false
 ncohorts=1
-
+gthreads=2
 
 # SNP-filtering:
 ####################################################
