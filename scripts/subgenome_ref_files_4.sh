@@ -581,7 +581,7 @@ if [[ "$threads" -le 4 ]]; then
 	gN=1
 else
 	if [ -z "$gthreads" ]; then
-		gthreads=2
+		gthreads=4
 	fi
 	gN=$(( threads / gthreads ))
 	ram3=$(( ram2 / gN ))

@@ -184,7 +184,7 @@ string="$(grep walkaway config)"
 string=${string//*=}
 cluster="$(grep cluster config)"
 cluster=${cluster//*=}
-thread_node="$(grep threads config)"
+thread_node="$(grep ^threads config)"
 thread_node=${thread_node//*=}
 
 if [ -z "$string" ]; then

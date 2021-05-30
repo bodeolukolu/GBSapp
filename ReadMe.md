@@ -99,7 +99,7 @@ Using a text editor, save a file containing any of the following variables as 'c
 |copy_number|3|maximum copy number of each unique read|integer|Optional|
 |paleopolyploid|false|capture/code variable dosage/copy number (i.e. 2x,4x,6x, and 8x)|true or false||Optional|
 |ncohorts|1|number of cohorts for Joint-genotyping |integer|Optional|
-|gthreads|2|number of cores per chromosome/scaffold/contig (multi-processing haplotypecaller) |integer|Optional|
+|gthreads|4|number of cores per chromosome/scaffold/contig (multi-processing haplotypecaller) |integer|Optional|
 
 **Note: na indicates that variable is user-defined or hard-coded/computed intuitively, as well as a function of ploidy.*
 
