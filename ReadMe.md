@@ -35,7 +35,7 @@ For questions, bugs, and suggestions, please contact bolukolu@utk.edu.
 - Currently, GBSapp is only available for unix-based systems (i.e. macOS and Linux/UNIX).
 - Clone or download the Git repository to your desired folder.
 ```bash
-$ git clone https://github.com/bodeolukolu/GBSapp.git
+git clone https://github.com/bodeolukolu/GBSapp.git
 ```
 - Installation occurs automatically the first time you run the pipeline.
 - With the exception of R and Python (v2.6 or greater) all dependencies are installed to a local directory within GBSapp.
