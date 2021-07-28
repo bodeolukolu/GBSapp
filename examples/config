@@ -1,25 +1,23 @@
-
 # General parameters
 ####################################################
-threads=12
+threads=24
 walkaway=true
-cluster=false
+cluster=true
 
-# SNP-calling
+# Variant calling
 ###################################################
-ploidy=2
+ploidy=6
 ref1=TF.fasta
-ref2=
-ref3=
-ref4=
-ploidy_ref1=2
-ploidy_ref2=
-ploidy_ref3=
-ploidy_ref4=
-copyN_ref=1
+ref2=TL.fasta
+ploidy_ref1=4
+ploidy_ref2=2
+copy_number=1
 paleopolyploid=false
-ncohorts=no
+ncohorts=1
+maxHaplotype=64
+founder_parents=2
 gthreads=2
+cthreads=2000
 
 # SNP-filtering:
 ####################################################
@@ -28,11 +26,10 @@ p2=Tanzania
 genotype_missingness=0.1,0.2,0.3
 sample_missingness=0.1,0.2,0.3
 exclude_samples=S1,S2,S3
-minRD_1x=1
 minRD_2x=6
 minRD_4x=25
 minRD_6x=45
-minRD_8x=100
 pseg=0.001
 maf=0.02
 snpformats=true
+

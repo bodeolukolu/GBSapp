@@ -5,10 +5,23 @@ if [ -z "$threads" ]; then
 		threads=$((threads-2))
 	fi
 fi
-if [ -z "$copy_number" ]; then
-	paralogs=3
+if [ -z "$haplome_number" ]; then
+	haplome_number=1
 else
-	paralogs=$((copy_number))
+	haplome_number=$((haplome_number))
+fi
+if [ -z "$copy_number" ]; then
+	paralogs=$((1 * haplome_number))
+else
+	paralogs=$((copy_number * haplome_number))
+fi
+if [ -z "$maxHaplotype" ]; then
+	maxHaplotype=(paralogs * 64)
+fi
+if [[ -z "$founder_parents" ]]; then
+	:
+else
+	maxHaplotype=$((paralogs * founder_parents))
 fi
 if [ -z "$p2" ]; then
 	p2=$p1
@@ -28,13 +41,62 @@ cd refgenomes
 for i in *.gz; do
 	gunzip $i >/dev/null 2>&1
 done
+
 if ls *.dict 1> /dev/null 2>&1; then
 	:
 else
+	checknfastafiles=$(ls *.f* | wc -l)
+	if [[ $checknfastafiles -gt 1 ]]; then
+		echo -e "${magenta}- expecting only 1 fasta files for reference genome ${white}\n"
+		echo -e "${magenta}- GBSapp will quit in 5 seconds ${white}\n"
+		sleep 5 && exit 1
+	fi
+	if [ -z "$ref1" ]; then
+		for ref in $(ls *.f*); do
+			ref1=${ref%.fa*}.fasta
+		done
+	fi
+	export ncontigscaffold=$(grep '>' $ref1 | wc -l)
+	if [[ $ncontigscaffold -gt 200 ]]; then
+		nfakechr=$((threads/2))
+		cat $ref1 | awk '/^>/{if(N>0) printf("\n"); ++N; printf("%s\t",$0);next;} {printf("%s",$0);}END{printf("\n");}' > panref0.txt
+		awk 'BEGIN{srand() }
+		{ lines[++d]=$0 }
+			END{
+			while (1){
+				if (e==d) {break}
+					RANDOM = int(1 + rand() * d)
+					if ( RANDOM in lines  ){
+					print lines[RANDOM]
+					delete lines[RANDOM]
+					++e
+				}
+			}
+		}' panref0.txt > panref0.fasta
+		flength=$(wc -l panref0.fasta | awk '{print $1}'); nsplit=$(( flength / nfakechr ))
+		split -a 2 -d -l $nsplit panref0.fasta Chr
+		rm panref0*
+		for i in Chr*; do
+			Nstitch=$(printf "A%.0s" $(seq 100))
+			awk -v Nstitch=$Nstitch '{print $1"\t"$2}' $i | awk '{gsub(/\t/,"\n"); print $0}' > ${i}.fasta
+			grep -v '>'  ${i}.fasta |  awk '/^>/{if(N>0) printf("\n"); ++N; printf("%s\t",$0);next;} {printf("%s",$0);}END{printf("\n");}' | fold -w 100 > ${i}.txt
+			#generate index of concatenated contigs/scaffold
+			awk '/^>/{if (l!="") print l; print; l=0; next}{l+=length($0)}END{print l}' ${i}.fasta | awk '{gsub(/>/,""); print $0}' |\
+			awk '{ ORS = NR % 2 ? "\t" : "\n" } 1' | awk '{print $1"\t"$2+100}' | awk -F "\t" '{sum+=$2;print($1,"\t",sum-$2);}' |\
+			awk -v chrid=${i} -v refgenome=${ref1%.f*} '{print refgenome"_"chrid"\t"$1"\t"$2}' >> contigscaffold_index.txt
+		done
+		cp $ref1 ${ref1%.f*}_original.fasta
+		cat /dev/null > $ref1
+		for filename in Chr*.txt; do
+			echo ">""${filename%.txt}" >> $ref1
+			cat "$filename" >> $ref1
+		done
+	fi
+	rm Chr*
+
+
 	mkdir split
-	for reffile in $(ls *.f*); do
-		awk '/^>/{close("file.fasta"f);f++}{print $0 > "./split/file"f}' "$reffile"
-	done
+	awk '/^>/{close("file.fasta"f);f++}{print $0 > "./split/file"f}' "${ref1}"
 	cd split
 	checksplit=$(wc -c file* | head -n -1 | awk '($1 > 500000000 )' | wc -l)
 	if [[ "$checksplit" -gt 0 ]]; then
@@ -575,6 +637,9 @@ fi
 if [ "$ncohorts" != 1 ]; then
 	mkdir $projdir/snpcall/processed
 fi
+if [ -z "$cthreads" ]; then
+	cthreads=2000
+fi
 
 ######################
 if [[ "$paleopolyploid" != true ]] && [[ "$ncohorts" == 1 ]]; then
@@ -586,23 +651,28 @@ if [[ "$paleopolyploid" != true ]] && [[ "$ncohorts" == 1 ]]; then
 	for i in $(ls *_precall.bam); do
 		k="${j} ${i}"; input="${input} ${k}"
 	done
-	Get_Chromosome=$(awk 'NR>1{print $2,"\t",#3}' ../refgenomes/${ref1%.*}.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $0}' | sort -k2,2 -nr | awk '{print $1}' | awk -v pat=${ref1%.f*} '$0 ~ pat')
-	if [[ "$(wc -l ../refgenomes/${ref1%.*}.dict | awk '{print $1}')" -le 2000 ]]; then
+	Get_Chromosome=$(awk 'NR>1{print $2,"\t",$3}' ../refgenomes/${ref1%.*}.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $0}' | sort -k2,2 -nr | awk '{print $1}' | awk -v pat=${ref1%.f*} '$0 ~ pat')
+	if [[ "$(wc -l ../refgenomes/${ref1%.*}.dict | awk '{print $1}')" -le $cthreads ]]; then
 		for selchr in $Get_Chromosome; do (
-			$java $Xmx3 -XX:ParallelGCThreads=$gthreads -jar $GATK HaplotypeCaller -R ../refgenomes/$ref1 -L $selchr $input -ploidy $ploidy -O ../snpcall/${pop}_${ploidy}x_"${selchr}"_raw.vcf.gz --max-reads-per-alignment-start 0 --max-num-haplotypes-in-population $((ploidy * paralogs)) )&
+			$GATK --java-options "$Xmx3 -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ../refgenomes/$ref1 -L $selchr $input -ploidy $ploidy -O ../snpcall/${pop}_${ploidy}x_"${selchr}"_raw.vcf.gz --max-reads-per-alignment-start 0 --max-num-haplotypes-in-population $((ploidy * maxHaplotype)) )&
 			if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
 				wait
 			fi
 		done
 		wait
 		cd ../snpcall
-		ls ${pop}_${ploidy}x_*_raw.vcf.gz | parallel gunzip
+		for g in $(ls ${pop}_${ploidy}x_*_raw.vcf.gz); do (
+			gunzip $g )&
+			if [[ $(jobs -r -p | wc -l) -ge $N ]]; then
+			wait
+			fi
+		done
 		grep -h '^#' ${pop}_${ploidy}x_*_raw.vcf | awk '!visited[$0]++' | awk '!/^##GATKCommandLine/' > vcf_header.txt
 		cat ${pop}_${ploidy}x_*_raw.vcf | awk '!/^#/' > all.vcf
 		cat vcf_header.txt all.vcf > ${pop}_${ploidy}x_raw.vcf
 		rm vcf_header.txt all.vcf *.vcf.gz.tbi ${pop}_${ploidy}x_*_raw.vcf
 	else
-		$java $Xmx3 -XX:ParallelGCThreads=$gthreads -jar $GATK HaplotypeCaller -R ../refgenomes/$ref1 $input -ploidy $ploidy -O ../snpcall/${pop}_${ploidy}x_raw.vcf.gz --max-reads-per-alignment-start 0 --max-num-haplotypes-in-population $((ploidy * paralogs))
+		$GATK --java-options "$Xmx3 -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ../refgenomes/$ref1 $input -ploidy $ploidy -O ../snpcall/${pop}_${ploidy}x_raw.vcf.gz --max-reads-per-alignment-start 0 --max-num-haplotypes-in-population $((ploidy * maxHaplotype))
 
 	fi
 	cd ${projdir}/preprocess
@@ -621,23 +691,28 @@ if [[ "$paleopolyploid" = true ]] && [[ "$ncohorts" == 1 ]]; then
 			k="${j} ${i}"; input="${input} ${k}"
 		done
 		Get_Chromosome=$(awk 'NR>1{print $2,"\t",$3}' ../refgenomes/${ref1%.*}.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $0}' | sort -k2,2 -nr | awk '{print $1}' | awk -v pat=${ref1%.f*} '$0 ~ pat')
-		if [[ "$(wc -l ../refgenomes/${ref1%.*}.dict | awk '{print $1}')" -le 2000 ]]; then
+		if [[ "$(wc -l ../refgenomes/${ref1%.*}.dict | awk '{print $1}')" -le $cthreads ]]; then
 			for selchr in $Get_Chromosome; do (
-				$java $Xmx3 -XX:ParallelGCThreads=$gthreads -jar $GATK HaplotypeCaller -R ../refgenomes/$ref1 -L $selchr $input -ploidy $m -O ../snpcall/${pop}_${m}x_"${selchr}"_raw.vcf.gz --max-reads-per-alignment-start 0 --max-num-haplotypes-in-population $((m * paralogs)) )&
+				$GATK --java-options "$Xmx3 -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ../refgenomes/$ref1 -L $selchr $input -ploidy $m -O ../snpcall/${pop}_${m}x_"${selchr}"_raw.vcf.gz --max-reads-per-alignment-start 0 --max-num-haplotypes-in-population $((m * maxHaplotype)) )&
 				if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
 					wait
 				fi
 			done
 			wait
 			cd ../snpcall
-			ls ${pop}_${m}x_*_raw.vcf.gz | parallel gunzip
+			for g in $(ls ${pop}_${m}x_*_raw.vcf.gz); do (
+				gunzip $g )&
+				if [[ $(jobs -r -p | wc -l) -ge $N ]]; then
+				wait
+				fi
+			done
 			grep -h '^#' ${pop}_${m}x_*_raw.vcf | awk '!visited[$0]++' | awk '!/^##GATKCommandLine/' > vcf_header.txt
 			cat ${pop}_${m}x_*_raw.vcf | awk '!/^#/' > all.vcf
 			cat vcf_header.txt all.vcf > ${pop}_${m}x_raw.vcf
 			rm vcf_header.txt all.vcf *.vcf.gz.tbi ${pop}_${m}x_*_raw.vcf
 			cd ${projdir}/preprocess
 		else
-			$java $Xmx3 -XX:ParallelGCThreads=$gthreads -jar $GATK HaplotypeCaller -R ../refgenomes/$ref1 $input -ploidy $m -O ../snpcall/${pop}_${m}x_raw.vcf.gz --max-reads-per-alignment-start 0 --max-num-haplotypes-in-population $((m * paralogs))
+			$GATK --java-options "$Xmx3 -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ../refgenomes/$ref1 $input -ploidy $m -O ../snpcall/${pop}_${m}x_raw.vcf.gz --max-reads-per-alignment-start 0 --max-num-haplotypes-in-population $((m * maxHaplotype))
 		fi
 	done
 	cd ${projdir}/preprocess
@@ -650,20 +725,14 @@ if [[ "$paleopolyploid" = false ]] && [[ "$ncohorts" != 1 ]]; then
 	cd $projdir
 	cd preprocess
 	mkdir processed
-	mkdir ../snpcall/transit; cp ../snpcall/processed/*.g.vcf.gz* ../snpcall/transit
-	mv ../snpcall/transit/*.g.vcf.gz* ../snpcall/
-	if ls ../snpcall/*.g.vcf.gz >/dev/null 2>&1; then
-		echo -e "${magenta}- skipping HaplotypeCaller. Using previously generated .g.vcf.gz files ${white}\n"
-	else
-		for i in $(ls -S *_precall.bam); do (
-			$java $Xmx3 -XX:ParallelGCThreads=$gthreads -jar $GATK HaplotypeCaller -R ../refgenomes/$ref1 -I $i -ploidy $ploidy -O ../snpcall/${i%_precall.bam}.g.vcf.gz -ERC GVCF --max-reads-per-alignment-start 0 --max-num-haplotypes-in-population $((ploidy * paralogs))
-			cp ../snpcall/${i%_precall.bam}.g.vcf.gz* ../snpcall/processed/ ) &
-			if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
-				wait
-			fi
-		done
-		wait
-	fi
+	for i in $(ls -S *_precall.bam); do (
+		$GATK --java-options "$Xmx3 -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ../refgenomes/$ref1 -I $i -ploidy $ploidy -O ../snpcall/${i%_precall.bam}.g.vcf.gz -ERC GVCF --max-reads-per-alignment-start 0 --max-num-haplotypes-in-population $ploidy
+		cp ../snpcall/${i%_precall.bam}.g.vcf.gz* ../snpcall/processed/ ) &
+		if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
+			wait
+		fi
+	done
+	wait
 	cd ../snpcall
 
 	if [[ "$ncohorts" = yes ]] || [[  "$ncohorts" -eq "1" ]]; then
@@ -690,8 +759,8 @@ if [[ "$paleopolyploid" = false ]] && [[ "$ncohorts" != 1 ]]; then
 		done
 		Get_Chromosome=$(awk 'NR>1{print $2,"\t",$3}' ../../refgenomes/${ref1%.*}.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $0}' | sort -k2,2 -nr | awk '{print $1}' | awk -v pat=${ref1%.f*} '$0 ~ pat')
 		for selchr in $Get_Chromosome; do (
-			$java $Xmx3 -XX:ParallelGCThreads=$gthreads -jar $GATK GenomicsDBImport $input -L $selchr --genomicsdb-workspace-path ${pop}_${ploidy}x_"${selchr}"_raw
-			$java $Xmx3 -XX:ParallelGCThreads=$gthreads -jar $GATK GenotypeGVCFs -R ../../refgenomes/$ref1 -L $selchr -V gendb://${pop}_${ploidy}x_"${selchr}"_raw -O ${pop}_${ploidy}x_"${selchr}"_raw.vcf.gz
+			$GATK --java-options "$Xmx3 -XX:ParallelGCThreads=$gthreads" GenomicsDBImport $input -L $selchr --genomicsdb-workspace-path ${pop}_${ploidy}x_"${selchr}"_raw
+			$GATK --java-options "$Xmx3 -XX:ParallelGCThreads=$gthreads" GenotypeGVCFs -R ../../refgenomes/$ref1 -L $selchr -V gendb://${pop}_${ploidy}x_"${selchr}"_raw -O ${pop}_${ploidy}x_"${selchr}"_raw.vcf.gz
 			rm -r ${pop}_${ploidy}x_"${selchr}"_raw
 			if LC_ALL=C gzip -l ${pop}_${ploidy}x_"${selchr}"_raw.vcf.gz | awk 'NR==2 {exit($2!=0)}'; then
 				:
@@ -709,7 +778,12 @@ if [[ "$paleopolyploid" = false ]] && [[ "$ncohorts" != 1 ]]; then
 			fi
 		done
 		wait
-		ls ${pop}_${ploidy}x_*_raw.vcf.gz | parallel gunzip
+		for g in $(ls ${pop}_${ploidy}x_*_raw.vcf.gz); do (
+			gunzip $g )&
+			if [[ $(jobs -r -p | wc -l) -ge $N ]]; then
+			wait
+			fi
+		done
 		grep -h '^#' ${pop}_${ploidy}x_*_raw.vcf | awk '!visited[$0]++' | awk '!/^##GATKCommandLine/' > vcf_header.txt
 		cat ${pop}_${ploidy}x_*_raw.vcf | awk '!/^#/' > all.vcf
 		cat vcf_header.txt all.vcf > ${pop}_${ploidy}x_raw.vcf
@@ -743,94 +817,93 @@ if [[ "$paleopolyploid" = true ]] && [[ "$ncohorts" != 1 ]]; then
 	cd $projdir
 	cd preprocess
 	mkdir processed
-	mkdir ../snpcall/transit; cp ../snpcall/processed/*.g.vcf.gz* ../snpcall/transit
 	for c in {1..4}; do
 		m=$((c*2))
-		mv ../snpcall/transit/*${m}x.g.vcf.gz* ../snpcall/
-		if ls ../snpcall/*.g.vcf.gz >/dev/null 2>&1; then
-			echo -e "${magenta}- skipping HaplotypeCaller. Using previously generated .g.vcf.gz files ${white}\n"
-		else
-			for i in $(ls -S *${m}x_precall.bam); do (
-				$java $Xmx3 -XX:ParallelGCThreads=$gthreads -jar $GATK HaplotypeCaller -R ../refgenomes/$ref1 -I $i -ploidy $m -O ../snpcall/${i%_precall.bam}.g.vcf.gz -ERC GVCF --max-reads-per-alignment-start 0 --max-num-haplotypes-in-population $((m * paralogs))
-				cp ../snpcall/${i%_precall.bam}.g.vcf.gz* ../snpcall/processed/ ) &
-				if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
-					wait
-				fi
-			done
-			wait
-		fi
-		cd ../snpcall
-
-		if [[ "$ncohorts" = yes ]] || [[  "$ncohorts" -eq "1" ]]; then
-			cz=$(ls *.g.vcf.gz | wc -l)
-		fi
-		if [[ "$ncohorts" -gt "1" ]]; then
-			cz=$(ls *.g.vcf.gz | wc -l)
-			cz=$(( (cz / ncohorts ) + (cz % ncohorts > 0)))
-		fi
-
-		i=0
-		for f in `find . -maxdepth 1 -iname '*.g.vcf.gz' -type f | shuf`; do
-			d=cohorts_$(printf %02d $((i/cz+1)))
-			mkdir -p $d
-			mv "$f" $d; mv "${f}.tbi" $d
-			let i++
-		done
-
-		for dir in *cohorts*/; do
-			cd $dir
-			j=--variant; input=""; k=""
-			for i in $(ls *${m}x.g.vcf.gz); do
-				k="${j} ${i}"; input="${input} ${k}"
-			done
-			Get_Chromosome=$(awk 'NR>1{print $2,"\t",$3}' ../../refgenomes/${ref1%.*}.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $0}' | sort -k2,2 -nr | awk '{print $1}' | awk -v pat=${ref1%.f*} '$0 ~ pat')
-			for selchr in $Get_Chromosome; do (
-				$java $Xmx3 -XX:ParallelGCThreads=$gthreads -jar $GATK GenomicsDBImport $input -L $selchr --genomicsdb-workspace-path ${pop}_${m}x_"${selchr}"_raw
-				$java $Xmx3 -XX:ParallelGCThreads=$gthreads -jar $GATK GenotypeGVCFs -R ../../refgenomes/$ref1 -L $selchr -V gendb://${pop}_${m}x_"${selchr}"_raw -O ${pop}_${m}x_"${selchr}"_raw.vcf.gz
-				rm -r ${pop}_${m}x_"${selchr}"_raw
-				if LC_ALL=C gzip -l ${pop}_${m}x_"${selchr}"_raw.vcf.gz | awk 'NR==2 {exit($2!=0)}'; then
-					:
-				else
-					rm ../cohorts*/${pop}_${m}x_*_raw.vcf.gz*
-					rm ../cohorts*/${pop}_${m}x_raw.vcf*
-					rm ../${pop}_${m}x_raw_cohorts*.vcf*
-					echo -e "${magenta}- \n- SNP calling failed probably due to insufficient memory ${white}\n"
-					echo -e "${magenta}- \n- Exiting pipeline in 5 seconds ${white}\n"
-					sleep 5 && exit 1
-				fi
-				)&
-				if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
+		for i in $(ls -S *${m}x_precall.bam); do (
+			$GATK --java-options "$Xmx3 -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ../refgenomes/$ref1 -I $i -ploidy $m -O ../snpcall/${i%_precall.bam}.g.vcf.gz -ERC GVCF --max-reads-per-alignment-start 0 --max-num-haplotypes-in-population "$m"
+			cp ../snpcall/${i%_precall.bam}.g.vcf.gz* ../snpcall/processed/ ) &
+			if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
 				wait
-				fi
-			done
-			wait
-			ls ${pop}_${m}x_*_raw.vcf.gz | parallel gunzip
-			grep -h '^#' ${pop}_${m}x_*_raw.vcf | awk '!visited[$0]++' | awk '!/^##GATKCommandLine/' > vcf_header.txt
-			cat ${pop}_${m}x_*_raw.vcf | awk '!/^#/' > all.vcf
-			cat vcf_header.txt all.vcf > ${pop}_${m}x_raw.vcf
-			rm vcf_header.txt all.vcf
-			rm ${pop}_${m}x_*_raw.vcf ${pop}_${m}x_*_raw.vcf.gz.tbi
-			bgzip ${pop}_${m}x_raw.vcf
-			tabix -p vcf ${pop}_${m}x_raw.vcf.gz
-
-			$bcftools annotate -x FORMAT/PL ${pop}_${m}x_raw.vcf.gz > ../${pop}_${m}x_raw_${dir%/}.vcf
-			cd ../
-			bgzip ${pop}_${m}x_raw_${dir%/}.vcf
-			tabix -p vcf ${pop}_${m}x_raw_${dir%/}.vcf.gz
-			wait
+			fi
 		done
 		wait
-		if [[ `ls -1 *cohorts*.vcf.gz 2>/dev/null | wc -l` -gt 1 ]]; then
-			$bcftools merge *cohorts*.vcf.gz --force-samples -m all > ${pop}_${m}x_raw.vcf
-		else
-			cp *cohorts*.vcf.gz ${pop}_${m}x_raw.vcf.gz
-			gunzip ${pop}_${m}x_raw.vcf.gz
-		fi
-
-		rm -r cohorts*
-		rm *cohorts*
-		cd ../preprocess
 	done
+	cd ../snpcall
+
+	if [[ "$ncohorts" = yes ]] || [[  "$ncohorts" -eq "1" ]]; then
+		cz=$(ls *.g.vcf.gz | wc -l)
+	fi
+	if [[ "$ncohorts" -gt "1" ]]; then
+		cz=$(ls *.g.vcf.gz | wc -l)
+		cz=$(( (cz / ncohorts ) + (cz % ncohorts > 0)))
+	fi
+
+	i=0
+	for f in `find . -maxdepth 1 -iname '*.g.vcf.gz' -type f | shuf`; do
+		d=cohorts_$(printf %02d $((i/cz+1)))
+		mkdir -p $d
+		mv "$f" $d; mv "${f}.tbi" $d
+		let i++
+	done
+
+	for dir in *cohorts*/; do
+		cd $dir
+		j=--variant; input=""; k=""
+		for i in $(ls *${m}x.g.vcf.gz); do
+			k="${j} ${i}"; input="${input} ${k}"
+		done
+		Get_Chromosome=$(awk 'NR>1{print $2,"\t",$3}' ../../refgenomes/${ref1%.*}.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $0}' | sort -k2,2 -nr | awk '{print $1}' | awk -v pat=${ref1%.f*} '$0 ~ pat')
+		for selchr in $Get_Chromosome; do (
+			$GATK --java-options "$Xmx3 -XX:ParallelGCThreads=$gthreads" GenomicsDBImport $input -L $selchr --genomicsdb-workspace-path ${pop}_${m}x_"${selchr}"_raw
+			$GATK --java-options "$Xmx3 -XX:ParallelGCThreads=$gthreads" GenotypeGVCFs -R ../../refgenomes/$ref1 -L $selchr -V gendb://${pop}_${m}x_"${selchr}"_raw -O ${pop}_${m}x_"${selchr}"_raw.vcf.gz
+			rm -r ${pop}_${m}x_"${selchr}"_raw
+			if LC_ALL=C gzip -l ${pop}_${m}x_"${selchr}"_raw.vcf.gz | awk 'NR==2 {exit($2!=0)}'; then
+				:
+			else
+				rm ../cohorts*/${pop}_${m}x_*_raw.vcf.gz*
+				rm ../cohorts*/${pop}_${m}x_raw.vcf*
+				rm ../${pop}_${m}x_raw_cohorts*.vcf*
+				echo -e "${magenta}- \n- SNP calling failed probably due to insufficient memory ${white}\n"
+				echo -e "${magenta}- \n- Exiting pipeline in 5 seconds ${white}\n"
+				sleep 5 && exit 1
+			fi
+			)&
+			if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
+			wait
+			fi
+		done
+		wait
+		for g in $(ls ${pop}_${m}x_*_raw.vcf.gz); do (
+			gunzip $g )&
+			if [[ $(jobs -r -p | wc -l) -ge $N ]]; then
+			wait
+			fi
+		done
+		grep -h '^#' ${pop}_${m}x_*_raw.vcf | awk '!visited[$0]++' | awk '!/^##GATKCommandLine/' > vcf_header.txt
+		cat ${pop}_${m}x_*_raw.vcf | awk '!/^#/' > all.vcf
+		cat vcf_header.txt all.vcf > ${pop}_${m}x_raw.vcf
+		rm vcf_header.txt all.vcf
+		rm ${pop}_${m}x_*_raw.vcf ${pop}_${m}x_*_raw.vcf.gz.tbi
+		bgzip ${pop}_${m}x_raw.vcf
+		tabix -p vcf ${pop}_${m}x_raw.vcf.gz
+
+		$bcftools annotate -x FORMAT/PL ${pop}_${m}x_raw.vcf.gz > ../${pop}_${m}x_raw_${dir%/}.vcf
+		cd ../
+		bgzip ${pop}_${m}x_raw_${dir%/}.vcf
+		tabix -p vcf ${pop}_${m}x_raw_${dir%/}.vcf.gz
+		wait
+	done
+	wait
+	if [[ `ls -1 *cohorts*.vcf.gz 2>/dev/null | wc -l` -gt 1 ]]; then
+		$bcftools merge *cohorts*.vcf.gz --force-samples -m all > ${pop}_${m}x_raw.vcf
+	else
+		cp *cohorts*.vcf.gz ${pop}_${m}x_raw.vcf.gz
+		gunzip ${pop}_${m}x_raw.vcf.gz
+	fi
+
+	rm -r cohorts*
+	rm *cohorts*
+	cd ../preprocess
 	cd ${projdir}/preprocess
 	mv *_precall* ./processed/
 fi
@@ -839,13 +912,14 @@ fi
 ########################
 echo -e "${magenta}- keeping *realign.bam & *realign.bam files in ./preprocess/processed/ ${white}\n"
 mv ../preprocess/processed/* ../preprocess/
-rmdir ../preprocess/processed ../snpcall/transit
+rmdir ../preprocess/processed
 
-
+#retrieve the original SNP positions from unsplit chromosomes/pseudomolecules.
 cd $projdir
 cd snpcall
 if [[ "$checksplit" -gt 0 ]]; then
-	for i in $(ls *.vcf); do
+	for i in $(ls *_raw.vcf); do
+		cp $i ${i%.vcf}_positions_split.vcf
 		awk '/^#CHROM/{close("file.vcf"f);f++}{print $0 > "file"f}' $i
 		awk 'NR==1{print}' file1 | cat file - > file0.vcf
 		for j in $(seq 1 10); do
@@ -930,77 +1004,147 @@ if [ "$paleopolyploid" == "true" ]; then
 	mkdir 8x
 fi
 cd ../snpcall
-gunzip *.gz
-
-file1xG=$( ls *_1x_DP_GT.txt | wc -l )
-file1xV=$( ls *1x_raw.vcf | wc -l )
-if [[ "${file1xG}" -lt 1 ]]; then
-	if [[ "${file1xV}" -gt 0 ]]; then
-		for i in *_1x_raw.vcf; do
-			awk '!/^##/' $i | awk '{gsub(/^#/,""); print $0}' | awk -v file=${i%.vcf} 'BEGIN{getline f;}NR%100000==2{x=file"SPLIT"++i".vcf";a[i]=x;print f>x;}{print > x}' -
-		done
-		Rscript "${GBSapp_dir}"/scripts/R/VCF_2_DP_GT.R "${pop}" 1x
+if [ -z "$(ls -A *_DP_GT.txt 2>/dev/null)" ]; then
+	if [ -z "$(ls -A *_x.vcf 2>/dev/null)" ]; then
+		if [ -z "$(ls -A *_raw.vcf 2>/dev/null)" ]; then
+			for g in *_raw.vcf.gz; do gunzip $g;	done
+		fi
 	fi
 fi
 wait
-file2xG=$( ls *_2x_DP_GT.txt | wc -l )
-file2xV=$( ls *2x_raw.vcf | wc -l )
-if [[ "${file2xG}" -lt 1 ]]; then
-	if [[ "${file2xV}" -gt 0 ]]; then
-		for i in *_2x_raw.vcf; do
-			awk '!/^##/' $i | awk '{gsub(/^#/,""); print $0}' | awk -v file=${i%.vcf} 'BEGIN{getline f;}NR%100000==2{x=file"SPLIT"++i".vcf";a[i]=x;print f>x;}{print > x}' -
+
+file1xG=$( if [ "$(ls -A *_1x_DP_GT.txt 2>/dev/null)" ]; then ls *_1x_DP_GT.txt | wc -l;  else echo 0; fi )
+file1xV=$( if [ "$(ls -A *_1x_raw.vcf 2>/dev/null)" ]; then ls *_1x_raw.vcf | head -n 1 | wc -l; else echo 0; fi )
+if [[ "${file1xG}" -lt 1 ]]; then
+	if [[ "${file1xV}" -gt 0 ]]; then
+		for i in *_1x_raw.vcf; do
+			$GATK LeftAlignAndTrimVariants -R ../refgenomes/$ref1 -V $i -O ${i%.vcf}0.vcf --split-multi-allelics  --dont-trim-alleles --keep-original-ac
+			wait
+			awk '!/^##/' ${i%.vcf}0.vcf | awk '{gsub(/^#/,""); print $0}' | awk -v file=${i%.vcf} 'BEGIN{getline f;}NR%100000==2{x=file"SPLIT"++i".vcf";a[i]=x;print f>x;}{print > x}' -
+			wait
+			rm ${i%.vcf}0.vcf*
 		done
 		Rscript "${GBSapp_dir}"/scripts/R/VCF_2_DP_GT.R "${pop}" 2x
 	fi
 fi
 wait
-file4xG=$( ls *_4x_DP_GT.txt | wc -l )
-file4xV=$( ls *4x_raw.vcf | wc -l )
+file2xG=$( if [ "$(ls -A *_2x_DP_GT.txt 2>/dev/null)" ]; then ls *_2x_DP_GT.txt | wc -l;  else echo 0; fi )
+file2xV=$( if [ "$(ls -A *_2x_raw.vcf 2>/dev/null)" ]; then ls *_2x_raw.vcf | head -n 1 | wc -l; else echo 0; fi )
+if [[ "${file2xG}" -lt 1 ]]; then
+	if [[ "${file2xV}" -gt 0 ]]; then
+		for i in *_2x_raw.vcf; do
+			$GATK LeftAlignAndTrimVariants -R ../refgenomes/$ref1 -V $i -O ${i%.vcf}0.vcf --split-multi-allelics  --dont-trim-alleles --keep-original-ac
+			wait
+			awk '!/^##/' ${i%.vcf}0.vcf | awk '{gsub(/^#/,""); print $0}' | awk -v file=${i%.vcf} 'BEGIN{getline f;}NR%100000==2{x=file"SPLIT"++i".vcf";a[i]=x;print f>x;}{print > x}' -
+			wait
+			rm ${i%.vcf}0.vcf*
+		done
+		Rscript "${GBSapp_dir}"/scripts/R/VCF_2_DP_GT.R "${pop}" 2x
+	fi
+fi
+wait
+file4xG=$( if [ "$(ls -A *_4x_DP_GT.txt 2>/dev/null)" ]; then ls *_4x_DP_GT.txt | wc -l;  else echo 0; fi )
+file4xV=$( if [ "$(ls -A *_4x_raw.vcf 2>/dev/null)" ]; then ls *_4x_raw.vcf | head -n 1 | wc -l; else echo 0; fi )
 if [[ "${file4xG}" -lt 1 ]]; then
 	if [[ "${file4xV}" -gt 0 ]]; then
 		for i in *_4x_raw.vcf; do
-			awk '!/^##/' $i | awk '{gsub(/^#/,""); print $0}' | awk -v file=${i%.vcf} 'BEGIN{getline f;}NR%100000==2{x=file"SPLIT"++i".vcf";a[i]=x;print f>x;}{print > x}' -
+			$GATK LeftAlignAndTrimVariants -R ../refgenomes/$ref1 -V $i -O ${i%.vcf}0.vcf --split-multi-allelics  --dont-trim-alleles --keep-original-ac
+			wait
+			awk '!/^##/' ${i%.vcf}0.vcf | awk '{gsub(/^#/,""); print $0}' | awk -v file=${i%.vcf} 'BEGIN{getline f;}NR%100000==2{x=file"SPLIT"++i".vcf";a[i]=x;print f>x;}{print > x}' -
+			wait
+			rm ${i%.vcf}0.vcf*
 		done
 		Rscript "${GBSapp_dir}"/scripts/R/VCF_2_DP_GT.R "${pop}" 4x
 	fi
 fi
 wait
-file6xG=$( ls *_6x_DP_GT.txt | wc -l )
-file6xV=$( ls *6x_raw.vcf | wc -l )
+file6xG=$( if [ "$(ls -A *_6x_DP_GT.txt 2>/dev/null)" ]; then ls *_6x_DP_GT.txt | wc -l;  else echo 0; fi )
+file6xV=$( if [ "$(ls -A *_6x_raw.vcf 2>/dev/null)" ]; then ls *_6x_raw.vcf | head -n 1 | wc -l; else echo 0; fi )
 if [[ "${file6xG}" -lt 1 ]]; then
 	if [[ "${file6xV}" -gt 0 ]]; then
 		for i in *_6x_raw.vcf; do
-			awk '!/^##/' $i | awk '{gsub(/^#/,""); print $0}' | awk -v file=${i%.vcf} 'BEGIN{getline f;}NR%100000==2{x=file"SPLIT"++i".vcf";a[i]=x;print f>x;}{print > x}' -
+			$GATK LeftAlignAndTrimVariants -R ../refgenomes/$ref1 -V $i -O ${i%.vcf}0.vcf --split-multi-allelics  --dont-trim-alleles --keep-original-ac
+			wait
+			awk '!/^##/' ${i%.vcf}0.vcf | awk '{gsub(/^#/,""); print $0}' | awk -v file=${i%.vcf} 'BEGIN{getline f;}NR%100000==2{x=file"SPLIT"++i".vcf";a[i]=x;print f>x;}{print > x}' -
+			wait
+			rm ${i%.vcf}0.vcf*
 		done
 		Rscript "${GBSapp_dir}"/scripts/R/VCF_2_DP_GT.R "${pop}" 6x
 	fi
 fi
 wait
-file8xG=$( ls *_8x_DP_GT.txt | wc -l )
-file8xV=$( ls *8x_raw.vcf | wc -l )
+file8xG=$( if [ "$(ls -A *_8x_DP_GT.txt 2>/dev/null)" ]; then ls *_8x_DP_GT.txt | wc -l;  else echo 0; fi )
+file8xV=$( if [ "$(ls -A *_8x_raw.vcf 2>/dev/null)" ]; then ls *_8x_raw.vcf | head -n 1 | wc -l; else echo 0; fi )
 if [[ "${file8xG}" -lt 1 ]]; then
 	if [[ "${file8xV}" -gt 0 ]]; then
 		for i in *_8x_raw.vcf; do
-			awk '!/^##/' $i | awk '{gsub(/^#/,""); print $0}' | awk -v file=${i%.vcf} 'BEGIN{getline f;}NR%100000==2{x=file"SPLIT"++i".vcf";a[i]=x;print f>x;}{print > x}' -
+			$GATK LeftAlignAndTrimVariants -R ../refgenomes/$ref1 -V $i -O ${i%.vcf}0.vcf --split-multi-allelics  --dont-trim-alleles --keep-original-ac
+			wait
+			awk '!/^##/' ${i%.vcf}0.vcf | awk '{gsub(/^#/,""); print $0}' | awk -v file=${i%.vcf} 'BEGIN{getline f;}NR%100000==2{x=file"SPLIT"++i".vcf";a[i]=x;print f>x;}{print > x}' -
+			wait
+			rm ${i%.vcf}0.vcf*
 		done
 		Rscript "${GBSapp_dir}"/scripts/R/VCF_2_DP_GT.R "${pop}" 8x
 	fi
 fi
 wait
-for v in *_DP_GT.txt; do (
-	vcfdose=${v%_DP*}; vcfdose=${vcfdose#*_}; out=$(ls *${vcfdose}_raw.vcf)
-	for raw in $out; do
-		grep '^#' $raw  > ${raw%_raw.vcf}.vcf
-		awk 'FNR==NR{a[$1,$2]=$0;next}{if(b=a[$1,$2]){print b}}' $raw $v >> ${raw%_raw.vcf}.vcf
-	done )&
-	if [[ $(jobs -r -p | wc -l) -ge $N ]]; then
-		wait
-	fi
-done
-wait
-gzip *.vcf
-wait
+filetest=*x.vcf*
+if [ -z "$(ls -A *x.vcf* 2>/dev/null)" ]; then
+	for v in *_DP_GT.txt; do (
+		vcfdose=${v%_DP*}; vcfdose=${vcfdose#*_}; out=$(ls *${vcfdose}_raw.vcf)
+		for raw in $out; do
+			grep '^#' $raw  > ${raw%_raw.vcf}.vcf
+			awk 'FNR==NR{a[$1,$2]=$0;next}{if(b=a[$1,$2]){print b}}' $raw $v >> ${raw%_raw.vcf}.vcf
+		done )&
+		if [[ $(jobs -r -p | wc -l) -ge $N ]]; then
+			wait
+		fi
+	done
+	wait
+fi
 
+#retrieve the original SNP positions from conigs/scaffolds before concatenation
+cd $projdir
+cd snpcall
+mkdir snps_stitched_ref
+gzip *_raw.vcf*; mv *_raw.vcf* ./snps_stitched_ref/
+
+export ncontigscaffold=$(grep '>' ../refgenomes/${ref1%.fasta}_original.fasta | wc -l)
+if [[ ! -f ./index_code.txt ]]; then
+	if [[ $ncontigscaffold -gt 200 ]]; then
+		echo -e "${magenta}- retrieving SNP positions based on contigs/scaffold annotation ${white}\n".
+		for i in $(ls *.vcf *_DP_GT.txt); do
+			if [[ "${i##*.}" = "vcf" ]]; then
+				awk '/^#CHROM/{close("file.vcf"f);f++}{print $0 > "file"f}' $i
+				awk 'NR==1{print}' file1 | cat file - > file0.txt; rm file
+				awk 'NR>1{print $1,"\t",$2}' file1 > file_snp_stitch.txt
+				awk 'NR>1{print $0}' file1 > file1.txt; rm file1
+			fi
+			if [[ "${i##*.}" = "txt" ]]; then
+				awk 'NR==1{print}' $i > file0.txt
+				awk 'NR>1{print $1,"\t",$2}' $i > file_snp_stitch.txt
+				awk 'NR>1{print $0}' $i > file1.txt
+			fi
+			> index_code.txt
+			while IFS="" read -r p || [ -n "$p" ]; do
+				fchr=$(echo $p | awk '{print $1}'); fpos=$(echo $p | awk '{print $2}')
+				scf=$(awk -v fchr=$fchr '$1 == fchr' ../refgenomes/contigscaffold_index.txt | \
+				awk -v t=$fpos 'BEGIN {var=t; highest=0}{ j = $NF;if ( j <= var && j > highest ) { highest=j} } END {print highest}' )
+				awk -v fchr=$fchr '$1 == fchr' ../refgenomes/contigscaffold_index.txt | awk -v scf=$scf -v fchr=$fchr -v fpos=$fpos '$3 == scf {print fchr"\t"fpos"\t"$0}' >> index_code.txt
+			done < file_snp_stitch.txt
+			awk 'BEGIN {FS=OFS="\t"}{ $5 = $2 - $5 } 1' index_code.txt > file2.txt
+			awk 'BEGIN {FS=OFS="\t"}!($3="")' file2.txt | awk '{gsub(/\t\t/,"\t"); print}' | awk '{gsub(/ /,""); print}' > index_code.txt
+			paste -d "\t" index_code.txt file1.txt | awk -F"\t" 'BEGIN {FS=OFS="\t"}{$1=$2=$5=$6=""; print $0}' | tr -s '\t' | sed -e 's/^[ \t]*//' > file2.txt
+			cat file0.txt file2.txt > $i
+			rm file0.txt file1.txt file2.txt file_snp_stitch.txt
+		done
+	fi
+fi
+
+if [ "$(ls -A *.vcf 2>/dev/null)" ]; then
+	for v in *.vcf; do gzip $v; done
+fi
+wait
 
 cd $projdir
 cd samples

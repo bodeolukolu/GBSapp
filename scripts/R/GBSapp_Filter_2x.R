@@ -1,11 +1,11 @@
 #!/usr/bin/env Rscript
 
-# pop <- 
-# p1 <- 
-# p2 <- 
-# gmissingness <- 
-# smissingness <- 
-# minRD <- 
+# pop <-
+# p1 <-
+# p2 <-
+# gmissingness <-
+# smissingness <-
+# minRD <-
 # snpformats <-
 # pseg <-
 # remove_id_list <- NULL
@@ -53,25 +53,28 @@ RD_snpfiltering <- function(){
     subgenome_1 <- subgenome_1[,c(keep_id)]
   }
   write.table (subgenome_1, file=paste(pop,"_2x","_DP_GT.txt",sep=""), row.names=F, quote = FALSE, sep = "\t")
-  
+
   #Filter based on DP >= rd in Parents
   subgenome_1_filtered <- subgenome_1
-  subgenome_1_filtered <- subset(subgenome_1_filtered, subgenome_1_filtered[,paste(p1,"_DP",sep="")] > rd) 
-  subgenome_1_filtered <- subset(subgenome_1_filtered, subgenome_1_filtered[,paste(p2,"_DP",sep="")] > rd)
+  subgenome_1_filtered[][subgenome_1_filtered[] <= "./."] <- NA
+  subgenome_1_filtered <- subset(subgenome_1_filtered, paste0(p1,"_DP") > rd)
+  subgenome_1_filtered <- subset(subgenome_1_filtered, paste0(p2,"_DP") > rd)
   subgenome_1_filtered_1 <- subgenome_1_filtered
   subgenome_1_filtered_1$no_missing <- apply(subgenome_1_filtered_1, 1, function(x) sum(is.na(x)))
   subgenome_1_filtered_1 <- subset(subgenome_1_filtered_1, no_missing <= ((ncol(subgenome_1_filtered_1)-5)/2)*gmissingness)
   subgenome_1_filtered_1 <- subset(subgenome_1_filtered_1, select=-c(no_missing))
-  
+
   #remove monomorphic and non-segregating markers
-  subgenome_1_filtered_1$noseg <- paste(subgenome_1_filtered_1[,paste(p1,"_GT",sep="")],"_",subgenome_1_filtered_1[,paste(p2,"_GT",sep="")], sep="")
+  subgenome_1_filtered_1 <- subgenome_1_filtered_1[!is.na(subgenome_1_filtered_1[,paste(p1,"_GT",sep="")]),]
+  subgenome_1_filtered_1 <- subgenome_1_filtered_1[!is.na(subgenome_1_filtered_1[,paste(p2,"_GT",sep="")]),]
+  subgenome_1_filtered_1$noseg <- paste(subgenome_1_filtered_1[,paste0(p1,"_GT")],subgenome_1_filtered_1[,paste0(p2,"_GT")],sep="_")
   subgenome_1_filtered_1 <- subset(subgenome_1_filtered_1, noseg != "0/0_0/0")
   subgenome_1_filtered_1 <- subset(subgenome_1_filtered_1, noseg != "0/0_1/1")
   subgenome_1_filtered_1 <- subset(subgenome_1_filtered_1, noseg != "1/1_0/0")
   subgenome_1_filtered_1 <- subset(subgenome_1_filtered_1, noseg != "1/1_1/1")
   subgenome_1_filtered_1 <- subset(subgenome_1_filtered_1, select=-c(noseg))
   subgenome_1_filtered_0 <- subgenome_1_filtered_1
-  
+
   #change genotype to missing if read depth is < rd in complete dataset (including progenies)
   for (i in 5:(((ncol(subgenome_1_filtered_1)-4)/2)+4)) {
     j <- i+((ncol(subgenome_1_filtered)-4)/2)
@@ -119,9 +122,9 @@ SD_snpfiltering <- function() {
   ##	0/0 x 0/1   ->    0/1   0/0         ->	1:1
   ##	0/1 x 0/0   ->    0/1   0/0         ->  1:1
   ## File Code: "subgenome_1_SD_1_G00G01"
-  
+
   subgenome_1_SD_1 <- read.table (file=paste(pop,"_2x","_SD_rd",rd+1,".txt",sep=""), header=T, sep="\t", check.names = FALSE)
-  
+
   subgenome_1_SD_1a <- subgenome_1_SD_1
   subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2][subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2]=="1/1"] <- NA
   subgenome_1_SD_1a$no_missing <- apply(subgenome_1_SD_1a, 1, function(x) sum(is.na(x)))
@@ -163,13 +166,13 @@ SD_snpfiltering <- function() {
   } else {
     print ("all SNPs in G00G01 configuration failed segregation distortion test")
   }
-  
+
   #############################################################
   #############################################################
   ##	1/1 x 0/1   ->    0/1   1/1         ->	1:1
   ##	0/1 x 1/1   ->    0/1   1/1         ->  1:1
   # File Code: "subgenome_1_SD_1_G11G01"
-  
+
   subgenome_1_SD_1a <- subgenome_1_SD_1
   subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2][subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2]=="0/0"] <- NA
   subgenome_1_SD_1a$no_missing <- apply(subgenome_1_SD_1a, 1, function(x) sum(is.na(x)))
@@ -211,12 +214,12 @@ SD_snpfiltering <- function() {
   } else {
     print ("all SNPs in G11G01 configuration failed segregation distortion test")
   }
-  
+
   #############################################################
   #############################################################
   ##	0/1 x 0/1   ->    0/0   0/1   1/1   ->  1:2:1
   #File Code: "subgenome_1_SD_1_G01G01"
-  
+
   subgenome_1_SD_1a <- subgenome_1_SD_1
   if (nrow(subgenome_1_SD_1a) > 0) {
     subgenome_1_SD_1a <- subset(subgenome_1_SD_1a, subgenome_1_SD_1a[paste(p1,"_GT",sep="")] == "0/1" & subgenome_1_SD_1a[paste(p2,"_GT",sep="")] == "0/1")
@@ -259,7 +262,7 @@ SD_snpfiltering <- function() {
 }
 SD_snpfiltering()
 
-# set functions for RD and SD filtering..... remove samples with more than threshold (e.g. 20%) missing data 
+# set functions for RD and SD filtering..... remove samples with more than threshold (e.g. 20%) missing data
 sample_subsample <- function(){
   subgenome_1_noSD <- NULL
   if (file.exists(paste(pop,"_2x","_SD_1_G00G01.txt",sep=""))) {
@@ -335,9 +338,9 @@ final_summary <- function(){
     expand_limits(y = c(0, max))+
     xlab(paste(p1," x ",p2," Biparental Mapping Population",sep="")) +
     ylab(paste("Number of Variants (",sum," loci)"))
-  ggsave(filename="plot_SNP2x_wSD.tiff", plot=plot_SNP, width=10, height= 5, dpi=600, compression = "lzw")
-  
-  
+  ggsave(filename="plot_SNP2x_wSD.tiff", plot=plot_SNP, width=10, height= 5, dpi=300, compression = "lzw")
+
+
   ########################################################################################################################################
   # Plot all markers (regular, restriction polymorphism-based):
   # noSD (no segregation distorted markers)
@@ -353,7 +356,7 @@ final_summary <- function(){
     subgenome_1_SD_1_G01G01 <- read.table(paste(pop,"_2x","_SD_1_G01G01.txt",sep=""), header=T, sep="\t",stringsAsFactors=FALSE,colClasses=c("character"), check.names = FALSE)
     subgenome_1_SD_1 <- rbind(subgenome_1_SD_1,subgenome_1_SD_1_G01G01) }
   subgenome_1_noSD <- subgenome_1_SD_1
-  
+
   subgenome_1_SD_1 <- subset(subgenome_1_SD_1, select=c(select=c(paste(p1,"_GT",sep=""),paste(p2,"_GT",sep=""))))
   subgenome_1_SD_1$cross <- paste (subgenome_1_SD_1[,paste(p1,"_GT",sep="")], subgenome_1_SD_1[,paste(p2,"_GT",sep="")], sep=" x ")
   subgenome_1_SD_1 <- na.omit(subgenome_1_SD_1)
@@ -365,7 +368,7 @@ final_summary <- function(){
   max <- max*1.2
   SNP2x$percentage <- ((SNP2x$Freq)/sum)*100
   SNP2x[,3] <- round(SNP2x[,3], 2)
-  
+
   plot_SNP <- ggplot(SNP2x,aes(x=Var1, y=Freq, color=Var1)) +
     geom_col(fill="white") +
     coord_flip()+
@@ -384,9 +387,9 @@ final_summary <- function(){
     expand_limits(y = c(0, max))+
     xlab(paste(p1," x ",p2," Biparental Mapping Population",sep="")) +
     ylab(paste("Number of Variants (",sum," loci)"))
-  ggsave(filename="plot_SNP2x_noSD.tiff", plot=plot_SNP, width=10, height= 5, dpi=600, compression = "lzw")
-  
-  
+  ggsave(filename="plot_SNP2x_noSD.tiff", plot=plot_SNP, width=10, height= 5, dpi=300, compression = "lzw")
+
+
   ########################################################################################################################################
   #Generate final filtered genotype file for "Regular Markers". Note that 0/0=1 (homo); 0/1=2 (het); 1/1=1 (homo). Change if required.
   names(subgenome_1_noSD) <- gsub("_GT", "", names(subgenome_1_noSD))
@@ -407,13 +410,13 @@ final_summary <- function(){
     alleles$ref0 <- alleles$REF; alleles$alt0 <- alleles$ALT
     for (i in 1:nrow(alleles)) {
       alleles[i,3] <- gsub(",.*", "", alleles[i,3])
-      alleles[i,4] <- gsub(",.*", "", alleles[i,4])      
+      alleles[i,4] <- gsub(",.*", "", alleles[i,4])
     }
     geno <- NULL
     for (i in 1:nrow(alleles)) {
       ref <- as.vector(alleles[i,3]); REFsub <- as.vector(alleles[i,1])
       alt <- as.vector(alleles[i,4]); ALTsub <- as.vector(alleles[i,2])
-      snplen = nchar(ref) + nchar(alt)    
+      snplen = nchar(ref) + nchar(alt)
       output <- subset(subgenome_1_noSD, REF == REFsub & ALT == ALTsub)
       output[] <- lapply(output, as.character)
       if (snplen == 2) {
@@ -495,12 +498,12 @@ final_summary <- function(){
     }
     write.table (geno, file=paste(pop,"_2x","_rd",rd+1,"_noSDnucleotidedeg.txt",sep=""), row.names=F, quote = FALSE, sep = "\t")
   }
-  
+
   subgenome_1_noSD[][subgenome_1_noSD[]=="0/0"] <- "0"
   subgenome_1_noSD[][subgenome_1_noSD[]=="0/1"] <- "1"
   subgenome_1_noSD[][subgenome_1_noSD[]=="1/1"] <- "2"
   write.table (subgenome_1_noSD, file=paste(pop,"_2x","_rd",rd+1,"_noSDdose.txt",sep=""), row.names=F, quote = FALSE, sep = "\t")
-  
+
   sumfreq <- read.table(paste(pop,"_2x","_rd",rd+1,"_noSDdose.txt",sep=""), header=T, sep="\t",stringsAsFactors=FALSE, check.names = FALSE)
   sumfreq <- subset(sumfreq, select=-c(1:5))
   sumfreq <- subset(sumfreq, select=-c(pvalue))
@@ -515,7 +518,7 @@ final_summary <- function(){
     geom_text(aes(x=median(percent), label=paste("median = ",round(median(percent)),sep=""), y=(max(table(SNP))*0.5)), colour="tomato", angle=90, vjust = 1.2, size=3) +
     xlim(-5,105) +
     labs(title="missing rate per Variant",x="Percent", y = "Count")
-  ggsave(filename=paste(pop,"_2x","_Variant_missing_rate_rd",rd+1,".tiff",sep=""), plot=plot, width=5, height= 5, dpi=600, compression = "lzw")
+  ggsave(filename=paste(pop,"_2x","_Variant_missing_rate_rd",rd+1,".tiff",sep=""), plot=plot, width=5, height= 5, dpi=300, compression = "lzw")
   sample <- as.data.frame(t(sumfreq))
   sample$percent <- (apply(sample, 1, function(x) sum(is.na(x))))/ncol(sample)*100
   sample <- subset(sample, select=c(percent))
@@ -527,8 +530,8 @@ final_summary <- function(){
     geom_text(aes(x=median(percent), label=paste("median = ",round(median(percent)),sep=""), y=(max(table(sample))*0.5)), colour="tomato", angle=90, vjust = 1.2, size=3) +
     xlim(-5,105) +
     labs(title="missing rate per sample",x="Percent", y = "Count")
-  ggsave(filename=paste(pop,"_2x","_sample_missing_rate_rd",rd+1,".tiff",sep=""), plot=plot, width=5, height= 5, dpi=600, compression = "lzw")
-  
+  ggsave(filename=paste(pop,"_2x","_sample_missing_rate_rd",rd+1,".tiff",sep=""), plot=plot, width=5, height= 5, dpi=300, compression = "lzw")
+
   subgenome_noSDmaf <- read.table(paste(pop,"_2x","_rd",rd+1,"_noSDbinary.txt",sep=""), header=T, sep="\t",stringsAsFactors=FALSE, check.names = FALSE)
   subgenome_noSDmaf$freq00 <-rowSums(subgenome_noSDmaf == "0/0", na.rm = TRUE)
   subgenome_noSDmaf$freq01 <-rowSums(subgenome_noSDmaf == "0/1", na.rm = TRUE)
@@ -552,12 +555,12 @@ final_summary <- function(){
     geom_text(aes(x=median, label=paste("median = ",round(median, digits=2),sep=""), y=(0.5)), colour="tomato", angle=90, vjust = 1.2, size=3.5) +
     xlab("Allele Frequency") +
     ylab(paste("Density"))
-  ggsave(filename=paste(pop,"_2x","_maf_rd",rd+1,".tiff",sep=""), plot=plot, width=5, height= 5, dpi=600, compression = "lzw")
+  ggsave(filename=paste(pop,"_2x","_maf_rd",rd+1,".tiff",sep=""), plot=plot, width=5, height= 5, dpi=300, compression = "lzw")
 }
 final_summary()
 
 pop_struc <- function() {
-  for (i in c(0,0.01,0.05,0.1)) {
+  for (i in c(0.01,0.05,0.1)) {
     pop_data <- read.table(paste(pop,"_2x","_rd",rd+1,"_noSDdose.txt",sep=""), header=T, sep="\t",stringsAsFactors=FALSE, check.names = FALSE)
     pop_data <- subset(pop_data, select=-c(1:5))
     pop_data <- subset(pop_data, select=-c(pvalue))
@@ -569,12 +572,22 @@ pop_struc <- function() {
       break
     }
   }
+  normalize_kinmat <- function(kinmat){
+    #normalize kinship so that Kij \in [0,1]
+    tmp=kinmat - min(kinmat)
+    tmp=tmp/max(tmp)
+    tmp[1:9,1:9]
+    #fix eigenvalues to positive
+    diag(tmp)=diag(tmp)-min(eigen(tmp)$values)
+    tmp[1:9,1:9]  
+    return(tmp)
+  }
   if (nrow(pop_data) >= 100) {
     pop_data <- as.matrix(t(pop_data))
     #Computing the full-autopolyploid matrix based on Slater 2016 (Eq. 8 and 9)
-    Gmatrix <- function (SNPmatrix = pop_data, method = "VanRaden", missingValue = NA, 
+    Gmatrix <- function(SNPmatrix = pop_data, method = "VanRaden", missingValue = NA, 
                          maf = 0, thresh.missing = 0.1, verify.posdef = FALSE, ploidy = 2, 
-                         pseudo.diploid = FALSE, integer = FALSE, ratio = FALSE, impute.method = FALSE, 
+                         pseudo.diploid = FALSE, integer = FALSE, ratio = FALSE, impute.method = TRUE, 
                          ratio.check = FALSE) {
       Time = proc.time()
       
@@ -914,7 +927,8 @@ pop_struc <- function() {
       return(Gmatrix)
     }
     
-    Gmat <- Gmatrix()
+    G_matrix <- Gmatrix()
+    Gmat<- normalize_kinmat(as.matrix(G_matrix)); Gmat[is.na(Gmat)] <- 0
     write.table (Gmat, file=paste(pop,"_2x","_rd",rd+1,"_Kinship_Matrix.txt",sep=""), row.names=F, quote = FALSE, sep = "\t")
     tiff(paste(pop,"_",ncol(pop_data),"markers_relatedness_heatmap_dendogram_2x.tiff",sep=""), width=30, height=30, units = 'in', res = 300, compression = 'lzw')
     heatmap(as.matrix(Gmat))
@@ -926,10 +940,10 @@ pop_struc <- function() {
       geom_text(size=5, color="cornflowerblue", nudge_y = -0.02)+
       geom_point(color="gray20", size=3) +
       geom_point(data=pedigree[c(p1,p2),], aes(x=Distance_p1,y=Distance_p2, label=row.names(pedigree[c(p1,p2),]), colour=c(p1,p2)), color="tomato") +
-      xlab("Kinship Coefficient Relative to Maternal Parent (P1)") + 
+      xlab("Kinship Coefficient Relative to Maternal Parent (P1)") +
       ylab("Kinship Coefficient Relative to Paternal Parent (P2)")
-    ggsave(filename=paste(pop,"_",ncol(pop_data),"markers_Parentage_Inference_2x.tiff",sep=""), plot=ped, width=15, height= 15, dpi=600, compression = "lzw")
-    
+    ggsave(filename=paste(pop,"_",ncol(pop_data),"markers_Parentage_Inference_2x.tiff",sep=""), plot=ped, width=15, height= 15, dpi=300, compression = "lzw")
+
   } else {
     print ("Not enough markers to compute Gmatrix (i.e. threshold of 100 markers)")
   }
@@ -960,10 +974,10 @@ rd_boxplot <- function(){
     subgenome_1_boxplot <- subset(subgenome_1_plots, select=c(2,3))
     names(subgenome_1_boxplot)[names(subgenome_1_boxplot) == "Var2"] <- "samples"
     names(subgenome_1_boxplot)[names(subgenome_1_boxplot) == "Freq"] <- "DP"
-    
+
     subgenome_1_boxplot$DP <- as.numeric(as.character(subgenome_1_boxplot$DP))
     subgenome_1_boxplot <- na.omit(subgenome_1_boxplot)
-    quantile999 <- quantile(subgenome_1_boxplot$DP, probs = c(0.999), na.rm= TRUE)
+    quantile999 <- quantile(subgenome_1_boxplot$DP, probs = c(0.95), na.rm= TRUE)
     nsamples <- length(unique(subgenome_1_boxplot$samples))
     if (nsamples <= 20) { nsamples <- 36 } else { nsamples <- sqrt(22500/nsamples) }
     boxplot <- ggplot(subgenome_1_boxplot, aes(x = reorder(samples,DP,na.rm = TRUE), y=DP), stat='identity')+
@@ -976,12 +990,12 @@ rd_boxplot <- function(){
             axis.title=element_text(size=36)) +
       xlab(paste(p1," x ",p2," Biparental Mapping Population",sep="")) +
       ylab("Read Depth (2x Genotypes)")
-    ggsave(filename= paste(pop,"_2x","_boxplot_rd",t+1,".tiff",sep=""), plot=boxplot, width=15, height= 25, dpi=600, compression = "lzw")
+    ggsave(filename= paste(pop,"_2x","_boxplot_rd",t+1,".tiff",sep=""), plot=boxplot, width=15, height= 25, dpi=300, compression = "lzw")
 
     meanDP <- mean(subgenome_1_boxplot$DP, na.rm=T)
     medianDP <- median(subgenome_1_boxplot$DP, na.rm=T)
     maxDP <- max(table(subgenome_1_boxplot$DP))
-    quantile999 <- quantile(subgenome_1_boxplot$DP, probs = c(0.999), na.rm= TRUE)
+    quantile999 <- quantile(subgenome_1_boxplot$DP, probs = c(0.95), na.rm= TRUE)
     subgenome_1_dist <- as.data.frame(table(subgenome_1_boxplot$DP))
     subgenome_1_dist$Var1 <- as.numeric(as.character(subgenome_1_dist$Var1))
     subgenome_1_dist <- subset(subgenome_1_dist, Freq > quantile999)
@@ -997,16 +1011,16 @@ rd_boxplot <- function(){
       theme(axis.text.x=element_text(colour="cornflowerblue", size=24),
             axis.text.y=element_text(colour="cornflowerblue", size=24),
             axis.title=element_text(size=30)) +
-      ylab("Frequency") + 
+      ylab("Frequency") +
       xlab(paste("Read Depth Distribution (", p1," x ",p2," Biparental Mapping Population)",sep=""))
-    ggsave(filename= paste(pop,"_2x","_histogram_rd",t+1,".tiff",sep=""), plot=histogram, width=25, height= 15, dpi=600, compression = "lzw")
-    
+    ggsave(filename= paste(pop,"_2x","_histogram_rd",t+1,".tiff",sep=""), plot=histogram, width=25, height= 15, dpi=300, compression = "lzw")
+
     boxplot <- NULL
     subgenome_1_boxplot <- NULL
     subgenome_1_plots <- NULL
     gc()
   }
-  # Extract read depth values specifically for filtered SNPs, then plot boxplot 
+  # Extract read depth values specifically for filtered SNPs, then plot boxplot
   # Also, plot histogram of read depth across data set
   subgenome_1_plots <- subgenome_1
   subgenome_final <- read.table (file=paste(pop,"_2x","_rd",rd+1,"_noSDdose.txt",sep=""), header=T, sep="\t", check.names = FALSE)
@@ -1023,10 +1037,10 @@ rd_boxplot <- function(){
   subgenome_1_boxplot <- subset(subgenome_1_plots, select=c(2,3))
   names(subgenome_1_boxplot)[names(subgenome_1_boxplot) == "Var2"] <- "samples"
   names(subgenome_1_boxplot)[names(subgenome_1_boxplot) == "Freq"] <- "DP"
-  
+
   subgenome_1_boxplot$DP <- as.numeric(as.character(subgenome_1_boxplot$DP))
   subgenome_1_boxplot <- na.omit(subgenome_1_boxplot)
-  quantile999 <- quantile(subgenome_1_boxplot$DP, probs = c(0.999), na.rm= TRUE)
+  quantile999 <- quantile(subgenome_1_boxplot$DP, probs = c(0.95), na.rm= TRUE)
   nsamples <- length(unique(subgenome_1_boxplot$samples))
   if (nsamples <= 20) { nsamples <- 36 } else { nsamples <- sqrt(22500/nsamples) }
   boxplot <- ggplot(subgenome_1_boxplot, aes(x = reorder(samples,DP,na.rm = TRUE), y=DP), stat='identity')+
@@ -1039,12 +1053,12 @@ rd_boxplot <- function(){
           axis.title=element_text(size=36)) +
     xlab(paste(p1," x ",p2," Biparental Mapping Population",sep="")) +
     ylab("Read Depth (2x Genotypes)")
-  ggsave(filename= paste(pop,"_2x","_boxplot_filtered.tiff",sep=""), plot=boxplot, width=15, height= 25, dpi=600, compression = "lzw")
+  ggsave(filename= paste(pop,"_2x","_boxplot_filtered.tiff",sep=""), plot=boxplot, width=15, height= 25, dpi=300, compression = "lzw")
 
   meanDP <- mean(subgenome_1_boxplot$DP, na.rm=T)
   medianDP <- median(subgenome_1_boxplot$DP, na.rm=T)
   maxDP <- max(table(subgenome_1_boxplot$DP))
-  quantile999 <- quantile(subgenome_1_boxplot$DP, probs = c(0.999), na.rm= TRUE)
+  quantile999 <- quantile(subgenome_1_boxplot$DP, probs = c(0.95), na.rm= TRUE)
   subgenome_1_dist <- as.data.frame(table(subgenome_1_boxplot$DP))
   subgenome_1_dist$Var1 <- as.numeric(as.character(subgenome_1_dist$Var1))
   subgenome_1_dist <- subset(subgenome_1_dist, Freq > quantile999)
@@ -1060,9 +1074,9 @@ rd_boxplot <- function(){
     theme(axis.text.x=element_text(colour="cornflowerblue", size=24),
           axis.text.y=element_text(colour="cornflowerblue", size=24),
           axis.title=element_text(size=30)) +
-    ylab("Frequency") + 
+    ylab("Frequency") +
     xlab(paste("Read Depth Distribution (", p1," x ",p2," Biparental Mapping Population)",sep=""))
-  ggsave(filename= paste(pop,"_2x","_histogram_filtered.tiff",sep=""), plot=histogram, width=25, height= 15, dpi=600, compression = "lzw")
+  ggsave(filename= paste(pop,"_2x","_histogram_filtered.tiff",sep=""), plot=histogram, width=25, height= 15, dpi=300, compression = "lzw")
   boxplot <- NULL
   subgenome_1_boxplot <- NULL
   subgenome_1_plots <- NULL
@@ -1098,7 +1112,7 @@ raw_alleles <- function(){
   subgenome_1_plots <- subset (subgenome_1_plots, DiffMethyl != 2)
   subgenome_1_plots <- subset(subgenome_1_plots, select=c(-7))
   subgenome_1_plots <- subset(subgenome_1_plots, select=c(5,6))
-  
+
   Cross <- subgenome_1_plots
   Cross <- na.omit(Cross)
   Cross$Cross <- paste (Cross[,paste(p1,"_GT",sep="")], Cross[,paste(p2,"_GT",sep="")], sep=" x ")
@@ -1129,8 +1143,8 @@ raw_alleles <- function(){
     expand_limits(y = c(0, max))+
     xlab(paste(p1," x ",p2," Biparental Mapping Population",sep="")) +
     ylab(paste("Proportion of Genotypic Configuration (",sum,")", sep=""))
-  ggsave(filename="Multiallelic_cross_2x.tiff", plot=plot, width=15, height= 10, dpi=600, compression = "lzw")
-  
+  ggsave(filename="Multiallelic_cross_2x.tiff", plot=plot, width=15, height= 10, dpi=300, compression = "lzw")
+
   Cross <- subset(Cross, Cross!="0/0 x 0/0")
   Cross <- subset(Cross, Cross!="1/1 x 1/1")
   Cross <- subset(Cross, Cross!="2/2 x 2/2")
@@ -1163,9 +1177,9 @@ raw_alleles <- function(){
     expand_limits(y = c(0, max))+
     xlab(paste(p1," x ",p2," Biparental Mapping Population",sep="")) +
     ylab(paste("Proportion of Genotypic Configuration (",sum,")", sep=""))
-  ggsave(filename="Multiallelic_cross_subset_2x.tiff", plot=plot, width=15, height= 10, dpi=600, compression = "lzw")
+  ggsave(filename="Multiallelic_cross_subset_2x.tiff", plot=plot, width=15, height= 10, dpi=300, compression = "lzw")
   plot <- NULL
-  
+
   Multiallelic_p1_2x <- as.data.frame(table(subgenome_1[,paste(p1,"_GT",sep="")]))
   names(Multiallelic_p1_2x)[names(Multiallelic_p1_2x) == "Var1"] <- "Genotype"
   Multiallelic_p1_2x <- subset(Multiallelic_p1_2x, Genotype != "./.")
@@ -1205,13 +1219,16 @@ raw_alleles <- function(){
     expand_limits(y = c(0, max))+
     xlab("Genotypes") +
     ylab(paste("Proportion of Genotypes (",sum,")", sep=""))
-  ggsave(filename="Multiallelic_2x.tiff", plot=plot, width=15, height= 10, dpi=600, compression = "lzw")
+  ggsave(filename="Multiallelic_2x.tiff", plot=plot, width=15, height= 10, dpi=300, compression = "lzw")
   plot <- NULL
 }
 raw_alleles()
 
 ####################################################################################################################
 
+unlink(file=paste(pop,"_2x","_DP_GT.txt",sep=""))
+unlink(file=paste(pop,"_2x_SD_rd","rd+1.txt",sep=""))
+unlink(file=paste(pop,"_2x_SD_1_G*.txt",sep=""))
 
 
 

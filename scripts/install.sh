@@ -25,8 +25,8 @@ fi
 
 main () {
   echo -e "${blue}\n############################################## ${yellow}\n- downloading and installing samtools ${blue}\n##############################################${white}"
-   wget https://github.com/samtools/samtools/releases/download/1.11/samtools-1.11.tar.bz2
-  tar -vxjf samtools-1.11.tar.bz2; rm samtools-1.11.tar.bz2; cd samtools*; ./configure --prefix=./; make; make install; cd ..
+  wget https://sourceforge.net/projects/samtools/files/latest/download &&
+  tar -vxjf download*; rm download*; cd samtools*; make; cd ..
 }
 dirtool=samtools*
 if [ -d $dirtool ]; then
@@ -56,7 +56,7 @@ fi
 
 main () {
   echo -e "${blue}\n############################################## ${yellow}\n- downloading PICARD tools ${blue}\n##############################################${white}"
-  wget https://github.com/broadinstitute/picard/releases/download/2.21.1/picard.jar
+  wget https://github.com/broadinstitute/picard/releases/download/2.25.6/picard.jar
 }
 dirtool=picard*
 if [ -f $dirtool ]; then
@@ -80,6 +80,8 @@ else
   echo -e "${magenta}- Performing installation of dependency (GATK) ${white}"
   main &>> ./log.out
 fi
+awk 'NR==208{gsub(/java/,"\044\173java\175")}1' ${GATK} > ${GATK}x
+mv ${GATK}x ${GATK}
 
 
 main () {

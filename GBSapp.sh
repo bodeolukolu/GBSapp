@@ -73,7 +73,7 @@ projdir="$( cd -- "$(dirname "$1 ")" >/dev/null 2>&1 ; pwd -P )/"
 cd $projdir
 echo -e "${white}\n##################################################################################\n"
 echo -e "${yellow}- Program:	GBSapp"
-echo -e "${yellow}- Version:	0.2.3"
+echo -e "${yellow}- Version:	0.2.5"
 echo -e "${yellow}- Description:	Automated Pipeline for Variant/Haplotype Calling and Filtering"
 echo -e "${yellow}- Contact:	Bode Olukolu <bolukolu@utk.edu> ${white}"
 echo -e "${white}\n##################################################################################\n"
@@ -384,12 +384,18 @@ if [[ "$cluster" == true ]]; then
   printf "walkaway=true \n\n" > walkaway.txt
   cat cluster_header.sh steps.txt config walkaway.txt fetchdir.txt $string2 $string3 | awk '{ sub("\r$",""); print}' > GBSapp_run.sh
   rm fetchdir.txt cluster_header.sh header.txt steps.txt walkaway.txt
-  sbatch ${projdir}GBSapp_run.sh
+  slurm_check=$(sbatch --version)
+  if [[ $slurm_check == slurm* ]]; then
+    sbatch ${projdir}GBSapp_run.sh
+  else
+    echo -e "${magenta}- Cluster manager not SLURM, revise batch file header in ${projdir}GBSapp_run.sh to for cluster manager syntax ${white}"
+    echo -e "${magenta}- Revise batch file header in ${projdir}GBSapp_run.sh for your cluster manager ${white}"
+  fi
 fi
 fi
 }
 cd $projdir
 time main
 
-echo -e "${magenta}- For jobs running in background, monitor progress in terminal.out/slurm-xxxxxx.out ${white}"
+echo -e "${magenta}- For jobs running in background, monitor progress in terminal.out or slurm-xxxxxx.out (slurm cluster manager) ${white}"
 echo -e "${magenta}- The log.out file can help with troubleshooting and when reporting a bug ${white}"

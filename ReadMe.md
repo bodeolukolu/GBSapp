@@ -4,7 +4,7 @@
 </p>
 
 # Introduction
-GBSapp (v. 0.2.3) is an automated pipeline for variant calling and filtering. The pipeline integrates existing and novel best practices intuitively, some of which can be controlled by user-defined parameters. It ensures accurate dosage-sensitive variant calling, read depth filtering applied to each data point rather than averaging across samples/variants. It optimizes memory and speed at various points in the pipeline, for example, a novel approach performs compression and decompression independently on unique reads before and after pre-processing, respectively. Summary reports and visualizations allow for QC at each step of the pipeline.
+GBSapp (v. 0.2.4) is an automated pipeline for variant calling and filtering (including microhaplotypes or multi-SNP markers). The pipeline intuitively integrates existing and novel best practices, some of which can be controlled by user-defined parameters. It ensures accurate dosage-sensitive variant calling, read depth filtering applied to each data point rather than averaging across samples/variants. It optimizes memory and speed at various points in the pipeline, for example, a novel approach performs compression and decompression of unique reads before and after pre-variant read alignment, respectively. Summary reports and visualizations allow for QC at each step of the pipeline.
 
 For questions, bugs, and suggestions, please contact bolukolu@utk.edu.
 
@@ -15,7 +15,7 @@ For questions, bugs, and suggestions, please contact bolukolu@utk.edu.
 - Captures and codes variable dosage/copy number in paleopolyploids.
 - Can restrict variants call to single copy sequences (i.e. multi-locus variant/paralog test and filtering).
 - Additional haplotype-based filtering (useful for targeted sequencing of single locus variants).
-- Generates variant/haplotype calls and their sequence context.
+- Generates microhaplotypesor multi-SNP markers and their sequence context.
 - Easy to learn, and use.
 
 ## Contents
@@ -38,25 +38,22 @@ For questions, bugs, and suggestions, please contact bolukolu@utk.edu.
 $ git clone https://github.com/bodeolukolu/GBSapp.git
 ```
 - Installation occurs automatically the first time you run the pipeline.
-- With the exception of R, all dependencies are installed to a local directory within GBSapp.
+- With the exception of R and Python (v2.6 or greater) all dependencies are installed to a local directory within GBSapp.
 
 
 **Dependencies:**<br />
 ```
-bwa, picard, samtools, bcftools, GATK, java, R, R-ggplot2, R-AGHmatrix
-```
-Install R before running GBSapp. R installation:
-```
-    - To view R version (or to check if installed), from the terminal type:
-          $ R --version
+Installed on first run of pipeline:
+-----------------------------------
+bwa, picard, samtools, bcftools, GATK, python, R, R-ggplot2, and R-AGHmatrix
 
-    - For Ubuntu, Install R  using apt:
-          $ sudo apt update
-          $ sudo apt install r-base
 
-    - For macOS, install using homebrew:
-          brew install r
+Pre-install before running GBSapp:
+----------------------------------
+- R
+- python v2.6 or greater
 ```
+
 
 ## Usage
 ### Basic Usage
@@ -96,10 +93,14 @@ Using a text editor, save a file containing any of the following variables as 'c
 |ref2|na|2nd reference genome as fasta file|integer|Optional|
 |ref3|na|3rd reference genome as fasta file|integer|Optional|
 |ref4|na|4th reference genome as fasta file|integer|Optional|
-|copy_number|3|maximum copy number of each unique read|integer|Optional|
+|haplome_number|1|number of haplome(s) represented by reference genome|integer|Optional|
+|copy_number|1|maximum copy number of each unique read|integer|Optional|
 |paleopolyploid|false|capture/code variable dosage/copy number (i.e. 2x,4x,6x, and 8x)|true or false||Optional|
 |ncohorts|1|number of cohorts for Joint-genotyping |integer|Optional|
+|maxHaplotype|64| maximum number of haplotypes per haploid genome across population|integer|Optional|
+|founder_parents|na|Number of founder parents from which population as derived|integer|Optional|
 |gthreads|4|number of cores per chromosome/scaffold/contig (multi-processing haplotypecaller) |integer|Optional|
+|cthreads|2000|max number of chromosome/scaffold/contig (multi-processing haplotypecaller) |integer|Optional|
 
 **Note: na indicates that variable is user-defined or hard-coded/computed intuitively, as well as a function of ploidy.*
 
@@ -141,7 +142,10 @@ ploidy_ref2=2
 copy_number=1
 paleopolyploid=false
 ncohorts=1
+maxHaplotype=64
+founder_parents=2
 gthreads=2
+cthreads=2000
 
 # SNP-filtering:
 ####################################################
@@ -183,8 +187,52 @@ Since most if the parameters are hard-coded in an intuitive manner, by specifyin
 This package has been developed as part of the [Genomic Tools for Sweetpotato Improvement project](https://sweetpotatogenomics.cals.ncsu.edu/) (GT4SP) and [SweetGAINS](https://cgspace.cgiar.org/handle/10568/106838), both funded by [Bill & Melinda Gates Foundation](https://www.gatesfoundation.org/).
 ss
 ## Troubleshooting
-- In Progress
+**Pre-Installation of R and Python:**<br />
+```
+    - To view R and python version (or to check if installed), from the terminal type:
+          $ R --version
+          $ python --version
 
+    - For Ubuntu, install R and python using apt:
+          $ sudo apt update && sudo apt upgrade
+          $ sudo apt install r-base
+          $ sudo apt install python3
+
+    - For macOS, install using homebrew:
+          brew install r
+          brew install python3
+```
+**If GATK can't find python:**<br />
+```
+- Make sure python v2.6 or greater is installed and then type the command below in terminal
+- $ sudo alias python=python3
+```
+**If samtools and bcftools doesn't install properly:**<br />
+```
+While the installation of samtools and bcftools are automated, the installation requires some dependencies, consider typing the commands below in terminal:
+  $ sudo apt-get update
+  $ sudo apt-get install gcc
+  $ sudo apt-get install make
+  $ sudo apt-get install libbz2-dev
+  $ sudo apt-get install zlib1g-dev
+  $ sudo apt-get install libncurses5-dev
+  $ sudo apt-get install libncursesw5-dev
+  $ sudo apt-get install liblzma-dev
+  $ sudo apt-get install libcurl4-gnutls-dev
+  $ sudo apt-get install libssl-dev
+
+  $ cd /usr/bin
+  $ sudo wget https://github.com/samtools/htslib/releases/download/1.9/htslib-1.9.tar.bz2
+  $ sudo tar -vxjf htslib-1.9.tar.bz2
+  $ cd htslib-1.9
+  $ sudo make
+```
+**Problem with amount of memory and/or processors/cores specified:**<br />
+```
+- This might be due to specifing values greater than available resources
+- Re-submit job with appropriate values or modify header of the GBSapprun.sh batch file.
+- If using compute cluster managers other than SLURM, header of GBSapprun.sh batch can also be modified to fit the syntax of the cluster manager been used.
+```
 ## Versioning
 Versioning will follow major.minor.patch <a href="https://semver.org">semantic versioning format</a>.
 
