@@ -80,9 +80,10 @@ else
   echo -e "${magenta}- Performing installation of dependency (GATK) ${white}"
   main &>> ./log.out
 fi
-awk 'NR==208{gsub(/java/,"\044\173java\175")}1' ${GATK} > temp
-mv temp ${GATK}
-rm temp
+# cd gatk*
+# awk 'NR==208{gsub(/java/,"\044\173java\175")}1' gatk > temp
+# mv temp gatk
+# cd ../
 
 
 main () {

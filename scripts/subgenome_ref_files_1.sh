@@ -91,8 +91,8 @@ else
 			echo ">""${filename%.txt}" >> $ref1
 			cat "$filename" >> $ref1
 		done
+		rm Chr*
 	fi
-	rm Chr*
 
 
 	mkdir split

@@ -87,8 +87,8 @@ else
 				echo ">""${filename%.txt}" >> $refg
 				cat "$filename" >> $refg
 			done
+			rm Chr*
 		fi
-		rm Chr*
 	done
 
 
