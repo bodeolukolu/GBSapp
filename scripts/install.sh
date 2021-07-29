@@ -68,25 +68,6 @@ fi
 
 
 main () {
-  echo -e "${green}\n############################################## \n- downloading GATK \n##############################################${white}"
-  wget -O GATK4.1.9.0.zip "https://github.com/broadinstitute/gatk/releases/download/4.1.9.0/gatk-4.1.9.0.zip"
-  unzip GATK4.1.9.0.zip
-  rm GATK4.1.9.0.zip
-}
-dirtool=gatk*
-if [ -d $dirtool ]; then
-  :
-else
-  echo -e "${magenta}- Performing installation of dependency (GATK) ${white}"
-  main &>> ./log.out
-fi
-# cd gatk*
-# awk 'NR==208{gsub(/java/,"\044\173java\175")}1' gatk > temp
-# mv temp gatk
-# cd ../
-
-
-main () {
   echo -e "${blue}\n############################################## \n- installiing java 1.8. ${blue}\n##############################################${white}"
   wget https://github.com/AdoptOpenJDK/openjdk8-binaries/releases/download/jdk8u222-b10/OpenJDK8U-jre_x64_linux_hotspot_8u222b10.tar.gz
   tar -xvf OpenJDK8U-jre_x64_linux_hotspot_8u222b10.tar.gz; rm *tar.gz
@@ -105,6 +86,29 @@ if [ -d $dirtool ]; then
 else
   mkdir ./R
 fi
+
+
+main () {
+  echo -e "${green}\n############################################## \n- downloading GATK \n##############################################${white}"
+  wget -O GATK4.1.9.0.zip "https://github.com/broadinstitute/gatk/releases/download/4.1.9.0/gatk-4.1.9.0.zip"
+  unzip GATK4.1.9.0.zip
+  rm GATK4.1.9.0.zip
+}
+dirtool=gatk*
+if [ -d $dirtool ]; then
+  :
+else
+  echo -e "${magenta}- Performing installation of dependency (GATK) ${white}"
+  main &>> ./log.out
+fi
+
+javaloc=${GBSapp_dir}/jdk8u222-b10-jre/bin/java
+cd gatk*
+awk -v javaloc=$javaloc 'NR==208{gsub(/java/,javaloc)}1' gatk > temp
+mv temp gatk
+cd ../
+
+
 
 main () {
 echo -e "${blue}\n############################################## \n- installing R-package: ggplot2  ${blue}\n##############################################${white}"
