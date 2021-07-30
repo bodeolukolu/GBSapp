@@ -42,7 +42,7 @@ fi
 if [ -z "$min_unique_RD" ]; then
 	min_unique_RD=1
 fi
-echo min_unique_RD: ""$min_unique_RD"
+echo min_unique_RD: "$min_unique_RD"
 
 
 echo -e "${blue}\n############################################################################## ${yellow}\n- Index Reference Genome \n${blue}##############################################################################${white}\n"
