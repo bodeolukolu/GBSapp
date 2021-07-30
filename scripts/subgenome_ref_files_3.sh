@@ -19,15 +19,17 @@ else
 fi
 echo copy_number: "$paralogs"
 if [ -z "$maxHaplotype" ]; then
-	maxHaplotype=(paralogs * 128)
+	maxHaplotype=$((paralogs * 128))
 fi
+echo maxHaplotypes per haploid genome: "$maxHaplotype"
 if [[ -z "$founder_parents" ]]; then
 	:
 else
 	maxHaplotype=$((paralogs * founder_parents))
+	echo founder_parents: "$founder_parents"
+	echo maxHaplotypes per haploid genome: "$maxHaplotype"
 fi
-echo founder_parents: "$founder_parents"
-echo maxHaplotypes per haploid genome: "$maxHaplotype"
+
 if [ -z "$p2" ]; then
 	p2=$p1
 fi
@@ -237,7 +239,7 @@ main () {
 				elif [[ "$i" == *_R1* ]]; then
 					mv $i ../${i/_R1/}
 				else
-					echo -e "${magenta}- check paired-end filenames for proper filename format (.R1 or _R1 and .R2 or _R2)  ${white}\n"
+					echo -e "${magenta}- check paired-end filenames for proper filename format, i.e. .R1 or _R1 and .R2 or _R2  ${white}\n"
 					echo -e "${magenta}- Do you want to continue running GBSapp? ${white}\n"
 					read -p "- y(YES) or n(NO) " -n 1 -r
 					if [[ ! $REPLY =~ ^[Yy]$ ]]; then
@@ -263,7 +265,7 @@ main () {
 					mv ../${i} ../${i/_R1/}
 					rm ../pe/$i ../se/${i%_R1.f*}*
 				else
-					echo -e "${magenta}- check paired-end filenames for proper filename format (.R1 or _R1 and .R2 or _R2) ${white}\n"
+					echo -e "${magenta}- check paired-end filenames for proper filename format, i.e. .R1 or _R1 and .R2 or _R2 ${white}\n"
 					echo -e "${magenta}- Do you want to continue running GBSapp? ${white}\n"
 					read -p "- y(YES) or n(NO) " -n 1 -r
 					if [[ ! $REPLY =~ ^[Yy]$ ]]; then
