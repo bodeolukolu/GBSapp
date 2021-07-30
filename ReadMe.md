@@ -93,13 +93,17 @@ Using a text editor, save a file containing any of the following variables as 'c
 |ref2|na|2nd reference genome as fasta file|integer|Optional|
 |ref3|na|3rd reference genome as fasta file|integer|Optional|
 |ref4|na|4th reference genome as fasta file|integer|Optional|
+|ploidy_ref1|na|ploid level for subgenome 1|integer|Required|
+|ploidy_ref2|na|ploid level for subgenome 1|integer|Required|
+|ploidy_ref3|na|ploid level for subgenome 1|integer|Required|
+|ploidy_ref4|na|ploid level for subgenome 1|integer|Required|
 |haplome_number|1|number of haplome(s) represented by reference genome|integer|Optional|
 |copy_number|1|maximum copy number of each unique read|integer|Optional|
 |paleopolyploid|false|capture/code variable dosage/copy number (i.e. 2x,4x,6x, and 8x)|true or false||Optional|
 |ncohorts|1|number of cohorts for Joint-genotyping |integer|Optional|
-|maxHaplotype|64| maximum number of haplotypes per haploid genome across population|integer|Optional|
-|founder_parents|na|Number of founder parents from which population as derived|integer|Optional|
+|maxHaplotype|128| maximum number of haplotypes per haploid genome across population|integer|Optional|
 |min_unique_RD|1| minimum read depth for each unique read|integer|Optional|
+|founder_parents|na|Number of founder parents from which population as derived|integer|Optional|
 |gthreads|4|number of cores per chromosome/scaffold/contig (multi-processing haplotypecaller) |integer|Optional|
 |cthreads|2000|max number of chromosome/scaffold/contig (multi-processing haplotypecaller) |integer|Optional|
 
@@ -140,12 +144,14 @@ ref1=TF.fasta
 ref2=TL.fasta
 ploidy_ref1=4
 ploidy_ref2=2
+haplome_number=1
 copy_number=1
 paleopolyploid=false
 ncohorts=1
-maxHaplotype=64
+maxHaplotype=128
+min_unique_RD=1
 founder_parents=2
-gthreads=2
+gthreads=4
 cthreads=2000
 
 # SNP-filtering:
