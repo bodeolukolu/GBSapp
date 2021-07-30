@@ -12,7 +12,7 @@ white=$'\e[0m'
 main () {
   echo -e "${blue}\n############################################## ${yellow}\n- downloading and installing BWA ${blue}\n##############################################${white}"
   wget https://sourceforge.net/projects/bio-bwa/files/latest/download
-  tar -vxjf download*; rm download*; cd bwa*; make; cd ..
+  tar -vxjf download*; rm download*; cd bwa*; wait; make; wait; cd ..
 }
 dirtool=bwa*
 if [ -d $dirtool ]; then
@@ -26,7 +26,7 @@ fi
 main () {
   echo -e "${blue}\n############################################## ${yellow}\n- downloading and installing samtools ${blue}\n##############################################${white}"
   wget https://sourceforge.net/projects/samtools/files/latest/download &&
-  tar -vxjf download*; rm download*; cd samtools*; make; cd ..
+  tar -vxjf download*; rm download*; cd samtools*; wait; make; wait; cd ..
 }
 dirtool=samtools*
 if [ -d $dirtool ]; then
@@ -41,7 +41,7 @@ main () {
   wget https://github.com/samtools/bcftools/releases/download/1.11/bcftools-1.11.tar.bz2
   tar -vxjf bcftools-1.11.tar.bz2; rm bcftools-1.11.tar.bz2
   for i in $(ls -d bcftools*); do
-	   cd bcftools*; ./configure --prefix=${GBSapp_dir}/tools/${i}/; make; make install; cd ..
+	   cd bcftools*; ./configure --prefix=${GBSapp_dir}/tools/${i}/; wait; make; wait; make install; wait; cd ..
   done
 
 }
@@ -93,6 +93,13 @@ main () {
   wget -O GATK4.1.9.0.zip "https://github.com/broadinstitute/gatk/releases/download/4.1.9.0/gatk-4.1.9.0.zip"
   unzip GATK4.1.9.0.zip
   rm GATK4.1.9.0.zip
+  # javaloc=${GBSapp_dir}/jdk8u222-b10-jre/bin/java
+  # cd gatk*
+  # awk -v javaloc=$javaloc 'NR==208{gsub(/java/,javaloc)}1' gatk > temp
+  # mv temp gatk
+  # chmod 777 *
+  # cd ../
+
 }
 dirtool=gatk*
 if [ -d $dirtool ]; then
@@ -102,11 +109,6 @@ else
   main &>> ./log.out
 fi
 
-javaloc=${GBSapp_dir}/jdk8u222-b10-jre/bin/java
-cd gatk*
-awk -v javaloc=$javaloc 'NR==208{gsub(/java/,javaloc)}1' gatk > temp
-mv temp gatk
-cd ../
 
 
 

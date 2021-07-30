@@ -99,6 +99,7 @@ Using a text editor, save a file containing any of the following variables as 'c
 |ncohorts|1|number of cohorts for Joint-genotyping |integer|Optional|
 |maxHaplotype|64| maximum number of haplotypes per haploid genome across population|integer|Optional|
 |founder_parents|na|Number of founder parents from which population as derived|integer|Optional|
+|min_unique_RD|1| minimum read depth for each unique read|integer|Optional|
 |gthreads|4|number of cores per chromosome/scaffold/contig (multi-processing haplotypecaller) |integer|Optional|
 |cthreads|2000|max number of chromosome/scaffold/contig (multi-processing haplotypecaller) |integer|Optional|
 

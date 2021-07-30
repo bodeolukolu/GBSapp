@@ -5,24 +5,29 @@ if [ -z "$threads" ]; then
 		threads=$((threads-2))
 	fi
 fi
+echo threads: "$threads"
 if [ -z "$haplome_number" ]; then
 	haplome_number=1
 else
 	haplome_number=$((haplome_number))
 fi
+echo haplome_number: "$haplome_number"
 if [ -z "$copy_number" ]; then
 	paralogs=$((1 * haplome_number))
 else
 	paralogs=$((copy_number * haplome_number))
 fi
+echo copy_number: "$paralogs"
 if [ -z "$maxHaplotype" ]; then
-	maxHaplotype=(paralogs * 64)
+	maxHaplotype=(paralogs * 128)
 fi
 if [[ -z "$founder_parents" ]]; then
 	:
 else
 	maxHaplotype=$((paralogs * founder_parents))
 fi
+echo founder_parents: "$founder_parents"
+echo maxHaplotypes per haploid genome: "$maxHaplotype"
 if [ -z "$p2" ]; then
 	p2=$p1
 fi
@@ -32,6 +37,10 @@ fi
 if [ -z "$ncohorts" ]; then
 	ncohorts=1
 fi
+if [ -z "$min_unique_RD" ]; then
+	min_unique_RD=1
+fi
+echo min_unique_RD: ""$min_unique_RD"
 
 
 echo -e "${blue}\n############################################################################## ${yellow}\n- Index Reference Genome \n${blue}##############################################################################${white}\n"
@@ -352,7 +361,7 @@ else
 			touch "${i%.f*}_R2_uniq.txt"
 		fi
 		export LC_ALL=C; paste -d ~ ${i%.f*}_uniq.txt ${i%.f*}_R2_uniq.txt | expand -t $(( $(wc -L < $i ) + 2 )) | awk '{!seen[$0]++}END{for (i in seen) print seen[i], i}' | \
-		awk '{$1=$1};1' | awk '{gsub(" /"," "); print}' | awk '{gsub("/\n","\n"); print}' | awk '{gsub("/"," "); print}' | awk '{gsub(" ","\t"); print}' | awk '($1 > 1)' > ${i%.f*}_rdrefseq.txt
+		awk '{$1=$1};1' | awk '{gsub(" /"," "); print}' | awk '{gsub("/\n","\n"); print}' | awk '{gsub("/"," "); print}' | awk '{gsub(" ","\t"); print}' | awk -v minuniqRD=$min_unique_RD '($1 > minuniqRD)' > ${i%.f*}_rdrefseq.txt
 		awk 'NF==2 {print ">seq"NR"_se-"$1"\n"$2}' ${i%.f*}_rdrefseq.txt > ${i%.f*}_rdrefseq_se.txt
 		awk 'NF==3 {print ">seq"NR"_pe-"$0}' ${i%.f*}_rdrefseq.txt | awk '{print $1"\n"$3}' > ${i%.f*}_uniq_R2.fasta
 		awk 'NF==3 {print ">seq"NR"_pe-"$0}' ${i%.f*}_rdrefseq.txt | awk '{print $1"\n"$2}' | cat - ${i%.f*}_rdrefseq_se.txt > ${i%.f*}_uniq_R1.fasta
@@ -449,7 +458,7 @@ if [ "$paleopolyploid" == "true" ]; then
 			touch "${i%.f*}_R2_uniq.txt"
 		fi
 		export LC_ALL=C; paste -d ~ ${i%.f*}_uniq.txt ${i%.f*}_R2_uniq.txt | expand -t $(( $(wc -L < $i ) + 2 )) | awk '{!seen[$0]++}END{for (i in seen) print seen[i], i}' | awk '{$1=$1};1' | \
-		awk '{gsub(" /"," "); print}' | awk '{gsub("/\n","\n"); print}' | awk '{gsub("/"," "); print}' | awk '{gsub(" ","\t"); print}' | awk '($1 > 1)' > ${i%.f*}_rdrefseq.txt
+		awk '{gsub(" /"," "); print}' | awk '{gsub("/\n","\n"); print}' | awk '{gsub("/"," "); print}' | awk '{gsub(" ","\t"); print}' | awk -v minuniqRD=$min_unique_RD '($1 > minuniqRD)' > ${i%.f*}_rdrefseq.txt
 		awk 'NF==2 {print ">seq"NR"_se-"$1"\n"$2}' ${i%.f*}_rdrefseq.txt > ${i%.f*}_rdrefseq_se.txt
 		awk 'NF==3 {print ">seq"NR"_pe-"$0}' ${i%.f*}_rdrefseq.txt | awk '{print $1"\n"$3}' > ${i%.f*}_uniq_R2.fasta
 		awk 'NF==3 {print ">seq"NR"_pe-"$0}' ${i%.f*}_rdrefseq.txt | awk '{print $1"\n"$2}' | cat - ${i%.f*}_rdrefseq_se.txt > ${i%.f*}_uniq_R1.fasta
@@ -654,7 +663,7 @@ if [[ "$paleopolyploid" != true ]] && [[ "$ncohorts" == 1 ]]; then
 	Get_Chromosome=$(awk 'NR>1{print $2,"\t",$3}' ../refgenomes/${ref1%.*}.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $0}' | sort -k2,2 -nr | awk '{print $1}' | awk -v pat=${ref1%.f*} '$0 ~ pat')
 	if [[ "$(wc -l ../refgenomes/${ref1%.*}.dict | awk '{print $1}')" -le $cthreads ]]; then
 		for selchr in $Get_Chromosome; do (
-			$GATK --java-options "$Xmx3 -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ../refgenomes/$ref1 -L $selchr $input -ploidy $ploidy -O ../snpcall/${pop}_${ploidy}x_"${selchr}"_raw.vcf.gz --max-reads-per-alignment-start 0 --max-num-haplotypes-in-population $((ploidy * maxHaplotype)) )&
+			$GATK --java-options "$Xmx3 -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ../refgenomes/$ref1 -L $selchr $input -ploidy $ploidy -O ../snpcall/${pop}_${ploidy}x_"${selchr}"_raw.vcf.gz --max-reads-per-alignment-start 0 --max-num-haplotypes-in-population "$((ploidy * maxHaplotype))" )&
 			if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
 				wait
 			fi
@@ -672,7 +681,7 @@ if [[ "$paleopolyploid" != true ]] && [[ "$ncohorts" == 1 ]]; then
 		cat vcf_header.txt all.vcf > ${pop}_${ploidy}x_raw.vcf
 		rm vcf_header.txt all.vcf *.vcf.gz.tbi ${pop}_${ploidy}x_*_raw.vcf
 	else
-		$GATK --java-options "$Xmx3 -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ../refgenomes/$ref1 $input -ploidy $ploidy -O ../snpcall/${pop}_${ploidy}x_raw.vcf.gz --max-reads-per-alignment-start 0 --max-num-haplotypes-in-population $((ploidy * maxHaplotype))
+		$GATK --java-options "$Xmx3 -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ../refgenomes/$ref1 $input -ploidy $ploidy -O ../snpcall/${pop}_${ploidy}x_raw.vcf.gz --max-reads-per-alignment-start 0 --max-num-haplotypes-in-population "$((ploidy * maxHaplotype))"
 
 	fi
 	cd ${projdir}/preprocess
@@ -693,7 +702,7 @@ if [[ "$paleopolyploid" = true ]] && [[ "$ncohorts" == 1 ]]; then
 		Get_Chromosome=$(awk 'NR>1{print $2,"\t",$3}' ../refgenomes/${ref1%.*}.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $0}' | sort -k2,2 -nr | awk '{print $1}' | awk -v pat=${ref1%.f*} '$0 ~ pat')
 		if [[ "$(wc -l ../refgenomes/${ref1%.*}.dict | awk '{print $1}')" -le $cthreads ]]; then
 			for selchr in $Get_Chromosome; do (
-				$GATK --java-options "$Xmx3 -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ../refgenomes/$ref1 -L $selchr $input -ploidy $m -O ../snpcall/${pop}_${m}x_"${selchr}"_raw.vcf.gz --max-reads-per-alignment-start 0 --max-num-haplotypes-in-population $((m * maxHaplotype)) )&
+				$GATK --java-options "$Xmx3 -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ../refgenomes/$ref1 -L $selchr $input -ploidy $m -O ../snpcall/${pop}_${m}x_"${selchr}"_raw.vcf.gz --max-reads-per-alignment-start 0 --max-num-haplotypes-in-population "$((m * maxHaplotype))" )&
 				if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
 					wait
 				fi
@@ -712,7 +721,7 @@ if [[ "$paleopolyploid" = true ]] && [[ "$ncohorts" == 1 ]]; then
 			rm vcf_header.txt all.vcf *.vcf.gz.tbi ${pop}_${m}x_*_raw.vcf
 			cd ${projdir}/preprocess
 		else
-			$GATK --java-options "$Xmx3 -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ../refgenomes/$ref1 $input -ploidy $m -O ../snpcall/${pop}_${m}x_raw.vcf.gz --max-reads-per-alignment-start 0 --max-num-haplotypes-in-population $((m * maxHaplotype))
+			$GATK --java-options "$Xmx3 -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ../refgenomes/$ref1 $input -ploidy $m -O ../snpcall/${pop}_${m}x_raw.vcf.gz --max-reads-per-alignment-start 0 --max-num-haplotypes-in-population "$((m * maxHaplotype))"
 		fi
 	done
 	cd ${projdir}/preprocess
@@ -726,7 +735,7 @@ if [[ "$paleopolyploid" = false ]] && [[ "$ncohorts" != 1 ]]; then
 	cd preprocess
 	mkdir processed
 	for i in $(ls -S *_precall.bam); do (
-		$GATK --java-options "$Xmx3 -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ../refgenomes/$ref1 -I $i -ploidy $ploidy -O ../snpcall/${i%_precall.bam}.g.vcf.gz -ERC GVCF --max-reads-per-alignment-start 0 --max-num-haplotypes-in-population $ploidy
+		$GATK --java-options "$Xmx3 -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ../refgenomes/$ref1 -I $i -ploidy $ploidy -O ../snpcall/${i%_precall.bam}.g.vcf.gz -ERC GVCF --max-reads-per-alignment-start 0 --max-num-haplotypes-in-population "$((paralogs * ploidy))"
 		cp ../snpcall/${i%_precall.bam}.g.vcf.gz* ../snpcall/processed/ ) &
 		if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
 			wait
@@ -820,7 +829,7 @@ if [[ "$paleopolyploid" = true ]] && [[ "$ncohorts" != 1 ]]; then
 	for c in {1..4}; do
 		m=$((c*2))
 		for i in $(ls -S *${m}x_precall.bam); do (
-			$GATK --java-options "$Xmx3 -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ../refgenomes/$ref1 -I $i -ploidy $m -O ../snpcall/${i%_precall.bam}.g.vcf.gz -ERC GVCF --max-reads-per-alignment-start 0 --max-num-haplotypes-in-population "$m"
+			$GATK --java-options "$Xmx3 -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ../refgenomes/$ref1 -I $i -ploidy $m -O ../snpcall/${i%_precall.bam}.g.vcf.gz -ERC GVCF --max-reads-per-alignment-start 0 --max-num-haplotypes-in-population "$((paralogs * m))"
 			cp ../snpcall/${i%_precall.bam}.g.vcf.gz* ../snpcall/processed/ ) &
 			if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
 				wait
