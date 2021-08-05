@@ -43,6 +43,10 @@ if [ -z "$min_unique_RD" ]; then
 	min_unique_RD=1
 fi
 echo min_unique_RD: "$min_unique_RD"
+if [ -z "$downsample" ]; then
+	downsample=25
+fi
+echo downsample-maximum reads per alignment: "$downsample"
 
 
 cd $projdir
@@ -362,7 +366,7 @@ for i in $(ls -S *.f* | grep -v R2.f); do (
 	touch "${i%.f*}_R2_uniq.txt"
   fi
   export LC_ALL=C; paste -d ~ ${i%.f*}_uniq.txt ${i%.f*}_R2_uniq.txt | expand -t $(( $(wc -L < $i ) + 2 )) | awk '{!seen[$0]++}END{for (i in seen) print seen[i], i}' | awk '{$1=$1};1' | \
-  awk '{gsub(" /"," "); print}' | awk '{gsub("/\n","\n"); print}' | awk '{gsub("/"," "); print}' | awk '{gsub(" ","\t"); print}' | awk -v minuniqRD=$min_unique_RD '($1 > minuniqRD)' > ${i%.f*}_rdrefseq.txt
+  awk '{gsub(" /"," "); print}' | awk '{gsub("/\n","\n"); print}' | awk '{gsub("/"," "); print}' | awk '{gsub(" ","\t"); print}' | awk -v minuniqRD=$min_unique_RD '($1 >= minuniqRD)' > ${i%.f*}_rdrefseq.txt
   awk 'NF==2 {print ">seq"NR"_se-"$1"\n"$2}' ${i%.f*}_rdrefseq.txt > ${i%.f*}_rdrefseq_se.txt
   awk 'NF==3 {print ">seq"NR"_pe-"$0}' ${i%.f*}_rdrefseq.txt | awk '{print $1"\n"$3}' > ${i%.f*}_uniq_R2.fasta
   awk 'NF==3 {print ">seq"NR"_pe-"$0}' ${i%.f*}_rdrefseq.txt | awk '{print $1"\n"$2}' | cat - ${i%.f*}_rdrefseq_se.txt > ${i%.f*}_uniq_R1.fasta
@@ -397,9 +401,22 @@ for i in $(ls -S *.f* | grep -v R2.f); do (
   for j in $(LC_ALL=C; sort -n -k1,1 ../preprocess/${i%.f*}_uniq.sam | grep -v @ | awk '{print $1}' | uniq); do
   	awk -v n="^${j}" '$0~n{print $0}' ../preprocess/${i%.f*}_uniq.sam | awk -v n="$j" '{for(i=0;i<n;i++) print}' >> ../preprocess/${i%.f*}_exp.sam
   done; wait
-  awk '{print "seq"NR"_"$0}' ../preprocess/${i%.f*}_exp.sam | awk '{gsub(/ /,"\t"); print}' | awk '{$11 = $10; print}' | awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$11); print}' |\
-  cat ../preprocess/${i%.f*}_heading.sam - > ../preprocess/${i%.f*}_${ref1%.f*}.sam
-  rm ../preprocess/${i%.f*}_exp.sam
+  awk '{print "seq"NR"_"$0}' ../preprocess/${i%.f*}_exp.sam | awk '{gsub(/ /,"\t"); print}' | awk '{$11 = $10; print}' | awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$11); print}' > ../preprocess/${i%.f*}_exp1.sam
+	awk 'BEGIN{srand() }
+	{ lines[++d]=$0 }
+		END{
+		while (1){
+			if (e==d) {break}
+				RANDOM = int(1 + rand() * d)
+				if ( RANDOM in lines  ){
+				print lines[RANDOM]
+				delete lines[RANDOM]
+				++e
+			}
+		}
+	}' ../preprocess/${i%.f*}_exp1.sam > ../preprocess/${i%.f*}_exp2.sam
+	cat ../preprocess/${i%.f*}_heading.sam ../preprocess/${i%.f*}_exp2.sam > ../preprocess/${i%.f*}_${ref1%.f*}.sam
+	rm ../preprocess/${i%.f*}_exp*
 
   awk '{if ($3=="@HD" || $3=="@SQ" || $3=="@PG") {print}}' ../preprocess/${i%.f*}_2del.sam > ../preprocess/${i%.f*}_3del.sam  && \
   grep -vwE "(@HD|@SQ|@PG)" ../preprocess/${i%.f*}_2del.sam | awk -v paralogs=$paralogs '{ if (($1 == 0) && ($2 >= 1) && ($2 <= paralogs)) { print } }' >> ../preprocess/${i%.f*}_3del.sam   && \
@@ -409,9 +426,22 @@ for i in $(ls -S *.f* | grep -v R2.f); do (
   for j in $(LC_ALL=C; sort -n -k1,1 ../preprocess/${i%.f*}_uniq.sam | grep -v @ | awk '{print $1}' | uniq); do
   	awk -v n="^${j}" '$0~n{print $0}' ../preprocess/${i%.f*}_uniq.sam | awk -v n="$j" '{for(i=0;i<n;i++) print}' >> ../preprocess/${i%.f*}_exp.sam
   done; wait
-  awk '{print "seq"NR"_"$0}' ../preprocess/${i%.f*}_exp.sam | awk '{gsub(/ /,"\t"); print}' | awk '{$11 = $10; print}' | awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$11); print}' |\
-  cat ../preprocess/${i%.f*}_heading.sam - > ../preprocess/${i%.f*}_${ref2%.f*}.sam
-  rm ../preprocess/${i%.f*}_exp.sam
+  awk '{print "seq"NR"_"$0}' ../preprocess/${i%.f*}_exp.sam | awk '{gsub(/ /,"\t"); print}' | awk '{$11 = $10; print}' | awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$11); print}' > ../preprocess/${i%.f*}_exp1.sam
+		awk 'BEGIN{srand() }
+		{ lines[++d]=$0 }
+			END{
+			while (1){
+				if (e==d) {break}
+					RANDOM = int(1 + rand() * d)
+					if ( RANDOM in lines  ){
+					print lines[RANDOM]
+					delete lines[RANDOM]
+					++e
+				}
+			}
+		}' ../preprocess/${i%.f*}_exp1.sam > ../preprocess/${i%.f*}_exp2.sam
+		cat ../preprocess/${i%.f*}_heading.sam ../preprocess/${i%.f*}_exp2.sam > ../preprocess/${i%.f*}_${ref2%.f*}.sam
+		rm ../preprocess/${i%.f*}_exp*
 
   awk '{if ($3=="@HD" || $3=="@SQ" || $3=="@PG") {print}}' ../preprocess/${i%.f*}_2del.sam > ../preprocess/${i%.f*}_3del.sam  && \
   grep -vwE "(@HD|@SQ|@PG)" ../preprocess/${i%.f*}_2del.sam | awk -v paralogs=$paralogs '{ if (($1 >= 1) && ($1 <= paralogs) && ($2 >= 1) && ($2 <= paralogs)) { print } }' >> ../preprocess/${i%.f*}_3del.sam   && \
@@ -421,9 +451,23 @@ for i in $(ls -S *.f* | grep -v R2.f); do (
   for j in $(LC_ALL=C; sort -n -k1,1 ../preprocess/${i%.f*}_uniq.sam | grep -v @ | awk '{print $1}' | uniq); do
   	awk -v n="^${j}" '$0~n{print $0}' ../preprocess/${i%.f*}_uniq.sam | awk -v n="$j" '{for(i=0;i<n;i++) print}' >> ../preprocess/${i%.f*}_exp.sam
   done; wait
-  awk '{print "seq"NR"_"$0}' ../preprocess/${i%.f*}_exp.sam | awk '{gsub(/ /,"\t"); print}' | awk '{$11 = $10; print}' | awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$11); print}' |\
-  cat ../preprocess/${i%.f*}_heading.sam - > ../preprocess/${i%.f*}_${ref1%.f*}_${ref2%.f*}.sam
-  rm ../preprocess/${i%.f*}_exp.sam
+  awk '{print "seq"NR"_"$0}' ../preprocess/${i%.f*}_exp.sam | awk '{gsub(/ /,"\t"); print}' | awk '{$11 = $10; print}' | awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$11); print}' > ../preprocess/${i%.f*}_exp1.sam
+		awk 'BEGIN{srand() }
+		{ lines[++d]=$0 }
+			END{
+			while (1){
+				if (e==d) {break}
+					RANDOM = int(1 + rand() * d)
+					if ( RANDOM in lines  ){
+					print lines[RANDOM]
+					delete lines[RANDOM]
+					++e
+				}
+			}
+		}' ../preprocess/${i%.f*}_exp1.sam > ../preprocess/${i%.f*}_exp2.sam
+		cat ../preprocess/${i%.f*}_heading.sam ../preprocess/${i%.f*}_exp2.sam > ../preprocess/${i%.f*}_${ref1%.f*}_${ref2%.f*}.sam
+		rm ../preprocess/${i%.f*}_exp*
+
 
   declare -a arr=("${i%.f*}_${ref1%.f*}.sam" "${i%.f*}_${ref2%.f*}.sam" "${i%.f*}_${ref1%.f*}_${ref2%.f*}.sam")  && \
   cd ../preprocess
@@ -532,7 +576,7 @@ if [ "$ncohorts" == 1 ]; then
 	Get_Chromosome=$(awk 'NR>1{print $2,"\t",$3}' ../refgenomes/panref.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $0}' | sort -k2,2 -nr | awk '{print $1}' )
 	if [[ "$(wc -l ../refgenomes/panref.dict | awk '{print $1}')" -le $cthreads ]]; then
 		for selchr in $Get_Chromosome; do (
-			$GATK --java-options "$Xmx3 -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ../refgenomes/panref.fasta -L $selchr $input -ploidy $ploidy -O ../snpcall/${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_"${selchr}"_raw.vcf.gz --max-reads-per-alignment-start 0 --max-num-haplotypes-in-population "$((ploidy * maxHaplotype))" )&
+			$GATK --java-options "$Xmx3 -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ../refgenomes/panref.fasta -L $selchr $input -ploidy $ploidy -O ../snpcall/${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_"${selchr}"_raw.vcf.gz --max-reads-per-alignment-start "$((downsample * ploidy))" --max-num-haplotypes-in-population "$((ploidy * maxHaplotype))" )&
 			if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
 				wait
 			fi
@@ -550,7 +594,7 @@ if [ "$ncohorts" == 1 ]; then
 		cat vcf_header.txt all.vcf > ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_raw.vcf
 		rm vcf_header.txt all.vcf *.vcf.gz.tbi ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_*_raw.vcf
 	else
-		$GATK --java-options "$Xmx3 -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ../refgenomes/panref.fasta $input -ploidy $ploidy -O ../snpcall/${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_raw.vcf.gz --max-reads-per-alignment-start 0 --max-num-haplotypes-in-population "$((ploidy * maxHaplotype))"
+		$GATK --java-options "$Xmx3 -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ../refgenomes/panref.fasta $input -ploidy $ploidy -O ../snpcall/${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_raw.vcf.gz --max-reads-per-alignment-start "$((downsample * ploidy))" --max-num-haplotypes-in-population "$((ploidy * maxHaplotype))"
 	fi
 	cd ${projdir}/preprocess
 	mv *_${ref1%.f*}_${ref2%.f*}_precall* ./processed/
@@ -567,7 +611,7 @@ if [ "$ncohorts" == 1 ]; then
 	Get_Chromosome=$(awk 'NR>1{print $2,"\t",$3}' ../refgenomes/panref.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $0}' | sort -k2,2 -nr | awk '{print $1}'| awk -v pat=${ref1%.f*} '$0 ~ pat' )
 	if [[ "$(wc -l ../refgenomes/panref.dict | awk '{print $1}')" -le $cthreads ]]; then
 		for selchr in $Get_Chromosome; do (
-			$GATK --java-options "$Xmx3 -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ../refgenomes/panref.fasta -L $selchr $input -ploidy $ploidy_ref1 -O ../snpcall/${pop}_${ref1%.f*}_${ploidy_ref1}x_"${selchr}"_raw.vcf.gz --max-reads-per-alignment-start 0 --max-num-haplotypes-in-population "$((ploidy_ref1 * maxHaplotype))" )&
+			$GATK --java-options "$Xmx3 -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ../refgenomes/panref.fasta -L $selchr $input -ploidy $ploidy_ref1 -O ../snpcall/${pop}_${ref1%.f*}_${ploidy_ref1}x_"${selchr}"_raw.vcf.gz --max-reads-per-alignment-start "$((downsample * ploidy_ref1))" --max-num-haplotypes-in-population "$((ploidy_ref1 * maxHaplotype))" )&
 			if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
 				wait
 			fi
@@ -585,7 +629,7 @@ if [ "$ncohorts" == 1 ]; then
 		cat vcf_header.txt all.vcf > ${pop}_${ref1%.f*}_${ploidy_ref1}x_raw.vcf
 		rm vcf_header.txt all.vcf *.vcf.gz.tbi ${pop}_${ref1%.f*}_${ploidy_ref1}x_*_raw.vcf
 	else
-		$GATK --java-options "$Xmx3 -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ../refgenomes/panref.fasta $input -ploidy $ploidy_ref1 -O ../snpcall/${pop}_${ref1%.f*}_${ploidy_ref1}x_raw.vcf.gz --max-reads-per-alignment-start 0 --max-num-haplotypes-in-population "$((ploidy_ref1 * maxHaplotype))"
+		$GATK --java-options "$Xmx3 -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ../refgenomes/panref.fasta $input -ploidy $ploidy_ref1 -O ../snpcall/${pop}_${ref1%.f*}_${ploidy_ref1}x_raw.vcf.gz --max-reads-per-alignment-start "$((downsample * ploidy_ref1))" --max-num-haplotypes-in-population "$((ploidy_ref1 * maxHaplotype))"
 	fi
 	cd ${projdir}/preprocess
 	mv *_${ref1%.f*}_precall* ./processed/
@@ -602,7 +646,7 @@ if [ "$ncohorts" == 1 ]; then
 	Get_Chromosome=$(awk 'NR>1{print $2,"\t",$3}' ../refgenomes/panref.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $0}' | sort -k2,2 -nr | awk '{print $1}' | awk -v pat=${ref2%.f*} '$0 ~ pat')
 	if [[ "$(wc -l ../refgenomes/panref.dict | awk '{print $1}')" -le $cthreads ]]; then
 		for selchr in $Get_Chromosome; do (
-			$GATK --java-options "$Xmx3 -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ../refgenomes/panref.fasta -L $selchr $input -ploidy $ploidy_ref2 -O ../snpcall/${pop}_${ref2%.f*}_${ploidy_ref2}x_"${selchr}"_raw.vcf.gz --max-reads-per-alignment-start 0 --max-num-haplotypes-in-population "$((ploidy_ref2 * maxHaplotype))" )&
+			$GATK --java-options "$Xmx3 -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ../refgenomes/panref.fasta -L $selchr $input -ploidy $ploidy_ref2 -O ../snpcall/${pop}_${ref2%.f*}_${ploidy_ref2}x_"${selchr}"_raw.vcf.gz --max-reads-per-alignment-start "$((downsample * ploidy_ref2))" --max-num-haplotypes-in-population "$((ploidy_ref2 * maxHaplotype))" )&
 			if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
 				wait
 			fi
@@ -620,7 +664,7 @@ if [ "$ncohorts" == 1 ]; then
 		cat vcf_header.txt all.vcf > ${pop}_${ref2%.f*}_${ploidy_ref2}x_raw.vcf.gz
 		rm vcf_header.txt all.vcf *.vcf.gz.tbi ${pop}_${ref2%.f*}_${ploidy_ref2}x_*_raw.vcf
 	else
-		$GATK --java-options "$Xmx3 -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ../refgenomes/panref.fasta $input -ploidy $ploidy_ref2 -O ../snpcall/${pop}_${ref2%.f*}_${ploidy_ref2}x_raw.vcf.gz --max-reads-per-alignment-start 0 --max-num-haplotypes-in-population "$((ploidy_ref2 * maxHaplotype))"
+		$GATK --java-options "$Xmx3 -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ../refgenomes/panref.fasta $input -ploidy $ploidy_ref2 -O ../snpcall/${pop}_${ref2%.f*}_${ploidy_ref2}x_raw.vcf.gz --max-reads-per-alignment-start "$((downsample * ploidy_ref2))" --max-num-haplotypes-in-population "$((ploidy_ref2 * maxHaplotype))"
 	fi
 	cd ${projdir}/preprocess
 	mv *_${ref2%.f*}_precall* ./processed/
@@ -630,7 +674,7 @@ fi
 if [ "$ncohorts" != 1 ]; then
 	echo -e "${magenta}- performing SNP calling across entire genome (subgenome 1 and 2) ${white}\n"
 	for i in $(ls -S *_${ref1%.f*}_${ref2%.f*}_precall.bam); do (
-		$GATK --java-options "$Xmx3 -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ../refgenomes/panref.fasta -I $i -ploidy $ploidy -O ../snpcall/${i%_precall.bam}.g.vcf.gz -ERC GVCF --max-reads-per-alignment-start 0 --max-num-haplotypes-in-population "$((paralogs * ploidy))"
+		$GATK --java-options "$Xmx3 -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ../refgenomes/panref.fasta -I $i -ploidy $ploidy -O ../snpcall/${i%_precall.bam}.g.vcf.gz -ERC GVCF --max-reads-per-alignment-start "$((downsample * ploidy))" --max-num-haplotypes-in-population "$((paralogs * ploidy))"
 		cp ../snpcall/${i%_precall.bam}.g.vcf.gz* ../snpcall/processed/ ) &
 		if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
 			wait
@@ -723,7 +767,7 @@ if [ "$ncohorts" != 1 ]; then
 	echo -e "${magenta}- performing SNP calling on subgenome-1 ${white}\n"
 	awk 'NR>1{print $2,"\t",$3}' ../refgenomes/panref.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $0}' | sort -k2,2 -nr | awk '{print $1}'| awk -v pat=${ref1%.f*} '$0 ~ pat' > ../refgenomes/intervals.list
 	for i in $(ls -S *_${ref1%.f*}_precall.bam); do (
-		$GATK --java-options "$Xmx3 -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ../refgenomes/panref.fasta -L ../refgenomes/intervals.list -I $i -ploidy $ploidy_ref1 -O ../snpcall/${i%_precall.bam}.g.vcf.gz -ERC GVCF --max-reads-per-alignment-start 0 --max-num-haplotypes-in-population "$((paralogs * ploidy_ref1))"
+		$GATK --java-options "$Xmx3 -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ../refgenomes/panref.fasta -L ../refgenomes/intervals.list -I $i -ploidy $ploidy_ref1 -O ../snpcall/${i%_precall.bam}.g.vcf.gz -ERC GVCF --max-reads-per-alignment-start "$((downsample * ploidy_ref1))" --max-num-haplotypes-in-population "$((paralogs * ploidy_ref1))"
 		cp ../snpcall/${i%_precall.bam}.g.vcf.gz* ../snpcall/processed/ ) &
 		if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
 			wait
@@ -817,7 +861,7 @@ if [ "$ncohorts" != 1 ]; then
 	echo -e "${magenta}- performing SNP calling on subgenome-2 ${white}\n"
 	awk 'NR>1{print $2,"\t",$3}' ../refgenomes/panref.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $0}' | sort -k2,2 -nr | awk '{print $1}'| awk -v pat=${ref2%.f*} '$0 ~ pat' > ../refgenomes/intervals.list
 	for i in $(ls -S *_${ref2%.f*}_precall.bam); do (
-		$GATK --java-options "$Xmx3 -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ../refgenomes/panref.fasta -L ../refgenomes/intervals.list -I $i -ploidy $ploidy_ref2 -O ../snpcall/${i%_precall.bam}.g.vcf.gz -ERC GVCF --max-reads-per-alignment-start 0 --max-num-haplotypes-in-population "$((paralogs * ploidy_ref2))"
+		$GATK --java-options "$Xmx3 -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ../refgenomes/panref.fasta -L ../refgenomes/intervals.list -I $i -ploidy $ploidy_ref2 -O ../snpcall/${i%_precall.bam}.g.vcf.gz -ERC GVCF --max-reads-per-alignment-start "$((downsample * ploidy_ref2))" --max-num-haplotypes-in-population "$((paralogs * ploidy_ref2))"
 		cp ../snpcall/${i%_precall.bam}.g.vcf.gz* ../snpcall/processed/ ) &
 		if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
 			wait

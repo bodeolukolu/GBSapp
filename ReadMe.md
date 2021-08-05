@@ -100,12 +100,6 @@ Using a text editor, save a file containing any of the following variables as 'c
 |haplome_number|1|number of haplome(s) represented by reference genome|integer|Optional|
 |copy_number|1|maximum copy number of each unique read|integer|Optional|
 |paleopolyploid|false|capture/code variable dosage/copy number (i.e. 2x,4x,6x, and 8x)|true or false||Optional|
-|ncohorts|1|number of cohorts for Joint-genotyping |integer|Optional|
-|maxHaplotype|128| maximum number of haplotypes per haploid genome across population|integer|Optional|
-|min_unique_RD|1| minimum read depth for each unique read|integer|Optional|
-|founder_parents|na|Number of founder parents from which population as derived|integer|Optional|
-|gthreads|4|number of cores per chromosome/scaffold/contig (multi-processing haplotypecaller) |integer|Optional|
-|cthreads|2000|max number of chromosome/scaffold/contig (multi-processing haplotypecaller) |integer|Optional|
 
 **Note: na indicates that variable is user-defined or hard-coded/computed intuitively, as well as a function of ploidy.*
 
@@ -126,6 +120,20 @@ Using a text editor, save a file containing any of the following variables as 'c
 |pseg|0.001|p-value threshold for chi-square test of segregation distortion|decimal number|Optional|
 |maf|0.02|minor allele frequency threshold|decimal number|Optional|
 |snpformats|false|variant data set with alleles formatted as base (A,C,G,T) and/or degenerate notation|true or false|Optional|
+
+
+**Advanced parameters**
+|Variable      |Default       |Usage         |Input         |required/Optional|
+|:-------------|:-------------|:-------------|:-------------|:----------------|
+|ncohorts|1|number of cohorts for Joint-genotyping |integer|Optional|
+|maxHaplotype|128| maximum number of haplotypes per haploid genome across population|integer|Optional|
+|min_unique_RD|1| minimum read depth for each unique read|integer|Optional|
+|downsample|25| maximum number of reads per alignment start position (per haploid genome). A value of 0 means don't downsample|integer|Optional|
+|founder_parents|na|Number of founder parents from which population as derived|integer|Optional|
+|gthreads|4|number of cores per chromosome/scaffold/contig (multi-processing haplotypecaller) |integer|Optional|
+|cthreads|2000|max number of chromosome/scaffold/contig (multi-processing haplotypecaller) |integer|Optional|
+
+
 
 Below is an example of a configuration file:
 
@@ -150,6 +158,7 @@ paleopolyploid=false
 ncohorts=1
 maxHaplotype=128
 min_unique_RD=1
+downsample=0
 founder_parents=2
 gthreads=4
 cthreads=2000
