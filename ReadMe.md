@@ -128,8 +128,8 @@ Using a text editor, save a file containing any of the following variables as 'c
 |ncohorts|1|number of cohorts for Joint-genotyping |integer|Optional|
 |maxHaplotype|128| maximum number of haplotypes per haploid genome across population|integer|Optional|
 |min_unique_RD|1| minimum read depth for each unique read|integer|Optional|
-|downsample|25| maximum number of reads per alignment start position (per haploid genome). A value of 0 means don't downsample|integer|Optional|
-|founder_parents|na|Number of founder parents from which population as derived|integer|Optional|
+|downsample|25| maximum number of reads per alignment start position (per haploid genome). A value of 0 means no downsampling|integer|Optional|
+|founder_parents|na|Number of founder parents from which population as derived. If specified, it will replace maxHaplotype value|integer|Optional|
 |gthreads|4|number of cores per chromosome/scaffold/contig (multi-processing haplotypecaller) |integer|Optional|
 |cthreads|2000|max number of chromosome/scaffold/contig (multi-processing haplotypecaller) |integer|Optional|
 
@@ -201,7 +201,7 @@ Since most if the parameters are hard-coded in an intuitive manner, by specifyin
 
 ## Acknowledgment
 This package has been developed as part of the [Genomic Tools for Sweetpotato Improvement project](https://sweetpotatogenomics.cals.ncsu.edu/) (GT4SP) and [SweetGAINS](https://cgspace.cgiar.org/handle/10568/106838), both funded by [Bill & Melinda Gates Foundation](https://www.gatesfoundation.org/).
-ss
+
 ## Troubleshooting
 **Pre-Installation of R and Python:**<br />
 ```
@@ -221,11 +221,11 @@ ss
 **If GATK can't find python:**<br />
 ```
 - Make sure python v2.6 or greater is installed and then type the command below in terminal
-- $ sudo alias python=python3
+- $ sudo ln -sf /usr/bin/python3 /usr/bin/python
 ```
 **If samtools and bcftools doesn't install properly:**<br />
 ```
-While the installation of samtools and bcftools are automated, the installation requires some dependencies, consider typing the commands below in terminal:
+While the installation of samtools and bcftools are automated, the installation requires some dependencies. Consider typing the commands below in terminal, delete samtools and bcftools (from within ./GBSapp/tools/), and then re-run GBSapp in terminal:
   $ sudo apt-get update
   $ sudo apt-get install gcc
   $ sudo apt-get install make
@@ -236,12 +236,6 @@ While the installation of samtools and bcftools are automated, the installation 
   $ sudo apt-get install liblzma-dev
   $ sudo apt-get install libcurl4-gnutls-dev
   $ sudo apt-get install libssl-dev
-
-  $ cd /usr/bin
-  $ sudo wget https://github.com/samtools/htslib/releases/download/1.9/htslib-1.9.tar.bz2
-  $ sudo tar -vxjf htslib-1.9.tar.bz2
-  $ cd htslib-1.9
-  $ sudo make
 ```
 **Problem with amount of memory and/or processors/cores specified:**<br />
 ```
