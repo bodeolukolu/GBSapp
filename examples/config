@@ -14,13 +14,6 @@ ploidy_ref2=2
 haplome_number=1
 copy_number=1
 paleopolyploid=false
-ncohorts=1
-maxHaplotype=128
-min_unique_RD=1
-downsample=25
-founder_parents=2
-gthreads=4
-cthreads=2000
 
 # SNP-filtering:
 ####################################################
@@ -35,3 +28,14 @@ minRD_6x=45
 pseg=0.001
 maf=0.02
 snpformats=true
+
+# Advanced parameters
+###################################################
+ncohorts=1
+maxHaplotype=128
+min_unique_RD=1
+unbiased_downsample=25
+biased_downsample=0
+founder_parents=2
+gthreads=4
+cthreads=2000

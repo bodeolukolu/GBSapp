@@ -128,8 +128,9 @@ Using a text editor, save a file containing any of the following variables as 'c
 |ncohorts|1|number of cohorts for Joint-genotyping |integer|Optional|
 |maxHaplotype|128| maximum number of haplotypes per haploid genome across population|integer|Optional|
 |min_unique_RD|1| minimum read depth for each unique read|integer|Optional|
-|downsample|25| maximum number of reads per alignment start position (per haploid genome). A value of 0 means no downsampling|integer|Optional|
-|founder_parents|na|Number of founder parents from which population as derived. If specified, it will replace maxHaplotype value|integer|Optional|
+|unbiased_downsample|25| maximum read number per alignment start position (per haploid genome). 0 = no downsample|integer|Optional|
+|biased_downsample|0| maximum read number per alignment start position (per haploid genome). 0 = no downsample|integer|Optional|
+|founder_parents|na|Number of founder parents from which population as derived. Overrides maxHaplotype if specified|integer|Optional|
 |gthreads|4|number of cores per chromosome/scaffold/contig (multi-processing haplotypecaller) |integer|Optional|
 |cthreads|2000|max number of chromosome/scaffold/contig (multi-processing haplotypecaller) |integer|Optional|
 
@@ -155,13 +156,6 @@ ploidy_ref2=2
 haplome_number=1
 copy_number=1
 paleopolyploid=false
-ncohorts=1
-maxHaplotype=128
-min_unique_RD=1
-downsample=0
-founder_parents=2
-gthreads=4
-cthreads=2000
 
 # SNP-filtering:
 ####################################################
@@ -176,9 +170,20 @@ minRD_6x=45
 pseg=0.001
 maf=0.02
 snpformats=true
+
+# Advanced parameters
+###################################################
+ncohorts=1
+maxHaplotype=128
+min_unique_RD=1
+unbiased_downsample=25
+biased_downsample=0
+founder_parents=2
+gthreads=4
+cthreads=2000
 ```
 
-Alternatively, a configuration file (outlined below) may only need to include the parameters for a run.
+Alternatively, a configuration file (outlined below) specifying only the pploidy level is sufficient to run GBSapp.
 
 **config**
 ```
@@ -195,9 +200,10 @@ Since most if the parameters are hard-coded in an intuitive manner, by specifyin
     - [ngsComposer: Empirical Base-call error-filtering and read preprocessing pipeline.](https://github.com/ryandkuster/ngsComposer)
 
 ## Select Article Referencing GBSapp
-1. Genome-wide association study identified candidate genes controlling continuous storage root formation and bulking in hexaploid sweetpotato. [Bararyenya et al. 2020](https://doi.org/10.1186/s12870-019-2217-9)
-2. Sequencing depth and genotype quality: accuracy and breeding operation considerations for genomic selection applications in autopolyploid crops [Gemenet et al. 2020](https://doi.org/10.1007/s00122-020-03673-2)
-3. Genetic Diversity and Population Structure of the USDA Sweetpotato (Ipomoea batatas) Germplasm Collections Using GBSpoly [Wadl et al. 2019](https://doi:10.3389/fpls.2018.01166)
+1. ngsComposer: an automated pipeline for empirically based NGS data quality filtering. [Kuster et al. 2021](https://doi.org/10.1093/bib/bbab092)
+2. Genome-wide association study identified candidate genes controlling continuous storage root formation and bulking in hexaploid sweetpotato. [Bararyenya et al. 2020](https://doi.org/10.1186/s12870-019-2217-9)
+3. Sequencing depth and genotype quality: accuracy and breeding operation considerations for genomic selection applications in autopolyploid crops [Gemenet et al. 2020](https://doi.org/10.1007/s00122-020-03673-2)
+4. Genetic Diversity and Population Structure of the USDA Sweetpotato (Ipomoea batatas) Germplasm Collections Using GBSpoly [Wadl et al. 2019](https://doi:10.3389/fpls.2018.01166)
 
 ## Acknowledgment
 This package has been developed as part of the [Genomic Tools for Sweetpotato Improvement project](https://sweetpotatogenomics.cals.ncsu.edu/) (GT4SP) and [SweetGAINS](https://cgspace.cgiar.org/handle/10568/106838), both funded by [Bill & Melinda Gates Foundation](https://www.gatesfoundation.org/).
