@@ -54,9 +54,6 @@ if [[ "$biased_downsample" -gt 0 ]]; then
 fi
 if [ -z "$biased_downsample" ]; then
 	biased_downsample=0
-	if [[ "$unbiased_downsample" -eq 0 ]]; then
-		echo -e "${magenta}- downsampling will not be performed, i.e. using all reads ${white}\n"
-	fi
 	if [ -z "$unbiased_downsample" ]; then
 		unbiased_downsample=25
 		echo -e "${magenta}- GBSapp will perform unbiased downsampling ${white}\n"
