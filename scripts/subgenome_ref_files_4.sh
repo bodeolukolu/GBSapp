@@ -423,345 +423,360 @@ for i in $(ls -S *.f* | grep -v R2.f); do (
   awk '{if ($5=="@HD" || $5=="@SQ" || $5=="@PG"); print $0}' ../preprocess/${i%.f*}_2del.sam > ../preprocess/${i%.f*}_3del.sam  && \
   grep -vwE "(@HD|@SQ|@PG)" ../preprocess/${i%.f*}_2del.sam | awk -v paralogs=$paralogs '{ if ($1 >= 1 && $1 <= paralogs && $2 == 0 && $3 == 0 && $4 == 0); print $0}'  >> ../preprocess/${i%.f*}_3del.sam   && \
   awk '!($1=$2=$3=$4="")' ../preprocess/${i%.f*}_3del.sam | awk '{$1=$1};1' > ../preprocess/${i%.f*}_${ref1%.f*}.sam  && \
-  awk '{if ($1=="@HD" || $1=="@SQ"); print $0}' ../preprocess/${i%.f*}_${ref1%.f*}.sam | awk '{gsub(/ /,"\t"); print}' > ../preprocess/${i%.f*}_heading.sam
+	awk '/@HD/ || /@SQ/{print}' ../preprocess/${i%.f*}_${ref1%.f*}.sam | awk '{gsub(/ /,"\t"); print}' > ../preprocess/${i%.f*}_heading.sam
   awk '!/^@/ { print }' ../preprocess/${i%.f*}_${ref1%.f*}.sam | awk '{gsub(/^.*-/,"",$1); print $0}' | awk '{gsub(/^.*_/,"",$2); print $0}' > ../preprocess/${i%.f*}_uniq.sam
 
 	unds=$(( unbiased_downsample * ploidy_ref1 ))
-	awk -F' ' '{print $3,$4}' ../preprocess/${i%.f*}_uniq.sam | uniq | grep -v '*' > ../preprocess/${i%.f*}_chrpos.txt
-	while IFS="" read -r pos || [ -n "$pos" ]; do
-		maxp=$(awk -v pos="$pos" '$0 ~ pos' ../preprocess/${i%.f*}_uniq.sam | awk '{print $1}' | sort -n | tail -1)
-		factorp=$( printf %.3f $(echo "$maxp/$unds" | bc -l) )
-		awk -v pos="$pos" '$0 ~ pos' 1../preprocess/${i%.f*}_uniq.sam | awk -v factorp="$factorp" -v ds="$unds" '{ if (maxp > ds); printf("%.f", $1/factorp); $1=""}1' | \
-		awk '!($1==0)' >> ../preprocess/${i%.f*}_uniqsamp.sam
-	done < ../preprocess/${i%.f*}_chrpos.txt
+	awk -F' ' 'BEGIN{FS=OFS=" "} {if (a[$3,$4]<$1) {a[$3,$4]=$1; data[$3,$4]=$0}} END{for (i in a) print data[i]}' ../preprocess/${i%.f*}_uniq.sam | \
+	awk '{print $1,$3,$4}' | grep -v '*' > ../preprocess/${i%.f*}_chrpos.txt
+	awk '{print $1,$0}' ../preprocess/${i%.f*}_uniq.sam |
+	awk -F" " 'BEGIN{FS=OFS=" "} {if (NR==FNR) {a[$2FS$3]=$1; next} if ($4FS$5 in a) {$1=a[$4FS$5]} print}' ../preprocess/${i%.f*}_chrpos.txt - | \
+	awk '!( $4 ~ /*/ )' | awk '{print $1,$0}' | awk -v unds=$unds 'BEGIN{FS=OFS=" "} { if($2 > unds) {printf("%.3f", $1=$1/unds)} else {printf($1=$3);} $1="" }1' | \
+	awk -v unds=$unds 'BEGIN{FS=OFS=" "} { if($2 > unds) {printf("%.f", $1=$3/$1)} else {printf($1=$3);} $1="" }1' | \
+	awk '$1<"1" {$1="1"}1' |  awk '!($2=$3="")' > ../preprocess/${i%.f*}_uniqsamp.sam
 
   for j in $(LC_ALL=C; sort -n -k1,1 ../preprocess/${i%.f*}_uniqsamp.sam | grep -v @ | awk '{print $1}' | uniq); do
   	awk -v n="^${j}" '$0~n{print $0}' ../preprocess/${i%.f*}_uniqsamp.sam| awk -v n="$j" '{for(i=0;i<n;i++) print}' >> ../preprocess/${i%.f*}_exp.sam
   done; wait
   awk '{print "seq"NR"_"$0}' ../preprocess/${i%.f*}_exp.sam | awk '{gsub(/ /,"\t"); print}' | awk '{$11 = $10; print}' | awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$11); print}' |\
   cat ../preprocess/${i%.f*}_heading.sam - > ../preprocess/${i%.f*}_${ref1%.f*}.sam
-  rm ../preprocess/${i%.f*}_exp.sam ../preprocess/${i%.f*}_chrpos.txt ../preprocess/${i%.f*}_uniqsamp.sam ../preprocess/${i%.f*}_uniq.sam
+	rm ../preprocess/${i%.f*}_exp.sam ../preprocess/${i%.f*}_chrpos.txt ../preprocess/${i%.f*}_uniqsamp.sam ../preprocess/${i%.f*}_uniq.sam
+	rm ../preprocess/${i%.f*}_chrpos.txt ../preprocess/${i%.f*}_heading.sam
 
   awk '{if ($5=="@HD" || $5=="@SQ" || $5=="@PG"); print $0}' ../preprocess/${i%.f*}_2del.sam > ../preprocess/${i%.f*}_3del.sam  && \
   grep -vwE "(@HD|@SQ|@PG)" ../preprocess/${i%.f*}_2del.sam | awk -v paralogs=$paralogs '{ if ($1 == 0 && $2 >= 1 && $2 <= paraogs && $3 == 0 && $4 == 0); print $0}' >> ../preprocess/${i%.f*}_3del.sam   && \
   awk '!($1=$2=$3=$4="")' ../preprocess/${i%.f*}_3del.sam | awk '{$1=$1};1' > ../preprocess/${i%.f*}_${ref2%.f*}.sam  && \
-  awk '{if ($1=="@HD" || $1=="@SQ"); print $0}' ../preprocess/${i%.f*}_${ref2%.f*}.sam | awk '{gsub(/ /,"\t"); print}' > ../preprocess/${i%.f*}_heading.sam
+	awk '/@HD/ || /@SQ/{print}' ../preprocess/${i%.f*}_${ref2%.f*}.sam | awk '{gsub(/ /,"\t"); print}' > ../preprocess/${i%.f*}_heading.sam
   awk '!/^@/ { print }' ../preprocess/${i%.f*}_${ref2%.f*}.sam | awk '{gsub(/^.*-/,"",$1); print $0}' | awk '{gsub(/^.*_/,"",$2); print $0}' > ../preprocess/${i%.f*}_uniq.sam
 
 	unds=$(( unbiased_downsample * ploidy_ref2 ))
-	awk -F' ' '{print $3,$4}' ../preprocess/${i%.f*}_uniq.sam | uniq | grep -v '*' > ../preprocess/${i%.f*}_chrpos.txt
-	while IFS="" read -r pos || [ -n "$pos" ]; do
-		maxp=$(awk -v pos="$pos" '$0 ~ pos' ../preprocess/${i%.f*}_uniq.sam | awk '{print $1}' | sort -n | tail -1)
-		factorp=$( printf %.3f $(echo "$maxp/$unds" | bc -l) )
-		awk -v pos="$pos" '$0 ~ pos' 1../preprocess/${i%.f*}_uniq.sam | awk -v factorp="$factorp" -v ds="$unds" '{ if (maxp > ds); printf("%.f", $1/factorp); $1=""}1' | \
-		awk '!($1==0)' >> ../preprocess/${i%.f*}_uniqsamp.sam
-	done < ../preprocess/${i%.f*}_chrpos.txt
+	awk -F' ' 'BEGIN{FS=OFS=" "} {if (a[$3,$4]<$1) {a[$3,$4]=$1; data[$3,$4]=$0}} END{for (i in a) print data[i]}' ../preprocess/${i%.f*}_uniq.sam | \
+	awk '{print $1,$3,$4}' | grep -v '*' > ../preprocess/${i%.f*}_chrpos.txt
+	awk '{print $1,$0}' ../preprocess/${i%.f*}_uniq.sam |
+	awk -F" " 'BEGIN{FS=OFS=" "} {if (NR==FNR) {a[$2FS$3]=$1; next} if ($4FS$5 in a) {$1=a[$4FS$5]} print}' ../preprocess/${i%.f*}_chrpos.txt - | \
+	awk '!( $4 ~ /*/ )' | awk '{print $1,$0}' | awk -v unds=$unds 'BEGIN{FS=OFS=" "} { if($2 > unds) {printf("%.3f", $1=$1/unds)} else {printf($1=$3);} $1="" }1' | \
+	awk -v unds=$unds 'BEGIN{FS=OFS=" "} { if($2 > unds) {printf("%.f", $1=$3/$1)} else {printf($1=$3);} $1="" }1' | \
+	awk '$1<"1" {$1="1"}1' |  awk '!($2=$3="")' > ../preprocess/${i%.f*}_uniqsamp.sam
 
   for j in $(LC_ALL=C; sort -n -k1,1 ../preprocess/${i%.f*}_uniqsamp.sam | grep -v @ | awk '{print $1}' | uniq); do
   	awk -v n="^${j}" '$0~n{print $0}' ../preprocess/${i%.f*}_uniqsamp.sam| awk -v n="$j" '{for(i=0;i<n;i++) print}' >> ../preprocess/${i%.f*}_exp.sam
   done; wait
   awk '{print "seq"NR"_"$0}' ../preprocess/${i%.f*}_exp.sam | awk '{gsub(/ /,"\t"); print}' | awk '{$11 = $10; print}' | awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$11); print}' |\
   cat ../preprocess/${i%.f*}_heading.sam - > ../preprocess/${i%.f*}_${ref2%.f*}.sam
-  rm ../preprocess/${i%.f*}_exp.sam ../preprocess/${i%.f*}_chrpos.txt ../preprocess/${i%.f*}_uniqsamp.sam ../preprocess/${i%.f*}_uniq.sam
+	rm ../preprocess/${i%.f*}_exp.sam ../preprocess/${i%.f*}_chrpos.txt ../preprocess/${i%.f*}_uniqsamp.sam ../preprocess/${i%.f*}_uniq.sam
+	rm ../preprocess/${i%.f*}_chrpos.txt ../preprocess/${i%.f*}_heading.sam
 
   awk '{if ($5=="@HD" || $5=="@SQ" || $5=="@PG"); print $0}' ../preprocess/${i%.f*}_2del.sam > ../preprocess/${i%.f*}_3del.sam  && \
   grep -vwE "(@HD|@SQ|@PG)" ../preprocess/${i%.f*}_2del.sam | awk -v paralogs=$paralogs '{ if ($1 == 0 && $2 == 0 && $3 >= 1 && $3 <= paralogs && $4 == 0); print $0}' >> ../preprocess/${i%.f*}_3del.sam   && \
   awk '!($1=$2=$3=$4="")' ../preprocess/${i%.f*}_3del.sam | awk '{$1=$1};1' > ../preprocess/${i%.f*}_${ref3%.f*}.sam  && \
-  awk '{if ($1=="@HD" || $1=="@SQ"); print $0}' ../preprocess/${i%.f*}_${ref3%.f*}.sam | awk '{gsub(/ /,"\t"); print}' > ../preprocess/${i%.f*}_heading.sam
+	awk '/@HD/ || /@SQ/{print}' ../preprocess/${i%.f*}_${ref3%.f*}.sam | awk '{gsub(/ /,"\t"); print}' > ../preprocess/${i%.f*}_heading.sam
   awk '!/^@/ { print }' ../preprocess/${i%.f*}_${ref3%.f*}.sam | awk '{gsub(/^.*-/,"",$1); print $0}' | awk '{gsub(/^.*_/,"",$2); print $0}' > ../preprocess/${i%.f*}_uniq.sam
 
 	unds=$(( unbiased_downsample * ploidy_ref3 ))
-	awk -F' ' '{print $3,$4}' ../preprocess/${i%.f*}_uniq.sam | uniq | grep -v '*' > ../preprocess/${i%.f*}_chrpos.txt
-	while IFS="" read -r pos || [ -n "$pos" ]; do
-		maxp=$(awk -v pos="$pos" '$0 ~ pos' ../preprocess/${i%.f*}_uniq.sam | awk '{print $1}' | sort -n | tail -1)
-		factorp=$( printf %.3f $(echo "$maxp/$unds" | bc -l) )
-		awk -v pos="$pos" '$0 ~ pos' 1../preprocess/${i%.f*}_uniq.sam | awk -v factorp="$factorp" -v ds="$unds" '{ if (maxp > ds); printf("%.f", $1/factorp); $1=""}1' | \
-		awk '!($1==0)' >> ../preprocess/${i%.f*}_uniqsamp.sam
-	done < ../preprocess/${i%.f*}_chrpos.txt
+	awk -F' ' 'BEGIN{FS=OFS=" "} {if (a[$3,$4]<$1) {a[$3,$4]=$1; data[$3,$4]=$0}} END{for (i in a) print data[i]}' ../preprocess/${i%.f*}_uniq.sam | \
+	awk '{print $1,$3,$4}' | grep -v '*' > ../preprocess/${i%.f*}_chrpos.txt
+	awk '{print $1,$0}' ../preprocess/${i%.f*}_uniq.sam |
+	awk -F" " 'BEGIN{FS=OFS=" "} {if (NR==FNR) {a[$2FS$3]=$1; next} if ($4FS$5 in a) {$1=a[$4FS$5]} print}' ../preprocess/${i%.f*}_chrpos.txt - | \
+	awk '!( $4 ~ /*/ )' | awk '{print $1,$0}' | awk -v unds=$unds 'BEGIN{FS=OFS=" "} { if($2 > unds) {printf("%.3f", $1=$1/unds)} else {printf($1=$3);} $1="" }1' | \
+	awk -v unds=$unds 'BEGIN{FS=OFS=" "} { if($2 > unds) {printf("%.f", $1=$3/$1)} else {printf($1=$3);} $1="" }1' | \
+	awk '$1<"1" {$1="1"}1' |  awk '!($2=$3="")' > ../preprocess/${i%.f*}_uniqsamp.sam
 
   for j in $(LC_ALL=C; sort -n -k1,1 ../preprocess/${i%.f*}_uniqsamp.sam | grep -v @ | awk '{print $1}' | uniq); do
   	awk -v n="^${j}" '$0~n{print $0}' ../preprocess/${i%.f*}_uniqsamp.sam | awk -v n="$j" '{for(i=0;i<n;i++) print}' >> ../preprocess/${i%.f*}_exp.sam
   done; wait
   awk '{print "seq"NR"_"$0}' ../preprocess/${i%.f*}_exp.sam | awk '{gsub(/ /,"\t"); print}' | awk '{$11 = $10; print}' | awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$11); print}' |\
   cat ../preprocess/${i%.f*}_heading.sam - > ../preprocess/${i%.f*}_${ref3%.f*}.sam
-  rm ../preprocess/${i%.f*}_exp.sam ../preprocess/${i%.f*}_chrpos.txt ../preprocess/${i%.f*}_uniqsamp.sam ../preprocess/${i%.f*}_uniq.sam
+	rm ../preprocess/${i%.f*}_exp.sam ../preprocess/${i%.f*}_chrpos.txt ../preprocess/${i%.f*}_uniqsamp.sam ../preprocess/${i%.f*}_uniq.sam
+	rm ../preprocess/${i%.f*}_chrpos.txt ../preprocess/${i%.f*}_heading.sam
 
   awk '{if ($5=="@HD" || $5=="@SQ" || $5=="@PG"); print $0}' ../preprocess/${i%.f*}_2del.sam > ../preprocess/${i%.f*}_3del.sam  && \
   grep -vwE "(@HD|@SQ|@PG)" ../preprocess/${i%.f*}_2del.sam | awk -v paralogs=$paralogs '{ if ($1 == 0 && $2 == 0 && $3 == 0 && $4 >= 1 && $4 <= paralogs); print $0}' >> ../preprocess/${i%.f*}_3del.sam   && \
   awk '!($1=$2=$3=$4="")' ../preprocess/${i%.f*}_3del.sam | awk '{$1=$1};1' > ../preprocess/${i%.f*}_${ref4%.f*}.sam  && \
-  awk '{if ($1=="@HD" || $1=="@SQ"); print $0}' ../preprocess/${i%.f*}_${ref4%.f*}.sam | awk '{gsub(/ /,"\t"); print}' > ../preprocess/${i%.f*}_heading.sam
+	awk '/@HD/ || /@SQ/{print}' ../preprocess/${i%.f*}_${ref4%.f*}.sam | awk '{gsub(/ /,"\t"); print}' > ../preprocess/${i%.f*}_heading.sam
   awk '!/^@/ { print }' ../preprocess/${i%.f*}_${ref4%.f*}.sam | awk '{gsub(/^.*-/,"",$1); print $0}' | awk '{gsub(/^.*_/,"",$2); print $0}' > ../preprocess/${i%.f*}_uniq.sam
 
 	unds=$(( unbiased_downsample * ploidy_ref4 ))
-	awk -F' ' '{print $3,$4}' ../preprocess/${i%.f*}_uniq.sam | uniq | grep -v '*' > ../preprocess/${i%.f*}_chrpos.txt
-	while IFS="" read -r pos || [ -n "$pos" ]; do
-		maxp=$(awk -v pos="$pos" '$0 ~ pos' ../preprocess/${i%.f*}_uniq.sam | awk '{print $1}' | sort -n | tail -1)
-		factorp=$( printf %.3f $(echo "$maxp/$unds" | bc -l) )
-		awk -v pos="$pos" '$0 ~ pos' 1../preprocess/${i%.f*}_uniq.sam | awk -v factorp="$factorp" -v ds="$unds" '{ if (maxp > ds); printf("%.f", $1/factorp); $1=""}1' | \
-		awk '!($1==0)' >> ../preprocess/${i%.f*}_uniqsamp.sam
-	done < ../preprocess/${i%.f*}_chrpos.txt
+	awk -F' ' 'BEGIN{FS=OFS=" "} {if (a[$3,$4]<$1) {a[$3,$4]=$1; data[$3,$4]=$0}} END{for (i in a) print data[i]}' ../preprocess/${i%.f*}_uniq.sam | \
+	awk '{print $1,$3,$4}' | grep -v '*' > ../preprocess/${i%.f*}_chrpos.txt
+	awk '{print $1,$0}' ../preprocess/${i%.f*}_uniq.sam |
+	awk -F" " 'BEGIN{FS=OFS=" "} {if (NR==FNR) {a[$2FS$3]=$1; next} if ($4FS$5 in a) {$1=a[$4FS$5]} print}' ../preprocess/${i%.f*}_chrpos.txt - | \
+	awk '!( $4 ~ /*/ )' | awk '{print $1,$0}' | awk -v unds=$unds 'BEGIN{FS=OFS=" "} { if($2 > unds) {printf("%.3f", $1=$1/unds)} else {printf($1=$3);} $1="" }1' | \
+	awk -v unds=$unds 'BEGIN{FS=OFS=" "} { if($2 > unds) {printf("%.f", $1=$3/$1)} else {printf($1=$3);} $1="" }1' | \
+	awk '$1<"1" {$1="1"}1' |  awk '!($2=$3="")' > ../preprocess/${i%.f*}_uniqsamp.sam
 
   for j in $(LC_ALL=C; sort -n -k1,1 ../preprocess/${i%.f*}_uniqsamp.sam | grep -v @ | awk '{print $1}' | uniq); do
   	awk -v n="^${j}" '$0~n{print $0}' ../preprocess/${i%.f*}_uniqsamp.sam | awk -v n="$j" '{for(i=0;i<n;i++) print}' >> ../preprocess/${i%.f*}_exp.sam
   done; wait
   awk '{print "seq"NR"_"$0}' ../preprocess/${i%.f*}_exp.sam | awk '{gsub(/ /,"\t"); print}' | awk '{$11 = $10; print}' | awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$11); print}' |\
   cat ../preprocess/${i%.f*}_heading.sam - > ../preprocess/${i%.f*}_${ref4%.f*}.sam
-  rm ../preprocess/${i%.f*}_exp.sam ../preprocess/${i%.f*}_chrpos.txt ../preprocess/${i%.f*}_uniqsamp.sam ../preprocess/${i%.f*}_uniq.sam
+	rm ../preprocess/${i%.f*}_exp.sam ../preprocess/${i%.f*}_chrpos.txt ../preprocess/${i%.f*}_uniqsamp.sam ../preprocess/${i%.f*}_uniq.sam
+	rm ../preprocess/${i%.f*}_chrpos.txt ../preprocess/${i%.f*}_heading.sam
 
 
   awk '{if ($5=="@HD" || $5=="@SQ" || $5=="@PG"); print $0}' ../preprocess/${i%.f*}_2del.sam > ../preprocess/${i%.f*}_3del.sam  && \
   grep -vwE "(@HD|@SQ|@PG)" ../preprocess/${i%.f*}_2del.sam | awk -v paralogs=$paralogs '{ if ($1 >= 1 && $1 <= paralogs && $2 >= 1 && $2 <= paralogs && $3 == 0 && $4 == 0); print $0}' >> ../preprocess/${i%.f*}_3del.sam   && \
   awk '!($1=$2=$3=$4="")' ../preprocess/${i%.f*}_3del.sam | awk '{$1=$1};1' > ../preprocess/${i%.f*}_${ref1%.f*}_${ref2%.f*}.sam  && \
-  awk '{if ($1=="@HD" || $1=="@SQ"); print $0}' ../preprocess/${i%.f*}_${ref1%.f*}_${ref2%.f*}.sam | awk '{gsub(/ /,"\t"); print}' > ../preprocess/${i%.f*}_heading.sam
-  awk '!/^@/ { print }' ../preprocess/${i%.f*}_${ref1%.f*}_${ref2%.f*}.sam | awk '{gsub(/^.*-/,"",$1); print $0}' | awk '{gsub(/^.*_/,"",$2); print $0}' > ../preprocess/${i%.f*}_uniq.sam
+	awk '/@HD/ || /@SQ/{print}' ../preprocess/${i%.f*}_${ref1%.f*}_${ref2%.f*}.sam | awk '{gsub(/ /,"\t"); print}' > ../preprocess/${i%.f*}_heading.sam
+    awk '!/^@/ { print }' ../preprocess/${i%.f*}_${ref1%.f*}_${ref2%.f*}.sam | awk '{gsub(/^.*-/,"",$1); print $0}' | awk '{gsub(/^.*_/,"",$2); print $0}' > ../preprocess/${i%.f*}_uniq.sam
 
 	calcploidy=$(( ploidy_ref1 + ploidy_ref2 ))
 	unds=$(( unbiased_downsample * calcploidy))
-	awk -F' ' '{print $3,$4}' ../preprocess/${i%.f*}_uniq.sam | uniq | grep -v '*' > ../preprocess/${i%.f*}_chrpos.txt
-	while IFS="" read -r pos || [ -n "$pos" ]; do
-		maxp=$(awk -v pos="$pos" '$0 ~ pos' ../preprocess/${i%.f*}_uniq.sam | awk '{print $1}' | sort -n | tail -1)
-		factorp=$( printf %.3f $(echo "$maxp/$unds" | bc -l) )
-		awk -v pos="$pos" '$0 ~ pos' 1../preprocess/${i%.f*}_uniq.sam | awk -v factorp="$factorp" -v ds="$unds" '{ if (maxp > ds); printf("%.f", $1/factorp); $1=""}1' | \
-		awk '!($1==0)' >> ../preprocess/${i%.f*}_uniqsamp.sam
-	done < ../preprocess/${i%.f*}_chrpos.txt
+	awk -F' ' 'BEGIN{FS=OFS=" "} {if (a[$3,$4]<$1) {a[$3,$4]=$1; data[$3,$4]=$0}} END{for (i in a) print data[i]}' ../preprocess/${i%.f*}_uniq.sam | \
+	awk '{print $1,$3,$4}' | grep -v '*' > ../preprocess/${i%.f*}_chrpos.txt
+	awk '{print $1,$0}' ../preprocess/${i%.f*}_uniq.sam |
+	awk -F" " 'BEGIN{FS=OFS=" "} {if (NR==FNR) {a[$2FS$3]=$1; next} if ($4FS$5 in a) {$1=a[$4FS$5]} print}' ../preprocess/${i%.f*}_chrpos.txt - | \
+	awk '!( $4 ~ /*/ )' | awk '{print $1,$0}' | awk -v unds=$unds 'BEGIN{FS=OFS=" "} { if($2 > unds) {printf("%.3f", $1=$1/unds)} else {printf($1=$3);} $1="" }1' | \
+	awk -v unds=$unds 'BEGIN{FS=OFS=" "} { if($2 > unds) {printf("%.f", $1=$3/$1)} else {printf($1=$3);} $1="" }1' | \
+	awk '$1<"1" {$1="1"}1' |  awk '!($2=$3="")' > ../preprocess/${i%.f*}_uniqsamp.sam
 
   for j in $(LC_ALL=C; sort -n -k1,1 ../preprocess/${i%.f*}_uniqsamp.sam | grep -v @ | awk '{print $1}' | uniq); do
   	awk -v n="^${j}" '$0~n{print $0}' ../preprocess/${i%.f*}_uniqsamp.sam | awk -v n="$j" '{for(i=0;i<n;i++) print}' >> ../preprocess/${i%.f*}_exp.sam
   done; wait
   awk '{print "seq"NR"_"$0}' ../preprocess/${i%.f*}_exp.sam | awk '{gsub(/ /,"\t"); print}' | awk '{$11 = $10; print}' | awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$11); print}' |\
   cat ../preprocess/${i%.f*}_heading.sam - > ../preprocess/${i%.f*}_${ref1%.f*}_${ref2%.f*}.sam
-  rm ../preprocess/${i%.f*}_exp.sam ../preprocess/${i%.f*}_chrpos.txt ../preprocess/${i%.f*}_uniqsamp.sam ../preprocess/${i%.f*}_uniq.sam
+	rm ../preprocess/${i%.f*}_exp.sam ../preprocess/${i%.f*}_chrpos.txt ../preprocess/${i%.f*}_uniqsamp.sam ../preprocess/${i%.f*}_uniq.sam
+	rm ../preprocess/${i%.f*}_chrpos.txt ../preprocess/${i%.f*}_heading.sam
 
   awk '{if ($5=="@HD" || $5=="@SQ" || $5=="@PG"); print $0}' ../preprocess/${i%.f*}_2del.sam > ../preprocess/${i%.f*}_3del.sam  && \
   grep -vwE "(@HD|@SQ|@PG)" ../preprocess/${i%.f*}_2del.sam | awk -v paralogs=$paralogs '{ if ($1 >= 1 && $1 <= paralogs && $2 == 0 && $3 >= 1 && $3 <= paralogs && $4 == 0); print $0}' >> ../preprocess/${i%.f*}_3del.sam   && \
   awk '!($1=$2=$3=$4="")' ../preprocess/${i%.f*}_3del.sam | awk '{$1=$1};1' > ../preprocess/${i%.f*}_${ref1%.f*}_${ref3%.f*}.sam  && \
-  awk '{if ($1=="@HD" || $1=="@SQ"); print $0}' ../preprocess/${i%.f*}_${ref1%.f*}_${ref3%.f*}.sam | awk '{gsub(/ /,"\t"); print}' > ../preprocess/${i%.f*}_heading.sam
-  awk '!/^@/ { print }' ../preprocess/${i%.f*}_${ref1%.f*}_${ref3%.f*}.sam | awk '{gsub(/^.*-/,"",$1); print $0}' | awk '{gsub(/^.*_/,"",$2); print $0}' > ../preprocess/${i%.f*}_uniq.sam
+	awk '/@HD/ || /@SQ/{print}' ../preprocess/${i%.f*}_${ref1%.f*}_${ref3%.f*}.sam | awk '{gsub(/ /,"\t"); print}' > ../preprocess/${i%.f*}_heading.sam
+    awk '!/^@/ { print }' ../preprocess/${i%.f*}_${ref1%.f*}_${ref3%.f*}.sam | awk '{gsub(/^.*-/,"",$1); print $0}' | awk '{gsub(/^.*_/,"",$2); print $0}' > ../preprocess/${i%.f*}_uniq.sam
 
 	calcploidy=$(( ploidy_ref1 + ploidy_ref3 ))
 	unds=$(( unbiased_downsample * calcploidy))
-	awk -F' ' '{print $3,$4}' ../preprocess/${i%.f*}_uniq.sam | uniq | grep -v '*' > ../preprocess/${i%.f*}_chrpos.txt
-	while IFS="" read -r pos || [ -n "$pos" ]; do
-		maxp=$(awk -v pos="$pos" '$0 ~ pos' ../preprocess/${i%.f*}_uniq.sam | awk '{print $1}' | sort -n | tail -1)
-		factorp=$( printf %.3f $(echo "$maxp/$unds" | bc -l) )
-		awk -v pos="$pos" '$0 ~ pos' 1../preprocess/${i%.f*}_uniq.sam | awk -v factorp="$factorp" -v ds="$unds" '{ if (maxp > ds); printf("%.f", $1/factorp); $1=""}1' | \
-		awk '!($1==0)' >> ../preprocess/${i%.f*}_uniqsamp.sam
-	done < ../preprocess/${i%.f*}_chrpos.txt
+	awk -F' ' 'BEGIN{FS=OFS=" "} {if (a[$3,$4]<$1) {a[$3,$4]=$1; data[$3,$4]=$0}} END{for (i in a) print data[i]}' ../preprocess/${i%.f*}_uniq.sam | \
+	awk '{print $1,$3,$4}' | grep -v '*' > ../preprocess/${i%.f*}_chrpos.txt
+	awk '{print $1,$0}' ../preprocess/${i%.f*}_uniq.sam |
+	awk -F" " 'BEGIN{FS=OFS=" "} {if (NR==FNR) {a[$2FS$3]=$1; next} if ($4FS$5 in a) {$1=a[$4FS$5]} print}' ../preprocess/${i%.f*}_chrpos.txt - | \
+	awk '!( $4 ~ /*/ )' | awk '{print $1,$0}' | awk -v unds=$unds 'BEGIN{FS=OFS=" "} { if($2 > unds) {printf("%.3f", $1=$1/unds)} else {printf($1=$3);} $1="" }1' | \
+	awk -v unds=$unds 'BEGIN{FS=OFS=" "} { if($2 > unds) {printf("%.f", $1=$3/$1)} else {printf($1=$3);} $1="" }1' | \
+	awk '$1<"1" {$1="1"}1' |  awk '!($2=$3="")' > ../preprocess/${i%.f*}_uniqsamp.sam
 
   for j in $(LC_ALL=C; sort -n -k1,1 ../preprocess/${i%.f*}_uniqsamp.sam | grep -v @ | awk '{print $1}' | uniq); do
   	awk -v n="^${j}" '$0~n{print $0}' ../preprocess/${i%.f*}_uniqsamp.sam | awk -v n="$j" '{for(i=0;i<n;i++) print}' >> ../preprocess/${i%.f*}_exp.sam
   done; wait
   awk '{print "seq"NR"_"$0}' ../preprocess/${i%.f*}_exp.sam | awk '{gsub(/ /,"\t"); print}' | awk '{$11 = $10; print}' | awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$11); print}' |\
   cat ../preprocess/${i%.f*}_heading.sam - > ../preprocess/${i%.f*}_${ref1%.f*}_${ref3%.f*}.sam
-  rm ../preprocess/${i%.f*}_exp.sam ../preprocess/${i%.f*}_chrpos.txt ../preprocess/${i%.f*}_uniqsamp.sam ../preprocess/${i%.f*}_uniq.sam
+	rm ../preprocess/${i%.f*}_exp.sam ../preprocess/${i%.f*}_chrpos.txt ../preprocess/${i%.f*}_uniqsamp.sam ../preprocess/${i%.f*}_uniq.sam
+	rm ../preprocess/${i%.f*}_chrpos.txt ../preprocess/${i%.f*}_heading.sam
 
   awk '{if ($5=="@HD" || $5=="@SQ" || $5=="@PG"); print $0}' ../preprocess/${i%.f*}_2del.sam > ../preprocess/${i%.f*}_3del.sam  && \
   grep -vwE "(@HD|@SQ|@PG)" ../preprocess/${i%.f*}_2del.sam | awk -v paralogs=$paralogs '{ if ($1 >= 1 && $1 <= paralogs && $2 == 0 && $3 == 0 && $4 >= 1 && $4 <= paralogs); print $0}' >> ../preprocess/${i%.f*}_3del.sam   && \
   awk '!($1=$2=$3=$4="")' ../preprocess/${i%.f*}_3del.sam | awk '{$1=$1};1' > ../preprocess/${i%.f*}_${ref1%.f*}_${ref4%.f*}.sam  && \
-  awk '{if ($1=="@HD" || $1=="@SQ"); print $0}' ../preprocess/${i%.f*}_${ref1%.f*}_${ref4%.f*}.sam | awk '{gsub(/ /,"\t"); print}' > ../preprocess/${i%.f*}_heading.sam
-  awk '!/^@/ { print }' ../preprocess/${i%.f*}_${ref1%.f*}_${ref4%.f*}.sam | awk '{gsub(/^.*-/,"",$1); print $0}' | awk '{gsub(/^.*_/,"",$2); print $0}' > ../preprocess/${i%.f*}_uniq.sam
+	awk '/@HD/ || /@SQ/{print}' ../preprocess/${i%.f*}_${ref1%.f*}_${ref4%.f*}.sam | awk '{gsub(/ /,"\t"); print}' > ../preprocess/${i%.f*}_heading.sam
+    awk '!/^@/ { print }' ../preprocess/${i%.f*}_${ref1%.f*}_${ref4%.f*}.sam | awk '{gsub(/^.*-/,"",$1); print $0}' | awk '{gsub(/^.*_/,"",$2); print $0}' > ../preprocess/${i%.f*}_uniq.sam
 
 	calcploidy=$(( ploidy_ref1 + ploidy_ref4 ))
 	unds=$(( unbiased_downsample * calcploidy))
-	awk -F' ' '{print $3,$4}' ../preprocess/${i%.f*}_uniq.sam | uniq | grep -v '*' > ../preprocess/${i%.f*}_chrpos.txt
-	while IFS="" read -r pos || [ -n "$pos" ]; do
-		maxp=$(awk -v pos="$pos" '$0 ~ pos' ../preprocess/${i%.f*}_uniq.sam | awk '{print $1}' | sort -n | tail -1)
-		factorp=$( printf %.3f $(echo "$maxp/$unds" | bc -l) )
-		awk -v pos="$pos" '$0 ~ pos' 1../preprocess/${i%.f*}_uniq.sam | awk -v factorp="$factorp" -v ds="$unds" '{ if (maxp > ds); printf("%.f", $1/factorp); $1=""}1' | \
-		awk '!($1==0)' >> ../preprocess/${i%.f*}_uniqsamp.sam
-	done < ../preprocess/${i%.f*}_chrpos.txt
+	awk -F' ' 'BEGIN{FS=OFS=" "} {if (a[$3,$4]<$1) {a[$3,$4]=$1; data[$3,$4]=$0}} END{for (i in a) print data[i]}' ../preprocess/${i%.f*}_uniq.sam | \
+	awk '{print $1,$3,$4}' | grep -v '*' > ../preprocess/${i%.f*}_chrpos.txt
+	awk '{print $1,$0}' ../preprocess/${i%.f*}_uniq.sam |
+	awk -F" " 'BEGIN{FS=OFS=" "} {if (NR==FNR) {a[$2FS$3]=$1; next} if ($4FS$5 in a) {$1=a[$4FS$5]} print}' ../preprocess/${i%.f*}_chrpos.txt - | \
+	awk '!( $4 ~ /*/ )' | awk '{print $1,$0}' | awk -v unds=$unds 'BEGIN{FS=OFS=" "} { if($2 > unds) {printf("%.3f", $1=$1/unds)} else {printf($1=$3);} $1="" }1' | \
+	awk -v unds=$unds 'BEGIN{FS=OFS=" "} { if($2 > unds) {printf("%.f", $1=$3/$1)} else {printf($1=$3);} $1="" }1' | \
+	awk '$1<"1" {$1="1"}1' |  awk '!($2=$3="")' > ../preprocess/${i%.f*}_uniqsamp.sam
 
   for j in $(LC_ALL=C; sort -n -k1,1 ../preprocess/${i%.f*}_uniqsamp.sam | grep -v @ | awk '{print $1}' | uniq); do
   	awk -v n="^${j}" '$0~n{print $0}' ../preprocess/${i%.f*}_uniqsamp.sam | awk -v n="$j" '{for(i=0;i<n;i++) print}' >> ../preprocess/${i%.f*}_exp.sam
   done; wait
   awk '{print "seq"NR"_"$0}' ../preprocess/${i%.f*}_exp.sam | awk '{gsub(/ /,"\t"); print}' | awk '{$11 = $10; print}' | awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$11); print}' |\
   cat ../preprocess/${i%.f*}_heading.sam - > ../preprocess/${i%.f*}_${ref1%.f*}_${ref4%.f*}.sam
-  rm ../preprocess/${i%.f*}_exp.sam ../preprocess/${i%.f*}_chrpos.txt ../preprocess/${i%.f*}_uniqsamp.sam ../preprocess/${i%.f*}_uniq.sam
+	rm ../preprocess/${i%.f*}_exp.sam ../preprocess/${i%.f*}_chrpos.txt ../preprocess/${i%.f*}_uniqsamp.sam ../preprocess/${i%.f*}_uniq.sam
+	rm ../preprocess/${i%.f*}_chrpos.txt ../preprocess/${i%.f*}_heading.sam
 
   awk '{if ($5=="@HD" || $5=="@SQ" || $5=="@PG"); print $0}' ../preprocess/${i%.f*}_2del.sam > ../preprocess/${i%.f*}_3del.sam  && \
   grep -vwE "(@HD|@SQ|@PG)" ../preprocess/${i%.f*}_2del.sam | awk -v paralogs=$paralogs '{ if ($1 == 0 && $2 >= 1 && $2 <= paralogs && $3 >= 1 && $3 <= paralogs && $4 == 0); print $0}' >> ../preprocess/${i%.f*}_3del.sam   && \
   awk '!($1=$2=$3=$4="")' ../preprocess/${i%.f*}_3del.sam | awk '{$1=$1};1' > ../preprocess/${i%.f*}_${ref2%.f*}_${ref3%.f*}.sam  && \
-  awk '{if ($1=="@HD" || $1=="@SQ"); print $0}' ../preprocess/${i%.f*}_${ref2%.f*}_${ref3%.f*}.sam | awk '{gsub(/ /,"\t"); print}' > ../preprocess/${i%.f*}_heading.sam
+	awk '/@HD/ || /@SQ/{print}' ../preprocess/${i%.f*}_${ref2%.f*}_${ref3%.f*}.sam | awk '{gsub(/ /,"\t"); print}' > ../preprocess/${i%.f*}_heading.sam
   awk '!/^@/ { print }' ../preprocess/${i%.f*}_${ref2%.f*}_${ref3%.f*}.sam | awk '{gsub(/^.*-/,"",$1); print $0}' | awk '{gsub(/^.*_/,"",$2); print $0}' > ../preprocess/${i%.f*}_uniq.sam
 
 	calcploidy=$(( ploidy_ref2 + ploidy_ref3 ))
 	unds=$(( unbiased_downsample * calcploidy))
-	awk -F' ' '{print $3,$4}' ../preprocess/${i%.f*}_uniq.sam | uniq | grep -v '*' > ../preprocess/${i%.f*}_chrpos.txt
-	while IFS="" read -r pos || [ -n "$pos" ]; do
-		maxp=$(awk -v pos="$pos" '$0 ~ pos' ../preprocess/${i%.f*}_uniq.sam | awk '{print $1}' | sort -n | tail -1)
-		factorp=$( printf %.3f $(echo "$maxp/$unds" | bc -l) )
-		awk -v pos="$pos" '$0 ~ pos' 1../preprocess/${i%.f*}_uniq.sam | awk -v factorp="$factorp" -v ds="$unds" '{ if (maxp > ds); printf("%.f", $1/factorp); $1=""}1' | \
-		awk '!($1==0)' >> ../preprocess/${i%.f*}_uniqsamp.sam
-	done < ../preprocess/${i%.f*}_chrpos.txt
+	awk -F' ' 'BEGIN{FS=OFS=" "} {if (a[$3,$4]<$1) {a[$3,$4]=$1; data[$3,$4]=$0}} END{for (i in a) print data[i]}' ../preprocess/${i%.f*}_uniq.sam | \
+	awk '{print $1,$3,$4}' | grep -v '*' > ../preprocess/${i%.f*}_chrpos.txt
+	awk '{print $1,$0}' ../preprocess/${i%.f*}_uniq.sam |
+	awk -F" " 'BEGIN{FS=OFS=" "} {if (NR==FNR) {a[$2FS$3]=$1; next} if ($4FS$5 in a) {$1=a[$4FS$5]} print}' ../preprocess/${i%.f*}_chrpos.txt - | \
+	awk '!( $4 ~ /*/ )' | awk '{print $1,$0}' | awk -v unds=$unds 'BEGIN{FS=OFS=" "} { if($2 > unds) {printf("%.3f", $1=$1/unds)} else {printf($1=$3);} $1="" }1' | \
+	awk -v unds=$unds 'BEGIN{FS=OFS=" "} { if($2 > unds) {printf("%.f", $1=$3/$1)} else {printf($1=$3);} $1="" }1' | \
+	awk '$1<"1" {$1="1"}1' |  awk '!($2=$3="")' > ../preprocess/${i%.f*}_uniqsamp.sam
 
   for j in $(LC_ALL=C; sort -n -k1,1 ../preprocess/${i%.f*}_uniqsamp.sam | grep -v @ | awk '{print $1}' | uniq); do
   	awk -v n="^${j}" '$0~n{print $0}' ../preprocess/${i%.f*}_uniqsamp.sam | awk -v n="$j" '{for(i=0;i<n;i++) print}' >> ../preprocess/${i%.f*}_exp.sam
   done; wait
   awk '{print "seq"NR"_"$0}' ../preprocess/${i%.f*}_exp.sam | awk '{gsub(/ /,"\t"); print}' | awk '{$11 = $10; print}' | awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$11); print}' |\
   cat ../preprocess/${i%.f*}_heading.sam - > ../preprocess/${i%.f*}_${ref2%.f*}_${ref3%.f*}.sam
-  rm ../preprocess/${i%.f*}_exp.sam ../preprocess/${i%.f*}_chrpos.txt ../preprocess/${i%.f*}_uniqsamp.sam ../preprocess/${i%.f*}_uniq.sam
+	rm ../preprocess/${i%.f*}_exp.sam ../preprocess/${i%.f*}_chrpos.txt ../preprocess/${i%.f*}_uniqsamp.sam ../preprocess/${i%.f*}_uniq.sam
+	rm ../preprocess/${i%.f*}_chrpos.txt ../preprocess/${i%.f*}_heading.sam
 
   awk '{if ($5=="@HD" || $5=="@SQ" || $5=="@PG"); print $0}' ../preprocess/${i%.f*}_2del.sam > ../preprocess/${i%.f*}_3del.sam  && \
   grep -vwE "(@HD|@SQ|@PG)" ../preprocess/${i%.f*}_2del.sam | awk -v paralogs=$paralogs '{ if ($1 == 0 && $2 >= 1 && $2 <= paralogs && $3 == 0 && $4 >= 1 && $4 <= paralogs); print $0}' >> ../preprocess/${i%.f*}_3del.sam   && \
   awk '!($1=$2=$3=$4="")' ../preprocess/${i%.f*}_3del.sam | awk '{$1=$1};1' > ../preprocess/${i%.f*}_${ref2%.f*}_${ref4%.f*}.sam  && \
-  awk '{if ($1=="@HD" || $1=="@SQ"); print $0}' ../preprocess/${i%.f*}_${ref2%.f*}_${ref4%.f*}.sam | awk '{gsub(/ /,"\t"); print}' > ../preprocess/${i%.f*}_heading.sam
+	awk '/@HD/ || /@SQ/{print}' ../preprocess/${i%.f*}_${ref2%.f*}_${ref4%.f*}.sam | awk '{gsub(/ /,"\t"); print}' > ../preprocess/${i%.f*}_heading.sam
   awk '!/^@/ { print }' ../preprocess/${i%.f*}_${ref2%.f*}_${ref4%.f*}.sam | awk '{gsub(/^.*-/,"",$1); print $0}' | awk '{gsub(/^.*_/,"",$2); print $0}' > ../preprocess/${i%.f*}_uniq.sam
 
 	calcploidy=$(( ploidy_ref2 + ploidy_ref4 ))
 	unds=$(( unbiased_downsample * calcploidy))
-	awk -F' ' '{print $3,$4}' ../preprocess/${i%.f*}_uniq.sam | uniq | grep -v '*' > ../preprocess/${i%.f*}_chrpos.txt
-	while IFS="" read -r pos || [ -n "$pos" ]; do
-		maxp=$(awk -v pos="$pos" '$0 ~ pos' ../preprocess/${i%.f*}_uniq.sam | awk '{print $1}' | sort -n | tail -1)
-		factorp=$( printf %.3f $(echo "$maxp/$unds" | bc -l) )
-		awk -v pos="$pos" '$0 ~ pos' 1../preprocess/${i%.f*}_uniq.sam | awk -v factorp="$factorp" -v ds="$unds" '{ if (maxp > ds); printf("%.f", $1/factorp); $1=""}1' | \
-		awk '!($1==0)' >> ../preprocess/${i%.f*}_uniqsamp.sam
-	done < ../preprocess/${i%.f*}_chrpos.txt
+	awk -F' ' 'BEGIN{FS=OFS=" "} {if (a[$3,$4]<$1) {a[$3,$4]=$1; data[$3,$4]=$0}} END{for (i in a) print data[i]}' ../preprocess/${i%.f*}_uniq.sam | \
+	awk '{print $1,$3,$4}' | grep -v '*' > ../preprocess/${i%.f*}_chrpos.txt
+	awk '{print $1,$0}' ../preprocess/${i%.f*}_uniq.sam |
+	awk -F" " 'BEGIN{FS=OFS=" "} {if (NR==FNR) {a[$2FS$3]=$1; next} if ($4FS$5 in a) {$1=a[$4FS$5]} print}' ../preprocess/${i%.f*}_chrpos.txt - | \
+	awk '!( $4 ~ /*/ )' | awk '{print $1,$0}' | awk -v unds=$unds 'BEGIN{FS=OFS=" "} { if($2 > unds) {printf("%.3f", $1=$1/unds)} else {printf($1=$3);} $1="" }1' | \
+	awk -v unds=$unds 'BEGIN{FS=OFS=" "} { if($2 > unds) {printf("%.f", $1=$3/$1)} else {printf($1=$3);} $1="" }1' | \
+	awk '$1<"1" {$1="1"}1' |  awk '!($2=$3="")' > ../preprocess/${i%.f*}_uniqsamp.sam
 
   for j in $(LC_ALL=C; sort -n -k1,1 ../preprocess/${i%.f*}_uniqsamp.sam | grep -v @ | awk '{print $1}' | uniq); do
   	awk -v n="^${j}" '$0~n{print $0}' ../preprocess/${i%.f*}_uniqsamp.sam | awk -v n="$j" '{for(i=0;i<n;i++) print}' >> ../preprocess/${i%.f*}_exp.sam
   done; wait
   awk '{print "seq"NR"_"$0}' ../preprocess/${i%.f*}_exp.sam | awk '{gsub(/ /,"\t"); print}' | awk '{$11 = $10; print}' | awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$11); print}' |\
   cat ../preprocess/${i%.f*}_heading.sam - > ../preprocess/${i%.f*}_${ref2%.f*}_${ref4%.f*}.sam
-  rm ../preprocess/${i%.f*}_exp.sam ../preprocess/${i%.f*}_chrpos.txt ../preprocess/${i%.f*}_uniqsamp.sam ../preprocess/${i%.f*}_uniq.sam
+	rm ../preprocess/${i%.f*}_exp.sam ../preprocess/${i%.f*}_chrpos.txt ../preprocess/${i%.f*}_uniqsamp.sam ../preprocess/${i%.f*}_uniq.sam
+	rm ../preprocess/${i%.f*}_chrpos.txt ../preprocess/${i%.f*}_heading.sam
 
   awk '{if ($5=="@HD" || $5=="@SQ" || $5=="@PG"); print $0}' ../preprocess/${i%.f*}_2del.sam > ../preprocess/${i%.f*}_3del.sam  && \
   grep -vwE "(@HD|@SQ|@PG)" ../preprocess/${i%.f*}_2del.sam | awk -v paralogs=$paralogs '{ if ($1 == 0 && $2 == 0 && $3 >= 1 && $3 <= paralogs && $4 >= 1 && $4 <= paralogs); print $0}' >> ../preprocess/${i%.f*}_3del.sam   && \
   awk '!($1=$2=$3=$4="")' ../preprocess/${i%.f*}_3del.sam | awk '{$1=$1};1' > ../preprocess/${i%.f*}_${ref3%.f*}_${ref4%.f*}.sam  && \
-  awk '{if ($1=="@HD" || $1=="@SQ"); print $0}' ../preprocess/${i%.f*}_${ref3%.f*}_${ref4%.f*}.sam | awk '{gsub(/ /,"\t"); print}' > ../preprocess/${i%.f*}_heading.sam
+	awk '/@HD/ || /@SQ/{print}' ../preprocess/${i%.f*}_${ref3%.f*}_${ref4%.f*}.sam | awk '{gsub(/ /,"\t"); print}' > ../preprocess/${i%.f*}_heading.sam
   awk '!/^@/ { print }' ../preprocess/${i%.f*}_${ref3%.f*}_${ref4%.f*}.sam | awk '{gsub(/^.*-/,"",$1); print $0}' | awk '{gsub(/^.*_/,"",$2); print $0}' > ../preprocess/${i%.f*}_uniq.sam
 
 	calcploidy=$(( ploidy_ref3 + ploidy_ref4 ))
 	unds=$(( unbiased_downsample * calcploidy))
-	awk -F' ' '{print $3,$4}' ../preprocess/${i%.f*}_uniq.sam | uniq | grep -v '*' > ../preprocess/${i%.f*}_chrpos.txt
-	while IFS="" read -r pos || [ -n "$pos" ]; do
-		maxp=$(awk -v pos="$pos" '$0 ~ pos' ../preprocess/${i%.f*}_uniq.sam | awk '{print $1}' | sort -n | tail -1)
-		factorp=$( printf %.3f $(echo "$maxp/$unds" | bc -l) )
-		awk -v pos="$pos" '$0 ~ pos' 1../preprocess/${i%.f*}_uniq.sam | awk -v factorp="$factorp" -v ds="$unds" '{ if (maxp > ds); printf("%.f", $1/factorp); $1=""}1' | \
-		awk '!($1==0)' >> ../preprocess/${i%.f*}_uniqsamp.sam
-	done < ../preprocess/${i%.f*}_chrpos.txt
+	awk -F' ' 'BEGIN{FS=OFS=" "} {if (a[$3,$4]<$1) {a[$3,$4]=$1; data[$3,$4]=$0}} END{for (i in a) print data[i]}' ../preprocess/${i%.f*}_uniq.sam | \
+	awk '{print $1,$3,$4}' | grep -v '*' > ../preprocess/${i%.f*}_chrpos.txt
+	awk '{print $1,$0}' ../preprocess/${i%.f*}_uniq.sam |
+	awk -F" " 'BEGIN{FS=OFS=" "} {if (NR==FNR) {a[$2FS$3]=$1; next} if ($4FS$5 in a) {$1=a[$4FS$5]} print}' ../preprocess/${i%.f*}_chrpos.txt - | \
+	awk '!( $4 ~ /*/ )' | awk '{print $1,$0}' | awk -v unds=$unds 'BEGIN{FS=OFS=" "} { if($2 > unds) {printf("%.3f", $1=$1/unds)} else {printf($1=$3);} $1="" }1' | \
+	awk -v unds=$unds 'BEGIN{FS=OFS=" "} { if($2 > unds) {printf("%.f", $1=$3/$1)} else {printf($1=$3);} $1="" }1' | \
+	awk '$1<"1" {$1="1"}1' |  awk '!($2=$3="")' > ../preprocess/${i%.f*}_uniqsamp.sam
 
   for j in $(LC_ALL=C; sort -n -k1,1 ../preprocess/${i%.f*}_uniqsamp.sam | grep -v @ | awk '{print $1}' | uniq); do
   	awk -v n="^${j}" '$0~n{print $0}' ../preprocess/${i%.f*}_uniqsamp.sam| awk -v n="$j" '{for(i=0;i<n;i++) print}' >> ../preprocess/${i%.f*}_exp.sam
   done; wait
   awk '{print "seq"NR"_"$0}' ../preprocess/${i%.f*}_exp.sam | awk '{gsub(/ /,"\t"); print}' | awk '{$11 = $10; print}' | awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$11); print}' |\
   cat ../preprocess/${i%.f*}_heading.sam - > ../preprocess/${i%.f*}_${ref3%.f*}_${ref4%.f*}.sam
-  rm ../preprocess/${i%.f*}_exp.sam ../preprocess/${i%.f*}_chrpos.txt ../preprocess/${i%.f*}_uniqsamp.sam ../preprocess/${i%.f*}_uniq.sam
+	rm ../preprocess/${i%.f*}_exp.sam ../preprocess/${i%.f*}_chrpos.txt ../preprocess/${i%.f*}_uniqsamp.sam ../preprocess/${i%.f*}_uniq.sam
+	rm ../preprocess/${i%.f*}_chrpos.txt ../preprocess/${i%.f*}_heading.sam
 
 
   awk '{if ($5=="@HD" || $5=="@SQ" || $5=="@PG"); print $0}' ../preprocess/${i%.f*}_2del.sam > ../preprocess/${i%.f*}_3del.sam  && \
   grep -vwE "(@HD|@SQ|@PG)" ../preprocess/${i%.f*}_2del.sam | awk -v paralogs=$paralogs '{ if ($1 >= 1 && $1 <= paralogs && $2 >= 1 && $2 <= paralogs && $3 >= 1 && $3 <= paralogs && $4 == 0); print $0}' >> ../preprocess/${i%.f*}_3del.sam   && \
   awk '!($1=$2=$3=$4="")' ../preprocess/${i%.f*}_3del.sam | awk '{$1=$1};1' > ../preprocess/${i%.f*}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}.sam  && \
-  awk '{if ($1=="@HD" || $1=="@SQ"); print $0}' ../preprocess/${i%.f*}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}.sam  | awk '{gsub(/ /,"\t"); print}' > ../preprocess/${i%.f*}_heading.sam
+	awk '/@HD/ || /@SQ/{print}' ../preprocess/${i%.f*}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}.sam | awk '{gsub(/ /,"\t"); print}' > ../preprocess/${i%.f*}_heading.sam
   awk '!/^@/ { print }' ../preprocess/${i%.f*}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}.sam | awk '{gsub(/^.*-/,"",$1); print $0}' | awk '{gsub(/^.*_/,"",$2); print $0}' > ../preprocess/${i%.f*}_uniq.sam
 
 	calcploidy=$(( ploidy_ref1 + ploidy_ref2 + ploidy_ref3 ))
 	unds=$(( unbiased_downsample * calcploidy))
-	awk -F' ' '{print $3,$4}' ../preprocess/${i%.f*}_uniq.sam | uniq | grep -v '*' > ../preprocess/${i%.f*}_chrpos.txt
-	while IFS="" read -r pos || [ -n "$pos" ]; do
-		maxp=$(awk -v pos="$pos" '$0 ~ pos' ../preprocess/${i%.f*}_uniq.sam | awk '{print $1}' | sort -n | tail -1)
-		factorp=$( printf %.3f $(echo "$maxp/$unds" | bc -l) )
-		awk -v pos="$pos" '$0 ~ pos' 1../preprocess/${i%.f*}_uniq.sam | awk -v factorp="$factorp" -v ds="$unds" '{ if (maxp > ds); printf("%.f", $1/factorp); $1=""}1' | \
-		awk '!($1==0)' >> ../preprocess/${i%.f*}_uniqsamp.sam
-	done < ../preprocess/${i%.f*}_chrpos.txt
+	awk -F' ' 'BEGIN{FS=OFS=" "} {if (a[$3,$4]<$1) {a[$3,$4]=$1; data[$3,$4]=$0}} END{for (i in a) print data[i]}' ../preprocess/${i%.f*}_uniq.sam | \
+	awk '{print $1,$3,$4}' | grep -v '*' > ../preprocess/${i%.f*}_chrpos.txt
+	awk '{print $1,$0}' ../preprocess/${i%.f*}_uniq.sam |
+	awk -F" " 'BEGIN{FS=OFS=" "} {if (NR==FNR) {a[$2FS$3]=$1; next} if ($4FS$5 in a) {$1=a[$4FS$5]} print}' ../preprocess/${i%.f*}_chrpos.txt - | \
+	awk '!( $4 ~ /*/ )' | awk '{print $1,$0}' | awk -v unds=$unds 'BEGIN{FS=OFS=" "} { if($2 > unds) {printf("%.3f", $1=$1/unds)} else {printf($1=$3);} $1="" }1' | \
+	awk -v unds=$unds 'BEGIN{FS=OFS=" "} { if($2 > unds) {printf("%.f", $1=$3/$1)} else {printf($1=$3);} $1="" }1' | \
+	awk '$1<"1" {$1="1"}1' |  awk '!($2=$3="")' > ../preprocess/${i%.f*}_uniqsamp.sam
 
   for j in $(LC_ALL=C; sort -n -k1,1 ../preprocess/${i%.f*}_uniqsamp.sam | grep -v @ | awk '{print $1}' | uniq); do
   	awk -v n="^${j}" '$0~n{print $0}' ../preprocess/${i%.f*}_uniqsamp.sam | awk -v n="$j" '{for(i=0;i<n;i++) print}' >> ../preprocess/${i%.f*}_exp.sam
   done; wait
   awk '{print "seq"NR"_"$0}' ../preprocess/${i%.f*}_exp.sam | awk '{gsub(/ /,"\t"); print}' | awk '{$11 = $10; print}' | awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$11); print}' |\
   cat ../preprocess/${i%.f*}_heading.sam - > ../preprocess/${i%.f*}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}.sam
-  rm ../preprocess/${i%.f*}_exp.sam ../preprocess/${i%.f*}_chrpos.txt ../preprocess/${i%.f*}_uniqsamp.sam ../preprocess/${i%.f*}_uniq.sam
+	rm ../preprocess/${i%.f*}_exp.sam ../preprocess/${i%.f*}_chrpos.txt ../preprocess/${i%.f*}_uniqsamp.sam ../preprocess/${i%.f*}_uniq.sam
+	rm ../preprocess/${i%.f*}_chrpos.txt ../preprocess/${i%.f*}_heading.sam
 
   awk '{if ($5=="@HD" || $5=="@SQ" || $5=="@PG"); print $0}' ../preprocess/${i%.f*}_2del.sam > ../preprocess/${i%.f*}_3del.sam  && \
   grep -vwE "(@HD|@SQ|@PG)" ../preprocess/${i%.f*}_2del.sam | awk -v paralogs=$paralogs '{ if ($1 >= 1 && $1 <= paralogs && $2 >= 1 && $2 <= paralogs && $3 == 0 && $4 >= 1 && $4 <= paralogs); print $0}' >> ../preprocess/${i%.f*}_3del.sam   && \
   awk '!($1=$2=$3=$4="")' ../preprocess/${i%.f*}_3del.sam | awk '{$1=$1};1' > ../preprocess/${i%.f*}_${ref1%.f*}_${ref2%.f*}_${ref4%.f*}.sam  && \
-  awk '{if ($1=="@HD" || $1=="@SQ"); print $0}' ../preprocess/${i%.f*}_${ref1%.f*}_${ref2%.f*}_${ref4%.f*}.sam  | awk '{gsub(/ /,"\t"); print}' > ../preprocess/${i%.f*}_heading.sam
+	awk '/@HD/ || /@SQ/{print}' ../preprocess/${i%.f*}_${ref1%.f*}_${ref2%.f*}_${ref4%.f*}.sam | awk '{gsub(/ /,"\t"); print}' > ../preprocess/${i%.f*}_heading.sam
   awk '!/^@/ { print }' ../preprocess/${i%.f*}_${ref1%.f*}_${ref2%.f*}_${ref4%.f*}.sam | awk '{gsub(/^.*-/,"",$1); print $0}' | awk '{gsub(/^.*_/,"",$2); print $0}' > ../preprocess/${i%.f*}_uniq.sam
 
 	calcploidy=$(( ploidy_ref1 + ploidy_ref2 + ploidy_ref4 ))
 	unds=$(( unbiased_downsample * calcploidy))
-	awk -F' ' '{print $3,$4}' ../preprocess/${i%.f*}_uniq.sam | uniq | grep -v '*' > ../preprocess/${i%.f*}_chrpos.txt
-	while IFS="" read -r pos || [ -n "$pos" ]; do
-		maxp=$(awk -v pos="$pos" '$0 ~ pos' ../preprocess/${i%.f*}_uniq.sam | awk '{print $1}' | sort -n | tail -1)
-		factorp=$( printf %.3f $(echo "$maxp/$unds" | bc -l) )
-		awk -v pos="$pos" '$0 ~ pos' 1../preprocess/${i%.f*}_uniq.sam | awk -v factorp="$factorp" -v ds="$unds" '{ if (maxp > ds); printf("%.f", $1/factorp); $1=""}1' | \
-		awk '!($1==0)' >> ../preprocess/${i%.f*}_uniqsamp.sam
-	done < ../preprocess/${i%.f*}_chrpos.txt
+	awk -F' ' 'BEGIN{FS=OFS=" "} {if (a[$3,$4]<$1) {a[$3,$4]=$1; data[$3,$4]=$0}} END{for (i in a) print data[i]}' ../preprocess/${i%.f*}_uniq.sam | \
+	awk '{print $1,$3,$4}' | grep -v '*' > ../preprocess/${i%.f*}_chrpos.txt
+	awk '{print $1,$0}' ../preprocess/${i%.f*}_uniq.sam |
+	awk -F" " 'BEGIN{FS=OFS=" "} {if (NR==FNR) {a[$2FS$3]=$1; next} if ($4FS$5 in a) {$1=a[$4FS$5]} print}' ../preprocess/${i%.f*}_chrpos.txt - | \
+	awk '!( $4 ~ /*/ )' | awk '{print $1,$0}' | awk -v unds=$unds 'BEGIN{FS=OFS=" "} { if($2 > unds) {printf("%.3f", $1=$1/unds)} else {printf($1=$3);} $1="" }1' | \
+	awk -v unds=$unds 'BEGIN{FS=OFS=" "} { if($2 > unds) {printf("%.f", $1=$3/$1)} else {printf($1=$3);} $1="" }1' | \
+	awk '$1<"1" {$1="1"}1' |  awk '!($2=$3="")' > ../preprocess/${i%.f*}_uniqsamp.sam
 
   for j in $(LC_ALL=C; sort -n -k1,1 ../preprocess/${i%.f*}_uniqsamp.sam | grep -v @ | awk '{print $1}' | uniq); do
   	awk -v n="^${j}" '$0~n{print $0}' ../preprocess/${i%.f*}_uniqsamp.sam | awk -v n="$j" '{for(i=0;i<n;i++) print}' >> ../preprocess/${i%.f*}_exp.sam
   done; wait
   awk '{print "seq"NR"_"$0}' ../preprocess/${i%.f*}_exp.sam | awk '{gsub(/ /,"\t"); print}' | awk '{$11 = $10; print}' | awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$11); print}' |\
   cat ../preprocess/${i%.f*}_heading.sam - > ../preprocess/${i%.f*}_${ref1%.f*}_${ref2%.f*}_${ref4%.f*}.sam
-  rm ../preprocess/${i%.f*}_exp.sam ../preprocess/${i%.f*}_chrpos.txt ../preprocess/${i%.f*}_uniqsamp.sam ../preprocess/${i%.f*}_uniq.sam
+	rm ../preprocess/${i%.f*}_exp.sam ../preprocess/${i%.f*}_chrpos.txt ../preprocess/${i%.f*}_uniqsamp.sam ../preprocess/${i%.f*}_uniq.sam
+	rm ../preprocess/${i%.f*}_chrpos.txt ../preprocess/${i%.f*}_heading.sam
 
   awk '{if ($5=="@HD" || $5=="@SQ" || $5=="@PG"); print $0}' ../preprocess/${i%.f*}_2del.sam > ../preprocess/${i%.f*}_3del.sam  && \
   grep -vwE "(@HD|@SQ|@PG)" ../preprocess/${i%.f*}_2del.sam | awk -v paralogs=$paralogs '{ if ($1 >= 1 && $1 <= paralogs && $2 == 0 && $3 >= 1 && $3 <= paralogs && $4 >= 1 && $4 <= paralogs); print $0}' >> ../preprocess/${i%.f*}_3del.sam   && \
   awk '!($1=$2=$3=$4="")' ../preprocess/${i%.f*}_3del.sam | awk '{$1=$1};1' > ../preprocess/${i%.f*}_${ref1%.f*}_${ref3%.f*}_${ref4%.f*}.sam  && \
-  awk '{if ($1=="@HD" || $1=="@SQ"); print $0}' ../preprocess/${i%.f*}_${ref1%.f*}_${ref3%.f*}_${ref4%.f*}.sam  | awk '{gsub(/ /,"\t"); print}' > ../preprocess/${i%.f*}_heading.sam
+	awk '/@HD/ || /@SQ/{print}' ../preprocess/${i%.f*}_${ref1%.f*}_${ref3%.f*}_${ref4%.f*}.sam | awk '{gsub(/ /,"\t"); print}' > ../preprocess/${i%.f*}_heading.sam
   awk '!/^@/ { print }' ../preprocess/${i%.f*}_${ref1%.f*}_${ref3%.f*}_${ref4%.f*}.sam | awk '{gsub(/^.*-/,"",$1); print $0}' | awk '{gsub(/^.*_/,"",$2); print $0}' > ../preprocess/${i%.f*}_uniq.sam
 
 	calcploidy=$(( ploidy_ref1 + ploidy_ref3 + ploidy_ref4 ))
 	unds=$(( unbiased_downsample * calcploidy))
-	awk -F' ' '{print $3,$4}' ../preprocess/${i%.f*}_uniq.sam | uniq | grep -v '*' > ../preprocess/${i%.f*}_chrpos.txt
-	while IFS="" read -r pos || [ -n "$pos" ]; do
-		maxp=$(awk -v pos="$pos" '$0 ~ pos' ../preprocess/${i%.f*}_uniq.sam | awk '{print $1}' | sort -n | tail -1)
-		factorp=$( printf %.3f $(echo "$maxp/$unds" | bc -l) )
-		awk -v pos="$pos" '$0 ~ pos' 1../preprocess/${i%.f*}_uniq.sam | awk -v factorp="$factorp" -v ds="$unds" '{ if (maxp > ds); printf("%.f", $1/factorp); $1=""}1' | \
-		awk '!($1==0)' >> ../preprocess/${i%.f*}_uniqsamp.sam
-	done < ../preprocess/${i%.f*}_chrpos.txt
+	awk -F' ' 'BEGIN{FS=OFS=" "} {if (a[$3,$4]<$1) {a[$3,$4]=$1; data[$3,$4]=$0}} END{for (i in a) print data[i]}' ../preprocess/${i%.f*}_uniq.sam | \
+	awk '{print $1,$3,$4}' | grep -v '*' > ../preprocess/${i%.f*}_chrpos.txt
+	awk '{print $1,$0}' ../preprocess/${i%.f*}_uniq.sam |
+	awk -F" " 'BEGIN{FS=OFS=" "} {if (NR==FNR) {a[$2FS$3]=$1; next} if ($4FS$5 in a) {$1=a[$4FS$5]} print}' ../preprocess/${i%.f*}_chrpos.txt - | \
+	awk '!( $4 ~ /*/ )' | awk '{print $1,$0}' | awk -v unds=$unds 'BEGIN{FS=OFS=" "} { if($2 > unds) {printf("%.3f", $1=$1/unds)} else {printf($1=$3);} $1="" }1' | \
+	awk -v unds=$unds 'BEGIN{FS=OFS=" "} { if($2 > unds) {printf("%.f", $1=$3/$1)} else {printf($1=$3);} $1="" }1' | \
+	awk '$1<"1" {$1="1"}1' |  awk '!($2=$3="")' > ../preprocess/${i%.f*}_uniqsamp.sam
 
   for j in $(LC_ALL=C; sort -n -k1,1 ../preprocess/${i%.f*}_uniqsamp.sam | grep -v @ | awk '{print $1}' | uniq); do
   	awk -v n="^${j}" '$0~n{print $0}' ../preprocess/${i%.f*}_uniqsamp.sam | awk -v n="$j" '{for(i=0;i<n;i++) print}' >> ../preprocess/${i%.f*}_exp.sam
   done; wait
   awk '{print "seq"NR"_"$0}' ../preprocess/${i%.f*}_exp.sam | awk '{gsub(/ /,"\t"); print}' | awk '{$11 = $10; print}' | awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$11); print}' |\
   cat ../preprocess/${i%.f*}_heading.sam - > ../preprocess/${i%.f*}_${ref1%.f*}_${ref3%.f*}_${ref4%.f*}.sam
-  rm ../preprocess/${i%.f*}_exp.sam ../preprocess/${i%.f*}_chrpos.txt ../preprocess/${i%.f*}_uniqsamp.sam ../preprocess/${i%.f*}_uniq.sam
+	rm ../preprocess/${i%.f*}_exp.sam ../preprocess/${i%.f*}_chrpos.txt ../preprocess/${i%.f*}_uniqsamp.sam ../preprocess/${i%.f*}_uniq.sam
+	rm ../preprocess/${i%.f*}_chrpos.txt ../preprocess/${i%.f*}_heading.sam
 
   awk '{if ($5=="@HD" || $5=="@SQ" || $5=="@PG"); print $0}' ../preprocess/${i%.f*}_2del.sam > ../preprocess/${i%.f*}_3del.sam  && \
   grep -vwE "(@HD|@SQ|@PG)" ../preprocess/${i%.f*}_2del.sam | awk -v paralogs=$paralogs '{ if ($1 == 0 && $2 >= 1 && $2 <= paralogs && $3 >= 1 && $3 <= paralogs && $4 >= 1 && $4 <= paralogs); print $0}' >> ../preprocess/${i%.f*}_3del.sam   && \
   awk '!($1=$2=$3=$4="")' ../preprocess/${i%.f*}_3del.sam | awk '{$1=$1};1' > ../preprocess/${i%.f*}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.sam  && \
-  awk '{if ($1=="@HD" || $1=="@SQ"); print $0}' ../preprocess/${i%.f*}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.sam  | awk '{gsub(/ /,"\t"); print}' > ../preprocess/${i%.f*}_heading.sam
+	awk '/@HD/ || /@SQ/{print}' ../preprocess/${i%.f*}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.sam | awk '{gsub(/ /,"\t"); print}' > ../preprocess/${i%.f*}_heading.sam
   awk '!/^@/ { print }' ../preprocess/${i%.f*}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.sam | awk '{gsub(/^.*-/,"",$1); print $0}' | awk '{gsub(/^.*_/,"",$2); print $0}' > ../preprocess/${i%.f*}_uniq.sam
 
 	calcploidy=$(( ploidy_ref2 + ploidy_ref3 + ploidy_ref4 ))
 	unds=$(( unbiased_downsample * calcploidy))
-	awk -F' ' '{print $3,$4}' ../preprocess/${i%.f*}_uniq.sam | uniq | grep -v '*' > ../preprocess/${i%.f*}_chrpos.txt
-	while IFS="" read -r pos || [ -n "$pos" ]; do
-		maxp=$(awk -v pos="$pos" '$0 ~ pos' ../preprocess/${i%.f*}_uniq.sam | awk '{print $1}' | sort -n | tail -1)
-		factorp=$( printf %.3f $(echo "$maxp/$unds" | bc -l) )
-		awk -v pos="$pos" '$0 ~ pos' 1../preprocess/${i%.f*}_uniq.sam | awk -v factorp="$factorp" -v ds="$unds" '{ if (maxp > ds); printf("%.f", $1/factorp); $1=""}1' | \
-		awk '!($1==0)' >> ../preprocess/${i%.f*}_uniqsamp.sam
-	done < ../preprocess/${i%.f*}_chrpos.txt
+	awk -F' ' 'BEGIN{FS=OFS=" "} {if (a[$3,$4]<$1) {a[$3,$4]=$1; data[$3,$4]=$0}} END{for (i in a) print data[i]}' ../preprocess/${i%.f*}_uniq.sam | \
+	awk '{print $1,$3,$4}' | grep -v '*' > ../preprocess/${i%.f*}_chrpos.txt
+	awk '{print $1,$0}' ../preprocess/${i%.f*}_uniq.sam |
+	awk -F" " 'BEGIN{FS=OFS=" "} {if (NR==FNR) {a[$2FS$3]=$1; next} if ($4FS$5 in a) {$1=a[$4FS$5]} print}' ../preprocess/${i%.f*}_chrpos.txt - | \
+	awk '!( $4 ~ /*/ )' | awk '{print $1,$0}' | awk -v unds=$unds 'BEGIN{FS=OFS=" "} { if($2 > unds) {printf("%.3f", $1=$1/unds)} else {printf($1=$3);} $1="" }1' | \
+	awk -v unds=$unds 'BEGIN{FS=OFS=" "} { if($2 > unds) {printf("%.f", $1=$3/$1)} else {printf($1=$3);} $1="" }1' | \
+	awk '$1<"1" {$1="1"}1' |  awk '!($2=$3="")' > ../preprocess/${i%.f*}_uniqsamp.sam
 
   for j in $(LC_ALL=C; sort -n -k1,1 ../preprocess/${i%.f*}_uniqsamp.sam | grep -v @ | awk '{print $1}' | uniq); do
   	awk -v n="^${j}" '$0~n{print $0}' ../preprocess/${i%.f*}_uniqsamp.sam| awk -v n="$j" '{for(i=0;i<n;i++) print}' >> ../preprocess/${i%.f*}_exp.sam
   done; wait
   awk '{print "seq"NR"_"$0}' ../preprocess/${i%.f*}_exp.sam | awk '{gsub(/ /,"\t"); print}' | awk '{$11 = $10; print}' | awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$11); print}' |\
   cat ../preprocess/${i%.f*}_heading.sam - > ../preprocess/${i%.f*}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.sam
-  rm ../preprocess/${i%.f*}_exp.sam ../preprocess/${i%.f*}_chrpos.txt ../preprocess/${i%.f*}_uniqsamp.sam ../preprocess/${i%.f*}_uniq.sam
+	rm ../preprocess/${i%.f*}_exp.sam ../preprocess/${i%.f*}_chrpos.txt ../preprocess/${i%.f*}_uniqsamp.sam ../preprocess/${i%.f*}_uniq.sam
+	rm ../preprocess/${i%.f*}_chrpos.txt ../preprocess/${i%.f*}_heading.sam
 
 
   awk '{if ($5=="@HD" || $5=="@SQ" || $5=="@PG"); print $0}' ../preprocess/${i%.f*}_2del.sam > ../preprocess/${i%.f*}_3del.sam  && \
   grep -vwE "(@HD|@SQ|@PG)" ../preprocess/${i%.f*}_2del.sam | awk -v paralogs=$paralogs '{ if ($1 >= 1 && $1 <= paralogs && $2 >= 1 && $2 <= paralogs && $3 >= 1 && $3 <= paralogs && $4 >= 1 && $4 <= paralogs); print $0}' >> ../preprocess/${i%.f*}_3del.sam   && \
   awk '!($1=$2=$3=$4="")' ../preprocess/${i%.f*}_3del.sam | awk '{$1=$1};1' > ../preprocess/${i%.f*}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.sam  && \
-  awk '{if ($1=="@HD" || $1=="@SQ"); print $0}' ../preprocess/${i%.f*}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.sam  | awk '{gsub(/ /,"\t"); print}' > ../preprocess/${i%.f*}_heading.sam
+	awk '/@HD/ || /@SQ/{print}' ../preprocess/${i%.f*}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.sam | awk '{gsub(/ /,"\t"); print}' > ../preprocess/${i%.f*}_heading.sam
   awk '!/^@/ { print }' ../preprocess/${i%.f*}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.sam | awk '{gsub(/^.*-/,"",$1); print $0}' | awk '{gsub(/^.*_/,"",$2); print $0}' > ../preprocess/${i%.f*}_uniq.sam
 
 	unds=$(( unbiased_downsample * ploidy))
-	awk -F' ' '{print $3,$4}' ../preprocess/${i%.f*}_uniq.sam | uniq | grep -v '*' > ../preprocess/${i%.f*}_chrpos.txt
-	while IFS="" read -r pos || [ -n "$pos" ]; do
-		maxp=$(awk -v pos="$pos" '$0 ~ pos' ../preprocess/${i%.f*}_uniq.sam | awk '{print $1}' | sort -n | tail -1)
-		factorp=$( printf %.3f $(echo "$maxp/$unds" | bc -l) )
-		awk -v pos="$pos" '$0 ~ pos' 1../preprocess/${i%.f*}_uniq.sam | awk -v factorp="$factorp" -v ds="$unds" '{ if (maxp > ds); printf("%.f", $1/factorp); $1=""}1' | \
-		awk '!($1==0)' >> ../preprocess/${i%.f*}_uniqsamp.sam
-	done < ../preprocess/${i%.f*}_chrpos.txt
+	awk -F' ' 'BEGIN{FS=OFS=" "} {if (a[$3,$4]<$1) {a[$3,$4]=$1; data[$3,$4]=$0}} END{for (i in a) print data[i]}' ../preprocess/${i%.f*}_uniq.sam | \
+	awk '{print $1,$3,$4}' | grep -v '*' > ../preprocess/${i%.f*}_chrpos.txt
+	awk '{print $1,$0}' ../preprocess/${i%.f*}_uniq.sam |
+	awk -F" " 'BEGIN{FS=OFS=" "} {if (NR==FNR) {a[$2FS$3]=$1; next} if ($4FS$5 in a) {$1=a[$4FS$5]} print}' ../preprocess/${i%.f*}_chrpos.txt - | \
+	awk '!( $4 ~ /*/ )' | awk '{print $1,$0}' | awk -v unds=$unds 'BEGIN{FS=OFS=" "} { if($2 > unds) {printf("%.3f", $1=$1/unds)} else {printf($1=$3);} $1="" }1' | \
+	awk -v unds=$unds 'BEGIN{FS=OFS=" "} { if($2 > unds) {printf("%.f", $1=$3/$1)} else {printf($1=$3);} $1="" }1' | \
+	awk '$1<"1" {$1="1"}1' |  awk '!($2=$3="")' > ../preprocess/${i%.f*}_uniqsamp.sam
 
   for j in $(LC_ALL=C; sort -n -k1,1 ../preprocess/${i%.f*}_uniqsamp.sam | grep -v @ | awk '{print $1}' | uniq); do
   	awk -v n="^${j}" '$0~n{print $0}' ../preprocess/${i%.f*}_uniqsamp.sam | awk -v n="$j" '{for(i=0;i<n;i++) print}' >> ../preprocess/${i%.f*}_exp.sam
   done; wait
   awk '{print "seq"NR"_"$0}' ../preprocess/${i%.f*}_exp.sam | awk '{gsub(/ /,"\t"); print}' | awk '{$11 = $10; print}' | awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$11); print}' |\
   cat ../preprocess/${i%.f*}_heading.sam - > ../preprocess/${i%.f*}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.sam
-  rm ../preprocess/${i%.f*}_exp.sam ../preprocess/${i%.f*}_chrpos.txt ../preprocess/${i%.f*}_uniqsamp.sam ../preprocess/${i%.f*}_uniq.sam
+	rm ../preprocess/${i%.f*}_exp.sam ../preprocess/${i%.f*}_chrpos.txt ../preprocess/${i%.f*}_uniqsamp.sam ../preprocess/${i%.f*}_uniq.sam
+	rm ../preprocess/${i%.f*}_chrpos.txt ../preprocess/${i%.f*}_heading.sam
 
 
   declare -a arr=("${i%.f*}_${ref1%.f*}.sam" "${i%.f*}_${ref2%.f*}.sam" "${i%.f*}_${ref3%.f*}.sam" "${i%.f*}_${ref4%.f*}.sam" \
@@ -773,7 +788,7 @@ for i in $(ls -S *.f* | grep -v R2.f); do (
   for j in "${arr[@]}"; do
         $java $Xmx1 -XX:ParallelGCThreads=$loopthread -jar $picard SortSam I=$j O=${j%.sam*}.bam SORT_ORDER=coordinate && \
         $java $Xmx1 -XX:ParallelGCThreads=$loopthread -jar $picard BuildBamIndex INPUT=${j%.sam*}.bam && \
-        $java $Xmx1 -XX:ParallelGCThreads=$loopthread -jar $picard AddOrReplaceReadGroups I=${j%.sam*}.bam O=${j%.sam*}_precall.bam RGLB=${i%.f*} RGPL=illumina RGPU=run RGSM=${i%.f*} && \
+        $java $Xmx1 -XX:ParallelGCThreads=$loopthread -jar $picard AddOrReplaceReadGroups I=${j%.sam*}.bam O=${j%.sam*}_precall.bam RGLB=${i%.f*} RGPL=illumina VALIDATION_STRINGENCY=LENIENT RGPU=run RGSM=${i%.f*} && \
         $samtools index ${j%.sam*}_precall.bam
   done
   ls ${i%.f*}_* | grep -v precall | xargs rm && \

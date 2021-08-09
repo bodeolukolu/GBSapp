@@ -420,31 +420,34 @@ else
 		awk 'NR==FNR{sum+= $2; next;} {printf("%s\t%s\t%3.3f%%\t%3.0f\n",$1,$2,100*$2/sum,100*$2/sum)}' ../alignment_summaries/copy_number/${i%.f*}_copy_number.txt ../alignment_summaries/copy_number/${i%.f*}_copy_number.txt > ../alignment_summaries/copy_number/${i%.f*}_plot.txt && \
 		unset IFS; printf "%s\t%s\t%s\t%*s\n" $(sed 's/$/ |/' ../alignment_summaries/copy_number/${i%.f*}_plot.txt) | tr ' ' '|' | sort -k1 -n >> ../alignment_summaries/copy_number/${i%.f*}_copy_number_Unique_Read_histogram.txt && rm ../alignment_summaries/copy_number/${i%.f*}_copy_number.txt ../alignment_summaries/copy_number/${i%.f*}_plot.txt && \
 		awk '{if ($2=="@HD" || $2=="@SQ" || $2=="@PG"); print $0}' ../preprocess/${i%.f*}_2del.sam > ../preprocess/${i%.f*}_3del.sam  && \
-		grep -vwE "(@HD|@SQ|@PG)" ../preprocess/${i%.f*}_2del.sam | awk -v paralogs=$paralogs '{ if ($1 >= 1) && ($1 <= paralogs); print $0}' >> ../preprocess/${i%.f*}_3del.sam   && \
+		grep -vwE "(@HD|@SQ|@PG)" ../preprocess/${i%.f*}_2del.sam | awk -v paralogs=$paralogs '{ if ($1 >= 1 && $1 <= paralogs); print $0}' >> ../preprocess/${i%.f*}_3del.sam   && \
 		awk '!($1="")' ../preprocess/${i%.f*}_3del.sam | awk '{$1=$1};1' > ../preprocess/${i%.f*}_${ref1%.f*}.sam
-		awk '{if ($1=="@HD" || $1=="@SQ"); print $0}' ../preprocess/${i%.f*}_${ref1%.f*}.sam | awk '{gsub(/ /,"\t"); print}' > ../preprocess/${i%.f*}_heading.sam
+		awk '/@HD/ || /@SQ/{print}' ../preprocess/${i%.f*}_${ref1%.f*}.sam | awk '{gsub(/ /,"\t"); print}' > ../preprocess/${i%.f*}_heading.sam
 		awk '!/^@/ { print }' ../preprocess/${i%.f*}_${ref1%.f*}.sam | awk '{gsub(/^.*-/,"",$1); print $0}' | awk '{gsub(/^.*_/,"",$2); print $0}' > ../preprocess/${i%.f*}_uniq.sam
 
 		unds=$(( unbiased_downsample * ploidy))
-		awk -F' ' '{print $3,$4}' ../preprocess/${i%.f*}_uniq.sam | uniq | grep -v '*' > ../preprocess/${i%.f*}_chrpos.txt
-		while IFS="" read -r pos || [ -n "$pos" ]; do
-			maxp=$(awk -v pos="$pos" '$0 ~ pos' ../preprocess/${i%.f*}_uniq.sam | awk '{print $1}' | sort -n | tail -1)
-			factorp=$( printf %.3f $(echo "$maxp/$unds" | bc -l) )
-			awk -v pos="$pos" '$0 ~ pos' 1../preprocess/${i%.f*}_uniq.sam | awk -v factorp="$factorp" -v ds="$unds" '{ if (maxp > ds); printf("%.f", $1/factorp); $1=""}1' | \
-			awk '!($1==0)' >> ../preprocess/${i%.f*}_uniqsamp.sam
-		done < ../preprocess/${i%.f*}_chrpos.txt
+		awk -F' ' 'BEGIN{FS=OFS=" "} {if (a[$3,$4]<$1) {a[$3,$4]=$1; data[$3,$4]=$0}} END{for (i in a) print data[i]}' ../preprocess/${i%.f*}_uniq.sam | \
+		awk '{print $1,$3,$4}' | grep -v '*' > ../preprocess/${i%.f*}_chrpos.txt
+		awk '{print $1,$0}' ../preprocess/${i%.f*}_uniq.sam |
+		awk -F" " 'BEGIN{FS=OFS=" "} {if (NR==FNR) {a[$2FS$3]=$1; next} if ($4FS$5 in a) {$1=a[$4FS$5]} print}' ../preprocess/${i%.f*}_chrpos.txt - | \
+		awk '!( $4 ~ /*/ )' | awk '{print $1,$0}' | awk -v unds=$unds 'BEGIN{FS=OFS=" "} { if($2 > unds) {printf("%.3f", $1=$1/unds)} else {printf($1=$3);} $1="" }1' | \
+		awk -v unds=$unds 'BEGIN{FS=OFS=" "} { if($2 > unds) {printf("%.f", $1=$3/$1)} else {printf($1=$3);} $1="" }1' | \
+		awk '$1<"1" {$1="1"}1' |  awk '!($2=$3="")' > ../preprocess/${i%.f*}_uniqsamp.sam
 
 		for j in $(LC_ALL=C; sort -n -k1,1 ../preprocess/${i%.f*}_uniqsamp.sam | grep -v @ | awk '{print $1}' | uniq); do
 			awk -v n="^${j}" '$0~n{print $0}' ../preprocess/${i%.f*}_uniqsamp.sam | awk -v n="$j" '{for(i=0;i<n;i++) print}' >> ../preprocess/${i%.f*}_exp.sam
 		done; wait
 		awk '{print "seq"NR"_"$0}' ../preprocess/${i%.f*}_exp.sam | awk '{gsub(/ /,"\t"); print}' | awk '{$11 = $10; print}' | awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$11); print}' |\
 		cat ../preprocess/${i%.f*}_heading.sam - > ../preprocess/${i%.f*}_${ref1%.f*}.sam
-		rm ../preprocess/${i%.f*}_exp.sam ../preprocess/${i%.f*}_chrpos.txt ../preprocess/${i%.f*}_uniqsamp.sam ../preprocess/${i%.f*}_uniq.sam ../preprocess/${i%.f*}_chrpos.txt ../preprocess/${i%.f*}_uniqsamp.sam ../preprocess/${i%.f*}_uniq.sam
+		rm ../preprocess/${i%.f*}_exp.sam ../preprocess/${i%.f*}_chrpos.txt ../preprocess/${i%.f*}_uniqsamp.sam ../preprocess/${i%.f*}_uniq.sam
+		rm ../preprocess/${i%.f*}_chrpos.txt ../preprocess/${i%.f*}_heading.sam
+
+
 		j="${i%.f*}_${ref1%.f*}.sam"
 		cd ../preprocess
 		$java $Xmx1 -XX:ParallelGCThreads=$loopthread -jar $picard SortSam I=$j O=${j%.sam*}.bam  SORT_ORDER=coordinate && \
 		$java $Xmx1 -XX:ParallelGCThreads=$loopthread -jar $picard BuildBamIndex INPUT=${j%.sam*}.bam && \
-		$java $Xmx1 -XX:ParallelGCThreads=$loopthread -jar $picard AddOrReplaceReadGroups I=${j%.sam*}.bam O=${j%.sam*}_precall.bam RGLB=${i%.f*} RGPL=illumina RGPU=run RGSM=${i%.f*} && \
+		$java $Xmx1 -XX:ParallelGCThreads=$loopthread -jar $picard AddOrReplaceReadGroups I=${j%.sam*}.bam O=${j%.sam*}_precall.bam RGLB=${i%.f*} RGPL=illumina VALIDATION_STRINGENCY=LENIENT RGPU=run RGSM=${i%.f*} && \
 		$samtools index ${j%.sam*}_precall.bam
 
 		ls ${i%.f*}_* | grep -v precall | xargs rm && \
@@ -529,47 +532,49 @@ if [ "$paleopolyploid" == "true" ]; then
 		awk '{if ($2=="@HD" || $2=="@SQ" || $2=="@PG"); print $0}' ../preprocess/${i%.f*}_2del.sam > ../preprocess/${i%.f*}_3del.sam  && \
 		grep -vwE "(@HD|@SQ|@PG)" ../preprocess/${i%.f*}_2del.sam | awk -v paralogs=$paralogs '{ if ($1 == 1); print $0}' >> ../preprocess/${i%.f*}_3del.sam   && \
 		awk '!($1="")' ../preprocess/${i%.f*}_3del.sam | awk '{$1=$1};1' > ../preprocess/${i%.f*}_${ref1%.f*}.sam
-		awk '{if ($1=="@HD" || $1=="@SQ"); print $0}' ../preprocess/${i%.f*}_${ref1%.f*}.sam | awk '{gsub(/ /,"\t"); print}' > ../preprocess/${i%.f*}_heading.sam
+		awk '/@HD/ || /@SQ/{print}' ../preprocess/${i%.f*}_${ref1%.f*}.sam | awk '{gsub(/ /,"\t"); print}' > ../preprocess/${i%.f*}_heading.sam
 		awk '!/^@/ { print }' ../preprocess/${i%.f*}_${ref1%.f*}.sam | awk '{gsub(/^.*-/,"",$1); print $0}' | awk '{gsub(/^.*_/,"",$2); print $0}' > ../preprocess/${i%.f*}_uniq.sam
 
 		unds=$(( unbiased_downsample * 2))
-		awk -F' ' '{print $3,$4}' ../preprocess/${i%.f*}_uniq.sam | uniq | grep -v '*' > ../preprocess/${i%.f*}_chrpos.txt
-		while IFS="" read -r pos || [ -n "$pos" ]; do
-			maxp=$(awk -v pos="$pos" '$0 ~ pos' ../preprocess/${i%.f*}_uniq.sam | awk '{print $1}' | sort -n | tail -1)
-			factorp=$( printf %.3f $(echo "$maxp/$unds" | bc -l) )
-			awk -v pos="$pos" '$0 ~ pos' 1../preprocess/${i%.f*}_uniq.sam | awk -v factorp="$factorp" -v ds="$unds" '{ if (maxp > ds); printf("%.f", $1/factorp); $1=""}1' | \
-			awk '!($1==0)' >> ../preprocess/${i%.f*}_uniqsamp.sam
-		done < ../preprocess/${i%.f*}_chrpos.txt
+		awk -F' ' 'BEGIN{FS=OFS=" "} {if (a[$3,$4]<$1) {a[$3,$4]=$1; data[$3,$4]=$0}} END{for (i in a) print data[i]}' ../preprocess/${i%.f*}_uniq.sam | \
+		awk '{print $1,$3,$4}' | grep -v '*' > ../preprocess/${i%.f*}_chrpos.txt
+		awk '{print $1,$0}' ../preprocess/${i%.f*}_uniq.sam |
+		awk -F" " 'BEGIN{FS=OFS=" "} {if (NR==FNR) {a[$2FS$3]=$1; next} if ($4FS$5 in a) {$1=a[$4FS$5]} print}' ../preprocess/${i%.f*}_chrpos.txt - | \
+		awk '!( $4 ~ /*/ )' | awk '{print $1,$0}' | awk -v unds=$unds 'BEGIN{FS=OFS=" "} { if($2 > unds) {printf("%.3f", $1=$1/unds)} else {printf($1=$3);} $1="" }1' | \
+		awk -v unds=$unds 'BEGIN{FS=OFS=" "} { if($2 > unds) {printf("%.f", $1=$3/$1)} else {printf($1=$3);} $1="" }1' | \
+		awk '$1<"1" {$1="1"}1' |  awk '!($2=$3="")' > ../preprocess/${i%.f*}_uniqsamp.sam
 
 		for j in $(LC_ALL=C; sort -n -k1,1 ../preprocess/${i%.f*}_uniqsamp.sam | grep -v @ | awk '{print $1}' | uniq); do
 			awk -v n="^${j}" '$0~n{print $0}' ../preprocess/${i%.f*}_uniqsamp.sam | awk -v n="$j" '{for(i=0;i<n;i++) print}' >> ../preprocess/${i%.f*}_exp.sam
 		done; wait
 		awk '{print "seq"NR"_"$0}' ../preprocess/${i%.f*}_exp.sam | awk '{gsub(/ /,"\t"); print}' | awk '{$11 = $10; print}' | awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$11); print}' |\
 		cat ../preprocess/${i%.f*}_heading.sam - > ../preprocess/${i%.f*}_2x.sam
-		rm ../preprocess/${i%.f*}_exp.sam ../preprocess/${i%.f*}_chrpos.txt ../preprocess/${i%.f*}_uniqsamp.sam ../preprocess/${i%.f*}_uniq.sam ../preprocess/${i%.f*}_chrpos.txt ../preprocess/${i%.f*}_uniqsamp.sam ../preprocess/${i%.f*}_uniq.sam
+		rm ../preprocess/${i%.f*}_exp.sam ../preprocess/${i%.f*}_chrpos.txt ../preprocess/${i%.f*}_uniqsamp.sam ../preprocess/${i%.f*}_uniq.sam
+		rm ../preprocess/${i%.f*}_chrpos.txt ../preprocess/${i%.f*}_heading.sam
+
 		j="${i%.f*}_2x.sam"
 		cd ../preprocess
 		$java $Xmx1 -XX:ParallelGCThreads=$loopthread -jar $picard SortSam I=$j O=${j%.sam*}.bam  SORT_ORDER=coordinate && \
 		$java $Xmx1 -XX:ParallelGCThreads=$loopthread -jar $picard MarkDuplicates I=${j%.sam*}.bam O=${j%.sam*}_dup.bam METRICS_FILE= metrics.txt CREATE_INDEX=true && \
 		$java $Xmx1 -XX:ParallelGCThreads=$loopthread -jar $picard BuildBamIndex INPUT=${j%.sam*}_dup.bam && \
-		$java $Xmx1 -XX:ParallelGCThreads=$loopthread -jar $picard AddOrReplaceReadGroups I=${j%.sam*}_dup.bam O=${j%.sam*}_precall.bam RGLB=${i%.f*} RGPL=illumina RGPU=run RGSM=${i%.f*} && \
+		$java $Xmx1 -XX:ParallelGCThreads=$loopthread -jar $picard AddOrReplaceReadGroups I=${j%.sam*}_dup.bam O=${j%.sam*}_precall.bam RGLB=${i%.f*} RGPL=illumina VALIDATION_STRINGENCY=LENIENT RGPU=run RGSM=${i%.f*} && \
 		$samtools index ${j%.sam*}_precall.bam
 
 
 		awk '{if ($2=="@HD" || $2=="@SQ" || $2=="@PG"); print $0}' ../preprocess/${i%.f*}_2del.sam > ../preprocess/${i%.f*}_3del.sam  && \
 		grep -vwE "(@HD|@SQ|@PG)" ../preprocess/${i%.f*}_2del.sam | awk -v paralogs=$paralogs '{ if ($1 == 2); print $0}' >> ../preprocess/${i%.f*}_3del.sam   && \
 		awk '!($1="")' ../preprocess/${i%.f*}_3del.sam | awk '{$1=$1};1' > ../preprocess/${i%.f*}_${ref1%.f*}.sam
-		awk '{if ($1=="@HD" || $1=="@SQ"); print $0}' ../preprocess/${i%.f*}_${ref1%.f*}.sam | awk '{gsub(/ /,"\t"); print}' > ../preprocess/${i%.f*}_heading.sam
+		awk '/@HD/ || /@SQ/{print}' ../preprocess/${i%.f*}_${ref1%.f*}.sam | awk '{gsub(/ /,"\t"); print}' > ../preprocess/${i%.f*}_heading.sam
 		awk '!/^@/ { print }' ../preprocess/${i%.f*}_${ref1%.f*}.sam | awk '{gsub(/^.*-/,"",$1); print $0}' | awk '{gsub(/^.*_/,"",$2); print $0}' > ../preprocess/${i%.f*}_uniq.sam
 
 		unds=$(( unbiased_downsample * 4))
-		awk -F' ' '{print $3,$4}' ../preprocess/${i%.f*}_uniq.sam | uniq | grep -v '*' > ../preprocess/${i%.f*}_chrpos.txt
-		while IFS="" read -r pos || [ -n "$pos" ]; do
-			maxp=$(awk -v pos="$pos" '$0 ~ pos' ../preprocess/${i%.f*}_uniq.sam | awk '{print $1}' | sort -n | tail -1)
-			factorp=$( printf %.3f $(echo "$maxp/$unds" | bc -l) )
-			awk -v pos="$pos" '$0 ~ pos' 1../preprocess/${i%.f*}_uniq.sam | awk -v factorp="$factorp" -v ds="$unds" '{ if (maxp > ds); printf("%.f", $1/factorp); $1=""}1' | \
-			awk '!($1==0)' >> ../preprocess/${i%.f*}_uniqsamp.sam
-		done < ../preprocess/${i%.f*}_chrpos.txt
+		awk -F' ' 'BEGIN{FS=OFS=" "} {if (a[$3,$4]<$1) {a[$3,$4]=$1; data[$3,$4]=$0}} END{for (i in a) print data[i]}' ../preprocess/${i%.f*}_uniq.sam | \
+		awk '{print $1,$3,$4}' | grep -v '*' > ../preprocess/${i%.f*}_chrpos.txt
+		awk '{print $1,$0}' ../preprocess/${i%.f*}_uniq.sam |
+		awk -F" " 'BEGIN{FS=OFS=" "} {if (NR==FNR) {a[$2FS$3]=$1; next} if ($4FS$5 in a) {$1=a[$4FS$5]} print}' ../preprocess/${i%.f*}_chrpos.txt - | \
+		awk '!( $4 ~ /*/ )' | awk '{print $1,$0}' | awk -v unds=$unds 'BEGIN{FS=OFS=" "} { if($2 > unds) {printf("%.3f", $1=$1/unds)} else {printf($1=$3);} $1="" }1' | \
+		awk -v unds=$unds 'BEGIN{FS=OFS=" "} { if($2 > unds) {printf("%.f", $1=$3/$1)} else {printf($1=$3);} $1="" }1' | \
+		awk '$1<"1" {$1="1"}1' |  awk '!($2=$3="")' > ../preprocess/${i%.f*}_uniqsamp.sam
 
 		for j in $(LC_ALL=C; sort -n -k1,1 ../preprocess/${i%.f*}_uniqsamp.sam | grep -v @ | awk '{print $1}' | uniq); do
 			awk -v n="^$j " '$0~n{print $0}' ../preprocess/${i%.f*}_uniqsamp.sam | awk -v n=$j '{for(i=0;i<n;i++) print}' >> ../preprocess/${i%.f*}_exp.sam
@@ -577,11 +582,13 @@ if [ "$paleopolyploid" == "true" ]; then
 		awk '{print "seq"NR"_"$0}' ../preprocess/${i%.f*}_exp.sam | awk '{gsub(/ /,"\t"); print}' | awk '{$11 = $10; print}' | awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$11); print}' |\
 		cat ../preprocess/${i%.f*}_heading.sam - > ../preprocess/${i%.f*}_4x.sam
 		rm ../preprocess/${i%.f*}_exp.sam ../preprocess/${i%.f*}_chrpos.txt ../preprocess/${i%.f*}_uniqsamp.sam ../preprocess/${i%.f*}_uniq.sam
+		rm ../preprocess/${i%.f*}_chrpos.txt ../preprocess/${i%.f*}_heading.sam
+
 		j="${i%.f*}_4x.sam"
 		cd ../preprocess
 		$java $Xmx1 -XX:ParallelGCThreads=$loopthread -jar $picard SortSam I=$j O=${j%.sam*}.bam SORT_ORDER=coordinate && \
 		$java $Xmx1 -XX:ParallelGCThreads=$loopthread -jar $picard BuildBamIndex INPUT=${j%.sam*}.bam && \
-		$java $Xmx1 -XX:ParallelGCThreads=$loopthread -jar $picard AddOrReplaceReadGroups I=${j%.sam*}.bam O=${j%.sam*}_precall.bam RGLB=${i%.f*} RGPL=illumina RGPU=run RGSM=${i%.f*} && \
+		$java $Xmx1 -XX:ParallelGCThreads=$loopthread -jar $picard AddOrReplaceReadGroups I=${j%.sam*}.bam O=${j%.sam*}_precall.bam RGLB=${i%.f*} RGPL=illumina VALIDATION_STRINGENCY=LENIENT RGPU=run RGSM=${i%.f*} && \
 		$samtools index ${j%.sam*}_precall.bam
 
 
@@ -589,17 +596,17 @@ if [ "$paleopolyploid" == "true" ]; then
 			awk '{if ($2=="@HD" || $2=="@SQ" || $2=="@PG"); print $0}' ../preprocess/${i%.f*}_2del.sam > ../preprocess/${i%.f*}_3del.sam  && \
 			grep -vwE "(@HD|@SQ|@PG)" ../preprocess/${i%.f*}_2del.sam | awk -v paralogs=$paralogs '{ if ($1 == 3); print $0}' >> ../preprocess/${i%.f*}_3del.sam   && \
 			awk '!($1="")' ../preprocess/${i%.f*}_3del.sam | awk '{$1=$1};1' > ../preprocess/${i%.f*}_${ref1%.f*}.sam
-			awk '{if ($1=="@HD" || $1=="@SQ"); print $0}' ../preprocess/${i%.f*}_${ref1%.f*}.sam | awk '{gsub(/ /,"\t"); print}' > ../preprocess/${i%.f*}_heading.sam
+			awk '/@HD/ || /@SQ/{print}' ../preprocess/${i%.f*}_${ref1%.f*}.sam | awk '{gsub(/ /,"\t"); print}' > ../preprocess/${i%.f*}_heading.sam
 			awk '!/^@/ { print }' ../preprocess/${i%.f*}_${ref1%.f*}.sam | awk '{gsub(/^.*-/,"",$1); print $0}' | awk '{gsub(/^.*_/,"",$2); print $0}' > ../preprocess/${i%.f*}_uniq.sam
 
 			unds=$(( unbiased_downsample * 6))
-			awk -F' ' '{print $3,$4}' ../preprocess/${i%.f*}_uniq.sam | uniq | grep -v '*' > ../preprocess/${i%.f*}_chrpos.txt
-			while IFS="" read -r pos || [ -n "$pos" ]; do
-				maxp=$(awk -v pos="$pos" '$0 ~ pos' ../preprocess/${i%.f*}_uniq.sam | awk '{print $1}' | sort -n | tail -1)
-				factorp=$( printf %.3f $(echo "$maxp/$unds" | bc -l) )
-				awk -v pos="$pos" '$0 ~ pos' 1../preprocess/${i%.f*}_uniq.sam | awk -v factorp="$factorp" -v ds="$unds" '{ if (maxp > ds); printf("%.f", $1/factorp); $1=""}1' | \
-				awk '!($1==0)' >> ../preprocess/${i%.f*}_uniqsamp.sam
-			done < ../preprocess/${i%.f*}_chrpos.txt
+			awk -F' ' 'BEGIN{FS=OFS=" "} {if (a[$3,$4]<$1) {a[$3,$4]=$1; data[$3,$4]=$0}} END{for (i in a) print data[i]}' ../preprocess/${i%.f*}_uniq.sam | \
+			awk '{print $1,$3,$4}' | grep -v '*' > ../preprocess/${i%.f*}_chrpos.txt
+			awk '{print $1,$0}' ../preprocess/${i%.f*}_uniq.sam |
+			awk -F" " 'BEGIN{FS=OFS=" "} {if (NR==FNR) {a[$2FS$3]=$1; next} if ($4FS$5 in a) {$1=a[$4FS$5]} print}' ../preprocess/${i%.f*}_chrpos.txt - | \
+			awk '!( $4 ~ /*/ )' | awk '{print $1,$0}' | awk -v unds=$unds 'BEGIN{FS=OFS=" "} { if($2 > unds) {printf("%.3f", $1=$1/unds)} else {printf($1=$3);} $1="" }1' | \
+			awk -v unds=$unds 'BEGIN{FS=OFS=" "} { if($2 > unds) {printf("%.f", $1=$3/$1)} else {printf($1=$3);} $1="" }1' | \
+			awk '$1<"1" {$1="1"}1' |  awk '!($2=$3="")' > ../preprocess/${i%.f*}_uniqsamp.sam
 
 			for j in $(LC_ALL=C; sort -n -k1,1 ../preprocess/${i%.f*}_uniqsamp.sam | grep -v @ | awk '{print $1}' | uniq); do
 				awk -v n="^$j " '$0~n{print $0}' ../preprocess/${i%.f*}_uniqsamp.sam | awk -v n=$j '{for(i=0;i<n;i++) print}' >> ../preprocess/${i%.f*}_exp.sam
@@ -607,12 +614,14 @@ if [ "$paleopolyploid" == "true" ]; then
 			awk '{print "seq"NR"_"$0}' ../preprocess/${i%.f*}_exp.sam | awk '{gsub(/ /,"\t"); print}' | awk '{$11 = $10; print}' | awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$11); print}' |\
 			cat ../preprocess/${i%.f*}_heading.sam - > ../preprocess/${i%.f*}_6x.sam
 			rm ../preprocess/${i%.f*}_exp.sam ../preprocess/${i%.f*}_chrpos.txt ../preprocess/${i%.f*}_uniqsamp.sam ../preprocess/${i%.f*}_uniq.sam
+			rm ../preprocess/${i%.f*}_chrpos.txt ../preprocess/${i%.f*}_heading.sam
+
 			j="${i%.f*}_6x.sam"
 			cd ../preprocess
 			$java $Xmx1 -XX:ParallelGCThreads=$loopthread -jar $picard SortSam I=$j O=${j%.sam*}.bam SORT_ORDER=coordinate && \
 			$java $Xmx1 -XX:ParallelGCThreads=$loopthread -jar $picard MarkDuplicates I=${j%.sam*}.bam O=${j%.sam*}_dup.bam METRICS_FILE= metrics.txt CREATE_INDEX=true && \
 			$java $Xmx1 -XX:ParallelGCThreads=$loopthread -jar $picard BuildBamIndex INPUT=${j%.sam*}_dup.bam && \
-			$java $Xmx1 -XX:ParallelGCThreads=$loopthread -jar $picard AddOrReplaceReadGroups I=${j%.sam*}_dup.bam O=${j%.sam*}_precall.bam RGLB=${i%.f*} RGPL=illumina RGPU=run RGSM=${i%.f*} && \
+			$java $Xmx1 -XX:ParallelGCThreads=$loopthread -jar $picard AddOrReplaceReadGroups I=${j%.sam*}_dup.bam O=${j%.sam*}_precall.bam RGLB=${i%.f*} RGPL=illumina VALIDATION_STRINGENCY=LENIENT RGPU=run RGSM=${i%.f*} && \
 			$samtools index ${j%.sam*}_precall.bam
 		fi
 
@@ -621,17 +630,17 @@ if [ "$paleopolyploid" == "true" ]; then
 			awk '{if ($2=="@HD" || $2=="@SQ" || $2=="@PG"); print $0}' ../preprocess/${i%.f*}_2del.sam > ../preprocess/${i%.f*}_3del.sam  && \
 			grep -vwE "(@HD|@SQ|@PG)" ../preprocess/${i%.f*}_2del.sam | awk -v paralogs=$paralogs '{ if ($1 == 4); print $0}' >> ../preprocess/${i%.f*}_3del.sam   && \
 			awk '!($1="")' ../preprocess/${i%.f*}_3del.sam | awk '{$1=$1};1' > ../preprocess/${i%.f*}_${ref1%.f*}.sam
-			awk '{if ($1=="@HD" || $1=="@SQ"); print $0}' ../preprocess/${i%.f*}_${ref1%.f*}.sam | awk '{gsub(/ /,"\t"); print}' > ../preprocess/${i%.f*}_heading.sam
+			awk '/@HD/ || /@SQ/{print}' ../preprocess/${i%.f*}_${ref1%.f*}.sam | awk '{gsub(/ /,"\t"); print}' > ../preprocess/${i%.f*}_heading.sam
 			awk '!/^@/ { print }' ../preprocess/${i%.f*}_${ref1%.f*}.sam | awk '{gsub(/^.*-/,"",$1); print $0}' | awk '{gsub(/^.*_/,"",$2); print $0}' > ../preprocess/${i%.f*}_uniq.sam
 
 			unds=$(( unbiased_downsample * 8))
-			awk -F' ' '{print $3,$4}' ../preprocess/${i%.f*}_uniq.sam | uniq | grep -v '*' > ../preprocess/${i%.f*}_chrpos.txt
-			while IFS="" read -r pos || [ -n "$pos" ]; do
-				maxp=$(awk -v pos="$pos" '$0 ~ pos' ../preprocess/${i%.f*}_uniq.sam | awk '{print $1}' | sort -n | tail -1)
-				factorp=$( printf %.3f $(echo "$maxp/$unds" | bc -l) )
-				awk -v pos="$pos" '$0 ~ pos' 1../preprocess/${i%.f*}_uniq.sam | awk -v factorp="$factorp" -v ds="$unds" '{ if (maxp > ds); printf("%.f", $1/factorp); $1=""}1' | \
-				awk '!($1==0)' >> ../preprocess/${i%.f*}_uniqsamp.sam
-			done < ../preprocess/${i%.f*}_chrpos.txt
+			awk -F' ' 'BEGIN{FS=OFS=" "} {if (a[$3,$4]<$1) {a[$3,$4]=$1; data[$3,$4]=$0}} END{for (i in a) print data[i]}' ../preprocess/${i%.f*}_uniq.sam | \
+			awk '{print $1,$3,$4}' | grep -v '*' > ../preprocess/${i%.f*}_chrpos.txt
+			awk '{print $1,$0}' ../preprocess/${i%.f*}_uniq.sam |
+			awk -F" " 'BEGIN{FS=OFS=" "} {if (NR==FNR) {a[$2FS$3]=$1; next} if ($4FS$5 in a) {$1=a[$4FS$5]} print}' ../preprocess/${i%.f*}_chrpos.txt - | \
+			awk '!( $4 ~ /*/ )' | awk '{print $1,$0}' | awk -v unds=$unds 'BEGIN{FS=OFS=" "} { if($2 > unds) {printf("%.3f", $1=$1/unds)} else {printf($1=$3);} $1="" }1' | \
+			awk -v unds=$unds 'BEGIN{FS=OFS=" "} { if($2 > unds) {printf("%.f", $1=$3/$1)} else {printf($1=$3);} $1="" }1' | \
+			awk '$1<"1" {$1="1"}1' |  awk '!($2=$3="")' > ../preprocess/${i%.f*}_uniqsamp.sam
 
 			for j in $(LC_ALL=C; sort -n -k1,1 ../preprocess/${i%.f*}_uniqsamp.sam | grep -v @ | awk '{print $1}' | uniq); do
 				awk -v n="^$j " '$0~n{print $0}' ../preprocess/${i%.f*}_uniqsamp.sam | awk -v n=$j '{for(i=0;i<n;i++) print}' >> ../preprocess/${i%.f*}_exp.sam
@@ -639,12 +648,14 @@ if [ "$paleopolyploid" == "true" ]; then
 			awk '{print "seq"NR"_"$0}' ../preprocess/${i%.f*}_exp.sam | awk '{gsub(/ /,"\t"); print}' | awk '{$11 = $10; print}' | awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$11); print}' |\
 			cat ../preprocess/${i%.f*}_heading.sam - > ../preprocess/${i%.f*}_8x.sam
 			rm ../preprocess/${i%.f*}_exp.sam ../preprocess/${i%.f*}_chrpos.txt ../preprocess/${i%.f*}_uniqsamp.sam ../preprocess/${i%.f*}_uniq.sam
+			rm ../preprocess/${i%.f*}_chrpos.txt ../preprocess/${i%.f*}_heading.sam
+
 			j="${i%.f*}_8x.sam"
 			cd ../preprocess
 			$java $Xmx1 -XX:ParallelGCThreads=$loopthread -jar $picard SortSam I=$j O=${j%.sam*}.bam SORT_ORDER=coordinate && \
 			$java $Xmx1 -XX:ParallelGCThreads=$loopthread -jar $picard MarkDuplicates I=${j%.sam*}.bam O=${j%.sam*}_dup.bam METRICS_FILE= metrics.txt CREATE_INDEX=true && \
 			$java $Xmx1 -XX:ParallelGCThreads=$loopthread -jar $picard BuildBamIndex INPUT=${j%.sam*}_dup.bam && \
-			$java $Xmx1 -XX:ParallelGCThreads=$loopthread -jar $picard AddOrReplaceReadGroups I=${j%.sam*}_dup.bam O=${j%.sam*}_precall.bam RGLB=${i%.f*} RGPL=illumina RGPU=run RGSM=${i%.f*} && \
+			$java $Xmx1 -XX:ParallelGCThreads=$loopthread -jar $picard AddOrReplaceReadGroups I=${j%.sam*}_dup.bam O=${j%.sam*}_precall.bam RGLB=${i%.f*} RGPL=illumina VALIDATION_STRINGENCY=LENIENT RGPU=run RGSM=${i%.f*} && \
 			$samtools index ${j%.sam*}_precall.bam
 		fi
 
