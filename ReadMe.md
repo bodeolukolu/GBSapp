@@ -130,11 +130,11 @@ Using a text editor, save a file containing any of the following variables as 'c
 |haplome_number|1|number of haplome(s) represented by reference genome|integer|Optional|
 |copy_number|1|maximum copy number of each unique read|integer|Optional|
 |ncohorts|1|number of cohorts for 2-step joint calling. 0=single-step joint calling |integer|Optional|
-|maxHaplotype|12| maximum number of haplotypes per haploid genome across population|integer|Optional|
+|maxHaplotype|6| maximum number of haplotypes per haploid genome across population|integer|Optional|
 |min_unique_RD|1| minimum read depth for each unique read|integer|Optional|
 |unbiased_downsample|25| maximum read number per alignment start position (per haploid genome). 0 = no downsample|integer|Optional|
 |biased_downsample|0| maximum read number per alignment start position (per haploid genome). 0 = no downsample|integer|Optional|
-|softclip|true| do not use soft Clipped bases|string|Optional|
+|softclip|true| do not use soft Clipped bases (recommended)|string|Optional|
 |gthreads|4|number of cores per chromosome/scaffold/contig (multi-processing haplotypecaller) |integer|Optional|
 
 

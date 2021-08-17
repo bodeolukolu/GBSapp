@@ -19,7 +19,7 @@ else
 fi
 echo copy_number: "$paralogs"
 if [ -z "$maxHaplotype" ]; then
-	maxHaplotype=$((paralogs * 12))
+	maxHaplotype=$((paralogs * 6))
 fi
 echo maxHaplotypes per haploid genome: "$maxHaplotype"
 
