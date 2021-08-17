@@ -30,7 +30,7 @@ if [ -z "$paleopolyploid" ]; then
 	paleopolyploid=false
 fi
 if [ -z "$ncohorts" ]; then
-	ncohorts=0
+	ncohorts=1
 fi
 if [ -z "$min_unique_RD" ]; then
 	min_unique_RD=1

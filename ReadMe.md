@@ -82,7 +82,7 @@ Using a text editor, save a file containing any of the following variables as 'c
 
 |Variable      |Default       |Usage         |Input         |required/Optional|
 |:-------------|:-------------|:-------------|:-------------|:----------------|
-|threads|cores-2|number of cores/processors|integer|Optional|
+|threads|2|number of cores/processors|integer|Optional|
 |walkaway|true|run in walk-away or walk-through mode|true or false|Optional|
 |cluster|false|run on compute cluster node (default: slurm) or workstation|true or false|Optional|
 
@@ -180,7 +180,7 @@ snpformats=false
 haplome_number=1
 copy_number=1
 ncohorts=1
-maxHaplotype=12
+maxHaplotype=6
 min_unique_RD=1
 unbiased_downsample=25
 biased_downsample=0
