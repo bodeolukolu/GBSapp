@@ -1,5 +1,5 @@
 # General parameters
-####################################################
+###################################################
 threads=24
 walkaway=true
 cluster=true
@@ -11,9 +11,8 @@ ref1=TF.fasta
 ref2=TL.fasta
 ploidy_ref1=4
 ploidy_ref2=2
-haplome_number=1
-copy_number=1
 paleopolyploid=false
+
 
 # SNP-filtering:
 ####################################################
@@ -27,15 +26,15 @@ minRD_4x=25
 minRD_6x=45
 pseg=0.001
 maf=0.02
-snpformats=true
+snpformats=false
 
 # Advanced parameters
 ###################################################
+haplome_number=1
+copy_number=1
 ncohorts=1
-maxHaplotype=128
+maxHaplotype=12
 min_unique_RD=1
 unbiased_downsample=25
 biased_downsample=0
-founder_parents=2
 gthreads=4
-cthreads=2000

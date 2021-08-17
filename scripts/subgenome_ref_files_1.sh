@@ -19,16 +19,9 @@ else
 fi
 echo copy_number: "$paralogs"
 if [ -z "$maxHaplotype" ]; then
-	maxHaplotype=$((paralogs * 128))
+	maxHaplotype=$((paralogs * 12))
 fi
 echo maxHaplotypes per haploid genome: "$maxHaplotype"
-if [[ -z "$founder_parents" ]]; then
-	:
-else
-	maxHaplotype=$((paralogs * founder_parents))
-	echo founder_parents: "$founder_parents"
-	echo maxHaplotypes per haploid genome: "$maxHaplotype"
-fi
 
 if [ -z "$p2" ]; then
 	p2=$p1
@@ -37,7 +30,7 @@ if [ -z "$paleopolyploid" ]; then
 	paleopolyploid=false
 fi
 if [ -z "$ncohorts" ]; then
-	ncohorts=1
+	ncohorts=0
 fi
 if [ -z "$min_unique_RD" ]; then
 	min_unique_RD=1
@@ -45,10 +38,8 @@ fi
 echo min_unique_RD: "$min_unique_RD"
 
 if [[ "$biased_downsample" -gt 0 ]]; then
-	if [[ "$biased_downsample" -gt 0 ]]; then
-		echo -e "${magenta}- it is not advisable to perform both biased and unbiased downsampling ${white}\n"
-		echo -e "${magenta}- set either biased or unbiased downsampling to zero ${white}\n"
-		echo -e "${magenta}- GBSapp will quit in 5 secs ${white}\n"
+	if [[ "$ubbiased_downsample" -gt 0 ]]; then
+		echo -e "${magenta}- warning: GBSapp will perform unbiased downsampling, and then biased downsampling ${white}\n"
 		sleep 5 && exit 1
 	fi
 fi
@@ -69,9 +60,20 @@ else
 		fi
 	fi
 	if [[ "$biased_downsample" -gt 0 ]]; then
-		unbiased_downsample=0
-		echo -e "${magenta}- GBSapp will perform biased downsampling ${white}\n"
+		if [[ "$unbiased_downsample" -eq 0 ]]; then
+			echo -e "${magenta}- biased downsampling be performed ${white}\n"
+		fi
+		if [ -z "$unbiased_downsample" ]; then
+			unbiased_downsample=0
+			echo -e "${magenta}- unbiased downsampling will not be performed ${white}\n"
+		fi
+		if [ "$unbiased_downsample" -gt 0 ]; then
+						echo -e "${magenta}- warning: GBSapp will perform unbiased downsampling, and then biased downsampling ${white}\n"
+		fi
 	fi
+fi
+if [ -z "$softclip" ]; then
+	softclip=true
 fi
 
 
@@ -395,7 +397,7 @@ else
 			touch "${i%.f*}_R2_uniq.txt"
 		fi
 		export LC_ALL=C; paste -d ~ ${i%.f*}_uniq.txt ${i%.f*}_R2_uniq.txt | expand -t $(( $(wc -L < $i ) + 2 )) | awk '{!seen[$0]++}END{for (i in seen) print seen[i], i}' | \
-		awk '{$1=$1};1' | awk '{gsub(" /"," "); print}' | awk '{gsub("/\n","\n"); print}' | awk '{gsub("/"," "); print}' | awk '{gsub(" ","\t"); print}' | awk -v minuniqRD=$min_unique_RD '($1 > minuniqRD)' > ${i%.f*}_rdrefseq.txt
+		awk '{$1=$1};1' | awk '{gsub(" /"," "); print}' | awk '{gsub("/\n","\n"); print}' | awk '{gsub("/"," "); print}' | awk '{gsub(" ","\t"); print}' | awk -v minuniqRD=$min_unique_RD '($1 >= minuniqRD)' > ${i%.f*}_rdrefseq.txt
 		awk 'NF==2 {print ">seq"NR"_se-"$1"\n"$2}' ${i%.f*}_rdrefseq.txt > ${i%.f*}_rdrefseq_se.txt
 		awk 'NF==3 {print ">seq"NR"_pe-"$0}' ${i%.f*}_rdrefseq.txt | awk '{print $1"\n"$3}' > ${i%.f*}_uniq_R2.fasta
 		awk 'NF==3 {print ">seq"NR"_pe-"$0}' ${i%.f*}_rdrefseq.txt | awk '{print $1"\n"$2}' | cat - ${i%.f*}_rdrefseq_se.txt > ${i%.f*}_uniq_R1.fasta
@@ -738,56 +740,42 @@ else
 	ram3=$(( ram2 / gN ))
 	Xmx3=-Xmx${ram3}G
 fi
-if [ "$ncohorts" != 1 ]; then
-	mkdir $projdir/snpcall/processed
-fi
-if [ -z "$cthreads" ]; then
-	cthreads=2000
-fi
 
 ######################
-if [[ "$paleopolyploid" != true ]] && [[ "$ncohorts" == 1 ]]; then
+if [[ "$paleopolyploid" == false ]] && [[ "$ncohorts" -eq 0 ]]; then
 	echo -e "${magenta}- performing SNP calling ${white}\n"
 	cd $projdir
 	cd preprocess
-	mkdir processed
 	j=-I; input=""; k=""
 	for i in $(ls *_precall.bam); do
 		k="${j} ${i}"; input="${input} ${k}"
 	done
 	Get_Chromosome=$(awk 'NR>1{print $2,"\t",$3}' ../refgenomes/${ref1%.*}.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $0}' | sort -k2,2 -nr | awk '{print $1}' | awk -v pat=${ref1%.f*} '$0 ~ pat')
-	if [[ "$(wc -l ../refgenomes/${ref1%.*}.dict | awk '{print $1}')" -le $cthreads ]]; then
-		for selchr in $Get_Chromosome; do (
-			$GATK --java-options "$Xmx3 -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ../refgenomes/$ref1 -L $selchr $input -ploidy $ploidy -O ../snpcall/${pop}_${ploidy}x_"${selchr}"_raw.vcf.gz --max-reads-per-alignment-start "$(( biased_downsample * ploidy ))" --max-num-haplotypes-in-population "$((ploidy * maxHaplotype))" )&
-			if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
-				wait
-			fi
-		done
-		wait
-		cd ../snpcall
-		for g in $(ls ${pop}_${ploidy}x_*_raw.vcf.gz); do (
-			gunzip $g )&
-			if [[ $(jobs -r -p | wc -l) -ge $N ]]; then
+	for selchr in $Get_Chromosome; do (
+		$GATK --java-options "$Xmx3 -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ../refgenomes/$ref1 -L $selchr $input -ploidy $ploidy -O ../snpcall/${pop}_${ploidy}x_"${selchr}"_raw.vcf.gz --dont-use-soft-clipped-bases $softclip --max-reads-per-alignment-start "$(( biased_downsample * ploidy ))" --max-num-haplotypes-in-population "$((ploidy * maxHaplotype))" )&
+		if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
 			wait
-			fi
-		done
-		grep -h '^#' ${pop}_${ploidy}x_*_raw.vcf | awk '!visited[$0]++' | awk '!/^##GATKCommandLine/' > vcf_header.txt
-		cat ${pop}_${ploidy}x_*_raw.vcf | awk '!/^#/' > all.vcf
-		cat vcf_header.txt all.vcf > ${pop}_${ploidy}x_raw.vcf
-		rm vcf_header.txt all.vcf *.vcf.gz.tbi ${pop}_${ploidy}x_*_raw.vcf
-	else
-		$GATK --java-options "$Xmx3 -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ../refgenomes/$ref1 $input -ploidy $ploidy -O ../snpcall/${pop}_${ploidy}x_raw.vcf.gz --max-reads-per-alignment-start "$(( biased_downsample * ploidy ))" --max-num-haplotypes-in-population "$((ploidy * maxHaplotype))"
-
-	fi
+		fi
+	done
+	wait
+	cd ../snpcall
+	for g in $(ls ${pop}_${ploidy}x_*_raw.vcf.gz); do (
+		gunzip $g )&
+		if [[ $(jobs -r -p | wc -l) -ge $N ]]; then
+		wait
+		fi
+	done
+	grep -h '^#' ${pop}_${ploidy}x_*_raw.vcf | awk '!visited[$0]++' | awk '!/^##GATKCommandLine/' > vcf_header.txt
+	cat ${pop}_${ploidy}x_*_raw.vcf | awk '!/^#/' > all.vcf
+	cat vcf_header.txt all.vcf > ${pop}_${ploidy}x_raw.vcf
+	rm vcf_header.txt all.vcf *.vcf.gz.tbi ${pop}_${ploidy}x_*_raw.vcf
 	cd ${projdir}/preprocess
-	mv *_precall* ./processed/
 fi
 
-if [[ "$paleopolyploid" = true ]] && [[ "$ncohorts" == 1 ]]; then
+if [[ "$paleopolyploid" == true ]] && [[ "$ncohorts" -eq 0 ]]; then
 	echo -e "${magenta}- performing SNP calling: \n       *multiple subgenomes or \n       *ancient polyploid   ${white}\n"
 	cd $projdir
 	cd preprocess
-	mkdir processed
 	for c in {1..4}; do
 		m=$((c*2))
 		j=-I; input=""; k=""
@@ -795,43 +783,37 @@ if [[ "$paleopolyploid" = true ]] && [[ "$ncohorts" == 1 ]]; then
 			k="${j} ${i}"; input="${input} ${k}"
 		done
 		Get_Chromosome=$(awk 'NR>1{print $2,"\t",$3}' ../refgenomes/${ref1%.*}.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $0}' | sort -k2,2 -nr | awk '{print $1}' | awk -v pat=${ref1%.f*} '$0 ~ pat')
-		if [[ "$(wc -l ../refgenomes/${ref1%.*}.dict | awk '{print $1}')" -le $cthreads ]]; then
-			for selchr in $Get_Chromosome; do (
-				$GATK --java-options "$Xmx3 -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ../refgenomes/$ref1 -L $selchr $input -ploidy $m -O ../snpcall/${pop}_${m}x_"${selchr}"_raw.vcf.gz --max-reads-per-alignment-start "$(( biased_downsample * m ))" --max-num-haplotypes-in-population "$((m * maxHaplotype))" )&
-				if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
-					wait
-				fi
-			done
-			wait
-			cd ../snpcall
-			for g in $(ls ${pop}_${m}x_*_raw.vcf.gz); do (
-				gunzip $g )&
-				if [[ $(jobs -r -p | wc -l) -ge $N ]]; then
+		for selchr in $Get_Chromosome; do (
+			$GATK --java-options "$Xmx3 -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ../refgenomes/$ref1 -L $selchr $input -ploidy $m -O ../snpcall/${pop}_${m}x_"${selchr}"_raw.vcf.gz --dont-use-soft-clipped-bases $softclip --max-reads-per-alignment-start "$(( biased_downsample * m ))" --max-num-haplotypes-in-population "$((m * maxHaplotype))" )&
+			if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
 				wait
-				fi
-			done
-			grep -h '^#' ${pop}_${m}x_*_raw.vcf | awk '!visited[$0]++' | awk '!/^##GATKCommandLine/' > vcf_header.txt
-			cat ${pop}_${m}x_*_raw.vcf | awk '!/^#/' > all.vcf
-			cat vcf_header.txt all.vcf > ${pop}_${m}x_raw.vcf
-			rm vcf_header.txt all.vcf *.vcf.gz.tbi ${pop}_${m}x_*_raw.vcf
-			cd ${projdir}/preprocess
-		else
-			$GATK --java-options "$Xmx3 -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ../refgenomes/$ref1 $input -ploidy $m -O ../snpcall/${pop}_${m}x_raw.vcf.gz --max-reads-per-alignment-start "$(( biased_downsample * m ))" --max-num-haplotypes-in-population "$((m * maxHaplotype))"
-		fi
+			fi
+		done
+		wait
+		cd ../snpcall
+		for g in $(ls ${pop}_${m}x_*_raw.vcf.gz); do (
+			gunzip $g )&
+			if [[ $(jobs -r -p | wc -l) -ge $N ]]; then
+			wait
+			fi
+		done
+		grep -h '^#' ${pop}_${m}x_*_raw.vcf | awk '!visited[$0]++' | awk '!/^##GATKCommandLine/' > vcf_header.txt
+		cat ${pop}_${m}x_*_raw.vcf | awk '!/^#/' > all.vcf
+		cat vcf_header.txt all.vcf > ${pop}_${m}x_raw.vcf
+		rm vcf_header.txt all.vcf *.vcf.gz.tbi ${pop}_${m}x_*_raw.vcf
+		cd ${projdir}/preprocess
 	done
 	cd ${projdir}/preprocess
-	mv *_precall* ./processed/
 fi
 
 
-if [[ "$paleopolyploid" = false ]] && [[ "$ncohorts" != 1 ]]; then
+if [[ "$paleopolyploid" == false ]] && [[ "$ncohorts" -gt 0 ]]; then
 	echo -e "${magenta}- performing SNP calling ${white}\n"
 	cd $projdir
 	cd preprocess
-	mkdir processed
 	for i in $(ls -S *_precall.bam); do (
-		$GATK --java-options "$Xmx3 -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ../refgenomes/$ref1 -I $i -ploidy $ploidy -O ../snpcall/${i%_precall.bam}.g.vcf.gz -ERC GVCF --max-reads-per-alignment-start "$(( biased_downsample * ploidy ))" --max-num-haplotypes-in-population "$((paralogs * ploidy))"
-		cp ../snpcall/${i%_precall.bam}.g.vcf.gz* ../snpcall/processed/ ) &
+		$GATK --java-options "$Xmx3 -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ../refgenomes/$ref1 -I $i -ploidy $ploidy -O ../snpcall/${i%_precall.bam}.g.vcf.gz -ERC GVCF --dont-use-soft-clipped-bases $softclip --max-reads-per-alignment-start "$(( biased_downsample * ploidy ))" --max-num-haplotypes-in-population "$((ploidy * maxHaplotype))"
+		) &
 		if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
 			wait
 		fi
@@ -839,10 +821,10 @@ if [[ "$paleopolyploid" = false ]] && [[ "$ncohorts" != 1 ]]; then
 	wait
 	cd ../snpcall
 
-	if [[ "$ncohorts" = yes ]] || [[  "$ncohorts" -eq "1" ]]; then
+	if [[ "$ncohorts" -eq 1 ]]; then
 		cz=$(ls *.g.vcf.gz | wc -l)
 	fi
-	if [[ "$ncohorts" -gt "1" ]]; then
+	if [[ "$ncohorts" -gt 1 ]]; then
 		cz=$(ls *.g.vcf.gz | wc -l)
 		cz=$(( (cz / ncohorts ) + (cz % ncohorts > 0)))
 	fi
@@ -893,13 +875,13 @@ if [[ "$paleopolyploid" = false ]] && [[ "$ncohorts" != 1 ]]; then
 		cat vcf_header.txt all.vcf > ${pop}_${ploidy}x_raw.vcf
 		rm vcf_header.txt all.vcf
 		rm ${pop}_${ploidy}x_*_raw.vcf ${pop}_${ploidy}x_*_raw.vcf.gz.tbi
-		bgzip ${pop}_${ploidy}x_raw.vcf
-		tabix -p vcf ${pop}_${ploidy}x_raw.vcf.gz
+		$bcftools view -I ${pop}_${ploidy}x_raw.vcf -O z -o ${pop}_${ploidy}x_raw.vcf.gz
+		$bcftools index ${pop}_${ploidy}x_raw.vcf.gz
 
 		$bcftools annotate -x FORMAT/PL ${pop}_${ploidy}x_raw.vcf.gz > ../${pop}_${ploidy}x_raw_${dir%/}.vcf
 		cd ../
-		bgzip ${pop}_${ploidy}x_raw_${dir%/}.vcf
-		tabix -p vcf ${pop}_${ploidy}x_raw_${dir%/}.vcf.gz
+		$bcftools view -I ${pop}_${ploidy}x_raw_${dir%/}.vcf -O z -o ${pop}_${ploidy}x_raw_${dir%/}.vcf.gz
+		$bcftools index ${pop}_${ploidy}x_raw_${dir%/}.vcf.gz
 		wait
 	done
 	wait
@@ -916,16 +898,15 @@ if [[ "$paleopolyploid" = false ]] && [[ "$ncohorts" != 1 ]]; then
 	mv *_precall* ./processed/
 fi
 
-if [[ "$paleopolyploid" = true ]] && [[ "$ncohorts" != 1 ]]; then
+if [[ "$paleopolyploid" == true ]] && [[ "$ncohorts" -gt 0 ]]; then
 	echo -e "${magenta}- performing SNP calling: \n       *multiple subgenomes or \n       *ancient polyploid   ${white}\n"
 	cd $projdir
 	cd preprocess
-	mkdir processed
 	for c in {1..4}; do
 		m=$((c*2))
 		for i in $(ls -S *${m}x_precall.bam); do (
-			$GATK --java-options "$Xmx3 -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ../refgenomes/$ref1 -I $i -ploidy $m -O ../snpcall/${i%_precall.bam}.g.vcf.gz -ERC GVCF --max-reads-per-alignment-start "$(( biased_downsample * m ))" --max-num-haplotypes-in-population "$((paralogs * m))"
-			cp ../snpcall/${i%_precall.bam}.g.vcf.gz* ../snpcall/processed/ ) &
+			$GATK --java-options "$Xmx3 -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ../refgenomes/$ref1 -I $i -ploidy $m -O ../snpcall/${i%_precall.bam}.g.vcf.gz -ERC GVCF --dont-use-soft-clipped-bases $softclip --max-reads-per-alignment-start "$(( biased_downsample * m ))" --max-num-haplotypes-in-population "$((m * maxHaplotype))"
+			) &
 			if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
 				wait
 			fi
@@ -934,10 +915,10 @@ if [[ "$paleopolyploid" = true ]] && [[ "$ncohorts" != 1 ]]; then
 	done
 	cd ../snpcall
 
-	if [[ "$ncohorts" = yes ]] || [[  "$ncohorts" -eq "1" ]]; then
+	if [[  "$ncohorts" -eq 1 ]]; then
 		cz=$(ls *.g.vcf.gz | wc -l)
 	fi
-	if [[ "$ncohorts" -gt "1" ]]; then
+	if [[ "$ncohorts" -gt 1 ]]; then
 		cz=$(ls *.g.vcf.gz | wc -l)
 		cz=$(( (cz / ncohorts ) + (cz % ncohorts > 0)))
 	fi
@@ -988,13 +969,13 @@ if [[ "$paleopolyploid" = true ]] && [[ "$ncohorts" != 1 ]]; then
 		cat vcf_header.txt all.vcf > ${pop}_${m}x_raw.vcf
 		rm vcf_header.txt all.vcf
 		rm ${pop}_${m}x_*_raw.vcf ${pop}_${m}x_*_raw.vcf.gz.tbi
-		bgzip ${pop}_${m}x_raw.vcf
-		tabix -p vcf ${pop}_${m}x_raw.vcf.gz
+		$bcftools view -I ${pop}_${m}x_raw.vcf -O z -o ${pop}_${m}x_raw.vcf.gz
+		$bcftools index ${pop}_${m}x_raw.vcf.gz
 
 		$bcftools annotate -x FORMAT/PL ${pop}_${m}x_raw.vcf.gz > ../${pop}_${m}x_raw_${dir%/}.vcf
 		cd ../
-		bgzip ${pop}_${m}x_raw_${dir%/}.vcf
-		tabix -p vcf ${pop}_${m}x_raw_${dir%/}.vcf.gz
+		$bcftools view -I ${pop}_${m}x_raw_${dir%/}.vcf -O z -o ${pop}_${m}x_raw_${dir%/}.vcf.gz
+		$bcftools index ${pop}_${m}x_raw_${dir%/}.vcf.gz
 		wait
 	done
 	wait
