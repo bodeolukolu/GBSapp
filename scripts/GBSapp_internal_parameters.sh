@@ -25,7 +25,7 @@ bash ../scripts/install.sh
 # tools
 export bwa=${GBSapp_dir}/tools/bwa*/bwa && bwa=${bwa//'//'/'/'}
 export samtools=${GBSapp_dir}/tools/samtools*/samtools && samtools=${samtools//'//'/'/'}
-export bcftools=${GBSapp_dir}/tools/bcftools*/bcftools && bcftools=${bcftools//'//'/'/'}
+export bcftools=${GBSapp_dir}/tools/bcftools*/bin/bcftools && bcftools=${bcftools//'//'/'/'}
 export picard=${GBSapp_dir}/tools/picard.jar && picard=${picard//'//'/'/'}
 export GATK=${GBSapp_dir}/tools/gatk-4.1.9.0/gatk && GATK=${GATK//'//'/'/'}
 export java=${GBSapp_dir}/tools/jdk8*/bin/java && java=${java//'//'/'/'}

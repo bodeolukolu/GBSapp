@@ -441,8 +441,7 @@ else
 		done; wait
 		awk '{print "seq"NR"_"$0}' ../preprocess/${i%.f*}_exp.sam | awk '{gsub(/ /,"\t"); print}' | awk '{$11 = $10; print}' | awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$11); print}' |\
 		cat ../preprocess/${i%.f*}_heading.sam - > ../preprocess/${i%.f*}_${ref1%.f*}.sam
-		rm ../preprocess/${i%.f*}_exp.sam ../preprocess/${i%.f*}_chrpos.txt ../preprocess/${i%.f*}_uniqsamp.sam ../preprocess/${i%.f*}_uniq.sam
-		rm ../preprocess/${i%.f*}_chrpos.txt ../preprocess/${i%.f*}_heading.sam
+		rm ../preprocess/${i%.f*}_exp.sam ../preprocess/${i%.f*}_chrpos.txt ../preprocess/${i%.f*}_uniqsamp.sam ../preprocess/${i%.f*}_uniq.sam ../preprocess/${i%.f*}_heading.sam
 
 
 		j="${i%.f*}_${ref1%.f*}.sam"
@@ -551,8 +550,7 @@ if [ "$paleopolyploid" == "true" ]; then
 		done; wait
 		awk '{print "seq"NR"_"$0}' ../preprocess/${i%.f*}_exp.sam | awk '{gsub(/ /,"\t"); print}' | awk '{$11 = $10; print}' | awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$11); print}' |\
 		cat ../preprocess/${i%.f*}_heading.sam - > ../preprocess/${i%.f*}_2x.sam
-		rm ../preprocess/${i%.f*}_exp.sam ../preprocess/${i%.f*}_chrpos.txt ../preprocess/${i%.f*}_uniqsamp.sam ../preprocess/${i%.f*}_uniq.sam
-		rm ../preprocess/${i%.f*}_chrpos.txt ../preprocess/${i%.f*}_heading.sam
+		rm ../preprocess/${i%.f*}_exp.sam ../preprocess/${i%.f*}_chrpos.txt ../preprocess/${i%.f*}_uniqsamp.sam ../preprocess/${i%.f*}_uniq.sam ../preprocess/${i%.f*}_heading.sam
 
 		j="${i%.f*}_2x.sam"
 		cd ../preprocess
@@ -583,8 +581,7 @@ if [ "$paleopolyploid" == "true" ]; then
 		done; wait
 		awk '{print "seq"NR"_"$0}' ../preprocess/${i%.f*}_exp.sam | awk '{gsub(/ /,"\t"); print}' | awk '{$11 = $10; print}' | awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$11); print}' |\
 		cat ../preprocess/${i%.f*}_heading.sam - > ../preprocess/${i%.f*}_4x.sam
-		rm ../preprocess/${i%.f*}_exp.sam ../preprocess/${i%.f*}_chrpos.txt ../preprocess/${i%.f*}_uniqsamp.sam ../preprocess/${i%.f*}_uniq.sam
-		rm ../preprocess/${i%.f*}_chrpos.txt ../preprocess/${i%.f*}_heading.sam
+		rm ../preprocess/${i%.f*}_exp.sam ../preprocess/${i%.f*}_chrpos.txt ../preprocess/${i%.f*}_uniqsamp.sam ../preprocess/${i%.f*}_uniq.sam ../preprocess/${i%.f*}_heading.sam
 
 		j="${i%.f*}_4x.sam"
 		cd ../preprocess
@@ -615,8 +612,7 @@ if [ "$paleopolyploid" == "true" ]; then
 			done; wait
 			awk '{print "seq"NR"_"$0}' ../preprocess/${i%.f*}_exp.sam | awk '{gsub(/ /,"\t"); print}' | awk '{$11 = $10; print}' | awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$11); print}' |\
 			cat ../preprocess/${i%.f*}_heading.sam - > ../preprocess/${i%.f*}_6x.sam
-			rm ../preprocess/${i%.f*}_exp.sam ../preprocess/${i%.f*}_chrpos.txt ../preprocess/${i%.f*}_uniqsamp.sam ../preprocess/${i%.f*}_uniq.sam
-			rm ../preprocess/${i%.f*}_chrpos.txt ../preprocess/${i%.f*}_heading.sam
+			rm ../preprocess/${i%.f*}_exp.sam ../preprocess/${i%.f*}_chrpos.txt ../preprocess/${i%.f*}_uniqsamp.sam ../preprocess/${i%.f*}_uniq.sam ../preprocess/${i%.f*}_heading.sam
 
 			j="${i%.f*}_6x.sam"
 			cd ../preprocess
@@ -649,8 +645,7 @@ if [ "$paleopolyploid" == "true" ]; then
 			done; wait
 			awk '{print "seq"NR"_"$0}' ../preprocess/${i%.f*}_exp.sam | awk '{gsub(/ /,"\t"); print}' | awk '{$11 = $10; print}' | awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$11); print}' |\
 			cat ../preprocess/${i%.f*}_heading.sam - > ../preprocess/${i%.f*}_8x.sam
-			rm ../preprocess/${i%.f*}_exp.sam ../preprocess/${i%.f*}_chrpos.txt ../preprocess/${i%.f*}_uniqsamp.sam ../preprocess/${i%.f*}_uniq.sam
-			rm ../preprocess/${i%.f*}_chrpos.txt ../preprocess/${i%.f*}_heading.sam
+			rm ../preprocess/${i%.f*}_exp.sam ../preprocess/${i%.f*}_chrpos.txt ../preprocess/${i%.f*}_uniqsamp.sam ../preprocess/${i%.f*}_uniq.sam ../preprocess/${i%.f*}_heading.sam
 
 			j="${i%.f*}_8x.sam"
 			cd ../preprocess
