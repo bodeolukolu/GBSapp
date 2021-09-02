@@ -1,3 +1,8 @@
+if R --version; then
+	:
+else
+	module add R
+fi
 
 if [ -z "$threads" ]; then
 	threads=$(nproc --all)
@@ -12,16 +17,18 @@ else
 	haplome_number=$((haplome_number))
 fi
 echo haplome_number: "$haplome_number"
-if [ -z "$copy_number" ]; then
-	paralogs=$((1 * haplome_number))
-else
-	paralogs=$((copy_number * haplome_number))
+if [ -z "$multilocus" ]; then
+	paralogs=10
 fi
-echo copy_number: "$paralogs"
+if [ "$multilocus" == true ]; then
+	paralogs=10
+fi
+if [ "$multilocus" == false ]; then
+	paralogs=1
+fi
 if [ -z "$maxHaplotype" ]; then
-	maxHaplotype=$((paralogs * 6))
+	maxHaplotype=6
 fi
-echo maxHaplotypes per haploid genome: "$maxHaplotype"
 
 if [ -z "$p2" ]; then
 	p2=$p1
@@ -29,13 +36,6 @@ fi
 if [ -z "$paleopolyploid" ]; then
 	paleopolyploid=false
 fi
-if [ -z "$ncohorts" ]; then
-	ncohorts=1
-fi
-if [ -z "$min_unique_RD" ]; then
-	min_unique_RD=1
-fi
-echo min_unique_RD: "$min_unique_RD"
 
 if [[ "$biased_downsample" -gt 0 ]]; then
 	if [[ "$ubbiased_downsample" -gt 0 ]]; then
@@ -346,12 +346,12 @@ main () {
 
 	nfiles=$(ls -1 -p | grep -v R2.f | grep -v / |  wc -l)
 	totalk=$(awk '/^MemTotal:/{print $2}' /proc/meminfo)
-	loopthread=2
+	loopthreads=2
 	if [[ "$threads" -gt 1 ]]; then
 	  N=$((threads/2))
 	  ram1=$(($totalk/$N))
 	else
-	  N=1 && loopthread=threads
+	  N=1 && loopthreads=threads
 	fi
 	ram1=$((ram1/1000000))
 	Xmx1=-Xmx${ram1}G
@@ -359,22 +359,40 @@ main () {
 	ram2=${ram2%.*}
 	Xmx2=-Xmx${ram2}G
 	if [[ "$nfiles" -lt "$N" ]]; then
-	  N=$nfiles && loopthread=$threads
+	  N=$nfiles && loopthreads=$threads
+	fi
+
+	if [[ "$threads" -le 6 ]]; then
+		prepthreads=threads
+		Xmxp=$Xmx2
+		prepN=1
+	else
+		prepthreads=6
+		prepN=$(( threads / prepthreads ))
+		ramprep=$(( ram2 / prepN ))
+		Xmxp=-Xmx${ramprep}G
+	fi
+
+	if [[ "$threads" -le 4 ]]; then
+		gthreads=threads
+		Xmxg=$Xmx2
+		gN=1
+	else
+		gthreads=4
+		gN=$(( threads / gthreads ))
+		ramg=$(( ram2 / gN ))
+		Xmxg=-Xmx${ramg}G
 	fi
 }
 cd $projdir
 main &>> log.out
-
-
 
 ######################################################################################################################################################
 echo -e "${blue}\n############################################################################## ${yellow}\n- Perform Read Alignments & Alignment Post-Processing\n${blue}##############################################################################${white}\n"
 main () {
 cd $projdir
 
-if [ "$paleopolyploid" == "true" ]; then
-	:
-else
+if [ "$paleopolyploid" == false ]; then
 	cd samples
 	for i in $(ls -S *.f* | grep -v R2.f); do (
 		if gzip -t $i; then
@@ -397,21 +415,21 @@ else
 			touch "${i%.f*}_R2_uniq.txt"
 		fi
 		export LC_ALL=C; paste -d ~ ${i%.f*}_uniq.txt ${i%.f*}_R2_uniq.txt | expand -t $(( $(wc -L < $i ) + 2 )) | awk '{!seen[$0]++}END{for (i in seen) print seen[i], i}' | \
-		awk '{$1=$1};1' | awk '{gsub(" /"," "); print}' | awk '{gsub("/\n","\n"); print}' | awk '{gsub("/"," "); print}' | awk '{gsub(" ","\t"); print}' | awk -v minuniqRD=$min_unique_RD '($1 >= minuniqRD)' > ${i%.f*}_rdrefseq.txt
+		awk '{$1=$1};1' | awk '{gsub(" /"," "); print}' | awk '{gsub("/\n","\n"); print}' | awk '{gsub("/"," "); print}' | awk '{gsub(" ","\t"); print}' > ${i%.f*}_rdrefseq.txt
 		awk 'NF==2 {print ">seq"NR"_se-"$1"\n"$2}' ${i%.f*}_rdrefseq.txt > ${i%.f*}_rdrefseq_se.txt
 		awk 'NF==3 {print ">seq"NR"_pe-"$0}' ${i%.f*}_rdrefseq.txt | awk '{print $1"\n"$3}' > ${i%.f*}_uniq_R2.fasta
 		awk 'NF==3 {print ">seq"NR"_pe-"$0}' ${i%.f*}_rdrefseq.txt | awk '{print $1"\n"$2}' | cat - ${i%.f*}_rdrefseq_se.txt > ${i%.f*}_uniq_R1.fasta
 		nempty=$( wc -l ${i%.f*}_uniq_R2.fasta | awk '{print $1}' )
 		if [[ "$nempty" -gt 0 ]]; then
-			$bwa mem -t $loopthread ../refgenomes/$ref1 ${i%.f*}_uniq_R1.fasta ${i%.f*}_uniq_R2.fasta > ../preprocess/${i%.f*}_del.sam
+			$bwa mem -t $prepthreads ../refgenomes/$ref1 ${i%.f*}_uniq_R1.fasta ${i%.f*}_uniq_R2.fasta > ../preprocess/${i%.f*}_del.sam
 		else
-			$bwa mem -t $loopthread ../refgenomes/$ref1 ${i%.f*}_uniq_R1.fasta > ../preprocess/${i%.f*}_del.sam
+			$bwa mem -t $prepthreads ../refgenomes/$ref1 ${i%.f*}_uniq_R1.fasta > ../preprocess/${i%.f*}_del.sam
 		fi
 		rm ${i%.f*}_*_uniq* ${i%.f*}_uniq* ${i%.f*}_rdrefseq*
 		printf '\n###---'${i%.f*}'---###\n' > ../alignment_summaries/${i%.f*}_summ.txt && \
 		$samtools flagstat ../preprocess/${i%.f*}_del.sam >> ../alignment_summaries/${i%.f*}_summ.txt && \
 		printf '########################################################################################################\n\n' >> ../alignment_summaries/${i%.f*}_summ.txt && \
-		$java $Xmx1 -XX:ParallelGCThreads=$loopthread -jar $picard SortSam I=../preprocess/${i%.f*}_del.sam O=../preprocess/${i%.f*}_del.bam SORT_ORDER=coordinate && \
+		$java $Xmxp -XX:ParallelGCThreads=$prepthreads -jar $picard SortSam I=../preprocess/${i%.f*}_del.sam O=../preprocess/${i%.f*}_del.bam SORT_ORDER=coordinate && \
 		$samtools view -h ../preprocess/${i%.f*}_del.bam | awk '{if ($1=="@HD" || $1=="@SQ" || $1=="@PG" || $7=="*" || $7=="=") { print }}' > ../preprocess/${i%.f*}_del.sam  && \
 		awk -F ${ref1%.f*}_ '{print NF-1, NR}' ../preprocess/${i%.f*}_del.sam > ../preprocess/${i%.f*}_count.txt  && \
 		paste <(awk '{print $1}' ../preprocess/${i%.f*}_count.txt ) > ../preprocess/${i%.f*}_pancount.txt && \
@@ -427,6 +445,13 @@ else
 		awk '/@HD/ || /@SQ/{print}' ../preprocess/${i%.f*}_${ref1%.f*}.sam | awk '{gsub(/ /,"\t"); print}' > ../preprocess/${i%.f*}_heading.sam
 		awk '!/^@/ { print }' ../preprocess/${i%.f*}_${ref1%.f*}.sam | awk '{gsub(/^.*-/,"",$1); print $0}' | awk '{gsub(/^.*_/,"",$2); print $0}' > ../preprocess/${i%.f*}_uniq.sam
 
+		if [ "$multilocus" == "true" ]; then
+			echo "nloci~mapQ~CHROM~POS" > ../alignment_summaries/refgenome_paralogs.txt
+			grep -vwE "(@HD|@SQ|@PG)" ../preprocess/${i%.f*}_2del.sam | awk '{print $1"~"$6"~"$4"~"$5}' >> ../alignment_summaries/refgenome_paralogs.txt
+			awk '!visited[$0]++' ../alignment_summaries/refgenome_paralogs.txt > ../alignment_summaries/temp.txt
+			mv ../alignment_summaries/temp.txt ../alignment_summaries/refgenome_paralogs.txt
+		fi
+
 		unds=$(( unbiased_downsample * ploidy))
 		awk -F' ' 'BEGIN{FS=OFS=" "} {if (a[$3,$4]<$1) {a[$3,$4]=$1; data[$3,$4]=$0}} END{for (i in a) print data[i]}' ../preprocess/${i%.f*}_uniq.sam | \
 		awk '{print $1,$3,$4}' | grep -v '*' > ../preprocess/${i%.f*}_chrpos.txt
@@ -434,29 +459,28 @@ else
 		awk -F" " 'BEGIN{FS=OFS=" "} {if (NR==FNR) {a[$2FS$3]=$1; next} if ($4FS$5 in a) {$1=a[$4FS$5]} print}' ../preprocess/${i%.f*}_chrpos.txt - | \
 		awk '!( $4 == "*" )' | awk '{print $1,$0}' | awk -v unds=$unds 'BEGIN{FS=OFS=" "} { if($2 > unds) {printf("%.3f", $1=$1/unds)} else {printf($1=$3);} $1="" }1' | \
 		awk -v unds=$unds 'BEGIN{FS=OFS=" "} { if($2 > unds) {printf("%.f", $1=$3/$1)} else {printf($1=$3);} $1="" }1' | \
-		awk '$1<"1" {$1="1"}1' |  awk '!($2=$3="")' > ../preprocess/${i%.f*}_uniqsamp.sam
+		awk '!( $1 < "1" )' |  awk '!($2=$3="")' > ../preprocess/${i%.f*}_uniqsamp.sam
 
 		for j in $(LC_ALL=C; sort -n -k1,1 ../preprocess/${i%.f*}_uniqsamp.sam | grep -v @ | awk '{print $1}' | uniq); do
 			awk -v n="^${j}" '$0~n{print $0}' ../preprocess/${i%.f*}_uniqsamp.sam | awk -v n="$j" '{for(i=0;i<n;i++) print}' >> ../preprocess/${i%.f*}_exp.sam
 		done; wait
 		awk '{print "seq"NR"_"$0}' ../preprocess/${i%.f*}_exp.sam | awk '{gsub(/ /,"\t"); print}' | awk '{$11 = $10; print}' | awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$11); print}' |\
-		cat ../preprocess/${i%.f*}_heading.sam - > ../preprocess/${i%.f*}_${ref1%.f*}.sam
+		awk -v paralogs=$paralogs 'BEGIN { OFS = "\t"; }; { if ($5 == 0 || paralogs > 1) $5 = 60; else $5 = $5; }; 1' | awk '!( $6 == "*" )' | cat ../preprocess/${i%.f*}_heading.sam - > ../preprocess/${i%.f*}_${ref1%.f*}.sam
 		rm ../preprocess/${i%.f*}_exp.sam ../preprocess/${i%.f*}_chrpos.txt ../preprocess/${i%.f*}_uniqsamp.sam ../preprocess/${i%.f*}_uniq.sam ../preprocess/${i%.f*}_heading.sam
 
 
 		j="${i%.f*}_${ref1%.f*}.sam"
 		cd ../preprocess
-		$java $Xmx1 -XX:ParallelGCThreads=$loopthread -jar $picard SortSam I=$j O=${j%.sam*}.bam  SORT_ORDER=coordinate && \
-		$java $Xmx1 -XX:ParallelGCThreads=$loopthread -jar $picard BuildBamIndex INPUT=${j%.sam*}.bam && \
-		$java $Xmx1 -XX:ParallelGCThreads=$loopthread -jar $picard AddOrReplaceReadGroups I=${j%.sam*}.bam O=${j%.sam*}_precall.bam RGLB=${i%.f*} RGPL=illumina VALIDATION_STRINGENCY=LENIENT RGPU=run RGSM=${i%.f*} && \
+		$java $Xmxp -XX:ParallelGCThreads=$prepthreads -jar $picard SortSam I=$j O=${j%.sam*}.bam  SORT_ORDER=coordinate && \
+		$java $Xmxp -XX:ParallelGCThreads=$prepthreads -jar $picard BuildBamIndex INPUT=${j%.sam*}.bam && \
+		$java $Xmxp -XX:ParallelGCThreads=$prepthreads -jar $picard AddOrReplaceReadGroups I=${j%.sam*}.bam O=${j%.sam*}_precall.bam RGLB=${i%.f*} RGPL=illumina VALIDATION_STRINGENCY=LENIENT RGPU=run RGSM=${i%.f*} && \
 		$samtools index ${j%.sam*}_precall.bam
 
 		ls ${i%.f*}_* | grep -v precall | xargs rm && \
 		cd ../samples
-		wait
-		) &
-		if [[ $(jobs -r -p | wc -l) -ge $N ]]; then
-			wait
+		wait )&
+		if [[ $(jobs -r -p | wc -l) -ge $prepN ]]; then
+		  wait
 		fi
 	done
 	wait
@@ -485,7 +509,7 @@ fi
 
 if [ "$paleopolyploid" == "true" ]; then
 	cd samples
-	for i in $(ls -S *.f* | grep -v R2.f); do (
+	for i in $(ls -S *.f* | grep -v R2.f); do
 		if gzip -t $i; then
 			gunzip -c $i | awk 'NR%2==0' | awk 'NR%2' > ${i%.f*}_uniq.txt &
 			if test -f ${i%.f*}_R2*; then gunzip -c ${i%.f*}_R2* | awk 'NR%2==0' | awk 'NR%2' > ${i%.f*}_R2_uniq.txt &
@@ -512,15 +536,15 @@ if [ "$paleopolyploid" == "true" ]; then
 		awk 'NF==3 {print ">seq"NR"_pe-"$0}' ${i%.f*}_rdrefseq.txt | awk '{print $1"\n"$2}' | cat - ${i%.f*}_rdrefseq_se.txt > ${i%.f*}_uniq_R1.fasta
 		nempty=$( wc -l ${i%.f*}_uniq_R2.fasta | awk '{print $1}' )
 		if [[ "$nempty" -gt 0 ]]; then
-			$bwa mem -t $loopthread ../refgenomes/$ref1 ${i%.f*}_uniq_R1.fasta ${i%.f*}_uniq_R2.fasta > ../preprocess/${i%.f*}_del.sam
+			$bwa mem -t $prepthreads ../refgenomes/$ref1 ${i%.f*}_uniq_R1.fasta ${i%.f*}_uniq_R2.fasta > ../preprocess/${i%.f*}_del.sam
 		else
-			$bwa mem -t $loopthread ../refgenomes/$ref1 ${i%.f*}_uniq_R1.fasta > ../preprocess/${i%.f*}_del.sam
+			$bwa mem -t $prepthreads ../refgenomes/$ref1 ${i%.f*}_uniq_R1.fasta > ../preprocess/${i%.f*}_del.sam
 		fi
 		rm ${i%.f*}_*_uniq* ${i%.f*}_uniq* ${i%.f*}_rdrefseq*
 		printf '\n###---'${i%.f*}'---###\n' > ../alignment_summaries/${i%.f*}_summ.txt && \
 		samtools flagstat ../preprocess/${i%.f*}_del.sam >> ../alignment_summaries/${i%.f*}_summ.txt && \
 		printf '########################################################################################################\n\n' >> ${i%.f*}_summ.txt && \
-		$java $Xmx1 -XX:ParallelGCThreads=$loopthread -jar $picard SortSam I=../preprocess/${i%.f*}_del.sam O=../preprocess/${i%.f*}_del.bam SORT_ORDER=coordinate && \
+		$java $Xmxp -XX:ParallelGCThreads=$prepthreads -jar $picard SortSam I=../preprocess/${i%.f*}_del.sam O=../preprocess/${i%.f*}_del.bam SORT_ORDER=coordinate && \
 		$samtools view -h ../preprocess/${i%.f*}_del.bam | awk '{if ($1=="@HD" || $1=="@SQ" || $1=="@PG" || $7=="*" || $7=="=") { print }}' > ../preprocess/${i%.f*}_del.sam  && \
 		awk -F ${ref1%.f*}_ '{print NF-1, NR}' ../preprocess/${i%.f*}_del.sam > ../preprocess/${i%.f*}_count.txt  && \
 		paste <(awk '{print $1}' ../preprocess/${i%.f*}_count.txt ) > ../preprocess/${i%.f*}_pancount.txt && \
@@ -536,6 +560,13 @@ if [ "$paleopolyploid" == "true" ]; then
 		awk '/@HD/ || /@SQ/{print}' ../preprocess/${i%.f*}_${ref1%.f*}.sam | awk '{gsub(/ /,"\t"); print}' > ../preprocess/${i%.f*}_heading.sam
 		awk '!/^@/ { print }' ../preprocess/${i%.f*}_${ref1%.f*}.sam | awk '{gsub(/^.*-/,"",$1); print $0}' | awk '{gsub(/^.*_/,"",$2); print $0}' > ../preprocess/${i%.f*}_uniq.sam
 
+		if [ "$multilocus" == "true" ]; then
+			echo "nloci~mapQ~CHROM~POS" > ../alignment_summaries/refgenome_paralogs.txt
+			grep -vwE "(@HD|@SQ|@PG)" ../preprocess/${i%.f*}_2del.sam | awk '{print $1"~"$6"~"$4"~"$5}' >> ../alignment_summaries/refgenome_paralogs.txt
+			awk '!visited[$0]++' ../alignment_summaries/refgenome_paralogs.txt > ../alignment_summaries/temp.txt
+			mv ../alignment_summaries/temp.txt ../alignment_summaries/refgenome_paralogs.txt
+		fi
+
 		unds=$(( unbiased_downsample * 2))
 		awk -F' ' 'BEGIN{FS=OFS=" "} {if (a[$3,$4]<$1) {a[$3,$4]=$1; data[$3,$4]=$0}} END{for (i in a) print data[i]}' ../preprocess/${i%.f*}_uniq.sam | \
 		awk '{print $1,$3,$4}' | grep -v '*' > ../preprocess/${i%.f*}_chrpos.txt
@@ -543,21 +574,21 @@ if [ "$paleopolyploid" == "true" ]; then
 		awk -F" " 'BEGIN{FS=OFS=" "} {if (NR==FNR) {a[$2FS$3]=$1; next} if ($4FS$5 in a) {$1=a[$4FS$5]} print}' ../preprocess/${i%.f*}_chrpos.txt - | \
 		awk '!( $4 == "*" )' | awk '{print $1,$0}' | awk -v unds=$unds 'BEGIN{FS=OFS=" "} { if($2 > unds) {printf("%.3f", $1=$1/unds)} else {printf($1=$3);} $1="" }1' | \
 		awk -v unds=$unds 'BEGIN{FS=OFS=" "} { if($2 > unds) {printf("%.f", $1=$3/$1)} else {printf($1=$3);} $1="" }1' | \
-		awk '$1<"1" {$1="1"}1' |  awk '!($2=$3="")' > ../preprocess/${i%.f*}_uniqsamp.sam
+		awk '!( $1 < "1" )' |  awk '!($2=$3="")' > ../preprocess/${i%.f*}_uniqsamp.sam
 
 		for j in $(LC_ALL=C; sort -n -k1,1 ../preprocess/${i%.f*}_uniqsamp.sam | grep -v @ | awk '{print $1}' | uniq); do
 			awk -v n="^${j}" '$0~n{print $0}' ../preprocess/${i%.f*}_uniqsamp.sam | awk -v n="$j" '{for(i=0;i<n;i++) print}' >> ../preprocess/${i%.f*}_exp.sam
 		done; wait
 		awk '{print "seq"NR"_"$0}' ../preprocess/${i%.f*}_exp.sam | awk '{gsub(/ /,"\t"); print}' | awk '{$11 = $10; print}' | awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$11); print}' |\
-		cat ../preprocess/${i%.f*}_heading.sam - > ../preprocess/${i%.f*}_2x.sam
+		awk 'BEGIN { OFS = "\t"; }; { if ($5 == 0) $6 = "*"; else $5 = $5; }; 1' | awk '!( $6 == "*" )' | cat ../preprocess/${i%.f*}_heading.sam - > ../preprocess/${i%.f*}_2x.sam
 		rm ../preprocess/${i%.f*}_exp.sam ../preprocess/${i%.f*}_chrpos.txt ../preprocess/${i%.f*}_uniqsamp.sam ../preprocess/${i%.f*}_uniq.sam ../preprocess/${i%.f*}_heading.sam
 
 		j="${i%.f*}_2x.sam"
 		cd ../preprocess
-		$java $Xmx1 -XX:ParallelGCThreads=$loopthread -jar $picard SortSam I=$j O=${j%.sam*}.bam  SORT_ORDER=coordinate && \
-		$java $Xmx1 -XX:ParallelGCThreads=$loopthread -jar $picard MarkDuplicates I=${j%.sam*}.bam O=${j%.sam*}_dup.bam METRICS_FILE= metrics.txt CREATE_INDEX=true && \
-		$java $Xmx1 -XX:ParallelGCThreads=$loopthread -jar $picard BuildBamIndex INPUT=${j%.sam*}_dup.bam && \
-		$java $Xmx1 -XX:ParallelGCThreads=$loopthread -jar $picard AddOrReplaceReadGroups I=${j%.sam*}_dup.bam O=${j%.sam*}_precall.bam RGLB=${i%.f*} RGPL=illumina VALIDATION_STRINGENCY=LENIENT RGPU=run RGSM=${i%.f*} && \
+		$java $Xmxp -XX:ParallelGCThreads=$prepthreads -jar $picard SortSam I=$j O=${j%.sam*}.bam  SORT_ORDER=coordinate && \
+		$java $Xmxp -XX:ParallelGCThreads=$prepthreads -jar $picard MarkDuplicates I=${j%.sam*}.bam O=${j%.sam*}_dup.bam METRICS_FILE= metrics.txt CREATE_INDEX=true && \
+		$java $Xmxp -XX:ParallelGCThreads=$prepthreads -jar $picard BuildBamIndex INPUT=${j%.sam*}_dup.bam && \
+		$java $Xmxp -XX:ParallelGCThreads=$prepthreads -jar $picard AddOrReplaceReadGroups I=${j%.sam*}_dup.bam O=${j%.sam*}_precall.bam RGLB=${i%.f*} RGPL=illumina VALIDATION_STRINGENCY=LENIENT RGPU=run RGSM=${i%.f*} && \
 		$samtools index ${j%.sam*}_precall.bam
 
 
@@ -574,20 +605,20 @@ if [ "$paleopolyploid" == "true" ]; then
 		awk -F" " 'BEGIN{FS=OFS=" "} {if (NR==FNR) {a[$2FS$3]=$1; next} if ($4FS$5 in a) {$1=a[$4FS$5]} print}' ../preprocess/${i%.f*}_chrpos.txt - | \
 		awk '!( $4 == "*" )' | awk '{print $1,$0}' | awk -v unds=$unds 'BEGIN{FS=OFS=" "} { if($2 > unds) {printf("%.3f", $1=$1/unds)} else {printf($1=$3);} $1="" }1' | \
 		awk -v unds=$unds 'BEGIN{FS=OFS=" "} { if($2 > unds) {printf("%.f", $1=$3/$1)} else {printf($1=$3);} $1="" }1' | \
-		awk '$1<"1" {$1="1"}1' |  awk '!($2=$3="")' > ../preprocess/${i%.f*}_uniqsamp.sam
+		awk '!( $1 < "1" )' |  awk '!($2=$3="")' > ../preprocess/${i%.f*}_uniqsamp.sam
 
 		for j in $(LC_ALL=C; sort -n -k1,1 ../preprocess/${i%.f*}_uniqsamp.sam | grep -v @ | awk '{print $1}' | uniq); do
 			awk -v n="^$j " '$0~n{print $0}' ../preprocess/${i%.f*}_uniqsamp.sam | awk -v n=$j '{for(i=0;i<n;i++) print}' >> ../preprocess/${i%.f*}_exp.sam
 		done; wait
 		awk '{print "seq"NR"_"$0}' ../preprocess/${i%.f*}_exp.sam | awk '{gsub(/ /,"\t"); print}' | awk '{$11 = $10; print}' | awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$11); print}' |\
-		cat ../preprocess/${i%.f*}_heading.sam - > ../preprocess/${i%.f*}_4x.sam
+		awk 'BEGIN { OFS = "\t"; }; { if ($5 == 0) $6 = "*"; else $5 = $5; }; 1' | awk '!( $6 == "*" )' | cat ../preprocess/${i%.f*}_heading.sam - > ../preprocess/${i%.f*}_4x.sam
 		rm ../preprocess/${i%.f*}_exp.sam ../preprocess/${i%.f*}_chrpos.txt ../preprocess/${i%.f*}_uniqsamp.sam ../preprocess/${i%.f*}_uniq.sam ../preprocess/${i%.f*}_heading.sam
 
 		j="${i%.f*}_4x.sam"
 		cd ../preprocess
-		$java $Xmx1 -XX:ParallelGCThreads=$loopthread -jar $picard SortSam I=$j O=${j%.sam*}.bam SORT_ORDER=coordinate && \
-		$java $Xmx1 -XX:ParallelGCThreads=$loopthread -jar $picard BuildBamIndex INPUT=${j%.sam*}.bam && \
-		$java $Xmx1 -XX:ParallelGCThreads=$loopthread -jar $picard AddOrReplaceReadGroups I=${j%.sam*}.bam O=${j%.sam*}_precall.bam RGLB=${i%.f*} RGPL=illumina VALIDATION_STRINGENCY=LENIENT RGPU=run RGSM=${i%.f*} && \
+		$java $Xmxp -XX:ParallelGCThreads=$prepthreads -jar $picard SortSam I=$j O=${j%.sam*}.bam SORT_ORDER=coordinate && \
+		$java $Xmxp -XX:ParallelGCThreads=$prepthreads -jar $picard BuildBamIndex INPUT=${j%.sam*}.bam && \
+		$java $Xmxp -XX:ParallelGCThreads=$prepthreads -jar $picard AddOrReplaceReadGroups I=${j%.sam*}.bam O=${j%.sam*}_precall.bam RGLB=${i%.f*} RGPL=illumina VALIDATION_STRINGENCY=LENIENT RGPU=run RGSM=${i%.f*} && \
 		$samtools index ${j%.sam*}_precall.bam
 
 
@@ -605,21 +636,21 @@ if [ "$paleopolyploid" == "true" ]; then
 			awk -F" " 'BEGIN{FS=OFS=" "} {if (NR==FNR) {a[$2FS$3]=$1; next} if ($4FS$5 in a) {$1=a[$4FS$5]} print}' ../preprocess/${i%.f*}_chrpos.txt - | \
 			awk '!( $4 == "*" )' | awk '{print $1,$0}' | awk -v unds=$unds 'BEGIN{FS=OFS=" "} { if($2 > unds) {printf("%.3f", $1=$1/unds)} else {printf($1=$3);} $1="" }1' | \
 			awk -v unds=$unds 'BEGIN{FS=OFS=" "} { if($2 > unds) {printf("%.f", $1=$3/$1)} else {printf($1=$3);} $1="" }1' | \
-			awk '$1<"1" {$1="1"}1' |  awk '!($2=$3="")' > ../preprocess/${i%.f*}_uniqsamp.sam
+			awk '!( $1 < "1" )' |  awk '!($2=$3="")' > ../preprocess/${i%.f*}_uniqsamp.sam
 
 			for j in $(LC_ALL=C; sort -n -k1,1 ../preprocess/${i%.f*}_uniqsamp.sam | grep -v @ | awk '{print $1}' | uniq); do
 				awk -v n="^$j " '$0~n{print $0}' ../preprocess/${i%.f*}_uniqsamp.sam | awk -v n=$j '{for(i=0;i<n;i++) print}' >> ../preprocess/${i%.f*}_exp.sam
 			done; wait
 			awk '{print "seq"NR"_"$0}' ../preprocess/${i%.f*}_exp.sam | awk '{gsub(/ /,"\t"); print}' | awk '{$11 = $10; print}' | awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$11); print}' |\
-			cat ../preprocess/${i%.f*}_heading.sam - > ../preprocess/${i%.f*}_6x.sam
+			awk 'BEGIN { OFS = "\t"; }; { if ($5 == 0) $6 = "*"; else $5 = $5; }; 1' | awk '!( $6 == "*" )' | cat ../preprocess/${i%.f*}_heading.sam - > ../preprocess/${i%.f*}_6x.sam
 			rm ../preprocess/${i%.f*}_exp.sam ../preprocess/${i%.f*}_chrpos.txt ../preprocess/${i%.f*}_uniqsamp.sam ../preprocess/${i%.f*}_uniq.sam ../preprocess/${i%.f*}_heading.sam
 
 			j="${i%.f*}_6x.sam"
 			cd ../preprocess
-			$java $Xmx1 -XX:ParallelGCThreads=$loopthread -jar $picard SortSam I=$j O=${j%.sam*}.bam SORT_ORDER=coordinate && \
-			$java $Xmx1 -XX:ParallelGCThreads=$loopthread -jar $picard MarkDuplicates I=${j%.sam*}.bam O=${j%.sam*}_dup.bam METRICS_FILE= metrics.txt CREATE_INDEX=true && \
-			$java $Xmx1 -XX:ParallelGCThreads=$loopthread -jar $picard BuildBamIndex INPUT=${j%.sam*}_dup.bam && \
-			$java $Xmx1 -XX:ParallelGCThreads=$loopthread -jar $picard AddOrReplaceReadGroups I=${j%.sam*}_dup.bam O=${j%.sam*}_precall.bam RGLB=${i%.f*} RGPL=illumina VALIDATION_STRINGENCY=LENIENT RGPU=run RGSM=${i%.f*} && \
+			$java $Xmxp -XX:ParallelGCThreads=$prepthreads -jar $picard SortSam I=$j O=${j%.sam*}.bam SORT_ORDER=coordinate && \
+			$java $Xmxp -XX:ParallelGCThreads=$prepthreads -jar $picard MarkDuplicates I=${j%.sam*}.bam O=${j%.sam*}_dup.bam METRICS_FILE= metrics.txt CREATE_INDEX=true && \
+			$java $Xmxp -XX:ParallelGCThreads=$prepthreads -jar $picard BuildBamIndex INPUT=${j%.sam*}_dup.bam && \
+			$java $Xmxp -XX:ParallelGCThreads=$prepthreads -jar $picard AddOrReplaceReadGroups I=${j%.sam*}_dup.bam O=${j%.sam*}_precall.bam RGLB=${i%.f*} RGPL=illumina VALIDATION_STRINGENCY=LENIENT RGPU=run RGSM=${i%.f*} && \
 			$samtools index ${j%.sam*}_precall.bam
 		fi
 
@@ -638,30 +669,30 @@ if [ "$paleopolyploid" == "true" ]; then
 			awk -F" " 'BEGIN{FS=OFS=" "} {if (NR==FNR) {a[$2FS$3]=$1; next} if ($4FS$5 in a) {$1=a[$4FS$5]} print}' ../preprocess/${i%.f*}_chrpos.txt - | \
 			awk '!( $4 == "*" )' | awk '{print $1,$0}' | awk -v unds=$unds 'BEGIN{FS=OFS=" "} { if($2 > unds) {printf("%.3f", $1=$1/unds)} else {printf($1=$3);} $1="" }1' | \
 			awk -v unds=$unds 'BEGIN{FS=OFS=" "} { if($2 > unds) {printf("%.f", $1=$3/$1)} else {printf($1=$3);} $1="" }1' | \
-			awk '$1<"1" {$1="1"}1' |  awk '!($2=$3="")' > ../preprocess/${i%.f*}_uniqsamp.sam
+			awk '!( $1 < "1" )' |  awk '!($2=$3="")' > ../preprocess/${i%.f*}_uniqsamp.sam
 
 			for j in $(LC_ALL=C; sort -n -k1,1 ../preprocess/${i%.f*}_uniqsamp.sam | grep -v @ | awk '{print $1}' | uniq); do
 				awk -v n="^$j " '$0~n{print $0}' ../preprocess/${i%.f*}_uniqsamp.sam | awk -v n=$j '{for(i=0;i<n;i++) print}' >> ../preprocess/${i%.f*}_exp.sam
 			done; wait
 			awk '{print "seq"NR"_"$0}' ../preprocess/${i%.f*}_exp.sam | awk '{gsub(/ /,"\t"); print}' | awk '{$11 = $10; print}' | awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$11); print}' |\
-			cat ../preprocess/${i%.f*}_heading.sam - > ../preprocess/${i%.f*}_8x.sam
+			awk 'BEGIN { OFS = "\t"; }; { if ($5 == 0) $6 = "*"; else $5 = $5; }; 1' | awk '!( $6 == "*" )' | cat ../preprocess/${i%.f*}_heading.sam - > ../preprocess/${i%.f*}_8x.sam
 			rm ../preprocess/${i%.f*}_exp.sam ../preprocess/${i%.f*}_chrpos.txt ../preprocess/${i%.f*}_uniqsamp.sam ../preprocess/${i%.f*}_uniq.sam ../preprocess/${i%.f*}_heading.sam
 
 			j="${i%.f*}_8x.sam"
 			cd ../preprocess
-			$java $Xmx1 -XX:ParallelGCThreads=$loopthread -jar $picard SortSam I=$j O=${j%.sam*}.bam SORT_ORDER=coordinate && \
-			$java $Xmx1 -XX:ParallelGCThreads=$loopthread -jar $picard MarkDuplicates I=${j%.sam*}.bam O=${j%.sam*}_dup.bam METRICS_FILE= metrics.txt CREATE_INDEX=true && \
-			$java $Xmx1 -XX:ParallelGCThreads=$loopthread -jar $picard BuildBamIndex INPUT=${j%.sam*}_dup.bam && \
-			$java $Xmx1 -XX:ParallelGCThreads=$loopthread -jar $picard AddOrReplaceReadGroups I=${j%.sam*}_dup.bam O=${j%.sam*}_precall.bam RGLB=${i%.f*} RGPL=illumina VALIDATION_STRINGENCY=LENIENT RGPU=run RGSM=${i%.f*} && \
+			$java $Xmxp -XX:ParallelGCThreads=$prepthreads -jar $picard SortSam I=$j O=${j%.sam*}.bam SORT_ORDER=coordinate && \
+			$java $Xmxp -XX:ParallelGCThreads=$prepthreads -jar $picard MarkDuplicates I=${j%.sam*}.bam O=${j%.sam*}_dup.bam METRICS_FILE= metrics.txt CREATE_INDEX=true && \
+			$java $Xmxp -XX:ParallelGCThreads=$prepthreads -jar $picard BuildBamIndex INPUT=${j%.sam*}_dup.bam && \
+			$java $Xmxp -XX:ParallelGCThreads=$prepthreads -jar $picard AddOrReplaceReadGroups I=${j%.sam*}_dup.bam O=${j%.sam*}_precall.bam RGLB=${i%.f*} RGPL=illumina VALIDATION_STRINGENCY=LENIENT RGPU=run RGSM=${i%.f*} && \
 			$samtools index ${j%.sam*}_precall.bam
 		fi
 
 		ls ${i%.f*}_* | grep -v precall | xargs rm && \
 		cd ../samples
-		wait ) &
-	  if [[ $(jobs -r -p | wc -l) -ge $N ]]; then
-	    wait
-	  fi
+		wait )&
+		if [[ $(jobs -r -p | wc -l) -ge $prepN ]]; then
+			wait
+		fi
 	done
 	wait
 	cd ../alignment_summaries
@@ -685,6 +716,13 @@ if [ "$paleopolyploid" == "true" ]; then
 	rm total* summary_precall.txt
 	rm ../samples/metrics.txt ../preprocess/metrics.txt
 fi
+
+cd $projdir/alignment_summaries
+awk '{gsub(/~/,"\t"); print $0}' refgenome_paralogs.txt | awk 'BEGIN{OFS="\t"; }; {if($2==0) $1 = "multilocus"; else $1 = $1; }; 1' | \
+awk 'BEGIN{OFS="\t"; };{print $3,$4,$1}' | awk '$3>max[$1,$2]{max[$1,$2]=$3; row[$1,$2]=$0} END{for (i in row) print row[i]}' | \
+awk '{print $0,substr($2, 1, length($2)-2)}' | awk '$3>max[$1,$4]{max[$1,$4]=$3; row[$1,$4]=$0} END{for (i in row) print row[i]}' > temp.txt
+awk '{print $1"\t"$2"\t"$3}' > temp.txt | awk '!/CHROM/' | cat <(printf "CHROM\tPOS\tnloci\n") - > refgenome_paralogs.txt
+
 }
 cd $projdir
 if [ "$walkaway" == false ]; then
@@ -723,18 +761,7 @@ fi
 echo -e "${blue}\n############################################################################## ${yellow}\n- Performing Variant Calling with GATK HaplotypeCaller\n${blue}##############################################################################${white}\n"
 main () {
 cd $projdir
-if [[ "$threads" -le 4 ]]; then
-	gthreads=$threads
-	Xmx3=$Xmx2
-	gN=1
-else
-	if [ -z "$gthreads" ]; then
-		gthreads=4
-	fi
-	gN=$(( threads / gthreads ))
-	ram3=$(( ram2 / gN ))
-	Xmx3=-Xmx${ram3}G
-fi
+ncohorts=1
 if [[ -z "$(ls -A ./preprocess/processed/)" ]]; then
 	:
 else
@@ -742,77 +769,13 @@ else
 fi
 
 ######################
-if [[ "$paleopolyploid" == false ]] && [[ "$ncohorts" -eq 0 ]]; then
-	echo -e "${magenta}- performing SNP calling ${white}\n"
-	cd $projdir
-	cd preprocess
-	j=-I; input=""; k=""
-	for i in $(ls *_precall.bam); do
-		k="${j} ${i}"; input="${input} ${k}"
-	done
-	Get_Chromosome=$(awk 'NR>1{print $2,"\t",$3}' ../refgenomes/${ref1%.*}.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $0}' | sort -k2,2 -nr | awk '{print $1}' | awk -v pat=${ref1%.f*} '$0 ~ pat')
-	for selchr in $Get_Chromosome; do (
-		$GATK --java-options "$Xmx3 -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ../refgenomes/$ref1 -L $selchr $input -ploidy $ploidy -O ../snpcall/${pop}_${ploidy}x_"${selchr}"_raw.vcf.gz --dont-use-soft-clipped-bases $softclip --max-reads-per-alignment-start "$(( biased_downsample * ploidy ))" --max-num-haplotypes-in-population "$((ploidy * maxHaplotype))" )&
-		if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
-			wait
-		fi
-	done
-	wait
-	cd ../snpcall
-	for g in $(ls ${pop}_${ploidy}x_*_raw.vcf.gz); do (
-		gunzip $g )&
-		if [[ $(jobs -r -p | wc -l) -ge $N ]]; then
-		wait
-		fi
-	done
-	grep -h '^#' ${pop}_${ploidy}x_*_raw.vcf | awk '!visited[$0]++' | awk '!/^##GATKCommandLine/' > vcf_header.txt
-	cat ${pop}_${ploidy}x_*_raw.vcf | awk '!/^#/' > all.vcf
-	cat vcf_header.txt all.vcf > ${pop}_${ploidy}x_raw.vcf
-	rm vcf_header.txt all.vcf *.vcf.gz.tbi ${pop}_${ploidy}x_*_raw.vcf
-	cd ${projdir}/preprocess
-fi
 
-if [[ "$paleopolyploid" == true ]] && [[ "$ncohorts" -eq 0 ]]; then
-	echo -e "${magenta}- performing SNP calling: \n       *multiple subgenomes or \n       *ancient polyploid   ${white}\n"
-	cd $projdir
-	cd preprocess
-	for c in {1..4}; do
-		m=$((c*2))
-		j=-I; input=""; k=""
-		for i in $(ls *${m}x_precall.bam); do
-			k="${j} ${i}"; input="${input} ${k}"
-		done
-		Get_Chromosome=$(awk 'NR>1{print $2,"\t",$3}' ../refgenomes/${ref1%.*}.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $0}' | sort -k2,2 -nr | awk '{print $1}' | awk -v pat=${ref1%.f*} '$0 ~ pat')
-		for selchr in $Get_Chromosome; do (
-			$GATK --java-options "$Xmx3 -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ../refgenomes/$ref1 -L $selchr $input -ploidy $m -O ../snpcall/${pop}_${m}x_"${selchr}"_raw.vcf.gz --dont-use-soft-clipped-bases $softclip --max-reads-per-alignment-start "$(( biased_downsample * m ))" --max-num-haplotypes-in-population "$((m * maxHaplotype))" )&
-			if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
-				wait
-			fi
-		done
-		wait
-		cd ../snpcall
-		for g in $(ls ${pop}_${m}x_*_raw.vcf.gz); do (
-			gunzip $g )&
-			if [[ $(jobs -r -p | wc -l) -ge $N ]]; then
-			wait
-			fi
-		done
-		grep -h '^#' ${pop}_${m}x_*_raw.vcf | awk '!visited[$0]++' | awk '!/^##GATKCommandLine/' > vcf_header.txt
-		cat ${pop}_${m}x_*_raw.vcf | awk '!/^#/' > all.vcf
-		cat vcf_header.txt all.vcf > ${pop}_${m}x_raw.vcf
-		rm vcf_header.txt all.vcf *.vcf.gz.tbi ${pop}_${m}x_*_raw.vcf
-		cd ${projdir}/preprocess
-	done
-	cd ${projdir}/preprocess
-fi
-
-
-if [[ "$paleopolyploid" == false ]] && [[ "$ncohorts" -gt 0 ]]; then
+if [[ "$paleopolyploid" == false ]]; then
 	echo -e "${magenta}- performing SNP calling ${white}\n"
 	cd $projdir
 	cd preprocess
 	for i in $(ls -S *_precall.bam); do (
-		$GATK --java-options "$Xmx3 -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ../refgenomes/$ref1 -I $i -ploidy $ploidy -O ../snpcall/${i%_precall.bam}.g.vcf.gz -ERC GVCF --dont-use-soft-clipped-bases $softclip --max-reads-per-alignment-start "$(( biased_downsample * ploidy ))" --max-num-haplotypes-in-population "$((ploidy * maxHaplotype))"
+		$GATK --java-options "$Xmxg -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ../refgenomes/$ref1 -I $i -ploidy $ploidy -O ../snpcall/${i%_precall.bam}.g.vcf.gz -ERC GVCF --dont-use-soft-clipped-bases $softclip --max-reads-per-alignment-start "$(( biased_downsample * ploidy ))" --max-num-haplotypes-in-population "$((ploidy * maxHaplotype))"
 		) &
 		if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
 			wait
@@ -845,8 +808,8 @@ if [[ "$paleopolyploid" == false ]] && [[ "$ncohorts" -gt 0 ]]; then
 		done
 		Get_Chromosome=$(awk 'NR>1{print $2,"\t",$3}' ../../refgenomes/${ref1%.*}.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $0}' | sort -k2,2 -nr | awk '{print $1}' | awk -v pat=${ref1%.f*} '$0 ~ pat')
 		for selchr in $Get_Chromosome; do (
-			$GATK --java-options "$Xmx3 -XX:ParallelGCThreads=$gthreads" GenomicsDBImport $input -L $selchr --genomicsdb-workspace-path ${pop}_${ploidy}x_"${selchr}"_raw
-			$GATK --java-options "$Xmx3 -XX:ParallelGCThreads=$gthreads" GenotypeGVCFs -R ../../refgenomes/$ref1 -L $selchr -V gendb://${pop}_${ploidy}x_"${selchr}"_raw -O ${pop}_${ploidy}x_"${selchr}"_raw.vcf.gz
+			$GATK --java-options "$Xmxg -XX:ParallelGCThreads=$gthreads" GenomicsDBImport $input -L $selchr --genomicsdb-workspace-path ${pop}_${ploidy}x_"${selchr}"_raw
+			$GATK --java-options "$Xmxg -XX:ParallelGCThreads=$gthreads" GenotypeGVCFs -R ../../refgenomes/$ref1 -L $selchr -V gendb://${pop}_${ploidy}x_"${selchr}"_raw -O ${pop}_${ploidy}x_"${selchr}"_raw.vcf.gz
 			rm -r ${pop}_${ploidy}x_"${selchr}"_raw
 			if LC_ALL=C gzip -l ${pop}_${ploidy}x_"${selchr}"_raw.vcf.gz | awk 'NR==2 {exit($2!=0)}'; then
 				:
@@ -898,14 +861,14 @@ if [[ "$paleopolyploid" == false ]] && [[ "$ncohorts" -gt 0 ]]; then
 	mv *_precall* ./processed/
 fi
 
-if [[ "$paleopolyploid" == true ]] && [[ "$ncohorts" -gt 0 ]]; then
+if [[ "$paleopolyploid" == true ]]; then
 	echo -e "${magenta}- performing SNP calling: \n       *multiple subgenomes or \n       *ancient polyploid   ${white}\n"
 	cd $projdir
 	cd preprocess
 	for c in {1..4}; do
 		m=$((c*2))
 		for i in $(ls -S *${m}x_precall.bam); do (
-			$GATK --java-options "$Xmx3 -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ../refgenomes/$ref1 -I $i -ploidy $m -O ../snpcall/${i%_precall.bam}.g.vcf.gz -ERC GVCF --dont-use-soft-clipped-bases $softclip --max-reads-per-alignment-start "$(( biased_downsample * m ))" --max-num-haplotypes-in-population "$((m * maxHaplotype))"
+			$GATK --java-options "$Xmxg -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ../refgenomes/$ref1 -I $i -ploidy $m -O ../snpcall/${i%_precall.bam}.g.vcf.gz -ERC GVCF --dont-use-soft-clipped-bases $softclip --max-reads-per-alignment-start "$(( biased_downsample * m ))" --max-num-haplotypes-in-population "$((m * maxHaplotype))"
 			) &
 			if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
 				wait
@@ -939,8 +902,8 @@ if [[ "$paleopolyploid" == true ]] && [[ "$ncohorts" -gt 0 ]]; then
 		done
 		Get_Chromosome=$(awk 'NR>1{print $2,"\t",$3}' ../../refgenomes/${ref1%.*}.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $0}' | sort -k2,2 -nr | awk '{print $1}' | awk -v pat=${ref1%.f*} '$0 ~ pat')
 		for selchr in $Get_Chromosome; do (
-			$GATK --java-options "$Xmx3 -XX:ParallelGCThreads=$gthreads" GenomicsDBImport $input -L $selchr --genomicsdb-workspace-path ${pop}_${m}x_"${selchr}"_raw
-			$GATK --java-options "$Xmx3 -XX:ParallelGCThreads=$gthreads" GenotypeGVCFs -R ../../refgenomes/$ref1 -L $selchr -V gendb://${pop}_${m}x_"${selchr}"_raw -O ${pop}_${m}x_"${selchr}"_raw.vcf.gz
+			$GATK --java-options "$Xmxg -XX:ParallelGCThreads=$gthreads" GenomicsDBImport $input -L $selchr --genomicsdb-workspace-path ${pop}_${m}x_"${selchr}"_raw
+			$GATK --java-options "$Xmxg -XX:ParallelGCThreads=$gthreads" GenotypeGVCFs -R ../../refgenomes/$ref1 -L $selchr -V gendb://${pop}_${m}x_"${selchr}"_raw -O ${pop}_${m}x_"${selchr}"_raw.vcf.gz
 			rm -r ${pop}_${m}x_"${selchr}"_raw
 			if LC_ALL=C gzip -l ${pop}_${m}x_"${selchr}"_raw.vcf.gz | awk 'NR==2 {exit($2!=0)}'; then
 				:
@@ -993,7 +956,6 @@ if [[ "$paleopolyploid" == true ]] && [[ "$ncohorts" -gt 0 ]]; then
 	mv *_precall* ./processed/
 fi
 
-
 ########################
 echo -e "${magenta}- keeping *realign.bam & *realign.bam files in ./preprocess/processed/ ${white}\n"
 mv ../preprocess/processed/* ../preprocess/
@@ -1016,6 +978,22 @@ if [[ "$checksplit" -gt 0 ]]; then
 		cat file0.vcf file1.vcf > $i
 		rm file file1 file0.vcf file1.vcf
 	done
+
+	cd ../alignment_summaries
+	i=refgenome_paralogs.txt
+	cp $i ${i%.txt}_positions_split.txt
+	awk '/^CHROM/{close("file.txt"f);f++}{print $0 > "file"f}' $i
+	awk 'NR==1{print}' file1 | cat file - > file0.txt
+	for j in $(seq 1 10); do
+		awk 'NR>1{print}' file1 | awk '{print $1,"\t",$2,"\t",$0}' | awk '{gsub(/_x0/,"\t"); print}' | \
+		awk -v splits=$j -F '\t' 'BEGIN{OFS="\t"} $2 ~ splits {$3=$3+500000000}1' | awk 'BEGIN{OFS="\t"} !($2="")' | awk 'BEGIN{OFS="\t"} !($3="")' | \
+		awk 'BEGIN{OFS="\t"} !($3="")' | awk 'BEGIN{OFS="\t"} !($3="")' | awk '{gsub(/\t\t/,"\t"); print }' | \
+		sort -k1,1 -k2n,2 | awk NF > file1.txt
+	done
+	cat file0.txt file1.txt > $i
+	rm file file1 file0.txt file1.txt
+	cd ../snpcall
+
 else
 	:
 fi
@@ -1055,7 +1033,7 @@ fi
 
 
 ######################################################################################################################################################
-echo -e "${blue}\n############################################################################## ${yellow}\n- Perform SNP Filtering\n${blue}##############################################################################${white}\n"
+echo -e "${blue}\n############################################################################## ${yellow}\n- Performing SNP Filtering\n${blue}##############################################################################${white}\n"
 main () {
 cd $projdir
 
@@ -1223,6 +1201,24 @@ if [[ ! -f ./index_code.txt ]]; then
 			cat file0.txt file2.txt > $i
 			rm file0.txt file1.txt file2.txt file_snp_stitch.txt
 		done
+
+		cd ../alignment_summaries
+		awk 'NR==1{print}' refgenome_paralogs.txt > file0.txt
+		awk 'NR>1{print $1,"\t",$2}' refgenome_paralogs.txt > file_snp_stitch.txt
+		awk 'NR>1{print $0}' refgenome_paralogs.txt > file1.txt
+		> index_code.txt
+		while IFS="" read -r p || [ -n "$p" ]; do
+		fchr=$(echo $p | awk '{print $1}'); fpos=$(echo $p | awk '{print $2}')
+		scf=$(awk -v fchr=$fchr '$1 == fchr' ../refgenomes/contigscaffold_index.txt | \
+		awk -v t=$fpos 'BEGIN {var=t; highest=0}{ j = $NF;if ( j <= var && j > highest ) { highest=j} } END {print highest}' )
+		awk -v fchr=$fchr '$1 == fchr' ../refgenomes/contigscaffold_index.txt | awk -v scf=$scf -v fchr=$fchr -v fpos=$fpos '$3 == scf {print fchr"\t"fpos"\t"$0}' >> index_code.txt
+		done < file_snp_stitch.txt
+		awk 'BEGIN {FS=OFS="\t"}{ $5 = $2 - $5 } 1' index_code.txt > file2.txt
+		awk 'BEGIN {FS=OFS="\t"}!($3="")' file2.txt | awk '{gsub(/\t\t/,"\t"); print}' | awk '{gsub(/ /,""); print}' > index_code.txt
+		paste -d "\t" index_code.txt file1.txt | awk -F"\t" 'BEGIN {FS=OFS="\t"}{$1=$2=$5=$6=""; print $0}' | tr -s '\t' | sed -e 's/^[ \t]*//' > file2.txt
+		cat file0.txt file2.txt > refgenome_paralogs.txt
+		rm file0.txt file1.txt file2.txt file_snp_stitch.txt index_code.txt
+		cd ../snpcall
 	fi
 fi
 
@@ -1442,9 +1438,9 @@ done
 cd ${projdir}/snpfilter/
 find . -type f -empty -delete
 find . -type d -empty -delete
-wc -l *gmiss*/*dose* | awk '{print $2"\t"$1-1}' | grep -v "total" | awk '{sub(/\/.*$/,"",$1); print $1"\t"$2}' > gmiss_smiss_titration.txt
+wc -l *gmiss*/*dose.txt | awk '{print $2"\t"$1-1}' | grep -v "total" | awk '{sub(/\/.*$/,"",$1); print $1"\t"$2}' > gmiss_smiss_titration.txt
 wc -l *gmiss*/eliminated* | awk '{print $2"\t"$1-1}' | grep -v "total" | awk '{sub(/\/.*$/,"",$1); print $1"\t"$2}' > eliminated_samples.txt
-echo -e "smiss_gmiss_thresholds\t#_of_SNPs\t#_of_eliminated_samples\n----------------------\t---------\t-----------------------" > summary_precall.txt
+echo -e "gmiss_smiss_thresholds\t#_of_SNPs\t#_of_eliminated_samples\n----------------------\t---------\t-----------------------" > summary_precall.txt
 awk 'FNR==NR{a[$1]=$2;next} ($1 in a) {print $1,"\t",a[$1],"\t",$2}' gmiss_smiss_titration.txt eliminated_samples.txt | cat summary_precall.txt - > gmiss_smiss_titration_eliminated_samples.txt
 rm gmiss_smiss_titration.txt eliminated_samples.txt summary_precall.txt
 
@@ -1622,7 +1618,7 @@ for snpfilter_dir in $(ls -d */); do
 		$samtools bam2fq $sample | awk 'NR%2==0' | awk 'NR%2==1' | awk '{!seen[$0]++}END{for (i in seen) print seen[i], i}' | awk '{$1=$1};1' | \
 		awk -v sname=${outfile} '{print ">"sname"_seq"NR"-"$1"\n"$2}' | gzip > ../snpfilter/${snpfilter_dir}/subsamples/${outfile}_precall.fasta.gz
 		cd ../snpfilter/${snpfilter_dir}/subref
-		$bwa mem -t $loopthread refpos.fasta ../subsamples/${outfile}_precall.fasta.gz > ../subsamples/${outfile}.sam
+		$bwa mem -t $loopthreads refpos.fasta ../subsamples/${outfile}_precall.fasta.gz > ../subsamples/${outfile}.sam
 		cd ../subsamples/
 		$samtools view -b -F 4 ${outfile}.sam | $samtools bam2fq - | awk 'NR%4==1' > ${outfile}_uniqh.fasta
 		$samtools view -b -F 4 ${outfile}.sam | $samtools bam2fq - | awk 'NR%2==0' | awk 'NR%2==1' > ${outfile}_uniqs.fasta

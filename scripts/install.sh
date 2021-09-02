@@ -112,6 +112,20 @@ else
 fi
 
 
+main () {
+  if R --version; then
+    :
+  else
+    module add R
+    if R --version; then
+      :
+    else
+      echo -e "${white}- install R before proceeding ${white}"
+      echo -e "${white}- dependencies for R in linux: <sudo apt install libcurl4-openssl-dev> and <sudo apt install libssl-dev>"
+    fi
+  fi
+}
+main &>> ./log.out
 
 
 main () {

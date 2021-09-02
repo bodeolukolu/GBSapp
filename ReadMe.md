@@ -4,7 +4,7 @@
 </p>
 
 # Introduction
-GBSapp (v. 0.2.4) is an automated pipeline for variant calling and filtering (including microhaplotypes or multi-SNP markers). The pipeline intuitively integrates existing and novel best practices, some of which can be controlled by user-defined parameters. It ensures accurate dosage-sensitive variant calling, read depth filtering applied to each data point rather than averaging across samples/variants. It optimizes memory and speed at various points in the pipeline, for example, a novel approach performs compression and decompression of unique reads before and after pre-variant read alignment, respectively. Summary reports and visualizations allow for QC at each step of the pipeline.
+GBSapp (v. 0.2.4) is an automated pipeline for variant calling and filtering (including microhaplotypes or multi-SNP markers). The pipeline intuitively integrates existing and novel best practices, some of which can be controlled by user-defined parameters. It optimizes memory and speed at various points in the pipeline, for example, a novel approach performs compression and decompression of unique reads before and after pre-variant read alignment, respectively. Summary reports and visualizations allow for QC at each step of the pipeline.
 
 For questions, bugs, and suggestions, please contact bolukolu@utk.edu.
 
@@ -13,10 +13,11 @@ For questions, bugs, and suggestions, please contact bolukolu@utk.edu.
 - Dosage-based variant/haplotype calling and filtering.
 - Haploid (1x), Diploid (2x), Tetraploid (4x), Hexaploid (6x), and Octoploid (8x).
 - Captures and codes variable dosage/copy number in paleopolyploids.
-- Can restrict variants call to single copy sequences (i.e. multi-locus variant/paralog test and filtering).
-- Additional haplotype-based filtering (useful for targeted sequencing of single locus variants).
+- Can restrict variants call to reads to uniquely mapped
+- Multi-locus variants (paralogs-derived) can also be produced (annotates variant with reference genome copy number).
+- Additional haplotype-based filtering (useful for high-fidelity targeted-genotyping).
 - Generates microhaplotypes (multi-SNP) markers
-- Sequence context of variants
+- Produces sequence context of variants
 - Dynamic unbiased down-sampling on locus-by-locus basis (preserving allelic ratios).
 - Easy to learn, and use.
 
@@ -99,7 +100,8 @@ Using a text editor, save a file containing any of the following variables as 'c
 |ploidy_ref2|na|ploid level for subgenome 1|integer|Required|
 |ploidy_ref3|na|ploid level for subgenome 1|integer|Required|
 |ploidy_ref4|na|ploid level for subgenome 1|integer|Required|
-|paleopolyploid|false|capture/code variable dosage/copy number (i.e. 2x,4x,6x, and 8x)|true or false||Optional|
+|multilocus|true|use reads that align to single or multiple loci|true or false|Optional|
+|paleopolyploid|false|capture/code variable dosage/copy number (i.e. 2x,4x,6x, and 8x)|true or false|Optional|
 
 
 
@@ -128,14 +130,10 @@ Using a text editor, save a file containing any of the following variables as 'c
 |Variable      |Default       |Usage         |Input         |required/Optional|
 |:-------------|:-------------|:-------------|:-------------|:----------------|
 |haplome_number|1|number of haplome(s) represented by reference genome|integer|Optional|
-|copy_number|1|maximum copy number of each unique read|integer|Optional|
-|ncohorts|1|number of cohorts for 2-step joint calling. 0=single-step joint calling |integer|Optional|
 |maxHaplotype|6| maximum number of haplotypes per haploid genome across population|integer|Optional|
-|min_unique_RD|1| minimum read depth for each unique read|integer|Optional|
 |unbiased_downsample|25| maximum read number per alignment start position (per haploid genome). 0 = no downsample|integer|Optional|
 |biased_downsample|0| maximum read number per alignment start position (per haploid genome). 0 = no downsample|integer|Optional|
 |softclip|true| do not use soft Clipped bases (recommended)|string|Optional|
-|gthreads|4|number of cores per chromosome/scaffold/contig (multi-processing haplotypecaller) |integer|Optional|
 
 
 
@@ -157,7 +155,7 @@ ref2=TL.fasta
 ploidy_ref1=4
 ploidy_ref2=2
 paleopolyploid=false
-
+multilocus=true
 
 # SNP-filtering:
 ####################################################
@@ -166,11 +164,9 @@ p2=Tanzania
 genotype_missingness=0.1,0.2,0.3
 sample_missingness=0.1,0.2,0.3
 exclude_samples=S1,S2,S3
-minRD_1x=2
 minRD_2x=6
 minRD_4x=25
 minRD_6x=45
-minRD_8x=100
 pseg=0.001
 maf=0.02
 snpformats=false
@@ -178,13 +174,10 @@ snpformats=false
 # Advanced parameters
 ###################################################
 haplome_number=1
-copy_number=1
-ncohorts=1
 maxHaplotype=6
-min_unique_RD=1
 unbiased_downsample=25
 biased_downsample=0
-gthreads=4
+softclip=true
 ```
 
 Alternatively, a configuration file (outlined below) specifying only the pploidy level is sufficient to run GBSapp.

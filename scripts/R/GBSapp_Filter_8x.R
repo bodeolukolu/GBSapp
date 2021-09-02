@@ -41,6 +41,7 @@ library(ggplot2)
 ####################################################################################################################
 ####################################################################################################################
 subgenome_1 <- read.table (file=paste("../../snpcall/",pop,"_8x","_DP_GT.txt",sep=""), header=T, sep="\t", check.names = FALSE)
+subgenome_1[, 5:(((ncol(subgenome_1)-4)/2)+4)] <- lapply(5:(((ncol(subgenome_1)-4)/2)+4), function(x) as.numeric(subgenome_1[[x]]))
 subgenome_1[,(((ncol(subgenome_1)-4)/2)+5):ncol(subgenome_1)] <- lapply(subgenome_1[,(((ncol(subgenome_1)-4)/2)+5):ncol(subgenome_1)], gsub, pattern = "|", replacement = "/", fixed = TRUE)
 RD_snpfiltering <- function(){
   #remove samples theat you want to exclude from the analysis
@@ -107,7 +108,7 @@ RD_snpfiltering <- function(){
   nonbiallelic <- subset(nonbiallelic, nonbiallelic != "0/0/1/1/1/1/1/1")
   nonbiallelic <- subset(nonbiallelic, nonbiallelic != "0/1/1/1/1/1/1/1")
   nonbiallelic <- subset(nonbiallelic, nonbiallelic != "1/1/1/1/1/1/1/1")
-  if (length(nonbiallelic > 0)){
+  if (length(nonbiallelic) > 0) {
     for (i in 1:length(nonbiallelic)){
       subgenome_1_SD_1[][subgenome_1_SD_1[]==nonbiallelic[i]] <- NA
     }
@@ -145,7 +146,7 @@ RD_snpfiltering <- function(){
   nonbiallelic <- subset(nonbiallelic, nonbiallelic != "0/0/1/1/1/1/1/1")
   nonbiallelic <- subset(nonbiallelic, nonbiallelic != "0/1/1/1/1/1/1/1")
   nonbiallelic <- subset(nonbiallelic, nonbiallelic != "1/1/1/1/1/1/1/1")
-  if (length(nonbiallelic > 0)){
+  if (length(nonbiallelic) > 0) {
     for (i in 1:length(nonbiallelic)){
       subgenome_1_SD_0[][subgenome_1_SD_0[]==nonbiallelic[i]] <- NA
     }
@@ -162,6 +163,7 @@ RD_snpfiltering <- function(){
 RD_snpfiltering()
 
 subgenome_1 <- read.table (file=paste(pop,"_8x","_DP_GT.txt",sep=""), header=T, sep="\t", check.names = FALSE)
+subgenome_1[, 5:(((ncol(subgenome_1)-4)/2)+4)] <- lapply(5:(((ncol(subgenome_1)-4)/2)+4), function(x) as.numeric(subgenome_1[[x]]))
 SD_snpfiltering <- function() {
   #######################################################################################################################################################################################
   #Filter for segregation distortion at unmethlyated loci
@@ -3208,9 +3210,11 @@ sample_subsample <- function(){
 sample_subsample()
 
 subgenome_1 <- read.table (file=paste(pop,"_8x","_DP_GT.txt",sep=""), header=T, sep="\t", check.names = FALSE)
+subgenome_1[, 5:(((ncol(subgenome_1)-4)/2)+4)] <- lapply(5:(((ncol(subgenome_1)-4)/2)+4), function(x) as.numeric(subgenome_1[[x]]))
 RD_snpfiltering()
 
 subgenome_1 <- read.table (file=paste(pop,"_8x","_DP_GT.txt",sep=""), header=T, sep="\t", check.names = FALSE)
+subgenome_1[, 5:(((ncol(subgenome_1)-4)/2)+4)] <- lapply(5:(((ncol(subgenome_1)-4)/2)+4), function(x) as.numeric(subgenome_1[[x]]))
 SD_snpfiltering()
 
 ####################################################################################################################
@@ -3941,6 +3945,7 @@ pop_struc()
 
 ####################################################################################################################
 subgenome_1 <- read.table (file=paste(pop,"_8x","_DP_GT.txt",sep=""), header=T, sep="\t", check.names = FALSE)
+subgenome_1[, 5:(((ncol(subgenome_1)-4)/2)+4)] <- lapply(5:(((ncol(subgenome_1)-4)/2)+4), function(x) as.numeric(subgenome_1[[x]]))
 rd_boxplot <- function(){
   #######################################################################################################################################################################################
   # Now, let's make boxplots use raw data set. It reflects read depth distribution across sample IDs
@@ -4220,6 +4225,26 @@ raw_alleles <- function(){
 raw_alleles()
 
 ####################################################################################################################
+
+snpid <- read.table(paste(pop,"_8x","_rd",rd+1,"_noSDdose.txt",sep=""), header=T, sep="\t",stringsAsFactors=FALSE, check.names = FALSE)
+snpid <- subset(snpid, select=c("CHROM","POS"))
+snpid$POS <- as.numeric(as.character(snpid$POS))
+snpid$position <- lapply(snpid$POS / 1000, as.integer)
+snpidN <- read.table("../../alignment_summaries/refgenome_paralogs.txt", header=T, sep="\t", quote="", check.names=FALSE, fill=TRUE)
+snpidN$POS <- as.numeric(as.character(snpidN$POS))
+snpidN$position <- lapply(snpidN$POS / 1000, as.integer)
+snpidM <- merge(snpid, snpidN, by = c("CHROM","position"), all.x = TRUE)
+snpidM$diff <- abs(snpidM$POS.x - snpidM$POS.y)
+snpidM <- merge(aggregate(diff ~ CHROM + POS.x, data = snpidM, FUN = min), snpidM)
+snpidM <- unique(subset(snpidM, select=c("CHROM","POS.x","nloci")))
+colnames(snpidM)[2] <- "POS"
+write.table (snpidM, file=paste(pop,"_8x","refgenome_nloci_matched.txt",sep=""), row.names=F, quote = FALSE, sep = "\t")
+
+snpidM <- subset(snpidM, snpidM$nloci == 1)
+snpidM <- subset(snpidM, select=c("CHROM","POS"))
+subgenome_uniqmap <- merge(snpid, snpidM, by = c("CHROM","POS"), all.y = TRUE)
+write.table (subgenome_uniqmap, file=paste(pop,"_8x","_rd",rd+1,"_noSDdose_unique_mapped.txt",sep=""), row.names=F, quote = FALSE, sep = "\t")
+
 
 unlink(file=paste(pop,"_8x","_DP_GT.txt",sep=""))
 unlink(file=paste(pop,"_8x_SD_rd24.txt",sep=""))
