@@ -31,6 +31,7 @@ main () {
   # The following is optional:
   autoheader && autoconf && ./configure --enable-libgsl --enable-perl-filters
   make
+  cd ..
 }
 dirtool=bcftools*
 if [ -d $dirtool ]; then
