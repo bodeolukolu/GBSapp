@@ -720,10 +720,10 @@ fi
 cd $projdir/alignment_summaries
 
 touch refgenome_paralogs.txt
-for par in refgenome_paralogs_*.txt;then
+for par in refgenome_paralogs_*.txt; do
 	cat refgenome_paralogs.txt $par | awk '!visited[$0]++' > temp_par.txt
 	mv temp_par.txt refgenome_paralogs.txt
-fi
+done
 rm refgenome_paralogs_*.txt
 awk '{gsub(/~/,"\t"); print $0}' refgenome_paralogs.txt | awk 'BEGIN{OFS="\t"; }; {if($2==0) $1 = "multilocus"; else $1 = $1; }; 1' | \
 awk 'BEGIN{OFS="\t"; };{print $3,$4,$1}' | awk '$3>max[$1,$2]{max[$1,$2]=$3; row[$1,$2]=$0} END{for (i in row) print row[i]}' | \

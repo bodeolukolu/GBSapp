@@ -30,23 +30,12 @@ export picard=${GBSapp_dir}/tools/picard.jar && picard=${picard//'//'/'/'}
 export GATK=${GBSapp_dir}/tools/gatk-4.1.9.0/gatk && GATK=${GATK//'//'/'/'}
 export java=${GBSapp_dir}/tools/jdk8*/bin/java && java=${java//'//'/'/'}
 
-if $bwa --version; then
-  :
-else
-  module add bwa
-  export bwa=bwa
-fi
 
-if $samtools --version; then
+if $samtools --version | head -n 3 ; then
   :
 else
+  echo -e "${white}- samtools installation within GBSapp is probably missing a dependency on host system ${white}"
+  echo -e "${white}- GBSapp will use host system samtools installation ${white}"
   module add samtools
   export samtools=samtools
-fi
-
-if $bcftools --version; then
-  :
-else
-  module add bcftools
-  export bcftools=bcftools
 fi
