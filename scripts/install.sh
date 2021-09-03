@@ -24,6 +24,24 @@ fi
 
 
 main () {
+  echo -e "${blue}\n############################################## ${yellow}\n- downloading and installing bcftools ${blue}\n##############################################${white}"
+  git clone --recurse-submodules git://github.com/samtools/htslib.git
+  git clone git://github.com/samtools/bcftools.git
+  cd bcftools
+  # The following is optional:
+  autoheader && autoconf && ./configure --enable-libgsl --enable-perl-filters
+  make
+}
+dirtool=bcftools*
+if [ -d $dirtool ]; then
+  :
+else
+  echo -e "${magenta}- Performing installation of dependency (bcftools) ${white}"
+  main &>> ./log.out
+fi
+
+
+main () {
   echo -e "${blue}\n############################################## ${yellow}\n- downloading and installing samtools ${blue}\n##############################################${white}"
   wget https://sourceforge.net/projects/samtools/files/latest/download
   tar -vxjf download*; rm download*; cd samtools*
@@ -35,23 +53,6 @@ if [ -d $dirtool ]; then
   :
 else
   echo -e "${magenta}- Performing installation of dependency (samtools) ${white}"
-  main &>> ./log.out
-fi
-
-main () {
-  echo -e "${blue}\n############################################## ${yellow}\n- downloading and installing bcftools ${blue}\n##############################################${white}"
-  wget https://github.com/samtools/bcftools/releases/download/1.11/bcftools-1.11.tar.bz2
-  tar -vxjf bcftools-1.11.tar.bz2; rm bcftools-1.11.tar.bz2
-  for i in $(ls -d bcftools*); do
-	   cd bcftools*; ./configure --prefix=${GBSapp_dir}/tools/${i}/; wait; make; wait; make install; wait; cd ..
-  done
-
-}
-dirtool=bcftools*
-if [ -d $dirtool ]; then
-  :
-else
-  echo -e "${magenta}- Performing installation of dependency (bcftools) ${white}"
   main &>> ./log.out
 fi
 
