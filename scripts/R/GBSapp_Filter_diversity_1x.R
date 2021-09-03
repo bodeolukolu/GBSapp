@@ -917,26 +917,30 @@ raw_alleles()
 
 ####################################################################################################################
 
-snpid <- read.table(paste(pop,"_1x","_rd",rd+1,"_maf",MinorAlleleFreq,"_dose.txt",sep=""), header=T, sep="\t",stringsAsFactors=FALSE, check.names = FALSE)
+snpid <- read.table(paste(pop,"_1x","_rd",rd+1,"_maf",MinorAlleleFreq,"_dose.txt",sep=""), header=T, sep="\t",stringsAsFactors=FALSE, check.names = F)
 snpid <- subset(snpid, select=c("CHROM","POS"))
 snpid$POS <- as.numeric(as.character(snpid$POS))
-snpid$position <- lapply(snpid$POS / 1000, as.integer)
-snpidN <- read.table("../../alignment_summaries/refgenome_paralogs.txt", header=T, sep="\t", quote="", check.names=FALSE, fill=TRUE)
+snpid$position <- lapply(snpid$POS / 100, as.integer)
+snpidN <- read.table("../../alignment_summaries/refgenome_paralogs.txt", header=T, sep="\t", quote="", check.names=FALSE, fill=F)
+snpidN <- snpidN[!(snpidN$CHROM=="" | snpidN$POS=="" | snpidN$nloci==""), ]
+snpidN$nloci <- gsub("multilocus","999",snpidN$nloci)
 snpidN$POS <- as.numeric(as.character(snpidN$POS))
-snpidN$position <- lapply(snpidN$POS / 1000, as.integer)
-snpidM <- merge(snpid, snpidN, by = c("CHROM","position"), all.x = TRUE)
-snpidM$diff <- abs(snpidM$POS.x - snpidM$POS.y)
-snpidM <- merge(aggregate(diff ~ CHROM + POS.x, data = snpidM, FUN = min), snpidM)
-snpidM <- unique(subset(snpidM, select=c("CHROM","POS.x","nloci")))
-colnames(snpidM)[2] <- "POS"
+snpidN$position <- lapply(snpidN$POS / 100, as.integer); snpidN1 <- snpidN; snpidN2 <- snpidN
+snpidN1$position <- as.numeric(as.character(snpidN1$position)); snpidN2$position <- as.numeric(as.character(snpidN2$position))
+snpidN1$position <- snpidN1$position + 1; snpidN2$position <- snpidN2$position - 1
+snpidN <- rbind(snpidN,snpidN1); snpidN <- rbind(snpidN,snpidN2)
+snpid$match <- paste(snpid$CHROM,snpid$position,sep="_")
+snpidN$match <- paste(snpidN$CHROM,snpidN$position,sep="_")
+snpidN$nloci <- gsub("999","multilocus",snpidN$nloci)
+snpid$nloci <- snpidN$nloci[ match(snpid$match, snpidN$match)]
+snpidM <- subset(snpid, select=-c(position,match))
 write.table (snpidM, file=paste(pop,"_1x","refgenome_nloci_matched.txt",sep=""), row.names=F, quote = FALSE, sep = "\t")
 
 snpidM <- subset(snpidM, snpidM$nloci == 1)
 snpidM <- subset(snpidM, select=c("CHROM","POS"))
+snpid <- read.table(paste(pop,"_1x","_rd",rd+1,"_maf",MinorAlleleFreq,"_dose.txt",sep=""), header=T, sep="\t",stringsAsFactors=FALSE, check.names = F)
 subgenome_uniqmap <- merge(snpid, snpidM, by = c("CHROM","POS"), all.y = TRUE)
-write.table (subgenome_uniqmap, file=paste(pop,"_1x","_rd",rd+1,"_maf",MinorAlleleFreq,"_dose_unique_mapped.txt",sep=""), row.names=F, quote = FALSE, sep = "\t") 
-
-
+write.table (subgenome_uniqmap, file=paste(pop,"_1x","_rd",rd+1,"_maf",MinorAlleleFreq,"_dose_unique_mapped.txt",sep=""), row.names=F, quote = FALSE, sep = "\t")
 
 unlink(file=paste(pop,"_1x","_DP_GT.txt",sep=""))
 unlink(file=paste(pop,"_1x_rawRD",rd+1,"_DP_GT.txt",sep=""))
