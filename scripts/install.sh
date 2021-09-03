@@ -25,9 +25,9 @@ fi
 
 main () {
   echo -e "${blue}\n############################################## ${yellow}\n- downloading and installing samtools ${blue}\n##############################################${white}"
-  wget https://sourceforge.net/projects/samtools/files/latest/download &&
-  tar -vxjf download*; rm download*; cd samtools* &&
-  make &&
+  wget https://sourceforge.net/projects/samtools/files/latest/download
+  tar -vxjf download*; rm download*; cd samtools*
+  make
   cd ..
 }
 dirtool=samtools*

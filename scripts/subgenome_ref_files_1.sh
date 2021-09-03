@@ -446,10 +446,10 @@ if [ "$paleopolyploid" == false ]; then
 		awk '!/^@/ { print }' ../preprocess/${i%.f*}_${ref1%.f*}.sam | awk '{gsub(/^.*-/,"",$1); print $0}' | awk '{gsub(/^.*_/,"",$2); print $0}' > ../preprocess/${i%.f*}_uniq.sam
 
 		if [ "$multilocus" == "true" ]; then
-			echo "nloci~mapQ~CHROM~POS" > ../alignment_summaries/refgenome_paralogs.txt
-			grep -vwE "(@HD|@SQ|@PG)" ../preprocess/${i%.f*}_2del.sam | awk '{print $1"~"$6"~"$4"~"$5}' >> ../alignment_summaries/refgenome_paralogs.txt
-			awk '!visited[$0]++' ../alignment_summaries/refgenome_paralogs.txt > ../alignment_summaries/temp.txt
-			mv ../alignment_summaries/temp.txt ../alignment_summaries/refgenome_paralogs.txt
+			echo "nloci~mapQ~CHROM~POS" > ../alignment_summaries/refgenome_paralogs_${i%.f*}.txt
+			grep -vwE "(@HD|@SQ|@PG)" ../preprocess/${i%.f*}_2del.sam | awk '{print $1"~"$6"~"$4"~"$5}' >> ../alignment_summaries/refgenome_paralogs_${i%.f*}.txt
+			awk '!visited[$0]++' ../alignment_summaries/refgenome_paralogs_${i%.f*}.txt > ../alignment_summaries/temp_${i%.f*}.txt
+			mv ../alignment_summaries/temp_${i%.f*}.txt ../alignment_summaries/refgenome_paralogs_${i%.f*}.txt
 		fi
 
 		unds=$(( unbiased_downsample * ploidy))
@@ -561,10 +561,10 @@ if [ "$paleopolyploid" == "true" ]; then
 		awk '!/^@/ { print }' ../preprocess/${i%.f*}_${ref1%.f*}.sam | awk '{gsub(/^.*-/,"",$1); print $0}' | awk '{gsub(/^.*_/,"",$2); print $0}' > ../preprocess/${i%.f*}_uniq.sam
 
 		if [ "$multilocus" == "true" ]; then
-			echo "nloci~mapQ~CHROM~POS" > ../alignment_summaries/refgenome_paralogs.txt
-			grep -vwE "(@HD|@SQ|@PG)" ../preprocess/${i%.f*}_2del.sam | awk '{print $1"~"$6"~"$4"~"$5}' >> ../alignment_summaries/refgenome_paralogs.txt
-			awk '!visited[$0]++' ../alignment_summaries/refgenome_paralogs.txt > ../alignment_summaries/temp.txt
-			mv ../alignment_summaries/temp.txt ../alignment_summaries/refgenome_paralogs.txt
+			echo "nloci~mapQ~CHROM~POS" > ../alignment_summaries/refgenome_paralogs_${i%.f*}.txt
+			grep -vwE "(@HD|@SQ|@PG)" ../preprocess/${i%.f*}_2del.sam | awk '{print $1"~"$6"~"$4"~"$5}' >> ../alignment_summaries/refgenome_paralogs_${i%.f*}.txt
+			awk '!visited[$0]++' ../alignment_summaries/refgenome_paralogs_${i%.f*}.txt > ../alignment_summaries/temp_${i%.f*}.txt
+			mv ../alignment_summaries/temp_${i%.f*}.txt ../alignment_summaries/refgenome_paralogs_${i%.f*}.txt
 		fi
 
 		unds=$(( unbiased_downsample * 2))
@@ -718,10 +718,17 @@ if [ "$paleopolyploid" == "true" ]; then
 fi
 
 cd $projdir/alignment_summaries
+
+touch refgenome_paralogs.txt
+for par in refgenome_paralogs_*.txt;then
+	cat refgenome_paralogs.txt $par | awk '!visited[$0]++' > temp_par.txt
+	mv temp_par.txt refgenome_paralogs.txt
+fi
+rm refgenome_paralogs_*.txt
 awk '{gsub(/~/,"\t"); print $0}' refgenome_paralogs.txt | awk 'BEGIN{OFS="\t"; }; {if($2==0) $1 = "multilocus"; else $1 = $1; }; 1' | \
 awk 'BEGIN{OFS="\t"; };{print $3,$4,$1}' | awk '$3>max[$1,$2]{max[$1,$2]=$3; row[$1,$2]=$0} END{for (i in row) print row[i]}' | \
 awk '{print $0,substr($2, 1, length($2)-2)}' | awk '$3>max[$1,$4]{max[$1,$4]=$3; row[$1,$4]=$0} END{for (i in row) print row[i]}' > temp.txt
-awk '{print $1"\t"$2"\t"$3}' > temp.txt | awk '!/CHROM/' | cat <(printf "CHROM\tPOS\tnloci\n") - > refgenome_paralogs.txt
+awk '{print $1"\t"$2"\t"$3}' temp.txt | awk '!/CHROM/' | cat <(printf "CHROM\tPOS\tnloci\n") - > refgenome_paralogs.txt
 
 }
 cd $projdir
