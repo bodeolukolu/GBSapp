@@ -509,7 +509,7 @@ fi
 
 if [ "$paleopolyploid" == "true" ]; then
 	cd samples
-	for i in $(ls -S *.f* | grep -v R2.f); do
+	for i in $(ls -S *.f* | grep -v R2.f); do (
 		if gzip -t $i; then
 			gunzip -c $i | awk 'NR%2==0' | awk 'NR%2' > ${i%.f*}_uniq.txt &
 			if test -f ${i%.f*}_R2*; then gunzip -c ${i%.f*}_R2* | awk 'NR%2==0' | awk 'NR%2' > ${i%.f*}_R2_uniq.txt &
