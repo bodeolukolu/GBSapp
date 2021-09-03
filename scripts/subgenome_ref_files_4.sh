@@ -1,7 +1,7 @@
-if R --version; then
-	:
-else
+Rout=$(R --version | head -n 3)
+if [ -z "$Rout" ];then
 	module add R
+	R --version | head -n 3
 fi
 
 if [ -z "$threads" ]; then
