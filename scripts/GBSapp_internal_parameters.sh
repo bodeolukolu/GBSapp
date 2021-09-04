@@ -40,3 +40,15 @@ if [ -z "$samtoolsout" ];then
 else
   $samtools --version | head -n 3
 fi
+
+Rout=$(R --version | head -n 3)
+if [ -z "$Rout" ];then
+	module add R
+	R --version | head -n 3
+fi
+
+pythonout=$(python --version | head -n 3)
+if [ -z "$pythonout" ];then
+	module add python
+	python --version | head -n 3
+fi

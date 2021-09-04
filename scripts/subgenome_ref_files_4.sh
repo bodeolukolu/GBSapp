@@ -1,8 +1,3 @@
-Rout=$(R --version | head -n 3)
-if [ -z "$Rout" ];then
-	module add R
-	R --version | head -n 3
-fi
 
 if [ -z "$threads" ]; then
 	threads=$(nproc --all)
@@ -905,7 +900,7 @@ awk '{print $0,substr($2, 1, length($2)-2)}' | awk '$3>max[$1,$4]{max[$1,$4]=$3;
 awk '{print $1"\t"$2"\t"$3}' temp.txt | awk '!/CHROM/' | cat <(printf "CHROM\tPOS\tnloci\n") - > refgenome_paralogs_${ref4%.f*}.txt
 
 awk 'FNR==1 && NR!=1 { while (/^CHROM/) getline; }1 {print}' refgenome_paralogs_*.txt > refgenome_paralogs.txt
-rm refgenome_paralogs_*
+rm refgenome_paralogs_* temp.txt
 
 }
 cd $projdir
