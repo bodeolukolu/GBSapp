@@ -11,8 +11,9 @@ ref1=TF.fasta
 ref2=TL.fasta
 ploidy_ref1=4
 ploidy_ref2=2
-paleopolyploid=false
 multilocus=true
+paleopolyploid=false
+
 
 # SNP-filtering:
 ####################################################
@@ -35,3 +36,4 @@ maxHaplotype=6
 unbiased_downsample=25
 biased_downsample=0
 softclip=true
+keep_gVCF=false

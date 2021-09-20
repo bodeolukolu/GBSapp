@@ -23,11 +23,12 @@ bash ../scripts/install.sh
 
 ######################################################################################################################################################
 # tools
+export bbmap=${GBSapp_dir}/tools/bbmap/bbmap.sh
 export bwa=${GBSapp_dir}/tools/bwa*/bwa && bwa=${bwa//'//'/'/'}
 export samtools=${GBSapp_dir}/tools/samtools*/samtools && samtools=${samtools//'//'/'/'}
 export bcftools=${GBSapp_dir}/tools/bcftools*/bcftools && bcftools=${bcftools//'//'/'/'}
 export picard=${GBSapp_dir}/tools/picard.jar && picard=${picard//'//'/'/'}
-export GATK=${GBSapp_dir}/tools/gatk-4.1.9.0/gatk && GATK=${GATK//'//'/'/'}
+export GATK=${GBSapp_dir}/tools/gatk-4.2.2.0/gatk && GATK=${GATK//'//'/'/'}
 export java=${GBSapp_dir}/tools/jdk8*/bin/java && java=${java//'//'/'/'}
 
 samtoolsout=$($samtools --version | head -n 3)

@@ -8,6 +8,7 @@
 # minRD <-
 # snpformats <-
 # pseg <-
+# hap <-
 # remove_id_list <- NULL
 # remove_id_list <- c("NA_1","NA_2")
 # remove_id_list <- paste(remove_id_list, "_GT", sep="")
@@ -29,9 +30,11 @@ remove_id_list <- paste(remove_id_list, "_GT", sep="")
 libdir <- args[8]
 snpformats <- args[9]
 pseg <- args[10]
+hap <- args[11]
 gmissingness <- as.numeric(gmissingness)
 smissingness <- as.numeric(smissingness)
 minRD <- as.numeric(minRD)
+hap <- as.numeric(hap)
 rd <- minRD-1
 
 
@@ -1250,7 +1253,7 @@ snpid$nloci <- snpidN$nloci[ match(snpid$match, snpidN$match)]
 snpidM <- subset(snpid, select=-c(position,match))
 write.table (snpidM, file=paste(pop,"_2x","refgenome_nloci_matched.txt",sep=""), row.names=F, quote = FALSE, sep = "\t")
 
-snpidM <- subset(snpidM, snpidM$nloci == 1)
+snpidM <- subset(snpidM, snpidM$nloci <= hap)
 snpidM <- subset(snpidM, select=c("CHROM","POS"))
 snpid <- read.table(paste(pop,"_2x","_rd",rd+1,"_noSDdose.txt",sep=""), header=T, sep="\t",stringsAsFactors=FALSE, check.names = FALSE)
 subgenome_uniqmap <- merge(snpid, snpidM, by = c("CHROM","POS"), all.y = TRUE)

@@ -10,6 +10,21 @@ white=$'\e[0m'
 
 ######################################################################################################################################################
 main () {
+  echo -e "${blue}\n############################################## ${yellow}\n- downloading and installing BBmap ${blue}\n##############################################${white}"
+  wget https://sourceforge.net/projects/bbmap/files/BBMap_38.92.tar.gz
+  tar -xvzf BBMap*.tar.gz
+  rm BBMap_38.92.tar.gz
+}
+dirtool=bbmap
+if [ -d $dirtool ]; then
+  :
+else
+  echo -e "${magenta}- Performing installation of dependency (BBmap) ${white}"
+  main &>> ./log.out
+fi
+
+
+main () {
   echo -e "${blue}\n############################################## ${yellow}\n- downloading and installing BWA ${blue}\n##############################################${white}"
   wget https://sourceforge.net/projects/bio-bwa/files/latest/download
   tar -vxjf download*; rm download*; cd bwa*; wait; make; wait; cd ..
@@ -94,9 +109,9 @@ fi
 
 main () {
   echo -e "${green}\n############################################## \n- downloading GATK \n##############################################${white}"
-  wget -O GATK4.1.9.0.zip "https://github.com/broadinstitute/gatk/releases/download/4.1.9.0/gatk-4.1.9.0.zip"
-  unzip GATK4.1.9.0.zip
-  rm GATK4.1.9.0.zip
+  wget -O GATK4.2.2.0.zip "https://github.com/broadinstitute/gatk/releases/download/4.2.2.0/gatk-4.2.2.0.zip"
+  unzip GATK4.2.2.0.zip
+  rm GATK4.2.2.0.zip
   # javaloc=${GBSapp_dir}/jdk8u222-b10-jre/bin/java
   # cd gatk*
   # awk -v javaloc=$javaloc 'NR==208{gsub(/java/,javaloc)}1' gatk > temp

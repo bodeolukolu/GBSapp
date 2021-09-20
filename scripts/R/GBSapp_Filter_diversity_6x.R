@@ -4,6 +4,7 @@
 # gmissingness <-
 # smissingness <-
 # minRD <-
+# hap <-
 # MinorAlleleFreq <-
 # remove_id_list <- NULL
 # remove_id_list <- c("NA_1","NA_2")
@@ -24,9 +25,11 @@ remove_id_list <- paste(remove_id_list, "_GT", sep="")
 libdir <- args[6]
 MinorAlleleFreq <- args[7]
 snpformats <- args[8]
+hap <- args[9]
 gmissingness <- as.numeric(gmissingness)
 smissingness <- as.numeric(smissingness)
 minRD <- as.numeric(minRD)
+hap <- as.numeric(hap)
 rd <- minRD-1
 
 .libPaths( c( .libPaths(), libdir) )
@@ -989,7 +992,7 @@ snpidM <- subset(snpid, select=-c(position,match))
 write.table (snpidM, file=paste(pop,"_6x","refgenome_nloci_matched.txt",sep=""), row.names=F, quote = FALSE, sep = "\t")
 
 
-snpidM <- subset(snpidM, snpidM$nloci == 1)
+snpidM <- subset(snpidM, snpidM$nloci <= hap)
 snpidM <- subset(snpidM, select=c("CHROM","POS"))
 snpid <- read.table(paste(pop,"_6x","_rd",rd+1,"_maf",MinorAlleleFreq,"_dose.txt",sep=""), header=T, sep="\t",stringsAsFactors=FALSE, check.names = F)
 subgenome_uniqmap <- merge(snpid, snpidM, by = c("CHROM","POS"), all.y = TRUE)

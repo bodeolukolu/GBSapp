@@ -12,7 +12,9 @@ For questions, bugs, and suggestions, please contact bolukolu@utk.edu.
 - Fully-automated: “walk-away” and “walk-through” mode.
 - Dosage-based variant/haplotype calling and filtering.
 - Haploid (1x), Diploid (2x), Tetraploid (4x), Hexaploid (6x), and Octoploid (8x).
+- Uses splice-aware aligner for RNAseq data (recommended only for haploid or diploid genomes)
 - Captures and codes variable dosage/copy number in paleopolyploids.
+- Allows for use of haplotype-resolved reference genomes.
 - Can restrict variants call to reads to uniquely mapped
 - Multi-locus variants (paralogs-derived) can also be produced (annotates variant with reference genome copy number).
 - Additional haplotype-based filtering (useful for high-fidelity targeted-genotyping).
@@ -35,6 +37,7 @@ For questions, bugs, and suggestions, please contact bolukolu@utk.edu.
 - [License](#License)
 
 ## Installation
+- GBSapp IS CURRENTLY UNDERGOING SIGNIFICANT UPDATES. PLEASSE CHECK BACK LATER TO GIT CLONE/DOWNLOAD.
 - Currently, GBSapp is only available for unix-based systems (i.e. macOS and Linux/UNIX).
 - Clone or download the Git repository to your desired folder.
 ```bash
@@ -48,7 +51,7 @@ git clone https://github.com/bodeolukolu/GBSapp.git
 ```
 Installed on first run of pipeline:
 -----------------------------------
-bwa, picard, samtools, bcftools, GATK, python, R, R-ggplot2, and R-AGHmatrix
+bbmap, bwa, picard, samtools, bcftools, GATK, python, R, R-ggplot2, and R-AGHmatrix
 
 
 Pre-install before running GBSapp:
@@ -134,6 +137,8 @@ Using a text editor, save a file containing any of the following variables as 'c
 |unbiased_downsample|25| maximum read number per alignment start position (per haploid genome). 0 = no downsample|integer|Optional|
 |biased_downsample|0| maximum read number per alignment start position (per haploid genome). 0 = no downsample|integer|Optional|
 |softclip|true| do not use soft Clipped bases (recommended)|string|Optional|
+|keep_gVCF|false| keep sample gVCF files, if additional samples will be included for future joint calling)|string|Optional|
+
 
 
 
@@ -154,8 +159,9 @@ ref1=TF.fasta
 ref2=TL.fasta
 ploidy_ref1=4
 ploidy_ref2=2
-paleopolyploid=false
 multilocus=true
+paleopolyploid=false
+
 
 # SNP-filtering:
 ####################################################
@@ -178,6 +184,7 @@ maxHaplotype=6
 unbiased_downsample=25
 biased_downsample=0
 softclip=true
+keep_gVCF=false
 ```
 
 Alternatively, a configuration file (outlined below) specifying only the pploidy level is sufficient to run GBSapp.
