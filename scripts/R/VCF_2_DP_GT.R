@@ -84,6 +84,7 @@ if (ploidy == "2x"){
     subgenome_1 <- subset(subgenome_1, maf0 < 0.99)
     subgenome_1 <- subset(subgenome_1, maf1 < 0.99)
     subgenome_1 <- subset(subgenome_1, select=-c(maf0,maf1))
+    subgenome_1[subgenome_1=="1/0"] <- "0/1"
     write.table (subgenome_1, file=paste(pop,"_2x","_DP_GT.txt",sep=""), row.names=F, quote = FALSE, sep = "\t")
     vcffile <- NULL
     vcffile_DP <- NULL
@@ -128,6 +129,11 @@ if (ploidy == "4x"){
     subgenome_1 <- subset(subgenome_1, maf0 < 0.99)
     subgenome_1 <- subset(subgenome_1, maf1 < 0.99)
     subgenome_1 <- subset(subgenome_1, select=-c(maf0,maf1))
+    
+    subgenome_1[subgenome_1=="1/0/0/0" | subgenome_1=="0/1/0/0" | subgenome_1=="0/0/1/0" ] <- "0/0/0/1"
+    subgenome_1[subgenome_1=="1/1/0/0" | subgenome_1=="0/1/1/0"] <- "0/0/1/1"
+    subgenome_1[subgenome_1=="1/1/1/0"] <- "0/1/1/1"
+    
     write.table (subgenome_1, file=paste(pop,"_4x","_DP_GT.txt",sep=""), row.names=F, quote = FALSE, sep = "\t")
     vcffile <- NULL
     vcffile_DP <- NULL
@@ -172,6 +178,16 @@ if (ploidy == "6x"){
     subgenome_1 <- subset(subgenome_1, maf0 < 0.99)
     subgenome_1 <- subset(subgenome_1, maf1 < 0.99)
     subgenome_1 <- subset(subgenome_1, select=-c(maf0,maf1))
+    
+    subgenome_1[subgenome_1=="1/0/0/0/0/0" | subgenome_1=="0/1/0/0/0/0" | 
+                  subgenome_1=="0/0/1/0/0/0" | subgenome_1=="0/0/0/1/0/0" | subgenome_1=="0/0/0/0/1/0" ] <- "0/0/0/0/0/1"
+    subgenome_1[subgenome_1=="1/1/0/0/0/0" | subgenome_1=="0/1/1/0/0/0" | 
+                  subgenome_1=="0/0/1/1/0/0" | subgenome_1=="0/0/0/1/1/0"] <- "0/0/0/0/1/1"
+    subgenome_1[subgenome_1=="1/1/1/0/0/0" | subgenome_1=="0/1/1/1/0/0" | 
+                  subgenome_1=="0/0/1/1/1/0"] <- "0/0/0/1/1/1"
+    subgenome_1[subgenome_1=="1/1/1/1/0/0" | subgenome_1=="0/1/1/1/1/0"] <- "0/0/1/1/1/1"
+    subgenome_1[subgenome_1=="1/1/1/1/1/0"] <- "0/1/1/1/1/1"
+    
     write.table (subgenome_1, file=paste(pop,"_6x","_DP_GT.txt",sep=""), row.names=F, quote = FALSE, sep = "\t")
     vcffile <- NULL
     vcffile_DP <- NULL
@@ -216,6 +232,22 @@ if (ploidy == "8x"){
     subgenome_1 <- subset(subgenome_1, maf0 < 0.99)
     subgenome_1 <- subset(subgenome_1, maf1 < 0.99)
     subgenome_1 <- subset(subgenome_1, select=-c(maf0,maf1))
+    
+    subgenome_1[subgenome_1=="1/0/0/0/0/0/0/0" | subgenome_1=="0/1/0/0/0/0/0/0" | 
+                  subgenome_1=="0/0/1/0/0/0/0/0" | subgenome_1=="0/0/0/1/0/0/0/0" | subgenome_1=="0/0/0/0/1/0/0/0" |
+                  subgenome_1=="0/0/0/0/0/1/0/0" | subgenome_1=="0/0/0/0/0/0/1/0"] <- "0/0/0/0/0/0/0/1"
+    subgenome_1[subgenome_1=="1/1/0/0/0/0/0/0" | subgenome_1=="0/1/1/0/0/0/0/0" | 
+                  subgenome_1=="0/0/1/1/0/0/0/0" | subgenome_1=="0/0/0/1/1/0/0/0" | subgenome_1=="0/0/0/0/1/1/0/0" |
+                  subgenome_1=="0/0/0/0/0/1/1/0"] <- "0/0/0/0/0/0/1/1"
+    subgenome_1[subgenome_1=="1/1/1/0/0/0/0/0" | subgenome_1=="0/1/1/1/0/0/0/0" | 
+                  subgenome_1=="0/0/1/1/1/0/0/0" | subgenome_1=="0/0/0/1/1/1/0/0" | subgenome_1=="0/0/0/0/1/1/1/0"] <- "0/0/0/0/0/1/1/1"
+    subgenome_1[subgenome_1=="1/1/1/1/0/0/0/0" | subgenome_1=="0/1/1/1/1/0/0/0" | 
+                  subgenome_1=="0/0/1/1/1/1/0/0" | subgenome_1=="0/0/0/1/1/1/1/0"] <- "0/0/0/0/1/1/1/1"
+    subgenome_1[subgenome_1=="1/1/1/1/1/0/0/0" | subgenome_1=="0/1/1/1/1/1/0/0" | 
+                  subgenome_1=="0/0/1/1/1/1/1/0"] <- "0/0/0/1/1/1/1/1"
+    subgenome_1[subgenome_1=="1/1/1/1/1/1/0/0" | subgenome_1=="0/1/1/1/1/1/1/0"] <- "0/0/1/1/1/1/1/1"
+    subgenome_1[subgenome_1=="1/1/1/1/1/1/1/0"] <- "0/1/1/1/1/1/1/1"
+    
     write.table (subgenome_1, file=paste(pop,"_8x","_DP_GT.txt",sep=""), row.names=F, quote = FALSE, sep = "\t")
     vcffile <- NULL
     vcffile_DP <- NULL

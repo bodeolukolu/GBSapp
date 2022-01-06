@@ -4,24 +4,23 @@
 </p>
 
 # Introduction
-GBSapp (v. 0.2.4) is an automated pipeline for variant calling and filtering (including microhaplotypes or multi-SNP markers). The pipeline intuitively integrates existing and novel best practices, some of which can be controlled by user-defined parameters. It optimizes memory and speed at various points in the pipeline, for example, a novel approach performs compression and decompression of unique reads before and after pre-variant read alignment, respectively. Summary reports and visualizations allow for QC at each step of the pipeline.
+GBSapp (v. 1.0) is an automated pipeline for variant calling and filtering (including microhaplotypes/multi-SNP markers). The pipeline intuitively integrates existing and novel best practices, some of which can be controlled by user-defined parameters. It optimizes memory and speed at various steps of the pipeline, for example, a novel approach performs compression and decompression of unique reads before and after read alignment, respectively. Summary reports and visualizations allow for QC at each step of the pipeline.
 
 For questions, bugs, and suggestions, please contact bolukolu@utk.edu.
 
 ## Features
+- Easy to learn, and use.
 - Fully-automated: “walk-away” and “walk-through” mode.
 - Dosage-based variant/haplotype calling and filtering.
-- Haploid (1x), Diploid (2x), Tetraploid (4x), Hexaploid (6x), and Octoploid (8x).
-- Uses splice-aware aligner for RNAseq data (recommended only for haploid or diploid genomes)
-- Captures and codes variable dosage/copy number in paleopolyploids.
 - Allows for use of haplotype-resolved reference genomes.
-- Can restrict variants call to reads to uniquely mapped
-- Multi-locus variants (paralogs-derived) can also be produced (annotates variant with reference genome copy number).
-- Additional haplotype-based filtering (useful for high-fidelity targeted-genotyping).
+- Variant calling implemented from 1x (haploid) to 8x (octoploid).
+- Splice-aware aligner allows for RNAseq data as input (recommended only for haploid or diploid genomes)
+- Can exclude reads that are rare haplotypes at population level (due to somaclonal variation or sequencing error).
+- Additional haplotype-based filtering (useful for targeted-genotyping).
+- Annonates SNPs based on if reads map to single and multiple loci.
 - Generates microhaplotypes (multi-SNP) markers
-- Produces sequence context of variants
-- Dynamic unbiased down-sampling on locus-by-locus basis (preserving allelic ratios).
-- Easy to learn, and use.
+
+
 
 ## Contents
 - [Installation](#installation)
@@ -37,13 +36,16 @@ For questions, bugs, and suggestions, please contact bolukolu@utk.edu.
 - [License](#License)
 
 ## Installation
-- GBSapp IS CURRENTLY UNDERGOING SIGNIFICANT UPDATES. PLEASSE CHECK BACK LATER TO GIT CLONE/DOWNLOAD.
 - Currently, GBSapp is only available for unix-based systems (i.e. macOS and Linux/UNIX).
 - Clone or download the Git repository to your desired folder.
 ```bash
 git clone https://github.com/bodeolukolu/GBSapp.git
 ```
 - Installation occurs automatically the first time you run the pipeline.
+- To install dependencies without running a job:  
+```bash
+GBSapp_dir/GBSapp install
+```
 - With the exception of R and Python (v2.6 or greater) all dependencies are installed to a local directory within GBSapp.
 
 
@@ -51,22 +53,25 @@ git clone https://github.com/bodeolukolu/GBSapp.git
 ```
 Installed on first run of pipeline:
 -----------------------------------
-bbmap, bwa, picard, samtools, bcftools, GATK, python, R, R-ggplot2, and R-AGHmatrix
+bbmap, samtools, picard, bcftools, GATK, python, R, R-ggplot2, and R-AGHmatrix
 
 
 Pre-install before running GBSapp:
 ----------------------------------
 - R
 - python v2.6 or greater
+- pigz (not required, but recommended for parallel gzip and gunzip i.e. faster)
 ```
 
 
 ## Usage
 ### Basic Usage
-The project directory should contain the following files adn directories:
+The project directory should contain the following files and directories:
 - **(1) config file**: specifies run parameters (for details: GBSapp_vx.x/examples/config).
 - **(2) samples directory**: contains “se” and/or “pe” (“paired” and “single” name format acceptable) fastq file(s). Paired-end (pe) sample filenames might require formatting so that they end in “_R1.fastq” or  “.R1.fastq” and “_R2.fastq” or “.R2.fastq” (for details: GBSapp_vx.x/misc/format_fastq_filenames.txt).
 - **(3)	refgenomes directory**: contains fasta file(s) of the reference genome.<br />* <u>Genomes with subgenome assemblies in single fasta file</u>: such as allopolyploids and segmental allopolyploids might require formatting to split fasta file into multiple file containing each subgenome (for details: GBSapp_vx.x/misc/split_subgenomes_format_fasta_headers.txt).<br />* <u>Haploids, diploids and autopolyploids with single reference genomes</u>: splitting fasta file not required.<br />* <u>Note</u>:formatting of fasta headers to contain minimal text (e.g. >Chr05) might be required (for details: GBSapp_v0.1/misc/format_fasta_headers.txt)
+- **(4) for help: --help or -h
+- **(5) for version: --version or -v
 
 ![alt text](https://github.com/bodeolukolu/GBSapp/blob/master/misc/project_dir_setup.PNG?raw=true)
 
@@ -89,6 +94,9 @@ Using a text editor, save a file containing any of the following variables as 'c
 |threads|2|number of cores/processors|integer|Optional|
 |walkaway|true|run in walk-away or walk-through mode|true or false|Optional|
 |cluster|false|run on compute cluster node (default: slurm) or workstation|true or false|Optional|
+|nodes|1|number of nodes|integer|Optional|
+|samples_alt_dir|false|links samples in separate directory to project directory|true or false|Optional|
+
 
 **Variant calling parameters**
 
@@ -103,8 +111,6 @@ Using a text editor, save a file containing any of the following variables as 'c
 |ploidy_ref2|na|ploid level for subgenome 1|integer|Required|
 |ploidy_ref3|na|ploid level for subgenome 1|integer|Required|
 |ploidy_ref4|na|ploid level for subgenome 1|integer|Required|
-|multilocus|true|use reads that align to single or multiple loci|true or false|Optional|
-|paleopolyploid|false|capture/code variable dosage/copy number (i.e. 2x,4x,6x, and 8x)|true or false|Optional|
 
 
 
@@ -132,13 +138,14 @@ Using a text editor, save a file containing any of the following variables as 'c
 **Advanced parameters**
 |Variable      |Default       |Usage         |Input         |required/Optional|
 |:-------------|:-------------|:-------------|:-------------|:----------------|
-|haplome_number|1|number of haplome(s) represented by reference genome|integer|Optional|
-|maxHaplotype|6| maximum number of haplotypes per haploid genome across population|integer|Optional|
-|unbiased_downsample|25| maximum read number per alignment start position (per haploid genome). 0 = no downsample|integer|Optional|
-|biased_downsample|0| maximum read number per alignment start position (per haploid genome). 0 = no downsample|integer|Optional|
+|maxHaplotype|128| maximum number of haplotypes per haploid genome across population(increase for polyploids/high heterozygosity/high background mutational load)|integer|Optional|
+|mhap_freq|1| exclude rare haplotypes (e.g. background mutation typical of clonally propagated species or base calling error)|integer|Optional|
+|altpos|false| output variants derived from multi-mapped reads at each matched genomic position|string|Optional|
 |softclip|true| do not use soft Clipped bases (recommended)|string|Optional|
+|ncohorts|1| number of cohorts during joint calling|integer|Optional|
 |keep_gVCF|false| keep sample gVCF files, if additional samples will be included for future joint calling)|string|Optional|
-
+|maxindel|100| maximum insertion-deletion|integer|Optional|
+|PEdist|250| Initial average distance between paired reads|integer|Optional|
 
 
 
@@ -151,6 +158,8 @@ Below is an example of a configuration file:
 threads=24
 walkaway=true
 cluster=true
+nodes=1
+samples_alt_dir=false
 
 # Variant calling
 ###################################################
@@ -179,11 +188,12 @@ snpformats=false
 
 # Advanced parameters
 ###################################################
+maxHaplotype=128
 haplome_number=1
-maxHaplotype=6
-unbiased_downsample=25
-biased_downsample=0
+mhap_freq=1
+altpos=false
 softclip=true
+ncohorts=1
 keep_gVCF=false
 ```
 

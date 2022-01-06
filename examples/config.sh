@@ -1,8 +1,10 @@
-# General parameters
+# General_parameters
 ###################################################
 threads=24
 walkaway=true
 cluster=true
+nodes=1
+samples_alt_dir=false
 
 # Variant calling
 ###################################################
@@ -11,8 +13,6 @@ ref1=TF.fasta
 ref2=TL.fasta
 ploidy_ref1=4
 ploidy_ref2=2
-multilocus=true
-paleopolyploid=false
 
 
 # SNP-filtering:
@@ -29,11 +29,14 @@ pseg=0.001
 maf=0.02
 snpformats=false
 
-# Advanced parameters
+# Advanced_parameters
 ###################################################
+maxHaplotype=128
 haplome_number=1
-maxHaplotype=6
-unbiased_downsample=25
-biased_downsample=0
+mhap_freq=1
+altpos=false
 softclip=true
+ncohorts=1
 keep_gVCF=false
+maxindel=100
+PEdist=250

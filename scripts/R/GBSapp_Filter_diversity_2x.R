@@ -6,6 +6,7 @@
 # minRD <-
 # hap <-
 # MinorAlleleFreq <-
+# snpformats <-
 # remove_id_list <- NULL
 # remove_id_list <- c("NA_1","NA_2")
 # remove_id_list <- paste(remove_id_list, "_GT", sep="")
@@ -21,7 +22,7 @@ smissingness <- args[3]
 minRD <- args[4]
 remove_id_list <- NULL
 remove_id_list <- unlist(strsplit(args[5],","))
-redirmove_id_list <- paste(remove_id_list, "_GT", sep="")
+remove_id_list <- paste(remove_id_list, "_GT", sep="")
 libdir <- args[6]
 MinorAlleleFreq <- args[7]
 snpformats <- args[8]
@@ -38,6 +39,7 @@ library(ggplot2)
 ####################################################################################################################
 ####################################################################################################################
 subgenome_1 <- read.table(file=paste("../../snpcall/",pop,"_2x","_DP_GT.txt",sep=""), header=T, sep="\t", check.names = FALSE)
+subgenome_1[, 5:(((ncol(subgenome_1)-4)/2)+4)] <- lapply(subgenome_1[,5:(((ncol(subgenome_1)-4)/2)+4)], gsub, pattern = "0,0", replacement = "0", fixed = TRUE)
 subgenome_1[, 5:(((ncol(subgenome_1)-4)/2)+4)] <- lapply(5:(((ncol(subgenome_1)-4)/2)+4), function(x) as.numeric(subgenome_1[[x]]))
 subgenome_1[,(((ncol(subgenome_1)-4)/2)+5):ncol(subgenome_1)] <- lapply(subgenome_1[,(((ncol(subgenome_1)-4)/2)+5):ncol(subgenome_1)], gsub, pattern = "|", replacement = "/", fixed = TRUE)
 RD_snpfiltering <- function() {
@@ -360,11 +362,11 @@ RD_snpfiltering <- function() {
             }else{output[j,6:ncol(output)] <- gsub("1", "-", output[j,6:ncol(output)])}
           }
         }
-      output[] <- lapply(output, as.character)
-      for (k in 1:nrow(output)) {
-        output[k,6:ncol(output)] <- gsub("/", "", output[k,6:ncol(output)])
-      }
-      geno <- rbind(geno,output); gc()
+        output[] <- lapply(output, as.character)
+        for (k in 1:nrow(output)) {
+          output[k,6:ncol(output)] <- gsub("/", "", output[k,6:ncol(output)])
+        }
+        geno <- rbind(geno,output); gc()
       }
       geno <- geno[order(geno$CHROM, geno$POS),]
       write.table (geno, file=paste(pop,"_2x","_rd",rd+1,"_maf0.02_nucleotide.txt",sep=""), row.names=F, quote = FALSE, sep = "\t")
@@ -421,7 +423,7 @@ RD_snpfiltering <- function() {
       }
       write.table (genodeg, file=paste(pop,"_2x","_rd",rd+1,"_maf0.02_nucleotidedeg.txt",sep=""), row.names=F, quote = FALSE, sep = "\t")
     }
-
+    
     subgenome_SDmaf0.02 <- data.frame(lapply(subgenome_SDmaf0.02, as.character), stringsAsFactors=FALSE, check.names = FALSE)
     subgenome_SDmaf0.02[][subgenome_SDmaf0.02[]=="0/0"] <- "0"
     subgenome_SDmaf0.02[][subgenome_SDmaf0.02[]=="0/1"] <- "1"
@@ -460,6 +462,210 @@ RD_snpfiltering <- function() {
 RD_snpfiltering()
 
 ####################################################################################################################
+subgenome_1 <- read.table(file=paste(pop,"_2x","_DP_GT.txt",sep=""), header=T, sep="\t", check.names = FALSE)
+subgenome_1[, 5:(((ncol(subgenome_1)-4)/2)+4)] <- lapply(5:(((ncol(subgenome_1)-4)/2)+4), function(x) as.numeric(subgenome_1[[x]]))
+rd_boxplot <- function() {
+  #######################################################################################################################################################################################
+  # Now, let's make boxplots use raw data set. It reflects read depth distribution across sample IDs
+  for (t in c(0,rd)) {
+    subgenome_1_plots <- subgenome_1[c(5:(((ncol(subgenome_1)-4)/2)+4))]
+    subgenome_1_plots[][subgenome_1_plots[]=="0"] <- NA
+    subgenome_1_plots$no_missing <- apply(subgenome_1_plots, 1, function(x) sum(is.na(x)))
+    subgenome_1_plots <- subset(subgenome_1_plots, no_missing <= (ncol(subgenome_1_plots)-5)*gmissingness)
+    subgenome_1_plots <- subset(subgenome_1_plots, select=-c(no_missing))
+    subgenome_1_plots[][subgenome_1_plots[] <= t] <- NA
+    names(subgenome_1_plots) <- gsub(paste("_DP",sep=""), "", names(subgenome_1_plots))
+    subgenome_1_plots$no_missing <- apply(subgenome_1_plots, 1, function(x) sum(is.na(x)))
+    subgenome_1_plots <- subset(subgenome_1_plots, no_missing <= (ncol(subgenome_1_plots)-5)*gmissingness)
+    subgenome_1_plots <- subset(subgenome_1_plots, select=c(-no_missing))
+    subgenome_1_plots <- as.matrix(subgenome_1_plots)
+    subgenome_1_plots <- as.data.frame(as.table(subgenome_1_plots))
+    subgenome_1_plots <- na.omit(subgenome_1_plots)
+    subgenome_1_boxplot <- subset(subgenome_1_plots, select=c(2,3))
+    names(subgenome_1_boxplot)[names(subgenome_1_boxplot) == "Var2"] <- "samples"
+    names(subgenome_1_boxplot)[names(subgenome_1_boxplot) == "Freq"] <- "DP"
+
+    subgenome_1_boxplot$DP <- as.numeric(as.character(subgenome_1_boxplot$DP))
+    subgenome_1_boxplot <- na.omit(subgenome_1_boxplot)
+    quantile999 <- quantile(subgenome_1_boxplot$DP, probs = c(0.95), na.rm= TRUE)
+    nsamples <- length(unique(subgenome_1_boxplot$samples))
+    if (nsamples <= 20) { nsamples <- 36 } else { nsamples <- sqrt(22500/nsamples) }
+    boxplot <- ggplot(subgenome_1_boxplot, aes(x = reorder(samples,DP, na.rm = TRUE), y=DP), stat='identity')+
+      geom_boxplot(fill="white", colour="cornflowerblue",
+                   outlier.alpha = 0.01, outlier.colour="tomato", outlier.size=1.0)+
+      coord_flip()+
+      scale_y_continuous(expand = c(0,0), limits = c(0,quantile999)) +
+      theme(axis.text.x=element_text(colour="cornflowerblue", size=24),
+            axis.text.y=element_text(colour="cornflowerblue", size=nsamples),
+            axis.title=element_text(size=36)) +
+      xlab(paste(pop," Diversity Population",sep="")) +
+      ylab("Read Depth (2x Genotypes)")
+    ggsave(filename= paste(pop,"_2x","_boxplot_rd",t+1,".tiff",sep=""), plot=boxplot, width=15, height= 25, dpi=300, compression = "lzw")
+
+    meanDP <- mean(subgenome_1_boxplot$DP, na.rm=T)
+    medianDP <- median(subgenome_1_boxplot$DP, na.rm=T)
+    maxDP <- max(table(subgenome_1_boxplot$DP))
+    quantile999 <- quantile(subgenome_1_boxplot$DP, probs = c(0.95), na.rm= TRUE)
+    subgenome_1_dist <- as.data.frame(table(subgenome_1_boxplot$DP))
+    subgenome_1_dist$Var1 <- as.numeric(as.character(subgenome_1_dist$Var1))
+    subgenome_1_distm <- subset(subgenome_1_dist, Freq > quantile999)
+    if (nrow(subgenome_1_distm) == 0) {maxX <- max(subgenome_1_dist[,1])} else {maxX <- max(subgenome_1_distm[,1])}
+    if (maxX >= 100) { intervalm <- round(maxX/10,-1) } else { intervalm <- round(maxX/10,0) }
+    histogram <- ggplot(subgenome_1_dist, aes(x=Var1, y=Freq)) +
+      geom_bar(stat="identity", position=position_dodge(0.95), width=0.9, colour="cornflowerblue", fill="white")+
+      geom_vline(aes(xintercept=meanDP), color="cornflowerblue", linetype="dashed", size=3, alpha=0.5)+
+      geom_vline(aes(xintercept=medianDP), color="tomato", linetype="dotted", size=3, alpha=0.5)+
+      geom_text(aes(x=meanDP, label=paste("mean = ",round(meanDP),sep=""), y=(maxDP*0.25)), colour="cornflowerblue", angle=90, vjust = 1.2, size=7.5) +
+      geom_text(aes(x=medianDP, label=paste("median = ",round(medianDP),sep=""), y=(maxDP*0.5)), colour="tomato", angle=90, vjust = 1.2, size=7.5) +
+      scale_y_continuous(expand = c(0, 0), labels = function(x) format(x, big.mark = ",",scientific = T)) +
+      scale_x_continuous(breaks=seq(0,maxX,intervalm)) +
+      theme(axis.text.x=element_text(colour="cornflowerblue", size=24),
+            axis.text.y=element_text(colour="cornflowerblue", size=24),
+            axis.title=element_text(size=30)) +
+      ylab("Frequency") +
+      xlab(paste("Read Depth Distribution (", "Diversity Population)",sep=""))
+    ggsave(filename= paste(pop,"_2x","_histogram_rd",t+1,".tiff",sep=""), plot=histogram, width=25, height= 15, dpi=300, compression = "lzw")
+
+    boxplot <- NULL
+    subgenome_1_boxplot <- NULL
+    subgenome_1_plots <- NULL
+    gc()
+  }
+  # Extract read depth values specifically for filtered SNPs, then plot boxplot
+  # Also, plot histogram of read depth across data set
+  subgenome_1_plots <- subgenome_1
+  subgenome_final <- read.table(file=paste(pop,"_2x_rd",rd+1,"_maf",MinorAlleleFreq,"_dose.txt",sep=""), header=T, sep="\t", check.names = FALSE)
+  subgenome_final <- as.data.frame(subgenome_final[,2:3])
+  subgenome_1_plots <- merge(subgenome_1_plots, subgenome_final, by=c("CHROM","POS"), all.y=TRUE)
+  subgenome_1_plots <- subgenome_1_plots[c(5:(((ncol(subgenome_1_plots)-4)/2)+4))]
+  subgenome_1_plots[][subgenome_1_plots[] < rd] <- NA
+  names(subgenome_1_plots) <- gsub(paste("_DP",sep=""), "", names(subgenome_1_plots))
+  subgenome_1_plots <- as.matrix(subgenome_1_plots)
+  subgenome_1_plots <- as.data.frame(as.table(subgenome_1_plots))
+  subgenome_1_plots <- na.omit(subgenome_1_plots)
+  subgenome_1_boxplot <- subset(subgenome_1_plots, select=c(2,3))
+  names(subgenome_1_boxplot)[names(subgenome_1_boxplot) == "Var2"] <- "samples"
+  names(subgenome_1_boxplot)[names(subgenome_1_boxplot) == "Freq"] <- "DP"
+
+  subgenome_1_boxplot$DP <- as.numeric(as.character(subgenome_1_boxplot$DP))
+  subgenome_1_boxplot <- na.omit(subgenome_1_boxplot)
+  quantile999 <- quantile(subgenome_1_boxplot$DP, probs = c(0.95), na.rm= TRUE)
+  nsamples <- length(unique(subgenome_1_boxplot$samples))
+  if (nsamples <= 20) { nsamples <- 36 } else { nsamples <- sqrt(22500/nsamples) }
+  boxplot <- ggplot(subgenome_1_boxplot, aes(x = reorder(samples,DP, na.rm = TRUE), y=DP), stat='identity')+
+    geom_boxplot(fill="white", colour="cornflowerblue",
+                 outlier.alpha = 0.01, outlier.colour="tomato", outlier.size=1.0)+
+    coord_flip()+
+    scale_y_continuous(expand = c(0,0), limits = c(0,quantile999)) +
+    theme(axis.text.x=element_text(colour="cornflowerblue", size=24),
+          axis.text.y=element_text(colour="cornflowerblue", size=nsamples),
+          axis.title=element_text(size=36)) +
+    xlab(paste(pop," Diversity Population",sep="")) +
+    ylab("Read Depth (2x Genotypes)")
+  ggsave(filename= paste(pop,"_2x","_boxplot_filtered.tiff",sep=""), plot=boxplot, width=15, height= 25, dpi=300, compression = "lzw")
+
+  meanDP <- mean(subgenome_1_boxplot$DP, na.rm=T)
+  medianDP <- median(subgenome_1_boxplot$DP, na.rm=T)
+  maxDP <- max(table(subgenome_1_boxplot$DP))
+  quantile999 <- quantile(subgenome_1_boxplot$DP, probs = c(0.95), na.rm= TRUE)
+  subgenome_1_dist <- as.data.frame(table(subgenome_1_boxplot$DP))
+  subgenome_1_dist$Var1 <- as.numeric(as.character(subgenome_1_dist$Var1))
+  subgenome_1_distm <- subset(subgenome_1_dist, Freq > quantile999)
+  if (nrow(subgenome_1_distm) == 0) {maxX <- max(subgenome_1_dist[,1])} else {maxX <- max(subgenome_1_distm[,1])}
+  if (maxX >= 100) { intervalm <- round(maxX/10,-1) } else { intervalm <- round(maxX/10,0) } 
+  histogram <- ggplot(subgenome_1_dist, aes(x=Var1, y=Freq)) +
+    geom_bar(stat="identity", position=position_dodge(0.95), width=0.9, colour="cornflowerblue", fill="white")+
+    geom_vline(aes(xintercept=meanDP), color="cornflowerblue", linetype="dashed", size=3, alpha=0.5)+
+    geom_vline(aes(xintercept=medianDP), color="tomato", linetype="dotted", size=3, alpha=0.5)+
+    geom_text(aes(x=meanDP, label=paste("mean = ",round(meanDP),sep=""), y=(maxDP*0.25)), colour="cornflowerblue", angle=90, vjust = 1.2, size=7.5) +
+    geom_text(aes(x=medianDP, label=paste("median = ",round(medianDP),sep=""), y=(maxDP*0.5)), colour="tomato", angle=90, vjust = 1.2, size=7.5) +
+    scale_y_continuous(expand = c(0, 0), labels = function(x) format(x, big.mark = ",",scientific = T)) +
+    scale_x_continuous(breaks=seq(0,maxX,intervalm)) +
+    theme(axis.text.x=element_text(colour="cornflowerblue", size=24),
+          axis.text.y=element_text(colour="cornflowerblue", size=24),
+          axis.title=element_text(size=30)) +
+    ylab("Frequency") +
+    xlab(paste("Read Depth Distribution (", "Diversity Population)",sep=""))
+  ggsave(filename= paste(pop,"_2x","_histogram_filtered.tiff",sep=""), plot=histogram, width=25, height= 7.5, dpi=300, compression = "lzw")
+
+    boxplot <- NULL
+  subgenome_1_boxplot <- NULL
+  subgenome_1_plots <- NULL
+  gc()
+}
+rd_boxplot()
+raw_alleles <- function() {
+  #######################################################################################################################################################################################
+  # Let's plot the distribution of multi-allelic variants
+
+  subgenome_1_plots <- read.table(file=paste(pop,"_2x_","rawRD",rd+1,"_DP_GT.txt",sep=""), header=T, sep="\t", check.names = FALSE)
+  subgenome_1_plots <- subset(subgenome_1_plots, select=c((((ncol(subgenome_1_plots)-4)/2)+5):ncol(subgenome_1_plots)))
+  Multiallelic <- as.data.frame(table(as.matrix(subgenome_1_plots)))
+  names(Multiallelic)[names(Multiallelic) == "Var1"] <- "Genotype"
+  Multiallelic <- subset(Multiallelic, Genotype != "./.")
+  Multiallelic[][Multiallelic[]=="NA"] <- "0"
+  Multiallelic$Freq <- round((Multiallelic$Freq)/((ncol(subgenome_1)-4)/2),0)
+  sum <- sum(Multiallelic$Freq)
+  max <- max(Multiallelic$Freq)
+  max <- max*1.3
+  Multiallelic$percentage <- ((Multiallelic$Freq)/sum)*100
+  Multiallelic <- subset(Multiallelic, percentage >= 0.01)
+  Multiallelic[,3] <- round(Multiallelic[,3], 2)
+  Multiallelic$length0 <- lengths(regmatches(Multiallelic$Genotype, gregexpr("0", Multiallelic$Genotype)))
+  Multiallelic$length1 <- lengths(regmatches(Multiallelic$Genotype, gregexpr("1", Multiallelic$Genotype)))
+  Multiallelic <- Multiallelic[order(Multiallelic$length0, Multiallelic$length1, Multiallelic$Genotype),]
+  Multiallelic$Genotype <- factor(Multiallelic$Genotype, levels = Multiallelic$Genotype)
+  plot <- ggplot(Multiallelic, aes(x = Genotype, y=Freq, fill=Genotype, group=Genotype)) +
+    geom_bar(stat="identity", position=position_dodge(0.95), width=0.9,
+             colour="black")+
+    geom_text(aes(x=Genotype, y=Freq, label = paste(percentage, "%"), group=Genotype),
+              position=position_dodge(0.95), hjust = -0.1, size=4, color="black", fontface="italic")+
+    theme(axis.text.x=element_text(colour="cornflowerblue", size=12),
+          axis.text.y=element_text(colour="cornflowerblue", size=12),
+          axis.title=element_text(size=14)) +
+    coord_flip()+
+    theme(legend.text=element_text(size=12)) +
+    theme(legend.key=element_rect(fill=NA)) +
+    theme(legend.key.size = unit(0.4, "cm")) +
+    guides(fill=guide_legend(ncol=1))+
+    scale_y_continuous(expand = c(0, 0), labels = function(x) format(x, big.mark = ",",
+                                                                     scientific = FALSE)) +
+    expand_limits(y = c(0, max))+
+    xlab("Genotypes") +
+    ylab(paste("Proportion of Genotypes (",sum,")", sep=""))
+  ggsave(filename=paste(pop,"_2x_rawRD",rd+1,"_Variants.tiff",sep=""), plot=plot, width=7.5, height= 5, dpi=300, compression = "lzw")
+}
+raw_alleles()
+
+####################################################################################################################
+copy_filter <- function(){
+  dir.create(unique_mapped)
+  snpid <- read.table(paste(pop,"_2x","_rd",rd+1,"_maf",MinorAlleleFreq,"_dose.txt",sep=""), header=T, sep="\t",stringsAsFactors=FALSE, check.names = F)
+  snpid <- subset(snpid, select=c("CHROM","POS"))
+  snpid$POS <- as.numeric(as.character(snpid$POS))
+  snpid$position <- lapply(snpid$POS / 100, as.integer)
+  snpidN <- read.table("../../alignment_summaries/refgenome_paralogs.txt", header=T, sep="\t", quote="", check.names=FALSE, fill=F)
+  snpidN <- snpidN[!(snpidN$CHROM=="" | snpidN$POS=="" | snpidN$nloci==""), ]
+  snpidN$POS <- as.numeric(as.character(snpidN$POS))
+  snpidN$position <- lapply(snpidN$POS / 100, as.integer); snpidN1 <- snpidN; snpidN2 <- snpidN
+  snpidN1$position <- as.numeric(as.character(snpidN1$position)); snpidN2$position <- as.numeric(as.character(snpidN2$position))
+  snpidN1$position <- snpidN1$position + 1; snpidN2$position <- snpidN2$position - 1
+  snpidN <- rbind(snpidN,snpidN1); snpidN <- rbind(snpidN,snpidN2)
+  snpid$match <- paste(snpid$CHROM,snpid$position,sep="_")
+  snpidN$match <- paste(snpidN$CHROM,snpidN$position,sep="_")
+  snpid$nloci <- snpidN$nloci[ match(snpid$match, snpidN$match)]
+  snpidM <- subset(snpid, select=-c(position,match))
+  write.table (snpidM, file=paste("./unique_mapped/",pop,"_2x","refgenome_nloci_matched.txt",sep=""), row.names=F, quote = FALSE, sep = "\t")
+  
+  snpidM <- subset(snpidM, snpidM$nloci <= hap)
+  snpidM <- subset(snpidM, select=c("CHROM","POS"))
+  snpid <- read.table(paste(pop,"_2x","_rd",rd+1,"_maf",MinorAlleleFreq,"_dose.txt",sep=""), header=T, sep="\t",stringsAsFactors=FALSE, check.names = F)
+  subgenome_uniqmap <- merge(snpid, snpidM, by = c("CHROM","POS"), all.y = TRUE)
+  write.table (subgenome_uniqmap, file=paste("./unique_mapped/",pop,"_2x","_rd",rd+1,"_maf",MinorAlleleFreq,"_dose_unique_mapped.txt",sep=""), row.names=F, quote = FALSE, sep = "\t")
+}
+copy_filter()
+
+####################################################################################################################
 pop_struc <- function() {
   for (i in c(0.01,0.05,0.1)) {
     pop_data <- read.table(paste(pop,"_2x","_rd",rd+1,"_maf",MinorAlleleFreq,"_dose.txt",sep=""), header=T, sep="\t",stringsAsFactors=FALSE, check.names = FALSE)
@@ -484,12 +690,12 @@ pop_struc <- function() {
   }
   if (nrow(pop_data) >= 100) {
     pop_data <- as.matrix(t(pop_data))
-
+    
     #Computing the full-autopolyploid matrix based on Slater 2016 (Eq. 8 and 9)
     Gmatrix <- function(SNPmatrix = pop_data, method = "VanRaden", missingValue = NA, 
-                         maf = 0, thresh.missing = 0.1, verify.posdef = FALSE, ploidy = 2, 
-                         pseudo.diploid = FALSE, integer = FALSE, ratio = FALSE, impute.method = TRUE, 
-                         ratio.check = FALSE) {
+                        maf = 0, thresh.missing = 0.1, verify.posdef = FALSE, ploidy = 2, 
+                        pseudo.diploid = FALSE, integer = FALSE, ratio = FALSE, impute.method = TRUE, 
+                        ratio.check = FALSE) {
       Time = proc.time()
       
       if(ratio){ #This allows to enter in the scaled crossprod condition
@@ -834,7 +1040,7 @@ pop_struc <- function() {
     tiff(paste(pop,"_",ncol(pop_data),"markers_relatedness_heatmap_dendogram_2x.tiff",sep=""), width=30, height=30, units = 'in', res = 300, compression = 'lzw')
     heatmap(as.matrix(Gmat))
     dev.off()
-
+    
     pca <- prcomp(Gmat)
     pca_out <- as.data.frame(pca$x)
     percentage <- round(pca$sdev / sum(pca$sdev) * 100, 2)
@@ -845,7 +1051,7 @@ pop_struc <- function() {
       xlab(percentage[1]) +
       ylab(percentage[2])
     ggsave(filename=paste(pop,"_",ncol(pop_data),"markers_2D_pca_2x.tiff",sep=""), plot=plot, width=15, height= 15, dpi=300, compression = "lzw")
-
+    
     # # Run this outside of the pipeline if required:
     # library(rgl)
     # x1=floor(min(pca_out$PC1, na.rm = TRUE))
@@ -860,216 +1066,10 @@ pop_struc <- function() {
     #        texts=c(rownames(pca_out)), cex= 1, pos=3)
     # # Wait! Adjust (moving image around with mouse) the 3D image before saving below.
     # rgl.snapshot(paste(pop,"_3D_pca_2x.png",sep=""), "png")
-
+    
   } else {
     print ("Not enough markers to compute Gmatrix (i.e. threshold of 100 markers)")
   }
 }
 pop_struc()
 
-####################################################################################################################
-subgenome_1 <- read.table(file=paste(pop,"_2x","_DP_GT.txt",sep=""), header=T, sep="\t", check.names = FALSE)
-subgenome_1[, 5:(((ncol(subgenome_1)-4)/2)+4)] <- lapply(5:(((ncol(subgenome_1)-4)/2)+4), function(x) as.numeric(subgenome_1[[x]]))
-rd_boxplot <- function() {
-  #######################################################################################################################################################################################
-  # Now, let's make boxplots use raw data set. It reflects read depth distribution across sample IDs
-  for (t in c(0,rd)) {
-    subgenome_1_plots <- subgenome_1[c(5:(((ncol(subgenome_1)-4)/2)+4))]
-    subgenome_1_plots[][subgenome_1_plots[]=="0"] <- NA
-    subgenome_1_plots$no_missing <- apply(subgenome_1_plots, 1, function(x) sum(is.na(x)))
-    subgenome_1_plots <- subset(subgenome_1_plots, no_missing <= (ncol(subgenome_1_plots)-5)*gmissingness)
-    subgenome_1_plots <- subset(subgenome_1_plots, select=-c(no_missing))
-    subgenome_1_plots[][subgenome_1_plots[] <= t] <- NA
-    names(subgenome_1_plots) <- gsub(paste("_DP",sep=""), "", names(subgenome_1_plots))
-    subgenome_1_plots$no_missing <- apply(subgenome_1_plots, 1, function(x) sum(is.na(x)))
-    subgenome_1_plots <- subset(subgenome_1_plots, no_missing <= (ncol(subgenome_1_plots)-5)*gmissingness)
-    subgenome_1_plots <- subset(subgenome_1_plots, select=c(-no_missing))
-    subgenome_1_plots <- as.matrix(subgenome_1_plots)
-    subgenome_1_plots <- as.data.frame(as.table(subgenome_1_plots))
-    subgenome_1_plots <- na.omit(subgenome_1_plots)
-    subgenome_1_boxplot <- subset(subgenome_1_plots, select=c(2,3))
-    names(subgenome_1_boxplot)[names(subgenome_1_boxplot) == "Var2"] <- "samples"
-    names(subgenome_1_boxplot)[names(subgenome_1_boxplot) == "Freq"] <- "DP"
-
-    subgenome_1_boxplot$DP <- as.numeric(as.character(subgenome_1_boxplot$DP))
-    subgenome_1_boxplot <- na.omit(subgenome_1_boxplot)
-    quantile999 <- quantile(subgenome_1_boxplot$DP, probs = c(0.95), na.rm= TRUE)
-    nsamples <- length(unique(subgenome_1_boxplot$samples))
-    if (nsamples <= 20) { nsamples <- 36 } else { nsamples <- sqrt(22500/nsamples) }
-    boxplot <- ggplot(subgenome_1_boxplot, aes(x = reorder(samples,DP, na.rm = TRUE), y=DP), stat='identity')+
-      geom_boxplot(fill="white", colour="cornflowerblue",
-                   outlier.alpha = 0.01, outlier.colour="tomato", outlier.size=1.0)+
-      coord_flip()+
-      scale_y_continuous(expand = c(0,0), limits = c(0,quantile999)) +
-      theme(axis.text.x=element_text(colour="cornflowerblue", size=24),
-            axis.text.y=element_text(colour="cornflowerblue", size=nsamples),
-            axis.title=element_text(size=36)) +
-      xlab(paste(pop," Diversity Population",sep="")) +
-      ylab("Read Depth (2x Genotypes)")
-    ggsave(filename= paste(pop,"_2x","_boxplot_rd",t+1,".tiff",sep=""), plot=boxplot, width=15, height= 25, dpi=300, compression = "lzw")
-
-    meanDP <- mean(subgenome_1_boxplot$DP, na.rm=T)
-    medianDP <- median(subgenome_1_boxplot$DP, na.rm=T)
-    maxDP <- max(table(subgenome_1_boxplot$DP))
-    quantile999 <- quantile(subgenome_1_boxplot$DP, probs = c(0.95), na.rm= TRUE)
-    subgenome_1_dist <- as.data.frame(table(subgenome_1_boxplot$DP))
-    subgenome_1_dist$Var1 <- as.numeric(as.character(subgenome_1_dist$Var1))
-    subgenome_1_dist <- subset(subgenome_1_dist, Freq > quantile999)
-    maxX <- max(subgenome_1_dist[,1])
-    histogram <- ggplot(subgenome_1_dist, aes(x=Var1, y=Freq)) +
-      geom_bar(stat="identity", position=position_dodge(0.95), width=0.9, colour="cornflowerblue", fill="white")+
-      geom_vline(aes(xintercept=meanDP), color="cornflowerblue", linetype="dashed", size=3, alpha=0.5)+
-      geom_vline(aes(xintercept=medianDP), color="tomato", linetype="dotted", size=3, alpha=0.5)+
-      geom_text(aes(x=meanDP, label=paste("mean = ",round(meanDP),sep=""), y=(maxDP*0.25)), colour="cornflowerblue", angle=90, vjust = 1.2, size=7.5) +
-      geom_text(aes(x=medianDP, label=paste("median = ",round(medianDP),sep=""), y=(maxDP*0.5)), colour="tomato", angle=90, vjust = 1.2, size=7.5) +
-      scale_y_continuous(expand = c(0, 0), labels = function(x) format(x, big.mark = ",",scientific = T)) +
-      scale_x_continuous(breaks=seq(0,maxX,round(maxX/10,-1))) +
-      theme(axis.text.x=element_text(colour="cornflowerblue", size=24),
-            axis.text.y=element_text(colour="cornflowerblue", size=24),
-            axis.title=element_text(size=30)) +
-      ylab("Frequency") +
-      xlab(paste("Read Depth Distribution (", "Diversity Population)",sep=""))
-    ggsave(filename= paste(pop,"_2x","_histogram_rd",t+1,".tiff",sep=""), plot=histogram, width=25, height= 15, dpi=300, compression = "lzw")
-
-    boxplot <- NULL
-    subgenome_1_boxplot <- NULL
-    subgenome_1_plots <- NULL
-    gc()
-  }
-  # Extract read depth values specifically for filtered SNPs, then plot boxplot
-  # Also, plot histogram of read depth across data set
-  subgenome_1_plots <- subgenome_1
-  subgenome_final <- read.table(file=paste(pop,"_2x_rd",rd+1,"_maf",MinorAlleleFreq,"_dose.txt",sep=""), header=T, sep="\t", check.names = FALSE)
-  subgenome_final <- as.data.frame(subgenome_final[,2:3])
-  subgenome_1_plots <- merge(subgenome_1_plots, subgenome_final, by=c("CHROM","POS"), all.y=TRUE)
-  subgenome_1_plots <- subgenome_1_plots[c(5:(((ncol(subgenome_1_plots)-4)/2)+4))]
-  subgenome_1_plots[][subgenome_1_plots[] < rd] <- NA
-  names(subgenome_1_plots) <- gsub(paste("_DP",sep=""), "", names(subgenome_1_plots))
-  subgenome_1_plots <- as.matrix(subgenome_1_plots)
-  subgenome_1_plots <- as.data.frame(as.table(subgenome_1_plots))
-  subgenome_1_plots <- na.omit(subgenome_1_plots)
-  subgenome_1_boxplot <- subset(subgenome_1_plots, select=c(2,3))
-  names(subgenome_1_boxplot)[names(subgenome_1_boxplot) == "Var2"] <- "samples"
-  names(subgenome_1_boxplot)[names(subgenome_1_boxplot) == "Freq"] <- "DP"
-
-  subgenome_1_boxplot$DP <- as.numeric(as.character(subgenome_1_boxplot$DP))
-  subgenome_1_boxplot <- na.omit(subgenome_1_boxplot)
-  quantile999 <- quantile(subgenome_1_boxplot$DP, probs = c(0.95), na.rm= TRUE)
-  nsamples <- length(unique(subgenome_1_boxplot$samples))
-  if (nsamples <= 20) { nsamples <- 36 } else { nsamples <- sqrt(22500/nsamples) }
-  boxplot <- ggplot(subgenome_1_boxplot, aes(x = reorder(samples,DP, na.rm = TRUE), y=DP), stat='identity')+
-    geom_boxplot(fill="white", colour="cornflowerblue",
-                 outlier.alpha = 0.01, outlier.colour="tomato", outlier.size=1.0)+
-    coord_flip()+
-    scale_y_continuous(expand = c(0,0), limits = c(0,quantile999)) +
-    theme(axis.text.x=element_text(colour="cornflowerblue", size=24),
-          axis.text.y=element_text(colour="cornflowerblue", size=nsamples),
-          axis.title=element_text(size=36)) +
-    xlab(paste(pop," Diversity Population",sep="")) +
-    ylab("Read Depth (2x Genotypes)")
-  ggsave(filename= paste(pop,"_2x","_boxplot_filtered.tiff",sep=""), plot=boxplot, width=15, height= 25, dpi=300, compression = "lzw")
-
-  meanDP <- mean(subgenome_1_boxplot$DP, na.rm=T)
-  medianDP <- median(subgenome_1_boxplot$DP, na.rm=T)
-  maxDP <- max(table(subgenome_1_boxplot$DP))
-  quantile999 <- quantile(subgenome_1_boxplot$DP, probs = c(0.95), na.rm= TRUE)
-  subgenome_1_dist <- as.data.frame(table(subgenome_1_boxplot$DP))
-  subgenome_1_dist$Var1 <- as.numeric(as.character(subgenome_1_dist$Var1))
-  subgenome_1_dist <- subset(subgenome_1_dist, Freq > quantile999)
-  maxX <- max(subgenome_1_dist[,1])
-  histogram <- ggplot(subgenome_1_dist, aes(x=Var1, y=Freq)) +
-    geom_bar(stat="identity", position=position_dodge(0.95), width=0.9, colour="cornflowerblue", fill="white")+
-    geom_vline(aes(xintercept=meanDP), color="cornflowerblue", linetype="dashed", size=3, alpha=0.5)+
-    geom_vline(aes(xintercept=medianDP), color="tomato", linetype="dotted", size=3, alpha=0.5)+
-    geom_text(aes(x=meanDP, label=paste("mean = ",round(meanDP),sep=""), y=(maxDP*0.25)), colour="cornflowerblue", angle=90, vjust = 1.2, size=7.5) +
-    geom_text(aes(x=medianDP, label=paste("median = ",round(medianDP),sep=""), y=(maxDP*0.5)), colour="tomato", angle=90, vjust = 1.2, size=7.5) +
-    scale_y_continuous(expand = c(0, 0), labels = function(x) format(x, big.mark = ",",scientific = T)) +
-    scale_x_continuous(breaks=seq(0,maxX,round(maxX/10,-1))) +
-    theme(axis.text.x=element_text(colour="cornflowerblue", size=24),
-          axis.text.y=element_text(colour="cornflowerblue", size=24),
-          axis.title=element_text(size=30)) +
-    ylab("Frequency") +
-    xlab(paste("Read Depth Distribution (", "Diversity Population)",sep=""))
-  ggsave(filename= paste(pop,"_2x","_histogram_filtered.tiff",sep=""), plot=histogram, width=25, height= 15, dpi=300, compression = "lzw")
-
-    boxplot <- NULL
-  subgenome_1_boxplot <- NULL
-  subgenome_1_plots <- NULL
-  gc()
-}
-rd_boxplot()
-raw_alleles <- function() {
-  #######################################################################################################################################################################################
-  # Let's plot the distribution of multi-allelic variants
-
-  subgenome_1_plots <- read.table(file=paste(pop,"_2x_","rawRD",rd+1,"_DP_GT.txt",sep=""), header=T, sep="\t", check.names = FALSE)
-  subgenome_1_plots <- subset(subgenome_1_plots, select=c((((ncol(subgenome_1_plots)-4)/2)+5):ncol(subgenome_1_plots)))
-  Multiallelic <- as.data.frame(table(as.matrix(subgenome_1_plots)))
-  names(Multiallelic)[names(Multiallelic) == "Var1"] <- "Genotype"
-  Multiallelic <- subset(Multiallelic, Genotype != "./.")
-  Multiallelic[][Multiallelic[]=="NA"] <- "0"
-  Multiallelic$Freq <- round((Multiallelic$Freq)/((ncol(subgenome_1)-4)/2),0)
-  sum <- sum(Multiallelic$Freq)
-  max <- max(Multiallelic$Freq)
-  max <- max*1.3
-  Multiallelic$percentage <- ((Multiallelic$Freq)/sum)*100
-  Multiallelic <- subset(Multiallelic, percentage >= 0.01)
-  Multiallelic[,3] <- round(Multiallelic[,3], 2)
-  Multiallelic$length0 <- lengths(regmatches(Multiallelic$Genotype, gregexpr("0", Multiallelic$Genotype)))
-  Multiallelic$length1 <- lengths(regmatches(Multiallelic$Genotype, gregexpr("1", Multiallelic$Genotype)))
-  Multiallelic <- Multiallelic[order(Multiallelic$length0, Multiallelic$length1, Multiallelic$Genotype),]
-  Multiallelic$Genotype <- factor(Multiallelic$Genotype, levels = Multiallelic$Genotype)
-  plot <- ggplot(Multiallelic, aes(x = Genotype, y=Freq, fill=Genotype, group=Genotype)) +
-    geom_bar(stat="identity", position=position_dodge(0.95), width=0.9,
-             colour="black")+
-    geom_text(aes(x=Genotype, y=Freq, label = paste(percentage, "%"), group=Genotype),
-              position=position_dodge(0.95), hjust = -0.1, size=4, color="black", fontface="italic")+
-    theme(axis.text.x=element_text(colour="cornflowerblue", size=12),
-          axis.text.y=element_text(colour="cornflowerblue", size=12),
-          axis.title=element_text(size=14)) +
-    coord_flip()+
-    theme(legend.text=element_text(size=12)) +
-    theme(legend.key=element_rect(fill=NA)) +
-    theme(legend.key.size = unit(0.4, "cm")) +
-    guides(fill=guide_legend(ncol=1))+
-    scale_y_continuous(expand = c(0, 0), labels = function(x) format(x, big.mark = ",",
-                                                                     scientific = FALSE)) +
-    expand_limits(y = c(0, max))+
-    xlab("Genotypes") +
-    ylab(paste("Proportion of Genotypes (",sum,")", sep=""))
-  ggsave(filename=paste(pop,"_2x_rawRD",rd+1,"_multiallelic_Variants.tiff",sep=""), plot=plot, width=15, height= 10, dpi=300, compression = "lzw")
-}
-raw_alleles()
-
-####################################################################################################################
-
-snpid <- read.table(paste(pop,"_2x","_rd",rd+1,"_maf",MinorAlleleFreq,"_dose.txt",sep=""), header=T, sep="\t",stringsAsFactors=FALSE, check.names = F)
-snpid <- subset(snpid, select=c("CHROM","POS"))
-snpid$POS <- as.numeric(as.character(snpid$POS))
-snpid$position <- lapply(snpid$POS / 100, as.integer)
-snpidN <- read.table("../../alignment_summaries/refgenome_paralogs.txt", header=T, sep="\t", quote="", check.names=FALSE, fill=F)
-snpidN <- snpidN[!(snpidN$CHROM=="" | snpidN$POS=="" | snpidN$nloci==""), ]
-snpidN$nloci <- gsub("multilocus","999",snpidN$nloci)
-snpidN$POS <- as.numeric(as.character(snpidN$POS))
-snpidN$position <- lapply(snpidN$POS / 100, as.integer); snpidN1 <- snpidN; snpidN2 <- snpidN
-snpidN1$position <- as.numeric(as.character(snpidN1$position)); snpidN2$position <- as.numeric(as.character(snpidN2$position))
-snpidN1$position <- snpidN1$position + 1; snpidN2$position <- snpidN2$position - 1
-snpidN <- rbind(snpidN,snpidN1); snpidN <- rbind(snpidN,snpidN2)
-snpid$match <- paste(snpid$CHROM,snpid$position,sep="_")
-snpidN$match <- paste(snpidN$CHROM,snpidN$position,sep="_")
-snpidN$nloci <- gsub("999","multilocus",snpidN$nloci)
-snpid$nloci <- snpidN$nloci[ match(snpid$match, snpidN$match)]
-snpidM <- subset(snpid, select=-c(position,match))
-write.table (snpidM, file=paste(pop,"_2x","refgenome_nloci_matched.txt",sep=""), row.names=F, quote = FALSE, sep = "\t")
-
-
-snpidM <- subset(snpidM, snpidM$nloci <= hap)
-snpidM <- subset(snpidM, select=c("CHROM","POS"))
-snpid <- read.table(paste(pop,"_2x","_rd",rd+1,"_maf",MinorAlleleFreq,"_dose.txt",sep=""), header=T, sep="\t",stringsAsFactors=FALSE, check.names = F)
-subgenome_uniqmap <- merge(snpid, snpidM, by = c("CHROM","POS"), all.y = TRUE)
-write.table (subgenome_uniqmap, file=paste(pop,"_2x","_rd",rd+1,"_maf",MinorAlleleFreq,"_dose_unique_mapped.txt",sep=""), row.names=F, quote = FALSE, sep = "\t")
-
-
-unlink(file=paste(pop,"_2x","_DP_GT.txt",sep=""))
-unlink(file=paste(pop,"_2x_rawRD",rd+1,"_DP_GT.txt",sep=""))
-unlink(file=paste(pop,"_2x","_rd","rd+1.txt",sep=""))

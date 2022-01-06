@@ -1,4 +1,5 @@
 #!/bin/bash
+
 red=$'\e[1;31m'
 green=$'\e[1;32m'
 yellow=$'\e[1;33m'
@@ -8,12 +9,10 @@ cyan=$'\e[1;36m'
 white=$'\e[0m'
 
 
-######################################################################################################################################################
 main () {
   echo -e "${blue}\n############################################## ${yellow}\n- downloading and installing BBmap ${blue}\n##############################################${white}"
-  wget https://sourceforge.net/projects/bbmap/files/BBMap_38.92.tar.gz
-  tar -xvzf BBMap*.tar.gz
-  rm BBMap_38.92.tar.gz
+  wget https://sourceforge.net/projects/bbmap/files/latest/download &&
+  tar -xvzf download*; rm download*
 }
 dirtool=bbmap
 if [ -d $dirtool ]; then
@@ -25,30 +24,13 @@ fi
 
 
 main () {
-  echo -e "${blue}\n############################################## ${yellow}\n- downloading and installing BWA ${blue}\n##############################################${white}"
-  wget https://sourceforge.net/projects/bio-bwa/files/latest/download
-  tar -vxjf download*; rm download*; cd bwa*; wait; make; wait; cd ..
-}
-dirtool=bwa*
-if [ -d $dirtool ]; then
-  :
-else
-  echo -e "${magenta}- Performing installation of dependency (bwa) ${white}"
-  main &>> ./log.out
-fi
-
-
-main () {
   echo -e "${blue}\n############################################## ${yellow}\n- downloading and installing bcftools ${blue}\n##############################################${white}"
-  git clone --recurse-submodules git://github.com/samtools/htslib.git
-  git clone git://github.com/samtools/bcftools.git
-  cd bcftools
-  # The following is optional:
-  autoheader && autoconf && ./configure --enable-libgsl --enable-perl-filters
-  make
+  wget https://github.com/samtools/bcftools/releases/download/1.13/bcftools-1.13.tar.bz2 &&
+  tar -xvf bcftools-1.13.tar.bz2;  cd bcftools-1.13; make
+  rm bcftools-1.13.tar.bz2
   cd ..
 }
-dirtool=bcftools*
+dirtool=bcftools-1.13
 if [ -d $dirtool ]; then
   :
 else
@@ -60,7 +42,7 @@ fi
 main () {
   echo -e "${blue}\n############################################## ${yellow}\n- downloading and installing samtools ${blue}\n##############################################${white}"
   wget https://sourceforge.net/projects/samtools/files/latest/download
-  tar -vxjf download*; rm download*; cd samtools*
+  tar -xvjf download*; rm download*; cd samtools*
   make
   cd ..
 }
@@ -112,13 +94,6 @@ main () {
   wget -O GATK4.2.2.0.zip "https://github.com/broadinstitute/gatk/releases/download/4.2.2.0/gatk-4.2.2.0.zip"
   unzip GATK4.2.2.0.zip
   rm GATK4.2.2.0.zip
-  # javaloc=${GBSapp_dir}/jdk8u222-b10-jre/bin/java
-  # cd gatk*
-  # awk -v javaloc=$javaloc 'NR==208{gsub(/java/,javaloc)}1' gatk > temp
-  # mv temp gatk
-  # chmod 777 *
-  # cd ../
-
 }
 dirtool=gatk*
 if [ -d $dirtool ]; then
@@ -130,6 +105,7 @@ fi
 
 
 main () {
+  echo -e "${white}\n############################################## ${orange}\n- check for R installation ${white}\n##############################################${white}"
   if R --version; then
     :
   else
@@ -147,6 +123,7 @@ main &>> ./log.out
 
 main () {
 echo -e "${blue}\n############################################## \n- installing R-package: ggplot2  ${blue}\n##############################################${white}"
+  mkdir -p R
   cd ./R
   R -e 'install.packages("ggplot2", dependencies = TRUE, repos="http://cran.r-project.org", lib="./")'
 }
