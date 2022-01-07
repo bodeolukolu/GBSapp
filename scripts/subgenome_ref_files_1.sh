@@ -500,18 +500,18 @@ main () {
 	wait && touch ${projdir}/compress_done.txt
 
 
-	for i in $(cat ${projdir}/${samples_list} ); do
+	for i in $(cat ${projdir}/${samples_list} ); do (
 		cd ${projdir}/refgenomes
 		if test ! -f ${projdir}/alignment_done.txt && test ! -f ${projdir}/preprocess/${i%.f*}_${ref1%.f*}_precall.bam.bai; then
 			while test ! -f ${projdir}/preprocess/${i%.f*}_redun.sam; do
 				if [[ "$nempty" -gt 0 ]]; then
-					$java -ea $Xmx2 -cp ${GBSapp_dir}/tools/bbmap/current/ align2.BBMap fast=t threads=$threads averagepairdist=$PEdist deterministic=t maxindel=$maxindel local=t keepnames=t maxsites=12 saa=f secondary=t ambiguous=all ref=$ref1 in1=${projdir}/samples/${i%.f*}_uniq_R1.fq.gz in2=${projdir}/samples/${i%.f*}_uniq_R2.fq.gz out=${projdir}/preprocess/${i%.f*}_redun_R1R2.sam &&
-					$java -ea $Xmx2 -cp ${GBSapp_dir}/tools/bbmap/current/ align2.BBMap fast=t threads=$threads averagepairdist=$PEdist deterministic=t maxindel=$maxindel local=t keepnames=t maxsites=12 saa=f secondary=t ambiguous=all ref=$ref1 in1=${projdir}/samples/${i%.f*}_uniq_singleton.fq.gz out=${projdir}/preprocess/${i%.f*}_redun_singleton.sam &&
+					$java -ea $Xmxg -cp ${GBSapp_dir}/tools/bbmap/current/ align2.BBMap fast=t threads=$gthreads averagepairdist=$PEdist deterministic=t maxindel=$maxindel local=t keepnames=t maxsites=12 saa=f secondary=t ambiguous=all ref=$ref1 in1=${projdir}/samples/${i%.f*}_uniq_R1.fq.gz in2=${projdir}/samples/${i%.f*}_uniq_R2.fq.gz out=${projdir}/preprocess/${i%.f*}_redun_R1R2.sam &&
+					$java -ea $Xmxg -cp ${GBSapp_dir}/tools/bbmap/current/ align2.BBMap fast=t threads=$gthreads averagepairdist=$PEdist deterministic=t maxindel=$maxindel local=t keepnames=t maxsites=12 saa=f secondary=t ambiguous=all ref=$ref1 in1=${projdir}/samples/${i%.f*}_uniq_singleton.fq.gz out=${projdir}/preprocess/${i%.f*}_redun_singleton.sam &&
 					grep -v '^@' ${projdir}/preprocess/${i%.f*}_redun_singleton.sam | cat ${projdir}/preprocess/${i%.f*}_redun_R1R2.sam - > ${projdir}/preprocess/${i%.f*}_redun.hold.sam &&
 					rm ${projdir}/preprocess/${i%.f*}_redun_singleton.sam ${projdir}/preprocess/${i%.f*}_redun_R1R2.sam
 					wait
 				else
-					$java -ea $Xmx2 -cp ${GBSapp_dir}/tools/bbmap/current/ align2.BBMap fast=t threads=$threads maxindel=$maxindel local=t keepnames=t maxsites=12 saa=f secondary=t ambiguous=all ref=$ref1 in1=${projdir}/samples/${i%.f*}_uniq_R1.fq.gz out=${projdir}/preprocess/${i%.f*}_redun.hold.sam
+					$java -ea $Xmxg -cp ${GBSapp_dir}/tools/bbmap/current/ align2.BBMap fast=t threads=$gthreads maxindel=$maxindel local=t keepnames=t maxsites=12 saa=f secondary=t ambiguous=all ref=$ref1 in1=${projdir}/samples/${i%.f*}_uniq_R1.fq.gz out=${projdir}/preprocess/${i%.f*}_redun.hold.sam
 					wait
 				fi
 				rm ${projdir}/samples/${i%.f*}_uniq_*.fq.gz && mv ${projdir}/preprocess/${i%.f*}_redun.hold.sam ${projdir}/preprocess/${i%.f*}_redun.sam
@@ -526,7 +526,10 @@ main () {
 			done
 			wait
 		fi
-		cd ${projdir}/samples
+		cd ${projdir}/samples ) &
+		if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
+			wait
+		fi
 	done
 	wait && touch ${projdir}/hapfilter_done.txt
 
