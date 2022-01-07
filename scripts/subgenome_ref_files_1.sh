@@ -461,7 +461,7 @@ main () {
 		if test ! -f ${projdir}/hapfilter_done.txt && test ! -f ${projdir}/preprocess/${i%.f*}_redun.sam && test ! -f ${projdir}/preprocess/${i%.f*}_${ref1%.f*}_precall.bam.bai; then
 			while test ! -f ${projdir}/alignment_summaries/${i%.f*}_pop_mutation_load.txt; do
 				sleep $[ ( $RANDOM % 30 )  + 10 ]s
-				nempty=$( wc -l ${i%.f*}_uniq_R2.fasta &> /dev/null | awk '{print $1}' )
+				export nempty=$( wc -l ${i%.f*}_uniq_R2.fasta &> /dev/null | awk '{print $1}' )
 				cd ${projdir}/refgenomes/
 				p_hap=$(awk '{print $1}' ${projdir}/alignment_summaries/background_mutation_test/pop_haps_freqPass.txt | awk -F'\t' 'BEGIN{OFS="\t"} NR==FNR{a[$1]=$0;next} ($1) in a{print $0, a[$1]}' - ${projdir}/samples/${i%.f*}_uniq_R1.fasta | wc -l)
 				r_hap=$(awk '{print $1}' ${projdir}/alignment_summaries/background_mutation_test/pop_haps_freqFail.txt | awk -F'\t' 'BEGIN{OFS="\t"} NR==FNR{a[$1]=$0;next} ($1) in a{print $0, a[$1]}' - ${projdir}/samples/${i%.f*}_uniq_R1.fasta | wc -l)
@@ -503,13 +503,13 @@ main () {
 			while test ! -f ${projdir}/preprocess/${i%.f*}_redun.sam; do
 				if [[ "$nempty" -gt 0 ]]; then
 					cd ${projdir}/refgenomes
-					$bbmap $Xmx2 fast=t threads=$threads averagepairdist=$PEdist deterministic=t maxindel=$maxindel local=t keepnames=t maxsites=12 saa=f secondary=t ambiguous=all ref=$ref1 in1=${projdir}/samples/${i%.f*}_uniq_R1.fq.gz in2=${projdir}/samples/${i%.f*}_uniq_R2.fq.gz out=${projdir}/preprocess/${i%.f*}_redun_R1R2.sam &&
-					$bbmap $Xmx2 fast=t threads=$threads averagepairdist=$PEdist deterministic=t maxindel=$maxindel local=t keepnames=t maxsites=12 saa=f secondary=t ambiguous=all ref=$ref1 in1=${projdir}/samples/${i%.f*}_uniq_singleton.fq.gz out=${projdir}/preprocess/${i%.f*}_redun_singleton.sam &&
+					$bbmap fast=t threads=$threads averagepairdist=$PEdist deterministic=t maxindel=$maxindel local=t keepnames=t maxsites=12 saa=f secondary=t ambiguous=all ref=$ref1 in1=${projdir}/samples/${i%.f*}_uniq_R1.fq.gz in2=${projdir}/samples/${i%.f*}_uniq_R2.fq.gz out=${projdir}/preprocess/${i%.f*}_redun_R1R2.sam &&
+					$bbmap fast=t threads=$threads averagepairdist=$PEdist deterministic=t maxindel=$maxindel local=t keepnames=t maxsites=12 saa=f secondary=t ambiguous=all ref=$ref1 in1=${projdir}/samples/${i%.f*}_uniq_singleton.fq.gz out=${projdir}/preprocess/${i%.f*}_redun_singleton.sam &&
 					grep -v '^@' ${projdir}/preprocess/${i%.f*}_redun_singleton.sam | cat ${projdir}/preprocess/${i%.f*}_redun_R1R2.sam - > ${projdir}/preprocess/${i%.f*}_redun.hold.sam &&
 					rm ${projdir}/preprocess/${i%.f*}_redun_singleton.sam ${projdir}/preprocess/${i%.f*}_redun_R1R2.sam
 					wait
 				else
-					$bbmap $Xmx2 fast=t threads=$threads maxindel=$maxindel local=t keepnames=t maxsites=12 saa=f secondary=t ambiguous=all ref=$ref1 in1=${projdir}/samples/${i%.f*}_uniq_R1.fq.gz out=${projdir}/preprocess/${i%.f*}_redun.hold.sam
+					$bbmap fast=t threads=$threads maxindel=$maxindel local=t keepnames=t maxsites=12 saa=f secondary=t ambiguous=all ref=$ref1 in1=${projdir}/samples/${i%.f*}_uniq_R1.fq.gz out=${projdir}/preprocess/${i%.f*}_redun.hold.sam
 					wait
 				fi
 				rm ${projdir}/samples/${i%.f*}_uniq_*.fq.gz && mv ${projdir}/preprocess/${i%.f*}_redun.hold.sam ${projdir}/preprocess/${i%.f*}_redun.sam
