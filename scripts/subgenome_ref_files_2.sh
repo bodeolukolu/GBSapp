@@ -462,7 +462,7 @@ main () {
 	cd ${projdir}/samples
 
 	for i in $(cat ${projdir}/${samples_list} ); do (
-		if test ! -f ${projdir}/hapfilter_done.txt && "${projdir}/preprocess/${i%.f*}_redun.sam" && test ! -f "${projdir}/preprocess/${i%.f*}_${ref1%.f*}_precall.bam.bai"; then
+		if test ! -f ${projdir}/hapfilter_done.txt && test ! -f "${projdir}/preprocess/${i%.f*}_redun.sam" && test ! -f "${projdir}/preprocess/${i%.f*}_${ref1%.f*}_precall.bam.bai"; then
 			while test ! -f ${projdir}/alignment_summaries/${i%.f*}_pop_mutation_load.txt; do
 				sleep $[ ( $RANDOM % 30 )  + 10 ]s
 				export nempty=$( wc -l ${i%.f*}_uniq_R2.fasta &> /dev/null | awk '{print $1}' )
