@@ -604,11 +604,9 @@ main () {
 			cd ${projdir}/preprocess
 			$java $Xmx2 -XX:ParallelGCThreads=$gthreads -jar $picard SortSam I=$j O=${j%.sam*}.bam  SORT_ORDER=coordinate && \
 			$java $Xmx2 -XX:ParallelGCThreads=$gthreads -jar $picard BuildBamIndex INPUT=${j%.sam*}.bam && \
-			$java $Xmx2 -XX:ParallelGCThreads=$gthreads -jar $picard AddOrReplaceReadGroups I=${j%.sam*}.bam O=${j%.sam*}_precall.hold.bam RGLB=${i%.f*} RGPL=illumina VALIDATION_STRINGENCY=LENIENT RGPU=run RGSM=${i%.f*} && \
-			$samtools index ${j%.sam*}_precall.hold.bam
-			ls ${i%.f*}_* | grep -v precall | xargs rm && \
-			mv ${j%.sam*}_precall.hold.bam ${j%.sam*}_precall.bam && \
-			mv ${j%.sam*}_precall.hold.bam.bai ${j%.sam*}_precall.bam.bai
+			$java $Xmx2 -XX:ParallelGCThreads=$gthreads -jar $picard AddOrReplaceReadGroups I=${j%.sam*}.bam O=${j%.sam*}_precall.bam RGLB=${i%.f*} RGPL=illumina VALIDATION_STRINGENCY=LENIENT RGPU=run RGSM=${i%.f*} && \
+			$samtools index ${j%.sam*}_precall.bam
+			ls ${i%.f*}_* | grep -v precall | xargs rm
 
 			cd ${projdir}/samples
 		fi ) &
