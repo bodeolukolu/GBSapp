@@ -456,7 +456,7 @@ main () {
 	wait
 
 	while [[ ! -f "${projdir}/alignment_summaries/background_mutation_test/pop_haps_freqPass.txt" ]]; do sleep 300; done
-	sleep 60
+	sleep 5
 	cd ${projdir}/samples
 
 	for i in $(cat ${projdir}/${samples_list} ); do (
@@ -555,71 +555,68 @@ main () {
 
 	for i in $(cat ${projdir}/${samples_list} ); do (
 		if test ! -f ${projdir}/precall_done.txt; then
-			while test ! -f "${projdir}/preprocess/${i%.f*}_${ref1%.f*}_precall.bam.bai"; do
-				sleep $[ ( $RANDOM % 30 )  + 10 ]s
-				grep -v '^@' ${projdir}/preprocess/${i%.f*}_redun.sam | awk '!($3 ~ "\*")' | awk '!h[$1] { g[$1]=$0 } { h[$1]++ } END { for(k in g) print h[k], g[k] }' | \
-				cat <(grep '^@' ${projdir}/preprocess/${i%.f*}_redun.sam) - > ${projdir}/preprocess/${i%.f*}_del.sam
-				wait
+			grep -v '^@' ${projdir}/preprocess/${i%.f*}_redun.sam | awk '!($3 ~ "\*")' | awk '!h[$1] { g[$1]=$0 } { h[$1]++ } END { for(k in g) print h[k], g[k] }' | \
+			cat <(grep '^@' ${projdir}/preprocess/${i%.f*}_redun.sam) - > ${projdir}/preprocess/${i%.f*}_del.sam
+			wait
 
-				printf '\n###---'${i%.f*}'---###\n' > ${projdir}/alignment_summaries/${i%.f*}_summ.txt && \
-				$samtools flagstat ${projdir}/preprocess/${i%.f*}_redun.sam >> ${projdir}/alignment_summaries/${i%.f*}_summ.txt && \
-				printf '########################################################################################################\n\n' >> ${projdir}/alignment_summaries/${i%.f*}_summ.txt &&
-				printf 'copy\tFrequency\tPercentage\n' > ${projdir}/alignment_summaries/copy_number/${i%.f*}_copy_number_Unique_Read_histogram.txt && \
-				grep -v '^@' ${projdir}/preprocess/${i%.f*}_redun.sam | awk -F' ' '{print $1}' | awk '{gsub(/_/,"\t"); print $2}' | \
-				sort | uniq -c | awk '{print $2"\t"$1}' > ${projdir}/alignment_summaries/copy_number/${i%.f*}_copy_number.txt  && \
-				awk 'NR==FNR{sum+= $2; next;} {printf("%s\t%s\t%3.3f%%\t%3.0f\n",$1,$2,100*$2/sum,100*$2/sum)}' ${projdir}/alignment_summaries/copy_number/${i%.f*}_copy_number.txt ${projdir}/alignment_summaries/copy_number/${i%.f*}_copy_number.txt > ${projdir}/alignment_summaries/copy_number/${i%.f*}_plot.txt && \
-				unset IFS; printf "%s\t%s\t%s\t%*s\n" $(sed 's/$/ |/' ${projdir}/alignment_summaries/copy_number/${i%.f*}_plot.txt) | tr ' ' '|' | sort -k2,2 -nr | awk '{gsub(/se-/,""); gsub(/pe-/,""); print}' >> ${projdir}/alignment_summaries/copy_number/${i%.f*}_copy_number_Unique_Read_histogram.txt && rm ${projdir}/alignment_summaries/copy_number/${i%.f*}_copy_number.txt ${projdir}/alignment_summaries/copy_number/${i%.f*}_plot.txt
+			printf '\n###---'${i%.f*}'---###\n' > ${projdir}/alignment_summaries/${i%.f*}_summ.txt && \
+			$samtools flagstat ${projdir}/preprocess/${i%.f*}_redun.sam >> ${projdir}/alignment_summaries/${i%.f*}_summ.txt && \
+			printf '########################################################################################################\n\n' >> ${projdir}/alignment_summaries/${i%.f*}_summ.txt &&
+			printf 'copy\tFrequency\tPercentage\n' > ${projdir}/alignment_summaries/copy_number/${i%.f*}_copy_number_Unique_Read_histogram.txt && \
+			grep -v '^@' ${projdir}/preprocess/${i%.f*}_redun.sam | awk -F' ' '{print $1}' | awk '{gsub(/_/,"\t"); print $2}' | \
+			sort | uniq -c | awk '{print $2"\t"$1}' > ${projdir}/alignment_summaries/copy_number/${i%.f*}_copy_number.txt  && \
+			awk 'NR==FNR{sum+= $2; next;} {printf("%s\t%s\t%3.3f%%\t%3.0f\n",$1,$2,100*$2/sum,100*$2/sum)}' ${projdir}/alignment_summaries/copy_number/${i%.f*}_copy_number.txt ${projdir}/alignment_summaries/copy_number/${i%.f*}_copy_number.txt > ${projdir}/alignment_summaries/copy_number/${i%.f*}_plot.txt && \
+			unset IFS; printf "%s\t%s\t%s\t%*s\n" $(sed 's/$/ |/' ${projdir}/alignment_summaries/copy_number/${i%.f*}_plot.txt) | tr ' ' '|' | sort -k2,2 -nr | awk '{gsub(/se-/,""); gsub(/pe-/,""); print}' >> ${projdir}/alignment_summaries/copy_number/${i%.f*}_copy_number_Unique_Read_histogram.txt && rm ${projdir}/alignment_summaries/copy_number/${i%.f*}_copy_number.txt ${projdir}/alignment_summaries/copy_number/${i%.f*}_plot.txt
 
-				echo "nloci~mapQ~CHROM~POS" > ${projdir}/alignment_summaries/refgenome_paralogs_${i%.f*}.txt
-				grep -v '^@' ${projdir}/preprocess/${i%.f*}_del.sam | awk -F'\t' '{print $1"\t"$3"\t"$4"\t"$5}' | awk '{gsub(/ /,"\t"); print}' | awk '{print $1"~"$5"~"$3"~"$4}' | grep -v '*' >> ${projdir}/alignment_summaries/refgenome_paralogs_${i%.f*}.txt
-				awk '!visited[$0]++' ${projdir}/alignment_summaries/refgenome_paralogs_${i%.f*}.txt > ${projdir}/alignment_summaries/temp_${i%.f*}.txt
-				mv ${projdir}/alignment_summaries/temp_${i%.f*}.txt ${projdir}/alignment_summaries/refgenome_paralogs_${i%.f*}.txt
-				wait
+			echo "nloci~mapQ~CHROM~POS" > ${projdir}/alignment_summaries/refgenome_paralogs_${i%.f*}.txt
+			grep -v '^@' ${projdir}/preprocess/${i%.f*}_del.sam | awk -F'\t' '{print $1"\t"$3"\t"$4"\t"$5}' | awk '{gsub(/ /,"\t"); print}' | awk '{print $1"~"$5"~"$3"~"$4}' | grep -v '*' >> ${projdir}/alignment_summaries/refgenome_paralogs_${i%.f*}.txt
+			awk '!visited[$0]++' ${projdir}/alignment_summaries/refgenome_paralogs_${i%.f*}.txt > ${projdir}/alignment_summaries/temp_${i%.f*}.txt
+			mv ${projdir}/alignment_summaries/temp_${i%.f*}.txt ${projdir}/alignment_summaries/refgenome_paralogs_${i%.f*}.txt
+			wait
 
 
-				if [[ "$altpos" == "false" ]]; then
-					awk '/@HD/ || /@SQ/{print}' ${projdir}/preprocess/${i%.f*}_redun.sam > ${projdir}/preprocess/${i%.f*}_heading.sam
-					awk -F'\t' '{gsub(/ /,"_",$1); print}' ${projdir}/preprocess/${i%.f*}_del.sam | grep -v '^@' | awk '{gsub(/_se-/,"_se-\t",$1); gsub(/_pe-/,"_pe-\t",$1); print $0}' | \
-					awk '{$1=""}1' | awk 'BEGIN{FS=OFS="\t"} {gsub(/^[[:space:]]+|[[:space:]]+$/,"",$1)} 1' > ${projdir}/preprocess/${i%.f*}_uniq.sam
-					for j in $(LC_ALL=C; sort -n -k1,1 ${projdir}/preprocess/${i%.f*}_uniq.sam | awk '{print $1}' | uniq); do
-						awk -v n="^${j}" '$0~n{print $0}' ${projdir}/preprocess/${i%.f*}_uniq.sam | awk -v n="$j" '{for(i=0;i<n;i++) print}' >> ${projdir}/preprocess/${i%.f*}_exp.sam
-					done; wait
-					awk '{print "seq"NR"_"$0}' ${projdir}/preprocess/${i%.f*}_exp.sam | awk '{gsub(/256/,"0",$2); gsub(/272/,"16",$2); print}' | \
-					awk '!($3 ~ "\*")' | cat ${projdir}/preprocess/${i%.f*}_heading.sam - | awk '{gsub(/ /,"\t"); print}' > ${projdir}/preprocess/${i%.f*}_${ref1%.f*}.sam
-					rm ${projdir}/preprocess/${i%.f*}_exp.sam ${projdir}/preprocess/${i%.f*}_uniq.sam ${projdir}/preprocess/${i%.f*}_heading.sam
-				fi
+			if [[ "$altpos" == "false" ]]; then
+				awk '/@HD/ || /@SQ/{print}' ${projdir}/preprocess/${i%.f*}_redun.sam > ${projdir}/preprocess/${i%.f*}_heading.sam
+				awk -F'\t' '{gsub(/ /,"_",$1); print}' ${projdir}/preprocess/${i%.f*}_del.sam | grep -v '^@' | awk '{gsub(/_se-/,"_se-\t",$1); gsub(/_pe-/,"_pe-\t",$1); print $0}' | \
+				awk '{$1=""}1' | awk 'BEGIN{FS=OFS="\t"} {gsub(/^[[:space:]]+|[[:space:]]+$/,"",$1)} 1' > ${projdir}/preprocess/${i%.f*}_uniq.sam
+				for j in $(LC_ALL=C; sort -n -k1,1 ${projdir}/preprocess/${i%.f*}_uniq.sam | awk '{print $1}' | uniq); do
+					awk -v n="^${j}" '$0~n{print $0}' ${projdir}/preprocess/${i%.f*}_uniq.sam | awk -v n="$j" '{for(i=0;i<n;i++) print}' >> ${projdir}/preprocess/${i%.f*}_exp.sam
+				done; wait
+				awk '{print "seq"NR"_"$0}' ${projdir}/preprocess/${i%.f*}_exp.sam | awk '{gsub(/256/,"0",$2); gsub(/272/,"16",$2); print}' | \
+				awk '!($3 ~ "\*")' | cat ${projdir}/preprocess/${i%.f*}_heading.sam - | awk '{gsub(/ /,"\t"); print}' > ${projdir}/preprocess/${i%.f*}_${ref1%.f*}.sam
+				rm ${projdir}/preprocess/${i%.f*}_exp.sam ${projdir}/preprocess/${i%.f*}_uniq.sam ${projdir}/preprocess/${i%.f*}_heading.sam
+			fi
 
-				if [[ "$altpos" == "true" ]]; then
-					awk '/@HD/ || /@SQ/{print}' ${projdir}/preprocess/${i%.f*}_redun.sam > ${projdir}/preprocess/${i%.f*}_heading.sam
-					grep -v '^@' ${projdir}/preprocess/${i%.f*}_del.sam | awk -F' ' 'BEGIN{OFS="\t"}{print $2}' | \
-					awk -F'\t' 'BEGIN{OFS="\t"} NR==FNR{a[$1]=$0;next} ($1) in a{print $0, a[$1]}' - ${projdir}/preprocess/${i%.f*}_redun.sam | awk 'NF{NF-=1};1' | awk '!($3 ~ "\*")' | \
-					awk '{gsub(/_se-/,"_se-\t",$1); gsub(/_pe-/,"_pe-\t",$1); print $0}' | awk '{$1=""}1' | awk 'BEGIN{FS=OFS="\t"} {gsub(/^[[:space:]]+|[[:space:]]+$/,"",$1)} 1' > ${projdir}/preprocess/${i%.f*}_uniq.sam
-					for j in $(LC_ALL=C; sort -n -k1,1 ${projdir}/preprocess/${i%.f*}_uniq.sam | awk '{print $1}' | uniq); do
-						awk -v n="^${j}" '$0~n{print $0}' ${projdir}/preprocess/${i%.f*}_uniq.sam | awk -v n="$j" '{for(i=0;i<n;i++) print}' >> ${projdir}/preprocess/${i%.f*}_exp.sam
-					done; wait
-					awk '{print "seq"NR"_"$0}' ${projdir}/preprocess/${i%.f*}_exp.sam | awk '{gsub(/256/,"0",$2);gsub(/272/,"16",$2); print}' | \
-					awk '!($3 ~ "\*")' | cat ${projdir}/preprocess/${i%.f*}_heading.sam - | awk '{gsub(/ /,"\t"); print}' > ${projdir}/preprocess/${i%.f*}_${ref1%.f*}.sam
-					rm ${projdir}/preprocess/${i%.f*}_exp.sam ${projdir}/preprocess/${i%.f*}_uniq.sam ${projdir}/preprocess/${i%.f*}_heading.sam ${projdir}/preprocess/${i%.f*}_del.sam
-				fi
+			if [[ "$altpos" == "true" ]]; then
+				awk '/@HD/ || /@SQ/{print}' ${projdir}/preprocess/${i%.f*}_redun.sam > ${projdir}/preprocess/${i%.f*}_heading.sam
+				grep -v '^@' ${projdir}/preprocess/${i%.f*}_del.sam | awk -F' ' 'BEGIN{OFS="\t"}{print $2}' | \
+				awk -F'\t' 'BEGIN{OFS="\t"} NR==FNR{a[$1]=$0;next} ($1) in a{print $0, a[$1]}' - ${projdir}/preprocess/${i%.f*}_redun.sam | awk 'NF{NF-=1};1' | awk '!($3 ~ "\*")' | \
+				awk '{gsub(/_se-/,"_se-\t",$1); gsub(/_pe-/,"_pe-\t",$1); print $0}' | awk '{$1=""}1' | awk 'BEGIN{FS=OFS="\t"} {gsub(/^[[:space:]]+|[[:space:]]+$/,"",$1)} 1' > ${projdir}/preprocess/${i%.f*}_uniq.sam
+				for j in $(LC_ALL=C; sort -n -k1,1 ${projdir}/preprocess/${i%.f*}_uniq.sam | awk '{print $1}' | uniq); do
+					awk -v n="^${j}" '$0~n{print $0}' ${projdir}/preprocess/${i%.f*}_uniq.sam | awk -v n="$j" '{for(i=0;i<n;i++) print}' >> ${projdir}/preprocess/${i%.f*}_exp.sam
+				done; wait
+				awk '{print "seq"NR"_"$0}' ${projdir}/preprocess/${i%.f*}_exp.sam | awk '{gsub(/256/,"0",$2);gsub(/272/,"16",$2); print}' | \
+				awk '!($3 ~ "\*")' | cat ${projdir}/preprocess/${i%.f*}_heading.sam - | awk '{gsub(/ /,"\t"); print}' > ${projdir}/preprocess/${i%.f*}_${ref1%.f*}.sam
+				rm ${projdir}/preprocess/${i%.f*}_exp.sam ${projdir}/preprocess/${i%.f*}_uniq.sam ${projdir}/preprocess/${i%.f*}_heading.sam ${projdir}/preprocess/${i%.f*}_del.sam
+			fi
 
-				j="${i%.f*}_${ref1%.f*}.sam"
-				cd ${projdir}/preprocess
-				$java $Xmx2 -XX:ParallelGCThreads=$gthreads -jar $picard SortSam I=$j O=${j%.sam*}.bam  SORT_ORDER=coordinate && \
-				$java $Xmx2 -XX:ParallelGCThreads=$gthreads -jar $picard BuildBamIndex INPUT=${j%.sam*}.bam && \
-				$java $Xmx2 -XX:ParallelGCThreads=$gthreads -jar $picard AddOrReplaceReadGroups I=${j%.sam*}.bam O=${j%.sam*}_precall.hold.bam RGLB=${i%.f*} RGPL=illumina VALIDATION_STRINGENCY=LENIENT RGPU=run RGSM=${i%.f*} && \
-				$samtools index ${j%.sam*}_precall.hold.bam
-				ls ${i%.f*}_* | grep -v precall | xargs rm && \
-				mv ${j%.sam*}_precall.hold.bam ${j%.sam*}_precall.bam && \
-				mv ${j%.sam*}_precall.hold.bam.bai ${j%.sam*}_precall.bam.bai
+			j="${i%.f*}_${ref1%.f*}.sam"
+			cd ${projdir}/preprocess
+			$java $Xmx2 -XX:ParallelGCThreads=$gthreads -jar $picard SortSam I=$j O=${j%.sam*}.bam  SORT_ORDER=coordinate && \
+			$java $Xmx2 -XX:ParallelGCThreads=$gthreads -jar $picard BuildBamIndex INPUT=${j%.sam*}.bam && \
+			$java $Xmx2 -XX:ParallelGCThreads=$gthreads -jar $picard AddOrReplaceReadGroups I=${j%.sam*}.bam O=${j%.sam*}_precall.hold.bam RGLB=${i%.f*} RGPL=illumina VALIDATION_STRINGENCY=LENIENT RGPU=run RGSM=${i%.f*} && \
+			$samtools index ${j%.sam*}_precall.hold.bam
+			ls ${i%.f*}_* | grep -v precall | xargs rm && \
+			mv ${j%.sam*}_precall.hold.bam ${j%.sam*}_precall.bam && \
+			mv ${j%.sam*}_precall.hold.bam.bai ${j%.sam*}_precall.bam.bai
 
-
-				cd ${projdir}/samples
-			done
+			cd ${projdir}/samples
 		fi ) &
 		if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
 			wait
 		fi
 	done
+
 	wait && touch ${projdir}/alignment_done.txt && touch ${projdir}/precall_done.txt
 
 	if [[ ! -f "${projdir}/align3_${samples_list}" ]]; then touch "${projdir}/align3_${samples_list}"; fi
