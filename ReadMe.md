@@ -91,11 +91,12 @@ Using a text editor, save a file containing any of the following variables as 'c
 
 |Variable      |Default       |Usage         |Input         |required/Optional|
 |:-------------|:-------------|:-------------|:-------------|:----------------|
-|threads|2|number of cores/processors|integer|Optional|
+|threads|na|number of cores/processors|integer|Optional|
 |walkaway|true|run in walk-away or walk-through mode|true or false|Optional|
 |cluster|false|run on compute cluster node (default: slurm) or workstation|true or false|Optional|
 |nodes|1|number of nodes|integer|Optional|
 |samples_alt_dir|false|links samples in separate directory to project directory|true or false|Optional|
+
 
 
 **Variant calling parameters**
@@ -113,8 +114,6 @@ Using a text editor, save a file containing any of the following variables as 'c
 |ploidy_ref4|na|ploid level for subgenome 1|integer|Required|
 
 
-
-**Note: na indicates that variable is user-defined or hard-coded/computed intuitively, as well as a function of ploidy.*
 
 **Variant filtering parameters**
 
@@ -135,23 +134,23 @@ Using a text editor, save a file containing any of the following variables as 'c
 |snpformats|false|variant data set with alleles formatted as base (A,C,G,T) and/or degenerate notation|true or false|Optional|
 
 
+
 **Advanced parameters**
 |Variable      |Default       |Usage         |Input         |required/Optional|
 |:-------------|:-------------|:-------------|:-------------|:----------------|
 |maxHaplotype|128| maximum number of haplotypes per haploid genome across population(increase for polyploids/high heterozygosity/high background mutational load)|integer|Optional|
 |mhap_freq|1| exclude rare haplotypes (e.g. background mutation typical of clonally propagated species or base calling error)|integer|Optional|
-|altpos|false| output variants derived from multi-mapped reads at each matched genomic position|string|Optional|
 |softclip|true| do not use soft Clipped bases (recommended)|string|Optional|
 |ncohorts|1| number of cohorts during joint calling|integer|Optional|
 |keep_gVCF|false| keep sample gVCF files, if additional samples will be included for future joint calling)|string|Optional|
 |maxindel|100| maximum insertion-deletion|integer|Optional|
 |PEdist|250| Initial average distance between paired reads|integer|Optional|
 
-
+**Note: na indicates that variable is user-defined or hard-coded/computed intuitively, as well as a function of ploidy.*
 
 Below is an example of a configuration file:
 
-**config**
+**config.sh**
 ```
 # General parameters
 ###################################################
@@ -197,7 +196,7 @@ ncohorts=1
 keep_gVCF=false
 ```
 
-Alternatively, a configuration file (outlined below) specifying only the pploidy level is sufficient to run GBSapp.
+Alternatively, a configuration file (outlined below) specifying only the ploidy level is sufficient to run GBSapp.
 
 **config**
 ```
@@ -205,9 +204,9 @@ Alternatively, a configuration file (outlined below) specifying only the pploidy
 ###################################################
 ploidy=2
 ```
-Since most if the parameters are hard-coded in an intuitive manner, by specifying only the ploidy levels, the pipelines determines the all the other parameters as stated below:<br />
-- threads: computes available number of cores (n) and n-2 correspond
-- defaults: walkaway=true, luster=false, reference genome ID is generated if a reference genome fasta files is provided, copy=1, paleopolyploid=false, genotype and sample missingness rate are 0.2, 2x ploidy uses minRD=6, maf=0.02, no samples are exclude and samples are considered to be unrelated.
+Since most of the parameters are hard-coded in an intuitive manner, by specifying only the ploidy levels, the pipelines determines the other parameters as stated below:<br />
+- threads: computes available number of cores (n) and and uses n-2 threads
+- defaults: walkaway=true, cluster=false, reference genome ID is generated if a reference genome fasta files is provided, copy=1, paleopolyploid=false, genotype and sample missingness rate are 0.2, 2x ploidy uses minRD=6, maf=0.02, no samples are exclude and samples are considered to be unrelated.
 
 ## Related Software
 - Next-Generation Sequence (NGS) data filtering
