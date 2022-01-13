@@ -501,7 +501,7 @@ main () {
 	wait && touch ${projdir}/compress_done.txt
 
 
-	for i in $(cat ${projdir}/${samples_list} ); do
+	for i in $(cat ${projdir}/${samples_list} ); do (
 		cd ${projdir}/refgenomes
 		if test ! -f ${projdir}/alignment_done.txt && test ! -f ${projdir}/preprocess/${i%.f*}_${ref1%.f*}_precall.bam.bai; then
 			while test ! -f ${projdir}/preprocess/${i%.f*}_redun.sam; do
