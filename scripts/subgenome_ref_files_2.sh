@@ -382,32 +382,33 @@ main () {
 			while test ! -f ${i%.f*}_uniq_R1.fasta; do
 				sleep $[ ( $RANDOM % 30 )  + 10 ]s
 			  if [[ $(file $i | awk -F' ' '{print $2}') == gzip ]]; then
-					$gunzip -c $i | awk 'NR%2==0' | awk 'NR%2' > ${i%.f*}_uniq.txt 2> /dev/null
+					$gunzip -c $i | awk 'NR%2==0' | awk 'NR%2' > ${i%.f*}_uniq.txt 2> /dev/null &&
 					wait
 					if test -f ${i%.f*}_R2*; then
-						$gunzip -c ${i%.f*}_R2* | awk 'NR%2==0' | awk 'NR%2' > ${i%.f*}_R2_uniq.txt 2> /dev/null
+						$gunzip -c ${i%.f*}_R2* | awk 'NR%2==0' | awk 'NR%2' > ${i%.f*}_R2_uniq.txt 2> /dev/null &&
 						wait
 					fi
 					if test -f ${i%.f*}.R2*;
-						then $gunzip -c ${i%.f*}.R2* | awk 'NR%2==0' | awk 'NR%2' > ${i%.f*}_R2_uniq.txt 2> /dev/null
+						then $gunzip -c ${i%.f*}.R2* | awk 'NR%2==0' | awk 'NR%2' > ${i%.f*}_R2_uniq.txt 2> /dev/null &&
 						wait
 					fi
 			  else
-					awk 'NR%2==0' $i | awk 'NR%2' > ${i%.f*}_uniq.txt 2> /dev/null
+					awk 'NR%2==0' $i | awk 'NR%2' > ${i%.f*}_uniq.txt 2> /dev/null &&
 					wait
 					if test -f ${i%.f*}_R2*; then
-						awk 'NR%2==0' ${i%.f*}_R2* | awk 'NR%2' > ${i%.f*}_R2_uniq.txt 2> /dev/null
+						awk 'NR%2==0' ${i%.f*}_R2* | awk 'NR%2' > ${i%.f*}_R2_uniq.txt 2> /dev/null &&
 						wait
 					fi
 					if test -f ${i%.f*}.R2*; then
-						awk 'NR%2==0' ${i%.f*}.R2* | awk 'NR%2' > ${i%.f*}_R2_uniq.txt 2> /dev/null
+						awk 'NR%2==0' ${i%.f*}.R2* | awk 'NR%2' > ${i%.f*}_R2_uniq.txt 2> /dev/null &&
 						wait
 					fi
 			  fi
 			  if test -f "${i%.f*}_R2_uniq.txt"; then
 				:
 			  else
-				touch "${i%.f*}_R2_uniq.txt"
+				touch "${i%.f*}_R2_uniq.txt" &&
+				wait
 			  fi
 				wait
 
@@ -418,9 +419,10 @@ main () {
 			  awk 'NF==3 {print ">seq"NR"_pe-"$0}' ${i%.f*}_rdrefseq.txt | awk '{print $1"\t"$3}' > ${i%.f*}_uniq_R2.fasta 2> /dev/null &&
 			  awk 'NF==3 {print ">seq"NR"_pe-"$0}' ${i%.f*}_rdrefseq.txt | awk '{print $1"\t"$2}' | cat - ${i%.f*}_rdrefseq_se.txt > ${i%.f*}_uniq_R1.hold.fasta 2> /dev/null &&
 				cat ${i%.f*}_uniq_R1.hold.fasta > ${projdir}/alignment_summaries/background_mutation_test/${i%.f*}_pop_haps.fasta 2> /dev/null &&
-				rm ${i%.f*}*.txt 2> /dev/null
-				find . -size 0 -delete 2> /dev/null
-				mv ${i%.f*}_uniq_R1.hold.fasta ${i%.f*}_uniq_R1.fasta 2> /dev/null
+				rm ${i%.f*}*.txt 2> /dev/null &&
+				find . -size 0 -delete 2> /dev/null &&
+				mv ${i%.f*}_uniq_R1.hold.fasta ${i%.f*}_uniq_R1.fasta 2> /dev/null &&
+				wait
 			done
 		fi ) &
 		if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
@@ -432,7 +434,8 @@ main () {
 	if [[ "$(wc -l ${projdir}/alignment_summaries/total_read_count.txt | awk '{print $1}')" -le 1 ]]; then
 		find ${projdir}/alignment_summaries/*_total_read_count.txt | xargs cat > ${projdir}/alignment_summaries/total_read_count.hold.txt &&
 		cat ${projdir}/alignment_summaries/total_read_count.hold.txt >> ${projdir}/alignment_summaries/total_read_count.txt &&
-		rm ${projdir}/alignment_summaries/*_total_read_count.txt ${projdir}/alignment_summaries/total_read_count.hold.txt
+		rm ${projdir}/alignment_summaries/*_total_read_count.txt ${projdir}/alignment_summaries/total_read_count.hold.txt &&
+		wait
 	fi
 	wait
 
@@ -451,7 +454,8 @@ main () {
 			rm ${projdir}/alignment_summaries/background_mutation_test/pop_haps.txt ${projdir}/alignment_summaries/background_mutation_test/pop_haps_freq.txt &&
 			awk -v phap=$mhap_freq '($3 == phap)' ${projdir}/alignment_summaries/background_mutation_test/pop_haps_freqall.txt > ${projdir}/alignment_summaries/background_mutation_test/pop_haps_freqFail.txt &&
 			awk -v phap=$mhap_freq '($3 > phap)' ${projdir}/alignment_summaries/background_mutation_test/pop_haps_freqall.txt > ${projdir}/alignment_summaries/background_mutation_test/pop_haps_freqPass.txt &&
-			rm ${projdir}/alignment_summaries/background_mutation_test/pop_haps_freqall.txt
+			rm ${projdir}/alignment_summaries/background_mutation_test/pop_haps_freqall.txt &&
+			wait
 		fi
 	fi
 	wait
@@ -464,10 +468,10 @@ main () {
 		if test ! -f ${projdir}/hapfilter_done.txt && test ! -f "${projdir}/preprocess/${i%.f*}_redun.sam" && test ! -f "${projdir}/preprocess/${i%.f*}_${ref1%.f*}_precall.bam.bai"; then
 			while test ! -f ${projdir}/alignment_summaries/${i%.f*}_pop_mutation_load.txt; do
 				sleep $[ ( $RANDOM % 30 )  + 10 ]s
-				export nempty=$( wc -l ${i%.f*}_uniq_R2.fasta &> /dev/null | awk '{print $1}' )
+				export nempty=$( wc -l ${i%.f*}_uniq_R2.fasta &> /dev/null | awk '{print $1}' ) &&
 				cd ${projdir}/refgenomes/
-				p_hap=$(awk '{print $1}' ${projdir}/alignment_summaries/background_mutation_test/pop_haps_freqPass.txt | awk -F'\t' 'BEGIN{OFS="\t"} NR==FNR{a[$1]=$0;next} ($1) in a{print $0, a[$1]}' - ${projdir}/samples/${i%.f*}_uniq_R1.fasta | wc -l)
-				r_hap=$(awk '{print $1}' ${projdir}/alignment_summaries/background_mutation_test/pop_haps_freqFail.txt | awk -F'\t' 'BEGIN{OFS="\t"} NR==FNR{a[$1]=$0;next} ($1) in a{print $0, a[$1]}' - ${projdir}/samples/${i%.f*}_uniq_R1.fasta | wc -l)
+				p_hap=$(awk '{print $1}' ${projdir}/alignment_summaries/background_mutation_test/pop_haps_freqPass.txt | awk -F'\t' 'BEGIN{OFS="\t"} NR==FNR{a[$1]=$0;next} ($1) in a{print $0, a[$1]}' - ${projdir}/samples/${i%.f*}_uniq_R1.fasta | wc -l) &&
+				r_hap=$(awk '{print $1}' ${projdir}/alignment_summaries/background_mutation_test/pop_haps_freqFail.txt | awk -F'\t' 'BEGIN{OFS="\t"} NR==FNR{a[$1]=$0;next} ($1) in a{print $0, a[$1]}' - ${projdir}/samples/${i%.f*}_uniq_R1.fasta | wc -l) &&
 
 				if [[ "$nempty" -gt 0 ]]; then
 					awk '{print $1}' ${projdir}/alignment_summaries/background_mutation_test/pop_haps_freqPass.txt | \
@@ -478,17 +482,17 @@ main () {
 					rm ${projdir}/samples/${i%.f*}_uniq_R1_singleton.txt &&
 					awk '{print $1}' ${projdir}/alignment_summaries/background_mutation_test/pop_haps_freqPass.txt | \
 					awk -F'\t' 'BEGIN{OFS="\t"} NR==FNR{a[$1]=$0;next} ($1) in a{print $0, a[$1]}' - ${projdir}/samples/${i%.f*}_uniq_R2.fasta | awk 'NF{NF-=1};1' | awk '{gsub(/>/,"@"); print}' | \
-					awk '{print $1"\t"$2"\t"$2}' | awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$3); print}' | awk '{print $1"/2\n"$2"\n+\n"$3}' | gzip  > ${projdir}/samples/${i%.f*}_uniq_R2.fq.gz
+					awk '{print $1"\t"$2"\t"$2}' | awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$3); print}' | awk '{print $1"/2\n"$2"\n+\n"$3}' | gzip  > ${projdir}/samples/${i%.f*}_uniq_R2.fq.gz &&
 					wait
 				else
 					awk '{print $1}' ${projdir}/alignment_summaries/background_mutation_test/pop_haps_freqPass.txt | \
 					awk -F'\t' 'BEGIN{OFS="\t"} NR==FNR{a[$1]=$0;next} ($1) in a{print $0, a[$1]}' - ${projdir}/samples/${i%.f*}_uniq_R1.fasta | awk 'NF{NF-=1};1' | awk '{gsub(/>/,"@"); print}' | \
-					awk '{print $1"\t"$2"\t"$2}' | awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$3); print}' | awk '{print $1"\n"$2"\n+\n"$3}' | gzip  > ${projdir}/samples/${i%.f*}_uniq_R1.fq.gz
+					awk '{print $1"\t"$2"\t"$2}' | awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$3); print}' | awk '{print $1"\n"$2"\n+\n"$3}' | gzip  > ${projdir}/samples/${i%.f*}_uniq_R1.fq.gz &&
 					wait
 				fi
 
-				thap=$(awk -v var1=$r_hap -v var2=$p_hap 'BEGIN { print  ( var1 + var2 ) }' )
-				mload=$(awk -v var1=$r_hap -v var2=$thap 'BEGIN { print  ( var1 / var2 ) }' )
+				thap=$(awk -v var1=$r_hap -v var2=$p_hap 'BEGIN { print  ( var1 + var2 ) }' ) &&
+				mload=$(awk -v var1=$r_hap -v var2=$thap 'BEGIN { print  ( var1 / var2 ) }' ) &&
 				printf "${i%.f*}\t${r_hap}\t${p_hap}\t${thap}\t${mload}\n" > ${projdir}/alignment_summaries/${i%.f*}_pop_mutation_load.hold.txt &&
 				mv ${projdir}/alignment_summaries/${i%.f*}_pop_mutation_load.hold.txt ${projdir}/alignment_summaries/${i%.f*}_pop_mutation_load.txt &&
 				cd ${projdir}/samples
@@ -505,26 +509,27 @@ main () {
 		if test ! -f ${projdir}/alignment_done.txt && test ! -f "${projdir}/preprocess/${i%.f*}_${ref1%.f*}_precall.bam.bai"; then
 			while test ! -f "${projdir}/preprocess/${i%.f*}_redun.sam"; do
 				if [[ "$nempty" -gt 0 ]]; then
-					$java -ea $Xmx2 -cp ${GBSapp_dir}/tools/bbmap/current/ align2.BBMap fast=t threads=$threads averagepairdist=$PEdist deterministic=t maxindel=$maxindel local=t keepnames=t maxsites=12 saa=f secondary=t ambiguous=all ref=panref.fasta in1=${projdir}/samples/${i%.f*}_uniq_R1.fq.gz in2=${projdir}/samples/${i%.f*}_uniq_R2.fq.gz out=${projdir}/preprocess/${i%.f*}_redun_R1R2.sam &&
-					$java -ea $Xmx2 -cp ${GBSapp_dir}/tools/bbmap/current/ align2.BBMap fast=t threads=$threads averagepairdist=$PEdist deterministic=t maxindel=$maxindel local=t keepnames=t maxsites=12 saa=f secondary=t ambiguous=all ref=panref.fasta in1=${projdir}/samples/${i%.f*}_uniq_singleton.fq.gz out=${projdir}/preprocess/${i%.f*}_redun_singleton.sam &&
+					$java -ea $Xmxg -cp ${GBSapp_dir}/tools/bbmap/current/ align2.BBMap fast=t threads=$gthreads averagepairdist=$PEdist deterministic=t maxindel=$maxindel local=t keepnames=t maxsites=12 saa=f secondary=t ambiguous=all ref=panref.fasta in1=${projdir}/samples/${i%.f*}_uniq_R1.fq.gz in2=${projdir}/samples/${i%.f*}_uniq_R2.fq.gz out=${projdir}/preprocess/${i%.f*}_redun_R1R2.sam &&
+					$java -ea $Xmxg -cp ${GBSapp_dir}/tools/bbmap/current/ align2.BBMap fast=t threads=$gthreads averagepairdist=$PEdist deterministic=t maxindel=$maxindel local=t keepnames=t maxsites=12 saa=f secondary=t ambiguous=all ref=panref.fasta in1=${projdir}/samples/${i%.f*}_uniq_singleton.fq.gz out=${projdir}/preprocess/${i%.f*}_redun_singleton.sam &&
 					grep -v '^@' ${projdir}/preprocess/${i%.f*}_redun_singleton.sam | cat ${projdir}/preprocess/${i%.f*}_redun_R1R2.sam - > ${projdir}/preprocess/${i%.f*}_redun.hold.sam &&
-					rm ${projdir}/preprocess/${i%.f*}_redun_singleton.sam ${projdir}/preprocess/${i%.f*}_redun_R1R2.sam
+					rm ${projdir}/preprocess/${i%.f*}_redun_singleton.sam ${projdir}/preprocess/${i%.f*}_redun_R1R2.sam &&
 					wait
 				else
-					$java -ea $Xmx2 -cp ${GBSapp_dir}/tools/bbmap/current/ align2.BBMap fast=t threads=$threads maxindel=$maxindel local=t keepnames=t maxsites=12 saa=f secondary=t ambiguous=all ref=panref.fasta in1=${projdir}/samples/${i%.f*}_uniq_R1.fq.gz out=${projdir}/preprocess/${i%.f*}_redun.hold.sam
+					$java -ea $Xmxg -cp ${GBSapp_dir}/tools/bbmap/current/ align2.BBMap fast=t threads=$gthreads maxindel=$maxindel local=t keepnames=t maxsites=12 saa=f secondary=t ambiguous=all ref=panref.fasta in1=${projdir}/samples/${i%.f*}_uniq_R1.fq.gz out=${projdir}/preprocess/${i%.f*}_redun.hold.sam &&
 					wait
 				fi
 				wait
-				rm ${projdir}/samples/${i%.f*}_uniq_*.fq.gz && mv ${projdir}/preprocess/${i%.f*}_redun.hold.sam ${projdir}/preprocess/${i%.f*}_redun.sam
+				rm ${projdir}/samples/${i%.f*}_uniq_*.fq.gz && mv ${projdir}/preprocess/${i%.f*}_redun.hold.sam ${projdir}/preprocess/${i%.f*}_redun.sam &&
 				wait
 				if [[ "$nempty" -gt 0 ]]; then
-					rm ${projdir}/samples/${i%.f*}_uniq_R1.fasta ${projdir}/samples/${i%.f*}_uniq_R2.fasta
+					rm ${projdir}/samples/${i%.f*}_uniq_R1.fasta ${projdir}/samples/${i%.f*}_uniq_R2.fasta &&
 					wait
 				else
-					rm ${projdir}/samples/${i%.f*}_uniq_R1.fasta
+					rm ${projdir}/samples/${i%.f*}_uniq_R1.fasta &&
 					wait
 				fi
-				wait && touch ${projdir}/compress_done.txt
+				wait && touch ${projdir}/compress_done.txt &&
+				wait
 			done
 			wait
 		fi
