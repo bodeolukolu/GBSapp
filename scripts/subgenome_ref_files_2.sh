@@ -1,4 +1,4 @@
-pop_mutation_load.txt
+
 if [ -z "$threads" ]; then
 	threads=$(nproc --all)
 	if [[ "$threads" -ge 4 ]]; then
@@ -432,7 +432,7 @@ main () {
 	wait
 
 	if [[ "$(wc -l ${projdir}/alignment_summaries/total_read_count.txt | awk '{print $1}')" -le 1 ]]; then
-		find ${projdir}/alignment_summaries/*_total_read_count.txt | xargs cat > ${projdir}/alignment_summaries/total_read_count.hold.txt &&
+		find -type f -wholename ${projdir}/alignment_summaries/*_total_read_count.txt | xargs cat > ${projdir}/alignment_summaries/total_read_count.hold.txt &&
 		cat ${projdir}/alignment_summaries/total_read_count.hold.txt >> ${projdir}/alignment_summaries/total_read_count.txt &&
 		rm ${projdir}/alignment_summaries/*_total_read_count.txt ${projdir}/alignment_summaries/total_read_count.hold.txt &&
 		wait
@@ -444,7 +444,7 @@ main () {
 		align=$(ls ${projdir}/align1_samples_list_node_* | wc -l)
 		while [[ "$align" -lt $nodes ]]; do sleep 300; align=$(ls ${projdir}/align1_samples_list_node_* | wc -l); done
 		if [[ $align == $nodes ]] && test ! -f ${projdir}/alignment_summaries/background_mutation_test/pop_haps_freqPass.txt; then
-			find ${projdir}/alignment_summaries/background_mutation_test/*_pop_haps.fasta | xargs cat > ${projdir}/alignment_summaries/background_mutation_test/pop_haps.txt &&
+			find -type f -wholename ${projdir}/alignment_summaries/background_mutation_test/*_pop_haps.fasta | xargs cat > ${projdir}/alignment_summaries/background_mutation_test/pop_haps.txt &&
 			rm ${projdir}/alignment_summaries/background_mutation_test/*_pop_haps.fasta ${projdir}/align1_${samples_list} &&
 			awk -F "\t" 'BEGIN { OFS=FS }; { print $1, substr($2, 1, 64); }' ${projdir}/alignment_summaries/background_mutation_test/pop_haps.txt  | \
 			awk '{a[$2]++} END{for(s in a){print a[s]" "s}}' | awk -F'\t' '{gsub(/ /,"\t"); print}' > ${projdir}/alignment_summaries/background_mutation_test/pop_haps_freq.txt &&
@@ -546,7 +546,7 @@ main () {
 		align=$(ls ${projdir}/align2_samples_list_node_* | wc -l)
 		while [[ "$align" -lt $nodes ]]; do sleep 300; align=$(ls ${projdir}/align2_samples_list_node_* | wc -l); done
 		if [[ $align == $nodes &&  "$(wc -l ${projdir}/alignment_summaries/pop_mutation_load.txt | awk '{print $1}')" -eq 1 ]]; then
-			find ${projdir}/alignment_summaries/*_pop_mutation_load.txt | xargs cat > ${projdir}/alignment_summaries/pop_mutation_load.hold.txt &&
+			find -type f -wholename ${projdir}/alignment_summaries/*_pop_mutation_load.txt | xargs cat > ${projdir}/alignment_summaries/pop_mutation_load.hold.txt &&
 			cat ${projdir}/alignment_summaries/pop_mutation_load.hold.txt >> ${projdir}/alignment_summaries/pop_mutation_load.txt &&
 			rm ${projdir}/alignment_summaries/pop_mutation_load.hold.txt &&
 			rm ${projdir}/alignment_summaries/*_pop_mutation_load.txt ${projdir}/align2_${samples_list}
@@ -1077,7 +1077,6 @@ main () {
 						$GATK --java-options "$Xmxg -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads"  GenotypeGVCFs -R ${projdir}/refgenomes/panref.fasta -L $selchr -V gendb://${pop}_${ref2%.f*}_${ploidy_ref2}x_"${selchr}"_raw -O "${pop}_${ref2%.f*}_${ploidy_ref2}x_${selchr}_raw.hold.vcf.gz" && \
 						rm -r ${pop}_${ref2%.f*}_${ploidy_ref2}x_"${selchr}"_raw && \
 						mv "${pop}_${ref2%.f*}_${ploidy_ref2}x_${selchr}_raw.hold.vcf.gz" "${pop}_${ref2%.f*}_${ploidy_ref2}x_${selchr}_raw.vcf.gz"
-					done
 					done
 					if LC_ALL=C gzip -l ${pop}_${ref2%.f*}_${ploidy_ref2}x_"${selchr}"_raw.vcf.gz | awk 'NR==2 {exit($2!=0)}'; then
 						:
