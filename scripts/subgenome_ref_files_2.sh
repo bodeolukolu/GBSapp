@@ -436,6 +436,7 @@ main () {
 		find -type f -name "*_total_read_count.txt" | xargs cat > total_read_count.hold.txt &&
 		cat total_read_count.hold.txt >> total_read_count.txt &&
 		rm ${projdir}/alignment_summaries/*_total_read_count.txt ${projdir}/alignment_summaries/total_read_count.hold.txt &&
+		wait
 	fi
 	wait
 
