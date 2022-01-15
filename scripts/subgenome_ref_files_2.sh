@@ -432,30 +432,32 @@ main () {
 	wait
 
 	if [[ "$(wc -l ${projdir}/alignment_summaries/total_read_count.txt | awk '{print $1}')" -le 1 ]]; then
-		find -type f -wholename "${projdir}/alignment_summaries/*_total_read_count.txt" | xargs cat > ${projdir}/alignment_summaries/total_read_count.hold.txt &&
-		cat ${projdir}/alignment_summaries/total_read_count.hold.txt >> ${projdir}/alignment_summaries/total_read_count.txt &&
+		cd ${projdir}/alignment_summaries/
+		find -type f -name "*_total_read_count.txt" | xargs cat > total_read_count.hold.txt &&
+		cat total_read_count.hold.txt >> total_read_count.txt &&
 		rm ${projdir}/alignment_summaries/*_total_read_count.txt ${projdir}/alignment_summaries/total_read_count.hold.txt &&
-		wait
 	fi
 	wait
 
+
 	if [[ ! -f "${projdir}/align1_${samples_list}" ]]; then touch "${projdir}/align1_${samples_list}"; fi
-	if [[ "$samples_list" == "samples_list_node_1.txt" ]]; then
-		align=$(ls ${projdir}/align1_samples_list_node_* | wc -l)
-		while [[ "$align" -lt $nodes ]]; do sleep 300; align=$(ls ${projdir}/align1_samples_list_node_* | wc -l); done
-		if [[ $align == $nodes ]] && test ! -f ${projdir}/alignment_summaries/background_mutation_test/pop_haps_freqPass.txt; then
-			find -type f -wholename "${projdir}/alignment_summaries/background_mutation_test/*_pop_haps.fasta" | xargs cat > ${projdir}/alignment_summaries/background_mutation_test/pop_haps.txt &&
-			rm ${projdir}/alignment_summaries/background_mutation_test/*_pop_haps.fasta ${projdir}/align1_${samples_list} &&
-			awk -F "\t" 'BEGIN { OFS=FS }; { print $1, substr($2, 1, 64); }' ${projdir}/alignment_summaries/background_mutation_test/pop_haps.txt  | \
-			awk '{a[$2]++} END{for(s in a){print a[s]" "s}}' | awk -F'\t' '{gsub(/ /,"\t"); print}' > ${projdir}/alignment_summaries/background_mutation_test/pop_haps_freq.txt &&
-			awk -F "\t" 'BEGIN { OFS=FS }; { print $1, substr($2, 1, 64); }' ${projdir}/alignment_summaries/background_mutation_test/pop_haps.txt | \
-			awk -F'\t' 'BEGIN{OFS="\t"} NR==FNR{a[$2]=$0;next} ($2) in a{print $0, a[$2]}' ${projdir}/alignment_summaries/background_mutation_test/pop_haps_freq.txt - | \
-			awk '{print $1"\t"$2"\t"$3}' > ${projdir}/alignment_summaries/background_mutation_test/pop_haps_freqall.txt &&
-			rm ${projdir}/alignment_summaries/background_mutation_test/pop_haps.txt ${projdir}/alignment_summaries/background_mutation_test/pop_haps_freq.txt &&
-			awk -v phap=$mhap_freq '($3 == phap)' ${projdir}/alignment_summaries/background_mutation_test/pop_haps_freqall.txt > ${projdir}/alignment_summaries/background_mutation_test/pop_haps_freqFail.txt &&
-			awk -v phap=$mhap_freq '($3 > phap)' ${projdir}/alignment_summaries/background_mutation_test/pop_haps_freqall.txt > ${projdir}/alignment_summaries/background_mutation_test/pop_haps_freqPass.txt &&
-			rm ${projdir}/alignment_summaries/background_mutation_test/pop_haps_freqall.txt &&
-			wait
+		if [[ "$samples_list" == "samples_list_node_1.txt" ]]; then
+			align=$(ls ${projdir}/align1_samples_list_node_* | wc -l)
+			while [[ "$align" -lt $nodes ]]; do sleep 300; align=$(ls ${projdir}/align1_samples_list_node_* | wc -l); done
+			if [[ $align == $nodes ]] && test ! -f ${projdir}/alignment_summaries/background_mutation_test/pop_haps_freqPass.txt; then
+			cd ${projdir}/alignment_summaries/background_mutation_test/
+			find -type f -name "*_pop_haps.fasta" | xargs cat > pop_haps.txt &&
+			rm *_pop_haps.fasta ${projdir}/align1_${samples_list} &&
+			awk -F "\t" 'BEGIN { OFS=FS }; { print $1, substr($2, 1, 64); }' pop_haps.txt  | \
+			awk '{a[$2]++} END{for(s in a){print a[s]" "s}}' | awk -F'\t' '{gsub(/ /,"\t"); print}' > pop_haps_freq.txt &&
+			awk -F "\t" 'BEGIN { OFS=FS }; { print $1, substr($2, 1, 64); }' pop_haps.txt | \
+			awk -F'\t' 'BEGIN{OFS="\t"} NR==FNR{a[$2]=$0;next} ($2) in a{print $0, a[$2]}' pop_haps_freq.txt - | \
+			awk '{print $1"\t"$2"\t"$3}' > pop_haps_freqall.txt &&
+			rm pop_haps.txt pop_haps_freq.txt &&
+			awk -v phap=$mhap_freq '($3 == phap)' pop_haps_freqall.txt > pop_haps_freqFail.txt &&
+			awk -v phap=$mhap_freq '($3 > phap)' pop_haps_freqall.txt > pop_haps_freqPass.txt &&
+			rm pop_haps_freqall.txt &&
+			cd ../
 		fi
 	fi
 	wait
@@ -546,17 +548,18 @@ main () {
 		align=$(ls ${projdir}/align2_samples_list_node_* | wc -l)
 		while [[ "$align" -lt $nodes ]]; do sleep 300; align=$(ls ${projdir}/align2_samples_list_node_* | wc -l); done
 		if [[ $align == $nodes &&  "$(wc -l ${projdir}/alignment_summaries/pop_mutation_load.txt | awk '{print $1}')" -eq 1 ]]; then
-			find -type f -wholename "${projdir}/alignment_summaries/*_pop_mutation_load.txt" | xargs cat > ${projdir}/alignment_summaries/pop_mutation_load.hold.txt &&
-			cat ${projdir}/alignment_summaries/pop_mutation_load.hold.txt >> ${projdir}/alignment_summaries/pop_mutation_load.txt &&
-			rm ${projdir}/alignment_summaries/pop_mutation_load.hold.txt &&
-			rm ${projdir}/alignment_summaries/*_pop_mutation_load.txt ${projdir}/align2_${samples_list}
+			cd ${projdir}/alignment_summaries
+			find -type f -wholename "*_pop_mutation_load.txt" | xargs cat > pop_mutation_load.hold.txt &&
+			cat pop_mutation_load.hold.txt >> pop_mutation_load.txt &&
+			rm pop_mutation_load.hold.txt &&
+			rm *_pop_mutation_load.txt ${projdir}/align2_${samples_list}
 			wait
 		fi
 	fi
 
 	align2_end=$( wc -l ${projdir}/alignment_summaries/pop_mutation_load.txt | awk '{print $1}')
-	while [[ "$align2_end" -lt 2 ]]; do sleep 300; done
-	sleep 60
+	while [[ "$align2_end" -lt 2 ]]; do sleep 10; done
+	sleep 10
 	cd ${projdir}/samples
 
 
@@ -663,32 +666,33 @@ main () {
 		if [[ $align == $nodes ]] && test ! -f ${projdir}/alignment_summaries/refgenome_paralogs.txt; then
 			rm ${projdir}/align3_${samples_list}
 			cd ${projdir}/alignment_summaries
-			cat ${projdir}/alignment_summaries/*_summ.txt > ${projdir}/alignment_summaries/alignment_summaries_unique_reads.txt; rm -r ${projdir}/alignment_summaries/*_summ.txt
+			cat ${projdir}/alignment_summaries/*_summ.txt > ${projdir}/alignment_summaries/alignment_summaries_unique_reads.txt; rm -r ${projdir}/alignment_summaries/*_summ.txt &&
 			# Total number of reads per samples
 			awk '/###---/ || /QC-passed/{print}' ${projdir}/alignment_summaries/alignment_summaries_unique_reads.txt | cut -d\+ -f1 | tr -d '\n' | \
-			awk  'gsub(/---###/, "\t", $0)' | awk  'gsub(/###---/, "", $0)' | tr ' ' '\n' > ${projdir}/alignment_summaries/total_unique_reads.txt
+			awk  'gsub(/---###/, "\t", $0)' | awk  'gsub(/###---/, "", $0)' | tr ' ' '\n' > ${projdir}/alignment_summaries/total_unique_reads.txt &&
 			# Total number of mapped reads per samples
 			cat ${projdir}/alignment_summaries/alignment_summaries_unique_reads.txt | tr ' ' '_' | tr '(' '_' |  tr ')' '_' | awk '/###---/ || /0_mapped/{print}' |\
 			tr -d '\n' | awk 'gsub(/###---/, "\n", $0)' | awk 'gsub(/---###/, "\t", $0)' | awk 'gsub(/_/, "", $2)' | \
-			awk 'gsub("\\+0mapped", "\t", $0)' | tr ":" "\t" | cut -d\: -f1 | awk 'gsub(/ /, "\t")' > ${projdir}/alignment_summaries/total_unique_reads_mapped.txt
+			awk 'gsub("\\+0mapped", "\t", $0)' | tr ":" "\t" | cut -d\: -f1 | awk 'gsub(/ /, "\t")' > ${projdir}/alignment_summaries/total_unique_reads_mapped.txt &&
 			# Total number of mapped reads per samples
 			cat ${projdir}/alignment_summaries/alignment_summaries_unique_reads.txt | tr ' ' '_' | tr '(' '_' |  tr ')' '_' | awk '/###---/ || /properly_paired/{print}' |\
 			tr -d '\n' | awk 'gsub(/###---/, "\n", $0)' | awk 'gsub(/---###/, "\t", $0)' | awk 'gsub(/_/, "", $2)' | \
-			awk 'gsub("\\+0properlypaired", "\t", $0)' | tr ":" "\t" | cut -d\: -f1 | awk 'gsub(/ /, "\t")' > ${projdir}/alignment_summaries/total_unique_reads_paired.txt
-			echo -e "Samples\tTotal\tMapped\tPerc_Mapped\tPE_Mapped\t%_PE_Mapped" > ${projdir}/alignment_summaries/summary_precall.txt
+			awk 'gsub("\\+0properlypaired", "\t", $0)' | tr ":" "\t" | cut -d\: -f1 | awk 'gsub(/ /, "\t")' > ${projdir}/alignment_summaries/total_unique_reads_paired.txt &&
+			echo -e "Samples\tTotal\tMapped\tPerc_Mapped\tPE_Mapped\t%_PE_Mapped" > ${projdir}/alignment_summaries/summary_precall.txt &&
 			awk 'FNR==NR{a[$1]=$2 FS $3;next} ($1 in a) {print $0,a[$1]}' ${projdir}/alignment_summaries/total_unique_reads_mapped.txt  ${projdir}/alignment_summaries/total_unique_reads.txt  | \
 			awk 'FNR==NR{a[$1]=$2 FS $3;next} ($1 in a) {print $0,a[$1]}' ${projdir}/alignment_summaries/total_unique_reads_paired.txt - | awk '{gsub(/ /,"\t"); print $0}' | \
-			cat ${projdir}/alignment_summaries/summary_precall.txt - > ${projdir}/alignment_summaries/Tabulated_Alignment_Unique_Read_Summaries.txt
-			awk '{gsub(/\t/,","); print $0}' ${projdir}/alignment_summaries/Tabulated_Alignment_Unique_Read_Summaries.txt > ${projdir}/alignment_summaries/Tabulated_Alignment_Unique_Read_Summaries.csv
-			rm ${projdir}/alignment_summaries/total_unique_* ${projdir}/alignment_summaries/summary_precall.txt &> /dev/null
-			rm ${projdir}/samples/metrics.txt ${projdir}/preprocess/metrics.txt &> /dev/null
+			cat ${projdir}/alignment_summaries/summary_precall.txt - > ${projdir}/alignment_summaries/Tabulated_Alignment_Unique_Read_Summaries.txt &&
+			awk '{gsub(/\t/,","); print $0}' ${projdir}/alignment_summaries/Tabulated_Alignment_Unique_Read_Summaries.txt > ${projdir}/alignment_summaries/Tabulated_Alignment_Unique_Read_Summaries.csv &&
+			rm ${projdir}/alignment_summaries/total_unique_* ${projdir}/alignment_summaries/summary_precall.txt &> /dev/null &&
+			rm ${projdir}/samples/metrics.txt ${projdir}/preprocess/metrics.txt &> /dev/null &&
 
 			cd $projdir/alignment_summaries
 
 			touch refgenome_paralogs_${ref1%.f*}_${ref2%.f*}.txt
 			for par in refgenome_paralogs_*_${ref1%.f*}_${ref2%.f*}.txt; do (
-				cat refgenome_paralogs_${ref1%.f*}_${ref2%.f*}.txt $par | awk '!visited[$0]++' > temp_par.txt
-				mv temp_par.txt refgenome_paralogs_${ref1%.f*}_${ref2%.f*}.txt ) &
+				cat refgenome_paralogs_${ref1%.f*}_${ref2%.f*}.txt $par | awk '!visited[$0]++' > temp_par.txt &&
+				mv temp_par.txt refgenome_paralogs_${ref1%.f*}_${ref2%.f*}.txt &&
+				wait ) &
 				if [[ $(jobs -r -p | wc -l) -ge $N ]]; then
 				  wait
 				fi
@@ -697,13 +701,14 @@ main () {
 			rm refgenome_paralogs_*_${ref1%.f*}_${ref2%.f*}.txt
 			awk '{gsub(/~/,"\t"); print $0}' refgenome_paralogs_${ref1%.f*}_${ref2%.f*}.txt | awk 'BEGIN{OFS="\t"; }; {if($2==0) $1 = "multilocus"; else $1 = $1; }; 1' | \
 			awk 'BEGIN{OFS="\t"; };{print $3,$4,$1}' | awk '$3>max[$1,$2]{max[$1,$2]=$3; row[$1,$2]=$0} END{for (i in row) print row[i]}' | \
-			awk '{print $0,substr($2, 1, length($2)-2)}' | awk '$3>max[$1,$4]{max[$1,$4]=$3; row[$1,$4]=$0} END{for (i in row) print row[i]}' > temp.txt
-			awk '{print $1"\t"$2"\t"$3}' temp.txt | awk '!/CHROM/' | cat <(printf "CHROM\tPOS\tnloci\n") - > refgenome_paralogs_${ref1%.f*}_${ref2%.f*}.txt
+			awk '{print $0,substr($2, 1, length($2)-2)}' | awk '$3>max[$1,$4]{max[$1,$4]=$3; row[$1,$4]=$0} END{for (i in row) print row[i]}' > temp.txt &&
+			awk '{print $1"\t"$2"\t"$3}' temp.txt | awk '!/CHROM/' | cat <(printf "CHROM\tPOS\tnloci\n") - > refgenome_paralogs_${ref1%.f*}_${ref2%.f*}.txt &&
 
 			touch refgenome_paralogs_${ref1%.f*}.txt
 			for par in refgenome_paralogs_*_${ref1%.f*}.txt; do (
-				cat refgenome_paralogs_${ref1%.f*}.txt $par | awk '!visited[$0]++' > temp_par.txt
-				mv temp_par.txt refgenome_paralogs_${ref1%.f*}.txt ) &
+				cat refgenome_paralogs_${ref1%.f*}.txt $par | awk '!visited[$0]++' > temp_par.txt &&
+				mv temp_par.txt refgenome_paralogs_${ref1%.f*}.txt &&
+				wait ) &
 				if [[ $(jobs -r -p | wc -l) -ge $N ]]; then
 				  wait
 				fi
@@ -712,13 +717,14 @@ main () {
 			rm refgenome_paralogs_*_${ref1%.f*}.txt
 			awk '{gsub(/~/,"\t"); print $0}' refgenome_paralogs_${ref1%.f*}.txt | awk 'BEGIN{OFS="\t"; }; {if($2==0) $1 = "multilocus"; else $1 = $1; }; 1' | \
 			awk 'BEGIN{OFS="\t"; };{print $3,$4,$1}' | awk '$3>max[$1,$2]{max[$1,$2]=$3; row[$1,$2]=$0} END{for (i in row) print row[i]}' | \
-			awk '{print $0,substr($2, 1, length($2)-2)}' | awk '$3>max[$1,$4]{max[$1,$4]=$3; row[$1,$4]=$0} END{for (i in row) print row[i]}' > temp.txt
-			awk '{print $1"\t"$2"\t"$3}' temp.txt | awk '!/CHROM/' | cat <(printf "CHROM\tPOS\tnloci\n") - > refgenome_paralogs_${ref1%.f*}.txt
+			awk '{print $0,substr($2, 1, length($2)-2)}' | awk '$3>max[$1,$4]{max[$1,$4]=$3; row[$1,$4]=$0} END{for (i in row) print row[i]}' > temp.txt &&
+			awk '{print $1"\t"$2"\t"$3}' temp.txt | awk '!/CHROM/' | cat <(printf "CHROM\tPOS\tnloci\n") - > refgenome_paralogs_${ref1%.f*}.txt &&
 
 			touch refgenome_paralogs_${ref2%.f*}.txt
 			for par in refgenome_paralogs_*_${ref2%.f*}.txt; do (
-				cat refgenome_paralogs_${ref2%.f*}.txt $par | awk '!visited[$0]++' > temp_par.txt
-				mv temp_par.txt refgenome_paralogs_${ref2%.f*}.txt ) &
+				cat refgenome_paralogs_${ref2%.f*}.txt $par | awk '!visited[$0]++' > temp_par.txt &&
+				mv temp_par.txt refgenome_paralogs_${ref2%.f*}.txt &&
+				wait ) &
 				if [[ $(jobs -r -p | wc -l) -ge $N ]]; then
 				  wait
 				fi
@@ -727,10 +733,10 @@ main () {
 			rm refgenome_paralogs_*_${ref2%.f*}.txt
 			awk '{gsub(/~/,"\t"); print $0}' refgenome_paralogs_${ref2%.f*}.txt | awk 'BEGIN{OFS="\t"; }; {if($2==0) $1 = "multilocus"; else $1 = $1; }; 1' | \
 			awk 'BEGIN{OFS="\t"; };{print $3,$4,$1}' | awk '$3>max[$1,$2]{max[$1,$2]=$3; row[$1,$2]=$0} END{for (i in row) print row[i]}' | \
-			awk '{print $0,substr($2, 1, length($2)-2)}' | awk '$3>max[$1,$4]{max[$1,$4]=$3; row[$1,$4]=$0} END{for (i in row) print row[i]}' > temp.txt
-			awk '{print $1"\t"$2"\t"$3}' temp.txt | awk '!/CHROM/' | cat <(printf "CHROM\tPOS\tnloci\n") - > refgenome_paralogs_${ref2%.f*}.txt
+			awk '{print $0,substr($2, 1, length($2)-2)}' | awk '$3>max[$1,$4]{max[$1,$4]=$3; row[$1,$4]=$0} END{for (i in row) print row[i]}' > temp.txt &&
+			awk '{print $1"\t"$2"\t"$3}' temp.txt | awk '!/CHROM/' | cat <(printf "CHROM\tPOS\tnloci\n") - > refgenome_paralogs_${ref2%.f*}.txt &&
 
-			awk 'FNR==1 && NR!=1 { while (/^CHROM/) getline; }1 {print}' refgenome_paralogs_*.txt > refgenome_paralogs.txt
+			awk 'FNR==1 && NR!=1 { while (/^CHROM/) getline; }1 {print}' refgenome_paralogs_*.txt > refgenome_paralogs.txt &&
 			rm refgenome_paralogs_* temp.txt
 		fi
 	fi
@@ -783,8 +789,6 @@ main () {
 		fi
 	fi
 
-	while [[ ! -d ${projdir}/alignment_summaries/pop_mutation_load.txt ]]; do sleep 300; done
-	sleep 60
 
 ######################
 
