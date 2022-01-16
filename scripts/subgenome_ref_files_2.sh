@@ -925,7 +925,7 @@ main () {
 
 
 	if [[ ! -f "${projdir}/call1_${samples_list}" ]]; then touch "${projdir}/call1_${samples_list}"; fi
-	if [[ "$samples_list" == "samples_list_node_1.txt" ]] && test ! -f ${pop}_${ref1%.f*}_${ploidy_ref1}x_raw.vcf*; then
+	if [[ "$samples_list" == "samples_list_node_1.txt" ]] && test ! -f $${projdir}/snpcall/{pop}_${ref1%.f*}_${ploidy_ref1}x_raw.vcf*; then
 	  align=$(ls ${projdir}/call1_samples_list_node_* | wc -l)
 	  while [[ "$align" -lt $nodes ]]; do sleep 300; align=$(ls ${projdir}/call1_samples_list_node_* | wc -l); done
 	  if [[ $align == $nodes ]]; then
@@ -1040,7 +1040,7 @@ main () {
 
 
 	if [[ ! -f "${projdir}/call2_${samples_list}" ]]; then touch "${projdir}/call2_${samples_list}"; fi
-	if [[ "$samples_list" == "samples_list_node_1.txt" ]] && ${pop}_${ref2%.f*}_${ploidy_ref2}x_raw.vcf*; then
+	if [[ "$samples_list" == "samples_list_node_1.txt" ]] && test ! -f ${projdir}/snpcall/${pop}_${ref2%.f*}_${ploidy_ref2}x_raw.vcf*; then
 	  align=$(ls ${projdir}/call2_samples_list_node_* | wc -l)
 	  while [[ "$align" -lt $nodes ]]; do sleep 300; align=$(ls ${projdir}/call2_samples_list_node_* | wc -l); done
 	  if [[ $align == $nodes ]]; then
