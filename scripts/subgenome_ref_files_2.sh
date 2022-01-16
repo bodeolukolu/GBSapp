@@ -901,12 +901,9 @@ main () {
 
 			cd ${projdir}/preprocess
 			mv *_${ref1%.f*}_${ref2%.f*}_precall* ./processed/
-			touch ${projdir}/called12.txt
 		fi
 	fi
 	wait && touch ${projdir}/GVCF_1_2_done.txt
-	while [[ ! -f "${projdir}/called12.txt" ]]; do sleep 300; done
-	rm ${projdir}/called12.txt
 
 
 ######################
@@ -1020,12 +1017,9 @@ main () {
 
 			cd ${projdir}/preprocess
 			mv *_${ref1%.f*}_precall* ./processed/
-			touch called1.txt
 		fi
 	fi
 	wait && touch ${projdir}/GVCF_1_done.txt
-	while [[ ! -f "${projdir}/called1.txt" ]]; do sleep 300; done
-	rm called1.txt
 
 ######################
 
@@ -1138,12 +1132,9 @@ main () {
 
 			cd ${projdir}/preprocess
 			mv *_${ref2%.f*}_precall* ./processed/
-			touch called2.txt
 		fi
 	fi
 wait && touch ${projdir}/GVCF_2_done.txt
-while [[ ! -f "${projdir}/called2.txt" ]]; do sleep 300; done
-rm called2.txt
 
 ######################
 
