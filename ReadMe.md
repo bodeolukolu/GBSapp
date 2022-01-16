@@ -4,21 +4,24 @@
 </p>
 
 # Introduction
-GBSapp (v. 1.0) is an automated pipeline for variant calling and filtering (including microhaplotypes/multi-SNP markers). The pipeline intuitively integrates existing and novel best practices, some of which can be controlled by user-defined parameters. It optimizes memory and speed at various steps of the pipeline, for example, a novel approach performs compression and decompression of unique reads before and after read alignment, respectively. Summary reports and visualizations allow for QC at each step of the pipeline.
+GBSapp (v. 1.0) is an automated pipeline for variant calling and filtering. The pipeline intuitively integrates existing and novel best practices, some of which can be controlled by user-defined parameters. It optimizes memory and speed at various steps of the pipeline, for example, a novel approach performs compression and decompression of unique reads before and after read alignment, respectively. Summary reports and visualizations allow for QC at each step of the pipeline.
 
 For questions, bugs, and suggestions, please contact bolukolu@utk.edu.
 
 ## Features
 - Easy to learn, and use.
 - Fully-automated: “walk-away” and “walk-through” mode.
-- Dosage-based variant/haplotype calling and filtering.
+- Dosage-based variant calling and filtering.
 - Allows for use of haplotype-resolved reference genomes.
 - Variant calling implemented from 1x (haploid) to 8x (octoploid).
 - Splice-aware aligner allows for RNAseq data as input (recommended only for haploid or diploid genomes)
-- Can exclude reads that are rare haplotypes at population level (due to somaclonal variation or sequencing error).
-- Additional haplotype-based filtering (useful for targeted-genotyping).
+- Can exclude reads that are rare haplotypes at population level (due to sequencing error and somaclonal variation).
 - Annonates SNPs based on if reads map to single and multiple loci.
-- Generates microhaplotypes (multi-SNP) markers
+- Functions under-development:
+  - calling microhaplotypes/multilocus markers
+  - additional haplotype-based filtering (useful for targeted-genotyping)
+  - generating sequence context for variants
+  - estimating ploidy level and aneuploidy.
 
 
 
