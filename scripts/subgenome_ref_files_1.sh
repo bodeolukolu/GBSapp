@@ -313,10 +313,14 @@ main () {
 	mkdir -p snpcall
 	mkdir -p alignment_summaries
 	mkdir -p ./alignment_summaries/copy_number
-	touch ${projdir}/alignment_summaries/total_read_count.txt
+	if [[ ! -f ${projdir}/alignment_summaries/total_read_count.txt ]]; then
+		touch ${projdir}/alignment_summaries/total_read_count.txt
+	fi
 	printf 'sample\tnumber_of_reads\n' > ${projdir}/alignment_summaries/total_read_count.txt
 	mkdir -p ${projdir}/alignment_summaries/background_mutation_test
-	printf 'sample\trare_hap\tpop_hap\ttotal_hap\tmutation_load\n' > ${projdir}/alignment_summaries/pop_mutation_load.txt
+	if [[ ! -f ${projdir}/alignment_summaries/pop_mutation_load.txt ]]; then
+		printf 'sample\trare_hap\tpop_hap\ttotal_hap\tmutation_load\n' > ${projdir}/alignment_summaries/pop_mutation_load.txt
+	fi
 }
 if [[ "$samples_list" == "samples_list_node_1.txt" ]]; then
 	time main &>> ${projdir}/log.out
@@ -433,7 +437,7 @@ main () {
 		cd ${projdir}/alignment_summaries/
 		find -type f -name "*_total_read_count.txt" | xargs cat > total_read_count.hold.txt &&
 		cat total_read_count.hold.txt >> total_read_count.txt &&
-		rm ${projdir}/alignment_summaries/*_total_read_count.txt ${projdir}/alignment_summaries/total_read_count.hold.txt &&
+		rm ${projdir}/alignment_summaries/*_total_read_count.txt &&
 		wait
 	fi
 	wait
@@ -442,7 +446,7 @@ main () {
 	if [[ ! -f "${projdir}/align1_${samples_list}" ]]; then touch "${projdir}/align1_${samples_list}"; fi
 		if [[ "$samples_list" == "samples_list_node_1.txt" ]]; then
 			align=$(ls ${projdir}/align1_samples_list_node_* | wc -l)
-			while [[ "$align" -lt $nodes ]]; do sleep 300; align=$(ls ${projdir}/align1_samples_list_node_* | wc -l); done
+			while [[ "$align" -lt $nodes ]]; do sleep 30; align=$(ls ${projdir}/align1_samples_list_node_* | wc -l); done
 			if [[ $align == $nodes ]] && test ! -f ${projdir}/alignment_summaries/background_mutation_test/pop_haps_freqPass.txt; then
 			cd ${projdir}/alignment_summaries/background_mutation_test/
 			find -type f -name "*_pop_haps.fasta" | xargs cat > pop_haps.txt &&
@@ -461,7 +465,7 @@ main () {
 	fi
 	wait
 
-	while [[ ! -f "${projdir}/alignment_summaries/background_mutation_test/pop_haps_freqPass.txt" ]]; do sleep 300; done
+	while [[ ! -f "${projdir}/alignment_summaries/background_mutation_test/pop_haps_freqPass.txt" ]]; do sleep 30; done
 	sleep 5
 	cd ${projdir}/samples
 
@@ -508,7 +512,7 @@ main () {
 
 	for i in $(cat ${projdir}/${samples_list} ); do (
 		cd ${projdir}/refgenomes
-		if test ! -f ${projdir}/alignment_done.txt && test ! -f ${projdir}/preprocess/${i%.f*}_${ref1%.f*}_precall.bam.bai; then
+		if test ! -f ${projdir}/precall_done.txt && test ! -f ${projdir}/preprocess/${i%.f*}_${ref1%.f*}_precall.bam.bai; then
 			while test ! -f ${projdir}/preprocess/${i%.f*}_redun.sam; do
 				if [[ "$nempty" -gt 0 ]]; then
 					$java -ea $Xmxg -cp ${GBSapp_dir}/tools/bbmap/current/ align2.BBMap fast=t threads=$gthreads averagepairdist=$PEdist deterministic=t maxindel=$maxindel local=t keepnames=t maxsites=12 saa=f secondary=t ambiguous=all ref=$ref1 in1=${projdir}/samples/${i%.f*}_uniq_R1.fq.gz in2=${projdir}/samples/${i%.f*}_uniq_R2.fq.gz out=${projdir}/preprocess/${i%.f*}_redun_R1R2.sam &&
@@ -543,7 +547,7 @@ main () {
 	if [[ ! -f "${projdir}/align2_${samples_list}" ]]; then touch "${projdir}/align2_${samples_list}"; fi
 	if [[ "$samples_list" == "samples_list_node_1.txt" ]]; then
 		align=$(ls ${projdir}/align2_samples_list_node_* | wc -l)
-		while [[ "$align" -lt $nodes ]]; do sleep 300; align=$(ls ${projdir}/align2_samples_list_node_* | wc -l); done
+		while [[ "$align" -lt $nodes ]]; do sleep 30; align=$(ls ${projdir}/align2_samples_list_node_* | wc -l); done
 		if [[ $align == $nodes &&  "$(wc -l ${projdir}/alignment_summaries/pop_mutation_load.txt | awk '{print $1}')" -eq 1 ]]; then
 			cd ${projdir}/alignment_summaries
 			find -type f -wholename "*_pop_mutation_load.txt" | xargs cat > pop_mutation_load.hold.txt &&
@@ -561,7 +565,7 @@ main () {
 
 
 	for i in $(cat ${projdir}/${samples_list} ); do (
-		if test ! -f ${projdir}/precall_done.txt; then
+		if test ! -f ${projdir}/alignment_done.txt; then
 			printf '\n###---'${i%.f*}'---###\n' > ${projdir}/alignment_summaries/${i%.f*}_summ.txt && \
 			$samtools flagstat ${projdir}/preprocess/${i%.f*}_redun.sam >> ${projdir}/alignment_summaries/${i%.f*}_summ.txt && \
 			printf '########################################################################################################\n\n' >> ${projdir}/alignment_summaries/${i%.f*}_summ.txt &&
@@ -610,12 +614,12 @@ main () {
 		fi
 	done
 
-	wait && touch ${projdir}/alignment_done.txt && touch ${projdir}/precall_done.txt
+	wait && touch ${projdir}/precall_done.txt
 
 	if [[ ! -f "${projdir}/align3_${samples_list}" ]]; then touch "${projdir}/align3_${samples_list}"; fi
 	if [[ "$samples_list" == "samples_list_node_1.txt" ]]; then
 		align=$(ls ${projdir}/align3_samples_list_node_* | wc -l)
-		while [[ "$align" -lt $nodes ]]; do sleep 300; align=$(ls ${projdir}/align3_samples_list_node_* | wc -l); done
+		while [[ "$align" -lt $nodes ]]; do sleep 30; align=$(ls ${projdir}/align3_samples_list_node_* | wc -l); done
 		if [[ $align == $nodes ]] && test ! -f ${projdir}/alignment_summaries/refgenome_paralogs.txt; then
 			rm ${projdir}/align3_${samples_list}
 			cd ${projdir}/alignment_summaries
@@ -659,10 +663,12 @@ main () {
 			rm temp.txt
 		fi
 	fi
+
+	wait && touch ${projdir}/alignment_done.txt
 }
 cd $projdir
-while [[ ! -f "${projdir}/alignment_summaries/pop_mutation_load.txt" ]]; do sleep 300; done
-sleep 60
+while [[ ! -f "${projdir}/alignment_summaries/pop_mutation_load.txt" ]]; do sleep 30; done
+sleep 10
 if [ "$walkaway" == false ]; then
 	echo -e "${magenta}- Do you want to perform read alignments and alignment post-processing? ${white}\n"
 	read -p "- y(YES) or n(NO) " -t 36000 -n 1 -r
@@ -671,14 +677,22 @@ if [ "$walkaway" == false ]; then
 		echo -e "${magenta}- skipping read alignments and alignment post-processing ${white}\n"
 	else
 		printf '\n'
-		echo -e "${magenta}- performing read alignments and alignment post-processing ${white}\n"
-		time main &>> log.out
+		if test -f ${projdir}/alignment_done.txt; then
+			echo -e "${magenta}- read alignments and alignment post-processinga already performed ${white}\n"
+		else
+			echo -e "${magenta}- performing read alignments and alignment post-processing ${white}\n"
+			time main &>> log.out
+		fi
 	fi
 fi
 if [ "$walkaway" == true ]; then
 	if [ "$alignments" == 1 ]; then
-		echo -e "${magenta}- performing read alignments and alignment post-processing ${white}\n"
-		time main &>> log.out
+		if test -f ${projdir}/alignment_done.txt; then
+			echo -e "${magenta}- read alignments and alignment post-processinga already performed ${white}\n"
+		else
+			echo -e "${magenta}- performing read alignments and alignment post-processing ${white}\n"
+			time main &>> log.out
+		fi
 	else
 		echo -e "${magenta}- skipping read alignments and alignment post-processing ${white}\n"
 	fi
@@ -709,7 +723,7 @@ wait
 if [[ ! -f "${projdir}/call1_${samples_list}" ]]; then touch "${projdir}/call1_${samples_list}"; fi
 if [[ "$samples_list" == "samples_list_node_1.txt" ]] && test ! -f ${projdir}/snpcall/${pop}_${ploidy}x_raw.vcf*; then
 	align=$(ls ${projdir}/call1_samples_list_node_* | wc -l)
-	while [[ "$align" -lt $nodes ]]; do sleep 300; align=$(ls ${projdir}/call1_samples_list_node_* | wc -l); done
+	while [[ "$align" -lt $nodes ]]; do sleep 30; align=$(ls ${projdir}/call1_samples_list_node_* | wc -l); done
 	if [[ $align == $nodes ]]; then
 		rm ${projdir}/call1_${samples_list}
 		cd ${projdir}/snpcall
@@ -799,8 +813,8 @@ fi
 wait && touch ${projdir}/GVCF_done.txt
 }
 cd $projdir
-while [[ ! -f "$projdir/alignment_summaries/refgenome_paralogs.txt" ]]; do sleep 300; done
-sleep 60
+while [[ ! -f "$projdir/alignment_summaries/refgenome_paralogs.txt" ]]; do sleep 30; done
+sleep 10
 if [ "$walkaway" == false ]; then
 	echo -e "${magenta}- Do you want to perform SNP/variant calling? ${white}\n"
 	read -p "- y(YES) or n(NO) " -t 36000 -n 1 -r
