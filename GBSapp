@@ -275,7 +275,7 @@ else
 	gN=$(( threads / gthreads ))
 fi
 
-if test ! -f ${projdir}/compress_done.txt && test -f ${projdir}/alignment_summaries/total_read_count.txt; then
+if test ! -f ${projdir}/compress_done.txt && test -f ${projdir}/alignment_summaries/total_read_count.txt && test ! -f ${projdir}/Analysis_Complete; then
   echo -e "${magenta}- Job was interrupted during sample fastq file compression/indexing ${white}"
   echo -e "${magenta}- Do you want to continue from where this analytical step was interrupted? ${white}"
   read -p "- y(YES) or n(NO)? " -n 1 -r
@@ -291,7 +291,7 @@ fi
 if test ! -f ${projdir}/compress_done.txt; then
   :
 else
-  if test ! -f ${projdir}/alignment_done.txt; then
+  if test ! -f ${projdir}/alignment_done.txt && test ! -f ${projdir}/Analysis_Complete; then
     if [[ -d "${projdir}/preprocess" ]]; then
       echo -e "${magenta}- Job was interrupted during alignment post-processing ${white}"
       echo -e "${magenta}- Do you want to continue from where this analytical step was interrupted? ${white}"
@@ -311,7 +311,7 @@ fi
 if test ! -f ${projdir}/alignment_done.txt || test ! -f ${projdir}/compress_done.txt ; then
   :
 else
-  if test ! -f ${projdir}/precall_done.txt; then
+  if test ! -f ${projdir}/precall_done.txt && test ! -f ${projdir}/Analysis_Complete; then
     echo -e "${magenta}- Job was interrupted during sequence alignment ${white}"
     echo -e "${magenta}- Do you want to continue from where this analytical step was interrupted? ${white}"
     read -p "- y(YES) or n(NO)? " -n 1 -r
