@@ -2465,7 +2465,7 @@ raw_alleles()
 
 ####################################################################################################################
 copy_filter <- function(){
-  dir.create(unique_mapped)
+  dir.create("unique_mapped")
   snpid <- read.table(paste(pop,"_6x","_rd",rd+1,"_noSDdose.txt",sep=""), header=T, sep="\t",stringsAsFactors=FALSE, check.names = FALSE)
   snpid <- subset(snpid, select=c("CHROM","POS"))
   snpid$POS <- as.numeric(as.character(snpid$POS))

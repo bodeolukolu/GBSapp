@@ -569,7 +569,7 @@ raw_alleles <- function() {
 raw_alleles()
 ####################################################################################################################
 copy_filter <- function(){
-  dir.create(unique_mapped)
+  dir.create("unique_mapped")
   snpid <- read.table(paste(pop,"_6x","_rd",rd+1,"_maf",MinorAlleleFreq,"_dose.txt",sep=""), header=T, sep="\t",stringsAsFactors=FALSE, check.names = F)
   snpid <- subset(snpid, select=c("CHROM","POS"))
   snpid$POS <- as.numeric(as.character(snpid$POS))
