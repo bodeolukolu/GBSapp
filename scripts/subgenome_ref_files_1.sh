@@ -1744,7 +1744,7 @@ fi
 
 ######################################################################################################################################################
 cd ${projdir}
-rm compress_done.txt hapfilter_done.txt alignment_done.txt precall_done.txt GVCF_done.txt
+rm compress_done.txt hapfilter_done.txt alignment_done.txt precall_done.txt GVCF_done.txt  samples_list_node_*.txt
 touch Analysis_Complete
 wait
 echo -e "${magenta}- Run Complete. ${white}\n"
