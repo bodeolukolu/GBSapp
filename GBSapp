@@ -347,7 +347,7 @@ if test ! -f ${projdir}/Analysis_Complete; then
     echo -e "${magenta}- Do you want to continue from where this analytical step was interrupted? ${white}"
     read -p "- y(YES) or n(NO)? " -n 1 -r
     if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-      echo -e "${magenta}- GBSapp will delete all compressed/indexed, and will redo analysis ${white}"
+      echo -e "${magenta}- GBSapp will delete all compressed/indexed, and will redo analysis if read alignments and alignment post-processing is performed ${white}"
       rm ${projdir}/samples/*_uniq_R1.fasta ${projdir}/samples/*_uniq_R2.fasta 2> /dev/null
     else
       echo -e "${magenta}- GBSapp will continue analysis, while removing interrupted files ${white}"
@@ -363,7 +363,7 @@ if test ! -f ${projdir}/Analysis_Complete; then
         echo -e "${magenta}- Do you want to continue from where this analytical step was interrupted? ${white}"
         read -p "- y(YES) or n(NO)? " -n 1 -r
         if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-          echo -e "${magenta}- GBSapp will delete all .bam files ${white}"
+          echo -e "${magenta}- GBSapp will delete all .bam files and redo analysis if if read alignments and alignment post-processing is performed ${white}"
           rm ${projdir}/preprocess/*_redun.sam 2> /dev/null
         else
           echo -e "${magenta}- GBSapp will continue analysis, while removing interrupted files ${white}"
@@ -380,7 +380,7 @@ if test ! -f ${projdir}/Analysis_Complete; then
       echo -e "${magenta}- Do you want to continue from where this analytical step was interrupted? ${white}"
       read -p "- y(YES) or n(NO)? " -n 1 -r
       if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-        echo -e "${magenta}- GBSapp will delete all .sam files ${white}"
+        echo -e "${magenta}- GBSapp will delete all .sam files and redo analysis if read alignments and alignment post-processing is performed ${white}"
         rm ${projdir}/preprocess/*_redun.sam 2> /dev/null
       else
         echo -e "${magenta}- GBSapp will continue analysis, while removing interrupted files ${white}"
