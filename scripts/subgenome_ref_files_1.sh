@@ -524,13 +524,13 @@ main () {
 					$java -ea $Xmxg -cp ${GBSapp_dir}/tools/bbmap/current/ align2.BBMap fast=t threads=$gthreads maxindel=$maxindel local=t keepnames=t maxsites=12 saa=f secondary=t ambiguous=all ref=$ref1 in1=${projdir}/samples/${i%.f*}_uniq_R1.fq.gz out=${projdir}/preprocess/${i%.f*}_redun.hold.sam &&
 					wait
 				fi
-				rm ${projdir}/samples/${i%.f*}_uniq_*.fq.gz && mv ${projdir}/preprocess/${i%.f*}_redun.hold.sam ${projdir}/preprocess/${i%.f*}_redun.sam &&
+				rm ${projdir}/samples/${i%.f*}_uniq_*.fq.gz && mv ${projdir}/preprocess/${i%.f*}_redun.hold.sam ${projdir}/preprocess/${i%.f*}_redun.sam 2> /dev/null &&
 				wait
 				if [[ "$nempty" -gt 0 ]]; then
-					rm ${projdir}/samples/${i%.f*}_uniq_R1.fasta ${projdir}/samples/${i%.f*}_uniq_R2.fasta &&
+					rm ${projdir}/samples/${i%.f*}_uniq_R1.fasta ${projdir}/samples/${i%.f*}_uniq_R2.fasta 2> /dev/null &&
 					wait
 				else
-					rm ${projdir}/samples/${i%.f*}_uniq_R1.fasta &&
+					rm ${projdir}/samples/${i%.f*}_uniq_R1.fasta 2> /dev/null &&
 					wait
 				fi
 			done

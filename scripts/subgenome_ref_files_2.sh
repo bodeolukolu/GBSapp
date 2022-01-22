@@ -526,13 +526,13 @@ main () {
 					wait
 				fi
 				wait
-				rm ${projdir}/samples/${i%.f*}_uniq_*.fq.gz && mv ${projdir}/preprocess/${i%.f*}_redun.hold.sam ${projdir}/preprocess/${i%.f*}_redun.sam &&
+				rm ${projdir}/samples/${i%.f*}_uniq_*.fq.gz && mv ${projdir}/preprocess/${i%.f*}_redun.hold.sam ${projdir}/preprocess/${i%.f*}_redun.sam 2> /dev/null &&
 				wait
 				if [[ "$nempty" -gt 0 ]]; then
-					rm ${projdir}/samples/${i%.f*}_uniq_R1.fasta ${projdir}/samples/${i%.f*}_uniq_R2.fasta &&
+					rm ${projdir}/samples/${i%.f*}_uniq_R1.fasta ${projdir}/samples/${i%.f*}_uniq_R2.fasta 2> /dev/null &&
 					wait
 				else
-					rm ${projdir}/samples/${i%.f*}_uniq_R1.fasta &&
+					rm ${projdir}/samples/${i%.f*}_uniq_R1.fasta 2> /dev/null &&
 					wait
 				fi
 				wait && touch ${projdir}/compress_done.txt &&
