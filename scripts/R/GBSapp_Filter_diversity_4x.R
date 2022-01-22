@@ -577,7 +577,7 @@ copy_filter <- function(){
   snpidN <- rbind(snpidN,snpidN1); snpidN <- rbind(snpidN,snpidN2)
   snpid$match <- paste(snpid$CHROM,snpid$position,sep="_")
   snpidN$match <- paste(snpidN$CHROM,snpidN$position,sep="_")
-  snpid <- snpidN[snpidN$match %in% snpid$match, ]
+  snpidM <- snpidN[snpidN$match %in% snpid$match, ]
   snpidM <- subset(snpid, select=-c(position,match))
   snpidM$nloci <- as.numeric(as.character(snpidM$nloci))
   snpidM <- snpidM[order(CHROM, POS),]
