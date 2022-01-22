@@ -655,12 +655,13 @@ copy_filter <- function(){
   snpidN$match <- paste(snpidN$CHROM,snpidN$position,sep="_")
   snpid <- snpidN[snpidN$match %in% snpid$match, ]
   snpidM <- subset(snpid, select=-c(position,match))
+  snpidM$nloci <- as.numeric(as.character(snpidM$nloci))
   write.table (snpidM, file=paste("./unique_mapped/",pop,"_2x","_refgenome_nloci_matched.txt",sep=""), row.names=F, quote = FALSE, sep = "\t")
   
   snpidM <- subset(snpidM, snpidM$nloci <= hap)
   snpidM <- subset(snpidM, select=c("CHROM","POS"))
   snpid <- read.table(paste(pop,"_2x","_rd",rd+1,"_maf",MinorAlleleFreq,"_dose.txt",sep=""), header=T, sep="\t",stringsAsFactors=FALSE, check.names = F)
-  subgenome_uniqmap <- merge(snpid, snpidM, by = c("CHROM","POS"), all.y = TRUE)
+  subgenome_uniqmap <- merge(snpid, snpidM, by = c("CHROM","POS"), all.x = TRUE)
   write.table (subgenome_uniqmap, file=paste("./unique_mapped/",pop,"_2x","_rd",rd+1,"_maf",MinorAlleleFreq,"_dose_unique_mapped.txt",sep=""), row.names=F, quote = FALSE, sep = "\t")
 }
 copy_filter()

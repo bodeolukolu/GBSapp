@@ -537,7 +537,7 @@ copy_filter <- function(){
   snpidM <- subset(snpidM, snpidM$nloci <= hap)
   snpidM <- subset(snpidM, select=c("CHROM","POS"))
   snpid <- read.table(paste(pop,"_1x","_rd",rd+1,"_maf",MinorAlleleFreq,"_dose.txt",sep=""), header=T, sep="\t",stringsAsFactors=FALSE, check.names = F)
-  subgenome_uniqmap <- merge(snpid, snpidM, by = c("CHROM","POS"), all.y = TRUE)
+  subgenome_uniqmap <- merge(snpid, snpidM, by = c("CHROM","POS"), all.x = TRUE)
   write.table (subgenome_uniqmap, file=paste("./unique_mapped/",pop,"_1x","_rd",rd+1,"_maf",MinorAlleleFreq,"_dose_unique_mapped.txt",sep=""), row.names=F, quote = FALSE, sep = "\t")
 }
 copy_filter()
