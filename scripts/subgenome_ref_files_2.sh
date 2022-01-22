@@ -722,7 +722,7 @@ main () {
 			awk '{print $4"\t"$2"\t"$1}' temp.txt | awk '!/CHROM/' | cat <(printf "CHROM\tPOS\tnloci\n") - > refgenome_paralogs_${ref1%.f*}.txt &&
 
 			touch refgenome_paralogs_${ref2%.f*}.txt
-			for par in refgenome_paralogs_*_${ref2%.f*}.txt; do (
+			for par in $(ls refgenome_paralogs_*_${ref2%.f*}.txt | grep -v ${ref1%.f*}); do (
 				cat refgenome_paralogs_${ref2%.f*}.txt $par | awk '!visited[$0]++' > temp_par.txt &&
 				mv temp_par.txt refgenome_paralogs_${ref2%.f*}.txt &&
 				wait ) &
