@@ -333,7 +333,7 @@ fi
 
 if test -f ${projdir}/Analysis_Complete; then
   echo -e "${magenta}- Analysis was completed ${white}"
-  echo -e "${magenta}- Do you want to repeat one or more analytical step? ${white}"
+  echo -e "${magenta}- Do you want to repeat one or more analytical step(s)? ${white}"
   read -p "- y(YES) or n(NO)? " -n 1 -r
   if [[ ! $REPLY =~ ^[Yy]$ ]]; then
     echo -e "${magenta}- GBSapp will exit in 5s ${white}"

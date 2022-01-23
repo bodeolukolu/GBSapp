@@ -580,7 +580,6 @@ copy_filter <- function(){
   snpidM <- snpidN[snpidN$match %in% snpid$match, ]
   snpidM <- subset(snpidM, select=-c(position,match))
   snpidM <- snpidM[order(snpidM$CHROM, snpidM$POS),]
-  snpidM <- as.numeric(as.character(as.data.frame(snpidM)))
   write.table (snpidM, file=paste("./unique_mapped/",pop,"_4x","refgenome_nloci_matched.txt",sep=""), row.names=F, quote = FALSE, sep = "\t")
   
   snpidM <- subset(snpidM, snpidM$nloci <= hap)
