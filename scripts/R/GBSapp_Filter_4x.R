@@ -1451,27 +1451,50 @@ raw_alleles()
 ####################################################################################################################
 copy_filter <- function(){
   dir.create("unique_mapped")
+  snpidMf <- data.frame(CHROM = character(0), POS = numeric(0), nloci = numeric(0))
   snpid <- read.table(paste(pop,"_4x","_rd",rd+1,"_noSDdose.txt",sep=""), header=T, sep="\t",stringsAsFactors=FALSE, check.names = FALSE)
-  snpid <- subset(snpid, select=c("CHROM","POS"))
-  snpid$POS <- as.numeric(as.character(snpid$POS))
-  snpid$position <- lapply(snpid$POS / 100, as.integer)
-  snpidN <- read.table("../../alignment_summaries/refgenome_paralogs.txt", header=T, sep="\t", quote="", check.names=FALSE, fill=F)
-  snpidN <- snpidN[!(snpidN$CHROM=="" | snpidN$POS=="" | snpidN$nloci==""), ]
-  snpidN$POS <- as.numeric(as.character(snpidN$POS))
-  snpidN$position <- lapply(snpidN$POS / 100, as.integer); snpidN1 <- snpidN; snpidN2 <- snpidN
-  snpidN1$position <- as.numeric(as.character(snpidN1$position)); snpidN2$position <- as.numeric(as.character(snpidN2$position))
-  snpidN1$position <- snpidN1$position + 1; snpidN2$position <- snpidN2$position - 1
-  snpidN <- rbind(snpidN,snpidN1); snpidN <- rbind(snpidN,snpidN2)
-  snpid$match <- paste(snpid$CHROM,snpid$position,sep="_")
-  snpidN$match <- paste(snpidN$CHROM,snpidN$position,sep="_")
-  snpid <- snpidN[snpidN$match %in% snpid$match, ]
-  snpidM <- subset(snpid, select=-c(position,match))
-  write.table (snpidM, file=paste("./unique_mapped/",pop,"_4x","_refgenome_nloci_matched.txt",sep=""), row.names=F, quote = FALSE, sep = "\t")
+  snpidN_data <- read.table("../../alignment_summaries/refgenome_paralogs.txt", header=T, sep="\t", quote="", check.names=FALSE, fill=F)
   
-  snpidM <- subset(snpidM, snpidM$nloci <= hap)
-  snpidM <- subset(snpidM, select=c("CHROM","POS"))
-  snpid <- read.table(paste(pop,"_4x","_rd",rd+1,"_noSDdose.txt",sep=""), header=T, sep="\t",stringsAsFactors=FALSE, check.names = FALSE)
-  subgenome_uniqmap <- merge(snpid, snpidM, by = c("CHROM","POS"), all.x = TRUE)
+  for (intrange in c(100,1000)) {
+    snpid <- snpid_data
+    snpid <- subset(snpid, select=c("CHROM","POS"))
+    snpidmiss <- subset(snpidMf, select=c("CHROM","POS"))
+    snpid <- rbind(snpid,snpidmiss)
+    snpid <- unique(snpid)
+    snpid$POS <- as.numeric(as.character(snpid$POS))
+    snpid$position <- lapply(snpid$POS / intrange, as.integer); snpid1 <- snpid; snpid2 <- snpid
+    snpid1$position <- as.numeric(as.character(snpid1$position)); snpid2$position <- as.numeric(as.character(snpid2$position))
+    snpid1$position <- snpid1$position + 1; snpid2$position <- snpid2$position - 1
+    snpid <- rbind(snpid,snpid1); snpid <- rbind(snpid,snpid2)
+    snpid$position <- as.numeric(as.character(snpid$position))
+    snpid$position <- snpid$position * intrange
+    snpidN <- snpidN_data
+    snpidN <- snpidN[!(snpidN$CHROM=="" | snpidN$POS=="" | snpidN$nloci==""), ]
+    snpidN$POS <- as.numeric(as.character(snpidN$POS))
+    snpidN$nloci <- as.numeric(as.character(snpidN$nloci))
+    snpidN$position <- lapply(snpidN$POS / intrange, as.integer); snpidN1 <- snpidN; snpidN2 <- snpidN
+    snpidN1$position <- as.numeric(as.character(snpidN1$position)); snpidN2$position <- as.numeric(as.character(snpidN2$position))
+    snpidN1$position <- snpidN1$position + 1; snpidN2$position <- snpidN2$position - 1
+    snpidN <- rbind(snpidN,snpidN1); snpidN <- rbind(snpidN,snpidN2)
+    snpidN$position <- as.numeric(as.character(snpidN$position))
+    snpidN$position <- snpidN$position * intrange
+    snpid$match <- paste(snpid$CHROM,snpid$position,sep="_")
+    snpidN$match <- paste(snpidN$CHROM,snpidN$position,sep="_")
+    snpidM <- merge(snpid, snpidN, by = c("match"), all.x = TRUE, all.y =FALSE)
+    snpidM <- subset(snpidM, select=c(2,3,7)); names(snpidM) <- c("CHROM","POS","nloci")
+    snpidM <- snpidM[order(snpidM$CHROM, snpidM$POS),]
+    snpidM <- snpidM[!duplicated(snpidM), ]
+    snpidM <- na.omit(snpidM)
+    snpidMf <- rbind(snpidMf,snpidM)
+  }
+  snpidMf <- snpidMf[order(snpidMf$CHROM, snpidMf$POS),]
+  snpidMf <- snpidMf[!duplicated(snpidMf), ]
+  write.table (snpidM, file=paste("./unique_mapped/",pop,"_4x","_refgenome_nloci_matched.txt",sep=""), row.names=F, quote = FALSE, sep = "\t")
+  snpidMf <- subset(snpidMf, snpidMf$nloci <= hap)
+  snpid <- snpid_data
+  snpidMf <- subset(snpidMf, select=c("CHROM","POS"))
+  subgenome_uniqmap <- merge(snpid, snpidMf, by = c("CHROM","POS"), all.x = FALSE, all.y = FALSE)
+  subgenome_uniqmap <- subgenome_uniqmap[!duplicated(subgenome_uniqmap), ]
   write.table (subgenome_uniqmap, file=paste("./unique_mapped/",pop,"_4x","_rd",rd+1,"_noSDdose_unique_mapped.txt",sep=""), row.names=F, quote = FALSE, sep = "\t")
 }
 copy_filter()
