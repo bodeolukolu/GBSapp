@@ -565,7 +565,7 @@ raw_alleles()
 copy_filter <- function(){
   dir.create("unique_mapped")
   snpidMf <- data.frame(CHROM = character(0), POS = numeric(0), nloci = numeric(0))
-  snpid <- read.table(paste(pop,"_4x","_rd",rd+1,"_maf",MinorAlleleFreq,"_dose.txt",sep=""), header=T, sep="\t",stringsAsFactors=FALSE, check.names = F)
+  snpid_data <- read.table(paste(pop,"_4x","_rd",rd+1,"_maf",MinorAlleleFreq,"_dose.txt",sep=""), header=T, sep="\t",stringsAsFactors=FALSE, check.names = F)
   snpidN_data <- read.table("../../alignment_summaries/refgenome_paralogs.txt", header=T, sep="\t", quote="", check.names=FALSE, fill=F)
   
   for (intrange in c(100,1000)) {
