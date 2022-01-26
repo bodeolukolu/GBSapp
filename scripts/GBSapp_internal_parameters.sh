@@ -56,7 +56,9 @@ export picard=${GBSapp_dir}/tools/picard.jar && picard=${picard//'//'/'/'}
 export GATK=${GBSapp_dir}/tools/gatk-4.2.2.0/gatk && GATK=${GATK//'//'/'/'}
 export java=${GBSapp_dir}/tools/jdk8*/bin/java && java=${java//'//'/'/'}
 
-alias python=python2
+mkdir ~/bin
+PATH=~/bin:$PATH
+ln -s /usr/bin/python2 ~/bin/python
 
 if command -v pigz &>/dev/null; then
   export gzip=pigz
