@@ -36,6 +36,16 @@ if [ -z "$Rout" ];then
   echo -e "${white}- dependencies for R in linux: <sudo apt install libcurl4-openssl-dev> and <sudo apt install libssl-dev>"
 fi
 
+pythonout=$(python2 --version | head -n 3)
+if [ -z "$pythonout" ];then
+	module add python2
+	python --version | head -n 3
+fi
+pythonout=$(python2 --version | head -n 3)
+if [ -z "$pythonout" ];then
+  echo -e "${white}- install Python2 before proceeding ${white}"
+fi
+
 ######################################################################################################################################################
 # tools
 export bbmap=${GBSapp_dir}/tools/bbmap/bbmap.sh
@@ -45,6 +55,9 @@ export bcftools=${GBSapp_dir}/tools/bcftools*/bcftools && bcftools=${bcftools//'
 export picard=${GBSapp_dir}/tools/picard.jar && picard=${picard//'//'/'/'}
 export GATK=${GBSapp_dir}/tools/gatk-4.2.2.0/gatk && GATK=${GATK//'//'/'/'}
 export java=${GBSapp_dir}/tools/jdk8*/bin/java && java=${java//'//'/'/'}
+
+alias python=python2
+
 if command -v pigz &>/dev/null; then
   export gzip=pigz
   export gunzip=unpigz
@@ -80,12 +93,4 @@ if [ -z "$bcftoolsout" ];then
   $bcftools --version | head -n 3
 else
   $bcftools --version | head -n 3
-fi
-
-pythonout=$(python --version | head -n 3)
-if [ -z "$pythonout" ];then
-	if [[ "$cluster" == true ]]; then
-    module add python
-  fi
-	python --version | head -n 3
 fi

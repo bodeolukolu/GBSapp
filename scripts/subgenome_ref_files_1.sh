@@ -692,13 +692,16 @@ cd $projdir
 echo -e "${magenta}- performing SNP calling ${white}\n"
 cd $projdir
 cd preprocess
-for i in $(cat ${projdir}/${samples_list} ); do
+for i in $(cat ${projdir}/${samples_list} ); do (
 	if test ! -f "${pop}_${ploidy}x_raw.vcf.gz" && test ! -f ${projdir}/GVCF_done.txt; then
 		while test ! -f "${projdir}/snpcall/${i%.f*}_${ref1%.f*}.g.vcf.gz"; do
-				$GATK --java-options "$Xmx2 -XX:+UseParallelGC -XX:ParallelGCThreads=$threads"  HaplotypeCaller -R ${projdir}/refgenomes/$ref1 -I "${i%.f*}_${ref1%.f*}_precall.bam" -ploidy $ploidy -O "${projdir}/snpcall/${i%.f*}_${ref1%.f*}.hold.g.vcf.gz" -ERC GVCF --dont-use-soft-clipped-bases $softclip --max-reads-per-alignment-start 0 --minimum-mapping-quality 0 --max-num-haplotypes-in-population "$((ploidy * maxHaplotype))" && \
+				$GATK --java-options "$Xmxg -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads"  HaplotypeCaller -R ${projdir}/refgenomes/$ref1 -I "${i%.f*}_${ref1%.f*}_precall.bam" -ploidy $ploidy -O "${projdir}/snpcall/${i%.f*}_${ref1%.f*}.hold.g.vcf.gz" -ERC GVCF --dont-use-soft-clipped-bases $softclip --max-reads-per-alignment-start 0 --minimum-mapping-quality 0 --max-num-haplotypes-in-population "$((ploidy * maxHaplotype))" && \
 				mv "${projdir}/snpcall/${i%.f*}_${ref1%.f*}.hold.g.vcf.gz" "${projdir}/snpcall/${i%.f*}_${ref1%.f*}.g.vcf.gz" && \
 				mv "${projdir}/snpcall/${i%.f*}_${ref1%.f*}.hold.g.vcf.gz.tbi" "${projdir}/snpcall/${i%.f*}_${ref1%.f*}.g.vcf.gz.tbi"
 		done
+	fi ) &
+	if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
+		wait
 	fi
 done
 wait
@@ -733,10 +736,10 @@ if [[ "$samples_list" == "samples_list_node_1.txt" ]] && test ! -f ${projdir}/sn
 				k="${j} ${i}"; input="${input} ${k}"
 			done
 			Get_Chromosome=$(awk 'NR>1{print $2,"\t",$3}' ${projdir}/refgenomes/${ref1%.*}.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $0}' | sort -k2,2 -nr | awk '{print $1}' | awk -v pat=${ref1%.f*} '$0 ~ pat')
-			for selchr in $Get_Chromosome; do
+			for selchr in $Get_Chromosome; do (
 				while test ! -f ${pop}_${ploidy}x_"${selchr}"_raw.vcf.gz; do
-					$GATK --java-options "$Xmx2 -XX:+UseParallelGC -XX:ParallelGCThreads=$threads"  GenomicsDBImport $input -L $selchr --genomicsdb-workspace-path ${pop}_${ploidy}x_"${selchr}"_raw
-					$GATK --java-options "$Xmx2 -XX:+UseParallelGC -XX:ParallelGCThreads=$threads"  GenotypeGVCFs -R ${projdir}/refgenomes/$ref1 -L $selchr -V gendb://${pop}_${ploidy}x_"${selchr}"_raw -O ${pop}_${ploidy}x_"${selchr}"_raw.hold.vcf.gz && \
+					$GATK --java-options "$Xmxg -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads"  GenomicsDBImport $input -L $selchr --genomicsdb-workspace-path ${pop}_${ploidy}x_"${selchr}"_raw
+					$GATK --java-options "$Xmxg -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads"  GenotypeGVCFs -R ${projdir}/refgenomes/$ref1 -L $selchr -V gendb://${pop}_${ploidy}x_"${selchr}"_raw -O ${pop}_${ploidy}x_"${selchr}"_raw.hold.vcf.gz && \
 					rm -r ${pop}_${ploidy}x_"${selchr}"_raw && \
 					mv ${pop}_${ploidy}x_"${selchr}"_raw.hold.vcf.gz ${pop}_${ploidy}x_"${selchr}"_raw.vcf.gz
 					mv ${pop}_${ploidy}x_"${selchr}"_raw.hold.vcf.gz.tbi ${pop}_${ploidy}x_"${selchr}"_raw.vcf.gz.tbi
@@ -750,6 +753,9 @@ if [[ "$samples_list" == "samples_list_node_1.txt" ]] && test ! -f ${projdir}/sn
 					echo -e "${magenta}- \n- SNP calling failed probably due to insufficient memory ${white}\n"
 					echo -e "${magenta}- \n- Exiting pipeline in 5 seconds ${white}\n"
 					sleep 5 && exit 1
+				fi ) &
+				if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
+					wait
 				fi
 			done
 			wait
