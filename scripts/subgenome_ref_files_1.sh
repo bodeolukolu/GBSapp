@@ -433,7 +433,7 @@ main () {
 	if [[ "$(wc -l ${projdir}/alignment_summaries/total_read_count.txt | awk '{print $1}')" -le 1 ]]; then
 		cd ${projdir}/alignment_summaries/
 		find -type f -name "*_total_read_count.txt" | xargs cat > total_read_count.hold.txt &&
-		cat total_read_count.hold.txt total_read_count.txt > total_read_count.hold2.txt &&
+		cat total_read_count.txt total_read_count.hold.txt > total_read_count.hold2.txt &&
 		mv total_read_count.hold2.txt total_read_count.txt &&
 		rm ${projdir}/alignment_summaries/*_total_read_count.txt &&
 		wait
@@ -572,7 +572,7 @@ main () {
 			cat <(grep '^@' ${projdir}/preprocess/${i%.f*}_redun.sam) - > ${projdir}/preprocess/${i%.f*}_del.sam
 			wait
 
-			echo "nloci~POS~mapQ~CHROM~CHROM" > ${projdir}/alignment_summaries/refgenome_paralogs_${i%.f*}.txt
+			echo "nloci~mapQ~CHROM~POS" > ${projdir}/alignment_summaries/refgenome_paralogs_${i%.f*}.txt
 			grep -v '^@' ${projdir}/preprocess/${i%.f*}_del.sam | awk -F'\t' '{print $1"\t"$3"\t"$4"\t"$5}' | awk '{gsub(/ /,"\t"); print}' | awk '{print $1"~"$5"~"$3"~"$4}' | grep -v '\*' | grep -v '^@' >> ${projdir}/alignment_summaries/refgenome_paralogs_${i%.f*}.txt &&
 			awk '!visited[$0]++' ${projdir}/alignment_summaries/refgenome_paralogs_${i%.f*}.txt > ${projdir}/alignment_summaries/temp_${i%.f*}.txt &&
 			mv ${projdir}/alignment_summaries/temp_${i%.f*}.txt ${projdir}/alignment_summaries/refgenome_paralogs_${i%.f*}.txt
@@ -646,7 +646,7 @@ main () {
 			wait
 			rm refgenome_paralogs_*.txt
 			awk '{gsub(/~/,"\t"); print $0}' refgenome_paralogs.txt > temp.txt &&
-			awk '{print $4"\t"$2"\t"$1}' temp.txt | awk '!/CHROM/' | cat <(printf "CHROM\tPOS\tnloci\n") - > refgenome_paralogs.txt &&
+			awk '{print $3"\t"$4"\t"$1}' temp.txt | awk '!/CHROM/' | cat <(printf "CHROM\tPOS\tnloci\n") - > refgenome_paralogs.txt &&
 			rm temp.txt
 		fi
 	fi

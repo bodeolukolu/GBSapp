@@ -435,7 +435,7 @@ main () {
 	if [[ "$(wc -l ${projdir}/alignment_summaries/total_read_count.txt | awk '{print $1}')" -le 1 ]]; then
 		cd ${projdir}/alignment_summaries/
 		find -type f -name "*_total_read_count.txt" | xargs cat > total_read_count.hold.txt &&
-		cat total_read_count.hold.txt total_read_count.txt > total_read_count.hold2.txt &&
+		cat total_read_count.txt total_read_count.hold.txt > total_read_count.hold2.txt &&
 		mv total_read_count.hold2.txt total_read_count.txt &&
 		rm ${projdir}/alignment_summaries/*_total_read_count.txt ${projdir}/alignment_summaries/total_read_count.hold.txt &&
 		wait
