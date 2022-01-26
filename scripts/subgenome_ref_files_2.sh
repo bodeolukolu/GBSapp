@@ -685,13 +685,10 @@ main () {
 			cd $projdir/alignment_summaries
 
 			touch refgenome_paralogs_${ref1%.f*}_${ref2%.f*}.txt
-			for par in refgenome_paralogs_*_${ref1%.f*}_${ref2%.f*}.txt; do (
+			for par in refgenome_paralogs_*_${ref1%.f*}_${ref2%.f*}.txt; do
 				cat refgenome_paralogs_${ref1%.f*}_${ref2%.f*}.txt $par | awk '!visited[$0]++' > temp_par.txt &&
 				mv temp_par.txt refgenome_paralogs_${ref1%.f*}_${ref2%.f*}.txt &&
-				wait ) &
-				if [[ $(jobs -r -p | wc -l) -ge $N ]]; then
-				  wait
-				fi
+				wait
 			done
 			wait
 			rm refgenome_paralogs_*_${ref1%.f*}_${ref2%.f*}.txt
@@ -699,13 +696,10 @@ main () {
 			awk '{print $4"\t"$2"\t"$1}' temp.txt | awk '!/CHROM/' | cat <(printf "CHROM\tPOS\tnloci\n") - > refgenome_paralogs_${ref1%.f*}_${ref2%.f*}.txt &&
 
 			touch refgenome_paralogs_${ref1%.f*}.txt
-			for par in refgenome_paralogs_*_${ref1%.f*}.txt; do (
+			for par in refgenome_paralogs_*_${ref1%.f*}.txt; do
 				cat refgenome_paralogs_${ref1%.f*}.txt $par | awk '!visited[$0]++' > temp_par.txt &&
 				mv temp_par.txt refgenome_paralogs_${ref1%.f*}.txt &&
-				wait ) &
-				if [[ $(jobs -r -p | wc -l) -ge $N ]]; then
-				  wait
-				fi
+				wait
 			done
 			wait
 			rm refgenome_paralogs_*_${ref1%.f*}.txt
@@ -713,13 +707,10 @@ main () {
 			awk '{print $4"\t"$2"\t"$1}' temp.txt | awk '!/CHROM/' | cat <(printf "CHROM\tPOS\tnloci\n") - > refgenome_paralogs_${ref1%.f*}.txt &&
 
 			touch refgenome_paralogs_${ref2%.f*}.txt
-			for par in $(ls refgenome_paralogs_*_${ref2%.f*}.txt | grep -v ${ref1%.f*}); do (
+			for par in $(ls refgenome_paralogs_*_${ref2%.f*}.txt | grep -v ${ref1%.f*}); do
 				cat refgenome_paralogs_${ref2%.f*}.txt $par | awk '!visited[$0]++' > temp_par.txt &&
 				mv temp_par.txt refgenome_paralogs_${ref2%.f*}.txt &&
-				wait ) &
-				if [[ $(jobs -r -p | wc -l) -ge $N ]]; then
-				  wait
-				fi
+				wait
 			done
 			wait
 			rm refgenome_paralogs_*_${ref2%.f*}.txt
@@ -793,7 +784,7 @@ main () {
 ######################
 
 	echo -e "${magenta}- performing SNP calling across entire genome (subgenome 1 and 2) ${white}\n"
-	for i in $(cat ${projdir}/${samples_list} ); do (
+	for i in $(cat ${projdir}/${samples_list} ); do
 		if test ! -f "${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_raw.vcf" && test ! -f "${projdir}/GVCF_1_2_done.txt"; then
 			while test ! -f "${projdir}/snpcall/${i%.f*}_${ref1%.f*}_${ref2%.f*}.g.vcf.gz"; do
 					$GATK --java-options "$Xmx2 -XX:+UseParallelGC -XX:ParallelGCThreads=$threads"  HaplotypeCaller -R "${projdir}/refgenomes/panref.fasta" -I "${i%.f*}_${ref1%.f*}_${ref2%.f*}_precall.bam" -ploidy $ploidy -O ${projdir}/snpcall/${i%.f*}_${ref1%.f*}_${ref2%.f*}.hold.g.vcf.gz -ERC GVCF --dont-use-soft-clipped-bases $softclip --max-reads-per-alignment-start "$(( biased_downsample * ploidy ))" --minimum-mapping-quality 0 --max-num-haplotypes-in-population "$((ploidy * maxHaplotype))" && \

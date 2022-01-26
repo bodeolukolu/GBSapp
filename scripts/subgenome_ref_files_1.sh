@@ -637,13 +637,10 @@ main () {
 			cd $projdir/alignment_summaries
 
 			touch refgenome_paralogs.txt
-			for par in refgenome_paralogs_*.txt; do (
+			for par in refgenome_paralogs_*.txt; do
 				cat refgenome_paralogs.txt $par | awk '!visited[$0]++' > temp_par.txt &&
 				mv temp_par.txt refgenome_paralogs.txt &&
-				wait ) &
-			 if [[ $(jobs -r -p | wc -l) -ge $N ]]; then
-				 wait
-			 fi
+				wait
 			done
 			wait
 			rm refgenome_paralogs_*.txt
@@ -695,17 +692,13 @@ cd $projdir
 echo -e "${magenta}- performing SNP calling ${white}\n"
 cd $projdir
 cd preprocess
-for i in $(cat ${projdir}/${samples_list} ); do (
+for i in $(cat ${projdir}/${samples_list} ); do
 	if test ! -f "${pop}_${ploidy}x_raw.vcf.gz" && test ! -f ${projdir}/GVCF_done.txt; then
 		while test ! -f "${projdir}/snpcall/${i%.f*}_${ref1%.f*}.g.vcf.gz"; do
 				$GATK --java-options "$Xmx2 -XX:+UseParallelGC -XX:ParallelGCThreads=$threads"  HaplotypeCaller -R ${projdir}/refgenomes/$ref1 -I "${i%.f*}_${ref1%.f*}_precall.bam" -ploidy $ploidy -O "${projdir}/snpcall/${i%.f*}_${ref1%.f*}.hold.g.vcf.gz" -ERC GVCF --dont-use-soft-clipped-bases $softclip --max-reads-per-alignment-start 0 --minimum-mapping-quality 0 --max-num-haplotypes-in-population "$((ploidy * maxHaplotype))" && \
 				mv "${projdir}/snpcall/${i%.f*}_${ref1%.f*}.hold.g.vcf.gz" "${projdir}/snpcall/${i%.f*}_${ref1%.f*}.g.vcf.gz" && \
 				mv "${projdir}/snpcall/${i%.f*}_${ref1%.f*}.hold.g.vcf.gz.tbi" "${projdir}/snpcall/${i%.f*}_${ref1%.f*}.g.vcf.gz.tbi"
 		done
-	fi ) &
-	if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
-		wait
-	fi
 done
 wait
 
