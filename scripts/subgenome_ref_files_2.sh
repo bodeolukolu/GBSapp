@@ -27,7 +27,7 @@ if [ -z "$mhap_freq" ]; then
 	mhap_freq=1
 fi
 if [ -z "$softclip" ]; then
-	softclip=true
+	softclip=false
 fi
 if [ -z "$ncohorts" ]; then
 	ncohorts=1
