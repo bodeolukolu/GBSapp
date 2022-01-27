@@ -20,31 +20,51 @@ cluster=${cluster//*=}
 ######################################################################################################################################################
 # Software defined parameters
 
-Rout=$(R --version | head -n 3)
-if [ -z "$Rout" ];then
-  echo -e "${white}- R not available ${white}"
-
-	if [[ "$cluster" == true ]]; then
-    module add R
+if [ "$cluster" == true ];then
+	module unload R
+  module add R
+  Rversion=$((R --version) 2>&1)
+  if [[ "$Rversion" =~ "R version" ]]; then
+    echo -e "${white}\n- Using $Rversion\n ${white}"
   fi
-	R --version | head -n 3
+fi
+if [ "$cluster" == false ];then
+  Rversion=$((R --version) 2>&1)
+  if [[ "$Rversion" =~ "R version" ]]; then
+    echo -e "${white}\n- Using $Rversion\n ${white}"
+  else
+    echo -e "${white}- install R before proceeding ${white}"
+    echo -e "${white}- dependencies for R in linux: <sudo apt install libcurl4-openssl-dev> and <sudo apt install libssl-dev>"
+  fi
 fi
 
-Rout=$(R --version | head -n 3)
-if [ -z "$Rout" ];then
-  echo -e "${white}- install R before proceeding ${white}"
-  echo -e "${white}- dependencies for R in linux: <sudo apt install libcurl4-openssl-dev> and <sudo apt install libssl-dev>"
+
+
+if [ "$cluster" == true ];then
+	module unload python
+  module add python/2.7.18
+  pythonversion=$((python --version) 2>&1)
+  if [[ "$pythonversion" =~ "Python 2" ]]; then
+    echo -e "${white}\n- Using $pythonversion\n ${white}"
+  else
+    mkdir ~/bin
+    PATH=~/bin:$PATH
+    ln -s /usr/bin/python2 ~/bin/python
+  fi
+fi
+if [ "$cluster" == false ];then
+  mkdir ~/bin
+  PATH=~/bin:$PATH
+  ln -s /usr/bin/python2 ~/bin/python
+  pythonversion=$((python --version) 2>&1)
+  if [[ "$pythonversion" =~ "Python 2" ]]; then
+    echo -e "${white}\n- Using $pythonversion\n ${white}"
+  else
+    echo -e "${white}- install python2 before proceeding ${white}"
+  fi
 fi
 
-pythonout=$(python2 --version | head -n 3)
-if [ -z "$pythonout" ];then
-	module add python2
-	python --version | head -n 3
-fi
-pythonout=$(python2 --version | head -n 3)
-if [ -z "$pythonout" ];then
-  echo -e "${white}- install Python2 before proceeding ${white}"
-fi
+
 
 ######################################################################################################################################################
 # tools
@@ -57,14 +77,6 @@ export GATK=${GBSapp_dir}/tools/gatk-4.2.2.0/gatk && GATK=${GATK//'//'/'/'}
 export java=${GBSapp_dir}/tools/jdk8*/bin/java && java=${java//'//'/'/'}
 
 
-pythonout=$(python --version | head -n 3)
-if [[ "$pythonout" =~ python2 ]]; then
-  echo -e "${white}- Using $pythonout ${white}"
-else
-  mkdir ~/bin
-  PATH=~/bin:$PATH
-  ln -s /usr/bin/python3 ~/bin/python
-fi
 
 
 if command -v pigz &>/dev/null; then
