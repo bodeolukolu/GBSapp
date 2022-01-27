@@ -56,9 +56,16 @@ export picard=${GBSapp_dir}/tools/picard.jar && picard=${picard//'//'/'/'}
 export GATK=${GBSapp_dir}/tools/gatk-4.2.2.0/gatk && GATK=${GATK//'//'/'/'}
 export java=${GBSapp_dir}/tools/jdk8*/bin/java && java=${java//'//'/'/'}
 
-mkdir ~/bin
-PATH=~/bin:$PATH
-ln -s /usr/bin/python2 ~/bin/python
+
+pythonout=$(python --version | head -n 3)
+if [[ "$pythonout" =~ python2 ]]; then
+  echo -e "${white}- Using $pythonout ${white}"
+else
+  mkdir ~/bin
+  PATH=~/bin:$PATH
+  ln -s /usr/bin/python3 ~/bin/python
+fi
+
 
 if command -v pigz &>/dev/null; then
   export gzip=pigz
