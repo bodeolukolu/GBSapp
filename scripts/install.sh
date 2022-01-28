@@ -70,8 +70,8 @@ fi
 
 main () {
   echo -e "${blue}\n############################################## \n- installiing java 1.8. ${blue}\n##############################################${white}"
-  wget https://github.com/AdoptOpenJDK/openjdk8-binaries/releases/download/jdk8u222-b10/OpenJDK8U-jre_x64_linux_hotspot_8u222b10.tar.gz
-  tar -xvf OpenJDK8U-jre_x64_linux_hotspot_8u222b10.tar.gz; rm *tar.gz
+  wget https://github.com/adoptium/temurin8-binaries/releases/download/jdk8u322-b06/OpenJDK8U-jdk_x64_linux_hotspot_8u322b06.tar.gz
+  tar -xvf OpenJDK8U-jdk_x64_linux_hotspot_8u322b06.tar.gz; rm *tar.gz
 }
 dirtool=jdk*
 if [ -d $dirtool ]; then
@@ -91,6 +91,7 @@ fi
 
 main () {
   echo -e "${green}\n############################################## \n- downloading GATK \n##############################################${white}"
+  wget
   wget -O GATK4.2.2.0.zip "https://github.com/broadinstitute/gatk/releases/download/4.2.2.0/gatk-4.2.2.0.zip"
   unzip GATK4.2.2.0.zip
   rm GATK4.2.2.0.zip

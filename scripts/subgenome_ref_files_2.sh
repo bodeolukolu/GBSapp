@@ -422,7 +422,7 @@ main () {
 			  awk 'NF==2 {print ">seq"NR"_se-"$1"\t"$2}' ${i%.f*}_rdrefseq.txt > ${i%.f*}_rdrefseq_se.txt 2> /dev/null &&
 			  awk 'NF==3 {print ">seq"NR"_pe-"$0}' ${i%.f*}_rdrefseq.txt | awk '{print $1"\t"$3}' > ${i%.f*}_uniq_R2.fasta 2> /dev/null &&
 			  awk 'NF==3 {print ">seq"NR"_pe-"$0}' ${i%.f*}_rdrefseq.txt | awk '{print $1"\t"$2}' | cat - ${i%.f*}_rdrefseq_se.txt > ${i%.f*}_uniq_R1.hold.fasta 2> /dev/null &&
-				cat ${i%.f*}_uniq_R1.hold.fasta > ${projdir}/alignment_summaries/background_mutation_test/${i%.f*}_pop_haps.fasta 2> /dev/null &&
+				awk -F "\t" 'BEGIN { OFS=FS }; { print $1, substr($2, 1, 64); }' ${i%.f*}_uniq_R1.hold.fasta > ${projdir}/alignment_summaries/background_mutation_test/${i%.f*}_pop_haps.fasta 2> /dev/null &&
 				rm ${i%.f*}*.txt 2> /dev/null &&
 				find . -size 0 -delete 2> /dev/null &&
 				mv ${i%.f*}_uniq_R1.hold.fasta ${i%.f*}_uniq_R1.fasta 2> /dev/null &&
@@ -451,10 +451,8 @@ main () {
 			cd ${projdir}/alignment_summaries/background_mutation_test/
 			find -type f -name "*_pop_haps.fasta" | xargs cat > pop_haps.txt &&
 			rm *_pop_haps.fasta ${projdir}/align1_${samples_list} &&
-			awk -F "\t" 'BEGIN { OFS=FS }; { print $1, substr($2, 1, 64); }' pop_haps.txt  | \
-			awk '{a[$2]++} END{for(s in a){print a[s]" "s}}' | awk -F'\t' '{gsub(/ /,"\t"); print}' > pop_haps_freq.txt &&
-			awk -F "\t" 'BEGIN { OFS=FS }; { print $1, substr($2, 1, 64); }' pop_haps.txt | \
-			awk -F'\t' 'BEGIN{OFS="\t"} NR==FNR{a[$2]=$0;next} ($2) in a{print $0, a[$2]}' pop_haps_freq.txt - | \
+			awk '{a[$2]++} END{for(s in a){print a[s]" "s}}' | awk -F'\t' '{gsub(/ /,"\t"); print}' pop_haps.txt > pop_haps_freq.txt &&
+			awk -F'\t' 'BEGIN{OFS="\t"} NR==FNR{a[$2]=$0;next} ($2) in a{print $0, a[$2]}' pop_haps_freq.txt pop_haps.txt | \
 			awk '{print $1"\t"$2"\t"$3}' > pop_haps_freqall.txt &&
 			rm pop_haps.txt pop_haps_freq.txt &&
 			awk -v phap=$mhap_freq '($3 == phap)' pop_haps_freqall.txt > pop_haps_freqFail.txt &&
