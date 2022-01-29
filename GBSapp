@@ -475,31 +475,33 @@ if [ -z $cluster ]; then
     echo -e "${white}\n##############################################################################\n"
   fi
 
-  echo -e "${magenta}- Do you want to generate visualizations for genotype accuracy and ploidy estimation? ${white}"
-  read -p "- y(YES) or n(NO) " -n 1 -r
-  if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-  	printf '\n'
-	printf "SNPaccuracy_ReadDepth=0 \n" >> steps.txt
-  	echo -e "${magenta}- skipping visualizations for genotype accuracy and ploidy estimation ${white}"
-    echo -e "${white}\n##############################################################################\n"
-  else
-    printf '\n'
-    printf "SNPaccuracy_ReadDepth=1 \n" >> steps.txt
-    echo -e "${white}\n##############################################################################\n"
-  fi
-
-  echo -e "${magenta}- Do you want to perform sequence-based haplotyping and filtering? ${white}"
-  read -p "- y(YES) or n(NO) " -n 1 -r
-  if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-  	printf '\n'
-	printf "paralogfiltering_haplotyping=0 \n" >> steps.txt
-  	echo -e "${magenta}- skipping sequence-based haplotyping and filtering ${white}"
-    echo -e "${white}\n##############################################################################\n"
-  else
-    printf '\n'
-    printf "paralogfiltering_haplotyping=1 \n" >> steps.txt
-    echo -e "${white}\n##############################################################################\n"
-  fi
+  printf "SNPaccuracy_ReadDepth=0 \n" >> steps.txt
+  printf "paralogfiltering_haplotyping=0 \n" >> steps.txt
+  # echo -e "${magenta}- Do you want to generate visualizations for genotype accuracy and ploidy estimation? ${white}"
+  # read -p "- y(YES) or n(NO) " -n 1 -r
+  # if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+  # 	printf '\n'
+	# printf "SNPaccuracy_ReadDepth=0 \n" >> steps.txt
+  # 	echo -e "${magenta}- skipping visualizations for genotype accuracy and ploidy estimation ${white}"
+  #   echo -e "${white}\n##############################################################################\n"
+  # else
+  #   printf '\n'
+  #   printf "SNPaccuracy_ReadDepth=1 \n" >> steps.txt
+  #   echo -e "${white}\n##############################################################################\n"
+  # fi
+  #
+  # echo -e "${magenta}- Do you want to perform sequence-based haplotyping and filtering? ${white}"
+  # read -p "- y(YES) or n(NO) " -n 1 -r
+  # if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+  # 	printf '\n'
+	# printf "paralogfiltering_haplotyping=0 \n" >> steps.txt
+  # 	echo -e "${magenta}- skipping sequence-based haplotyping and filtering ${white}"
+  #   echo -e "${white}\n##############################################################################\n"
+  # else
+  #   printf '\n'
+  #   printf "paralogfiltering_haplotyping=1 \n" >> steps.txt
+  #   echo -e "${white}\n##############################################################################\n"
+  # fi
 
   printf "#""!""/bin/bash \n\n" > header.txt
   printf "walkaway=true \n\n" > walkaway.txt
@@ -577,30 +579,32 @@ if [[ "$cluster" == true ]]; then
     echo -e "${white}\n##############################################################################\n"
   fi
 
-  echo -e "${magenta}- Do you want to generate visualizations for genotype accuracy and ploidy estimation? ${white}"
-  read -p "- y(YES) or n(NO) " -n 1 -r
-  if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-  	printf '\n'
-	printf "SNPaccuracy_ReadDepth=0 \n" >> steps.txt
-  	echo -e "${magenta}- skipping visualizations for genotype accuracy and ploidy estimation ${white}"
-    echo -e "${white}\n##############################################################################\n"
-  else
-    printf '\n'
-    printf "SNPaccuracy_ReadDepth=1 \n" >> steps.txt
-    echo -e "${white}\n##############################################################################\n"
-  fi
-
-  echo -e "${magenta}- Do you want to perform sequence-based haplotyping and filtering? ${white}"
-  read -p "- y(YES) or n(NO) " -n 1 -r
-  if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-  	printf '\n'
-	printf "paralogfiltering_haplotyping=0 \n" >> steps.txt
-  	echo -e "${magenta}- skipping sequence-based haplotyping and filtering ${white}"
-    echo -e "${white}\n##############################################################################\n"
-  else
-    printf '\n'
-    printf "paralogfiltering_haplotyping=1 \n" >> steps.txt
-    echo -e "${white}\n##############################################################################\n"
+  printf "SNPaccuracy_ReadDepth=0 \n" >> steps.txt
+  printf "paralogfiltering_haplotyping=0 \n" >> steps.txt
+  # echo -e "${magenta}- Do you want to generate visualizations for genotype accuracy and ploidy estimation? ${white}"
+  # read -p "- y(YES) or n(NO) " -n 1 -r
+  # if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+  # 	printf '\n'
+	# printf "SNPaccuracy_ReadDepth=0 \n" >> steps.txt
+  # 	echo -e "${magenta}- skipping visualizations for genotype accuracy and ploidy estimation ${white}"
+  #   echo -e "${white}\n##############################################################################\n"
+  # else
+  #   printf '\n'
+  #   printf "SNPaccuracy_ReadDepth=1 \n" >> steps.txt
+  #   echo -e "${white}\n##############################################################################\n"
+  # fi
+  #
+  # echo -e "${magenta}- Do you want to perform sequence-based haplotyping and filtering? ${white}"
+  # read -p "- y(YES) or n(NO) " -n 1 -r
+  # if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+  # 	printf '\n'
+	# printf "paralogfiltering_haplotyping=0 \n" >> steps.txt
+  # 	echo -e "${magenta}- skipping sequence-based haplotyping and filtering ${white}"
+  #   echo -e "${white}\n##############################################################################\n"
+  # else
+  #   printf '\n'
+  #   printf "paralogfiltering_haplotyping=1 \n" >> steps.txt
+  #   echo -e "${white}\n##############################################################################\n"
   fi
 
   printf "#""!""/bin/bash \n#SBATCH -c ${thread_node} \n\n" > cluster_header.sh
