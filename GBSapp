@@ -605,7 +605,7 @@ if [[ "$cluster" == true ]]; then
   #   printf '\n'
   #   printf "paralogfiltering_haplotyping=1 \n" >> steps.txt
   #   echo -e "${white}\n##############################################################################\n"
-  fi
+  # fi
 
   printf "#""!""/bin/bash \n#SBATCH -c ${thread_node} \n\n" > cluster_header.sh
   printf "walkaway=true \n\n" > walkaway.txt
