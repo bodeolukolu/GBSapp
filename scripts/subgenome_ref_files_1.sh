@@ -158,7 +158,6 @@ else
 	rm ref.txt
 	$samtools faidx $ref1
 	$java -jar $picard CreateSequenceDictionary REFERENCE= $ref1 OUTPUT=${ref1%.f*}.dict
-	$bbmap ref=$ref1 k=4 threads=$threads
 	$java -ea $Xmx2 -cp ${GBSapp_dir}/tools/bbmap/current/ align2.BBMap ref=$ref1 k=4 threads=$threads
 
 fi
@@ -508,13 +507,13 @@ main () {
 		if test ! -f ${projdir}/precall_done.txt && test ! -f ${projdir}/preprocess/${i%.f*}_${ref1%.f*}_precall.bam.bai; then
 			while test ! -f ${projdir}/preprocess/${i%.f*}_redun.sam; do
 				if [[ "$nempty" -gt 0 ]]; then
-					$bbmap fast=t threads=$threads averagepairdist=$PEdist deterministic=t maxindel=$maxindel local=t keepnames=t maxsites=12 saa=f secondary=t ambiguous=all ref=$ref1 in1=${projdir}/samples/${i%.f*}_uniq_R1.fq.gz in2=${projdir}/samples/${i%.f*}_uniq_R2.fq.gz out=${projdir}/preprocess/${i%.f*}_redun_R1R2.sam &&
-					$bbmap fast=t threads=$threads averagepairdist=$PEdist deterministic=t maxindel=$maxindel local=t keepnames=t maxsites=12 saa=f secondary=t ambiguous=all ref=$ref1 in1=${projdir}/samples/${i%.f*}_uniq_singleton.fq.gz out=${projdir}/preprocess/${i%.f*}_redun_singleton.sam &&
+					$java -ea $Xmx2 -cp ${GBSapp_dir}/tools/bbmap/current/ align2.BBMap fast=t threads=$threads averagepairdist=$PEdist deterministic=t maxindel=$maxindel local=t keepnames=t maxsites=12 saa=f secondary=t ambiguous=all ref=$ref1 in1=${projdir}/samples/${i%.f*}_uniq_R1.fq.gz in2=${projdir}/samples/${i%.f*}_uniq_R2.fq.gz out=${projdir}/preprocess/${i%.f*}_redun_R1R2.sam &&
+					$java -ea $Xmx2 -cp ${GBSapp_dir}/tools/bbmap/current/ align2.BBMap fast=t threads=$threads averagepairdist=$PEdist deterministic=t maxindel=$maxindel local=t keepnames=t maxsites=12 saa=f secondary=t ambiguous=all ref=$ref1 in1=${projdir}/samples/${i%.f*}_uniq_singleton.fq.gz out=${projdir}/preprocess/${i%.f*}_redun_singleton.sam &&
 					grep -v '^@' ${projdir}/preprocess/${i%.f*}_redun_singleton.sam | cat ${projdir}/preprocess/${i%.f*}_redun_R1R2.sam - > ${projdir}/preprocess/${i%.f*}_redun.hold.sam &&
 					rm ${projdir}/preprocess/${i%.f*}_redun_singleton.sam ${projdir}/preprocess/${i%.f*}_redun_R1R2.sam &&
 					wait
 				else
-					$bbmap fast=t threads=$threads maxindel=$maxindel local=t keepnames=t maxsites=12 saa=f secondary=t ambiguous=all ref=$ref1 in1=${projdir}/samples/${i%.f*}_uniq_R1.fq.gz out=${projdir}/preprocess/${i%.f*}_redun.hold.sam &&
+					$java -ea $Xmx2 -cp ${GBSapp_dir}/tools/bbmap/current/ align2.BBMap fast=t threads=$threads maxindel=$maxindel local=t keepnames=t maxsites=12 saa=f secondary=t ambiguous=all ref=$ref1 in1=${projdir}/samples/${i%.f*}_uniq_R1.fq.gz out=${projdir}/preprocess/${i%.f*}_redun.hold.sam &&
 					wait
 				fi
 				rm ${projdir}/samples/${i%.f*}_uniq_*.fq.gz && mv ${projdir}/preprocess/${i%.f*}_redun.hold.sam ${projdir}/preprocess/${i%.f*}_redun.sam 2> /dev/null &&
