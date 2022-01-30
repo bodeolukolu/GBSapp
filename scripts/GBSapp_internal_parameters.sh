@@ -47,13 +47,13 @@ if [ "$cluster" == true ];then
   if [[ "$pythonversion" =~ "Python 2" ]]; then
     echo -e "${white}\n- Using $pythonversion\n ${white}"
   else
-    mkdir ~/bin
+    mkdir -p ~/bin
     PATH=~/bin:$PATH
     ln -s /usr/bin/python2 ~/bin/python
   fi
 fi
 if [ "$cluster" == false ];then
-  mkdir ~/bin
+  mkdir -p ~/bin
   PATH=~/bin:$PATH
   ln -s /usr/bin/python2 ~/bin/python
   pythonversion=$((python --version) 2>&1)
