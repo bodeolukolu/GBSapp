@@ -27,7 +27,7 @@ main () {
   echo -e "${blue}\n############################################## ${yellow}\n- downloading and installing bcftools ${blue}\n##############################################${white}"
   wget https://github.com/samtools/bcftools/releases/download/1.13/bcftools-1.13.tar.bz2 &&
   tar -xvf bcftools-1.13.tar.bz2;  cd bcftools-1.13; make
-  rm bcftools-1.13.tar.bz2
+  rm ../bcftools-1.13.tar.bz2
   cd ..
 }
 dirtool=bcftools-1.13
