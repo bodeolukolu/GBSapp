@@ -423,6 +423,12 @@ main () {
 			  awk 'NF==3 {print ">seq"NR"_pe-"$0}' ${i%.f*}_rdrefseq.txt | awk '{print $1"\t"$3}' > ${i%.f*}_uniq_R2.fasta 2> /dev/null &&
 			  awk 'NF==3 {print ">seq"NR"_pe-"$0}' ${i%.f*}_rdrefseq.txt | awk '{print $1"\t"$2}' | cat - ${i%.f*}_rdrefseq_se.txt > ${i%.f*}_uniq_R1.hold.fasta 2> /dev/null &&
 				awk -F "\t" 'BEGIN { OFS=FS }; { print $1, substr($2, 1, 64); }' ${i%.f*}_uniq_R1.hold.fasta > ${projdir}/alignment_summaries/background_mutation_test/${i%.f*}_pop_haps.fasta 2> /dev/null &&
+				wait
+				while ! cat ${projdir}/alignment_summaries/background_mutation_test/${i%.f*}_pop_haps.fasta > /dev/null 2>&1; then
+					awk -F "\t" 'BEGIN { OFS=FS }; { print $1, substr($2, 1, 64); }' ${i%.f*}_uniq_R1.hold.fasta > ${projdir}/alignment_summaries/background_mutation_test/${i%.f*}_pop_haps.fasta 2> /dev/null &&
+					wait
+				done
+				wait
 				rm ${i%.f*}*.txt 2> /dev/null &&
 				find . -size 0 -delete 2> /dev/null &&
 				mv ${i%.f*}_uniq_R1.hold.fasta ${i%.f*}_uniq_R1.fasta 2> /dev/null &&
