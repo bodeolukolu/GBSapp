@@ -34,7 +34,6 @@ snpformats=false
 maxHaplotype=128
 haplome_number=1
 mhap_freq=1
-altpos=false
 softclip=false
 ncohorts=1
 keep_gVCF=false

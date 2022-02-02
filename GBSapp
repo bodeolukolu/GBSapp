@@ -162,9 +162,9 @@ fi
 cd $projdir
 samples_alt_dir="$(grep samples_alt_dir config.sh)"
 samples_alt_dir=${samples_alt_dir//*=}
-if [[ -z $samples_alt_dir ]]; then samples_alt_dir=false; fi
+if [[ -z "$samples_alt_dir" ]]; then samples_alt_dir=false; fi
 
-if [[ $samples_alt_dir == false ]] && [[ -d ./samples ]] ; then
+if [[ "$samples_alt_dir" == false ]] && [[ -d "./samples" ]] ; then
   :
 else
 	if [ -d ./samples ] && [ "$(ls -A ./samples)" ]; then
