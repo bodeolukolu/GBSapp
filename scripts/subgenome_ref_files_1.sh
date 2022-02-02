@@ -454,12 +454,12 @@ main () {
 			cd ${projdir}/alignment_summaries/background_mutation_test/
 			find -type f -name "*_pop_haps.fasta" | xargs cat > pop_haps.txt &&
 			rm *_pop_haps.fasta ${projdir}/align1_${samples_list} &&
-			awk '{a[$2]++} END{for(s in a){print a[s]" "s}}' | awk -F'\t' '{gsub(/ /,"\t"); print}' pop_haps.txt > pop_haps_freq.txt &&
+			awk '{a[$2]++} END{for(s in a){print a[s]" "s}}' pop_haps.txt | awk -F'\t' '{gsub(/ /,"\t"); print}' > pop_haps_freq.txt &&
 			awk -F'\t' 'BEGIN{OFS="\t"} NR==FNR{a[$2]=$0;next} ($2) in a{print $0, a[$2]}' pop_haps_freq.txt pop_haps.txt | \
-			awk '{print $1"\t"$2"\t"$3}' > pop_haps_freqall.txt &&
+			awk '{print $1"\t"$3}' > pop_haps_freqall.txt &&
 			rm pop_haps.txt pop_haps_freq.txt &&
-			awk -v phap=$mhap_freq '($3 == phap)' pop_haps_freqall.txt > pop_haps_freqFail.txt &&
-			awk -v phap=$mhap_freq '($3 > phap)' pop_haps_freqall.txt > pop_haps_freqPass.txt &&
+			awk -v phap=$mhap_freq '($2 == phap)' pop_haps_freqall.txt > pop_haps_freqFail.txt &&
+			awk -v phap=$mhap_freq '($2 > phap)' pop_haps_freqall.txt > pop_haps_freqPass.txt &&
 			rm pop_haps_freqall.txt &&
 			cd ../
 		fi
