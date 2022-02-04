@@ -24,7 +24,7 @@ if [ -z "$p2" ]; then
 	p2=$p1
 fi
 if [ -z "$mhap_freq" ]; then
-	mhap_freq=1
+	mhap_freq=0
 fi
 if [ -z "$softclip" ]; then
 	softclip=false
@@ -316,13 +316,15 @@ main () {
 		touch ${projdir}/alignment_summaries/total_read_count.txt
 	fi
 	printf 'sample\tnumber_of_reads\n' > ${projdir}/alignment_summaries/total_read_count.txt
-	mkdir -p ${projdir}/alignment_summaries/background_mutation_test
-	if [[ ! -f ${projdir}/alignment_summaries/pop_mutation_load.txt ]]; then
-		printf 'sample\trare_hap\tpop_hap\ttotal_hap\tmutation_load\n' > ${projdir}/alignment_summaries/pop_mutation_load.txt
+	if [[ "$mhap_freq" -gt 0 ]]; then
+		mkdir -p ${projdir}/alignment_summaries/background_mutation_test
+		if [[ ! -f ${projdir}/alignment_summaries/pop_mutation_load.txt ]]; then
+			printf 'sample\trare_hap\tpop_hap\ttotal_hap\tmutation_load\n' > ${projdir}/alignment_summaries/pop_mutation_load.txt
+		fi
 	fi
 }
 if [[ "$samples_list" == "samples_list_node_1.txt" ]]; then
-	time main &>> ${projdir}/log.out
+	if [[! -f "${projdir}/organize_files_done.txt" ]]; then time main &>> ${projdir}/log.out; fi
 fi
 
 
@@ -419,13 +421,16 @@ main () {
 				awk 'NF==2 {print ">seq"NR"_se-"$1"\t"$2}' ${i%.f*}_rdrefseq.txt > ${i%.f*}_rdrefseq_se.txt 2> /dev/null &&
 				awk 'NF==3 {print ">seq"NR"_pe-"$0}' ${i%.f*}_rdrefseq.txt | awk '{print $1"\t"$3}' > ${i%.f*}_uniq_R2.fasta 2> /dev/null &&
 				awk 'NF==3 {print ">seq"NR"_pe-"$0}' ${i%.f*}_rdrefseq.txt | awk '{print $1"\t"$2}' | cat - ${i%.f*}_rdrefseq_se.txt > ${i%.f*}_uniq_R1.hold.fasta 2> /dev/null &&
-				awk -F "\t" 'BEGIN { OFS=FS }; { print $1, substr($2, 1, 64); }' ${i%.f*}_uniq_R1.hold.fasta > ${projdir}/alignment_summaries/background_mutation_test/${i%.f*}_pop_haps.fasta 2> /dev/null &&
-				wait
-				while ! cat ${projdir}/alignment_summaries/background_mutation_test/${i%.f*}_pop_haps.fasta > /dev/null 2>&1; do
+				if [[ "$mhap_freq" -gt 0 ]]; then
 					awk -F "\t" 'BEGIN { OFS=FS }; { print $1, substr($2, 1, 64); }' ${i%.f*}_uniq_R1.hold.fasta > ${projdir}/alignment_summaries/background_mutation_test/${i%.f*}_pop_haps.fasta 2> /dev/null &&
 					wait
-				done
-				wait
+					while ! cat ${projdir}/alignment_summaries/background_mutation_test/${i%.f*}_pop_haps.fasta > /dev/null 2>&1; do
+						awk -F "\t" 'BEGIN { OFS=FS }; { print $1, substr($2, 1, 64); }' ${i%.f*}_uniq_R1.hold.fasta > ${projdir}/alignment_summaries/background_mutation_test/${i%.f*}_pop_haps.fasta 2> /dev/null &&
+						wait
+					done
+					wait
+				fi
+
 				rm ${i%.f*}*.txt 2> /dev/null &&
 				find . -size 0 -delete  2> /dev/null &&
 				mv ${i%.f*}_uniq_R1.hold.fasta ${i%.f*}_uniq_R1.fasta  2> /dev/null &&
@@ -433,7 +438,7 @@ main () {
 			done
 		fi
 	done
-	wait
+	wait && touch ${projdir}/organize_files_done.txt
 
 	if [[ "$(wc -l ${projdir}/alignment_summaries/total_read_count.txt | awk '{print $1}')" -le 1 ]]; then
 		cd ${projdir}/alignment_summaries/
@@ -447,7 +452,7 @@ main () {
 
 
 	if [[ ! -f "${projdir}/align1_${samples_list}" ]]; then touch "${projdir}/align1_${samples_list}"; fi
-		if [[ "$samples_list" == "samples_list_node_1.txt" ]]; then
+		if [[ "$samples_list" == "samples_list_node_1.txt" ]] && [[ "$mhap_freq" -gt 0 ]]; then
 			align=$(ls ${projdir}/align1_samples_list_node_* | wc -l)
 			while [[ "$align" -lt $nodes ]]; do sleep 30; align=$(ls ${projdir}/align1_samples_list_node_* | wc -l); done
 			if [[ $align == $nodes ]] && test ! -f ${projdir}/alignment_summaries/background_mutation_test/pop_haps_freqPass.txt; then
@@ -466,12 +471,10 @@ main () {
 	fi
 	wait
 
-	while [[ ! -f "${projdir}/alignment_summaries/background_mutation_test/pop_haps_freqPass.txt" ]]; do sleep 30; done
-	sleep 5
 	cd ${projdir}/samples
 
 	for i in $(cat ${projdir}/${samples_list} ); do
-		if test ! -f ${projdir}/hapfilter_done.txt && test ! -f ${projdir}/preprocess/${i%.f*}_redun.sam && test ! -f ${projdir}/preprocess/${i%.f*}_${ref1%.f*}_precall.bam.bai; then
+		if test ! -f ${projdir}/hapfilter_done.txt && test ! -f "${projdir}/preprocess/${i%.f*}_redun.sam" && test ! -f "${projdir}/preprocess/${i%.f*}_${ref1%.f*}_precall.bam.bai"; then
 			while test ! -f ${projdir}/alignment_summaries/${i%.f*}_pop_mutation_load.txt; do
 				sleep $[ ( $RANDOM % 30 )  + 10 ]s
 				export nempty=$( wc -l ${i%.f*}_uniq_R2.fasta &> /dev/null | awk '{print $1}' ) &&
@@ -479,29 +482,53 @@ main () {
 				p_hap=$(awk '{print $1}' ${projdir}/alignment_summaries/background_mutation_test/pop_haps_freqPass.txt | awk -F'\t' 'BEGIN{OFS="\t"} NR==FNR{a[$1]=$0;next} ($1) in a{print $0, a[$1]}' - ${projdir}/samples/${i%.f*}_uniq_R1.fasta | wc -l) &&
 				r_hap=$(awk '{print $1}' ${projdir}/alignment_summaries/background_mutation_test/pop_haps_freqFail.txt | awk -F'\t' 'BEGIN{OFS="\t"} NR==FNR{a[$1]=$0;next} ($1) in a{print $0, a[$1]}' - ${projdir}/samples/${i%.f*}_uniq_R1.fasta | wc -l) &&
 
-				if [[ "$nempty" -gt 0 ]]; then
-					awk '{print $1}' ${projdir}/alignment_summaries/background_mutation_test/pop_haps_freqPass.txt | \
-					awk -F'\t' 'BEGIN{OFS="\t"} NR==FNR{a[$1]=$0;next} ($1) in a{print $0, a[$1]}' - ${projdir}/samples/${i%.f*}_uniq_R1.fasta | \
-					awk 'NF{NF-=1};1' > ${projdir}/samples/${i%.f*}_uniq_R1_singleton.txt &&
-					grep '_se-' ${projdir}/samples/${i%.f*}_uniq_R1_singleton.txt | awk '{gsub(/>/,"@"); print}' | awk '{print $1"\t"$2"\t"$2}' | awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$3); print}' | awk '{print $1"\n"$2"\n+\n"$3}' | $gzip > ${projdir}/samples/${i%.f*}_uniq_singleton.fq.gz &&
-					grep '_pe-' ${projdir}/samples/${i%.f*}_uniq_R1_singleton.txt | awk '{gsub(/>/,"@"); print}' | awk '{print $1"\t"$2"\t"$2}' | awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$3); print}' | awk '{print $1"/1\n"$2"\n+\n"$3}' | $gzip > ${projdir}/samples/${i%.f*}_uniq_R1.fq.gz &&
-					rm ${projdir}/samples/${i%.f*}_uniq_R1_singleton.txt &&
-					awk '{print $1}' ${projdir}/alignment_summaries/background_mutation_test/pop_haps_freqPass.txt | \
-					awk -F'\t' 'BEGIN{OFS="\t"} NR==FNR{a[$1]=$0;next} ($1) in a{print $0, a[$1]}' - ${projdir}/samples/${i%.f*}_uniq_R2.fasta | awk 'NF{NF-=1};1' | awk '{gsub(/>/,"@"); print}' | \
-					awk '{print $1"\t"$2"\t"$2}' | awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$3); print}' | awk '{print $1"/2\n"$2"\n+\n"$3}' | $gzip  > ${projdir}/samples/${i%.f*}_uniq_R2.fq.gz &&
-					wait
-				else
-					awk '{print $1}' ${projdir}/alignment_summaries/background_mutation_test/pop_haps_freqPass.txt | \
-					awk -F'\t' 'BEGIN{OFS="\t"} NR==FNR{a[$1]=$0;next} ($1) in a{print $0, a[$1]}' - ${projdir}/samples/${i%.f*}_uniq_R1.fasta | awk 'NF{NF-=1};1' | awk '{gsub(/>/,"@"); print}' | \
-					awk '{print $1"\t"$2"\t"$2}' | awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$3); print}' | awk '{print $1"\n"$2"\n+\n"$3}' | $gzip  > ${projdir}/samples/${i%.f*}_uniq_R1.fq.gz &&
-					wait
-				fi
-
-				thap=$(awk -v var1=$r_hap -v var2=$p_hap 'BEGIN { print  ( var1 + var2 ) }' ) &&
-				mload=$(awk -v var1=$r_hap -v var2=$thap 'BEGIN { print  ( var1 / var2 ) }' ) &&
-				printf "${i%.f*}\t${r_hap}\t${p_hap}\t${thap}\t${mload}\n" > ${projdir}/alignment_summaries/${i%.f*}_pop_mutation_load.hold.txt &&
-				mv ${projdir}/alignment_summaries/${i%.f*}_pop_mutation_load.hold.txt ${projdir}/alignment_summaries/${i%.f*}_pop_mutation_load.txt &&
-				cd ${projdir}/samples
+				 if [[ "$mhap_freq" -gt 0 ]]; then
+					 if [[ "$nempty" -gt 0 ]]; then
+						awk '{print $1}' ${projdir}/alignment_summaries/background_mutation_test/pop_haps_freqPass.txt | \
+						awk -F'\t' 'BEGIN{OFS="\t"} NR==FNR{a[$1]=$0;next} ($1) in a{print $0, a[$1]}' - ${projdir}/samples/${i%.f*}_uniq_R1.fasta | \
+						awk 'NF{NF-=1};1' > ${projdir}/samples/${i%.f*}_uniq_R1_singleton.txt &&
+						grep '_se-' ${projdir}/samples/${i%.f*}_uniq_R1_singleton.txt | awk '{gsub(/>/,"@"); print}' | awk '{print $1"\t"$2"\t"$2}' | awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$3); print}' | awk '{print $1"\n"$2"\n+\n"$3}' | gzip > ${projdir}/samples/${i%.f*}_uniq_singleton.fq.gz &&
+						grep '_pe-' ${projdir}/samples/${i%.f*}_uniq_R1_singleton.txt | awk '{gsub(/>/,"@"); print}' | awk '{print $1"\t"$2"\t"$2}' | awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$3); print}' | awk '{print $1"/1\n"$2"\n+\n"$3}' | gzip > ${projdir}/samples/${i%.f*}_uniq_R1.fq.gz &&
+						rm ${projdir}/samples/${i%.f*}_uniq_R1_singleton.txt &&
+						awk '{print $1}' ${projdir}/alignment_summaries/background_mutation_test/pop_haps_freqPass.txt | \
+						awk -F'\t' 'BEGIN{OFS="\t"} NR==FNR{a[$1]=$0;next} ($1) in a{print $0, a[$1]}' - ${projdir}/samples/${i%.f*}_uniq_R2.fasta | awk 'NF{NF-=1};1' | awk '{gsub(/>/,"@"); print}' | \
+						awk '{print $1"\t"$2"\t"$2}' | awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$3); print}' | awk '{print $1"/2\n"$2"\n+\n"$3}' | gzip  > ${projdir}/samples/${i%.f*}_uniq_R2.fq.gz &&
+						wait
+					else
+						awk '{print $1}' ${projdir}/alignment_summaries/background_mutation_test/pop_haps_freqPass.txt | \
+						awk -F'\t' 'BEGIN{OFS="\t"} NR==FNR{a[$1]=$0;next} ($1) in a{print $0, a[$1]}' - ${projdir}/samples/${i%.f*}_uniq_R1.fasta | awk 'NF{NF-=1};1' | awk '{gsub(/>/,"@"); print}' | \
+						awk '{print $1"\t"$2"\t"$2}' | awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$3); print}' | awk '{print $1"\n"$2"\n+\n"$3}' | gzip  > ${projdir}/samples/${i%.f*}_uniq_R1.fq.gz &&
+						wait
+					fi
+					thap=$(awk -v var1=$r_hap -v var2=$p_hap 'BEGIN { print  ( var1 + var2 ) }' ) &&
+					mload=$(awk -v var1=$r_hap -v var2=$thap 'BEGIN { print  ( var1 / var2 ) }' ) &&
+					printf "${i%.f*}\t${r_hap}\t${p_hap}\t${thap}\t${mload}\n" > ${projdir}/alignment_summaries/${i%.f*}_pop_mutation_load.hold.txt &&
+					mv ${projdir}/alignment_summaries/${i%.f*}_pop_mutation_load.hold.txt ${projdir}/alignment_summaries/${i%.f*}_pop_mutation_load.txt &&
+					cd ${projdir}/samples
+				 else
+					 if [[ "$nempty" -gt 0 ]]; then
+						awk '{print $1}' ${projdir}/alignment_summaries/background_mutation_test/pop_haps_freqPass.txt | \
+						awk -F'\t' 'BEGIN{OFS="\t"} NR==FNR{a[$1]=$0;next} ($1) in a{print $0, a[$1]}' - ${projdir}/samples/${i%.f*}_uniq_R1.fasta | \
+						awk 'NF{NF-=1};1' > ${projdir}/samples/${i%.f*}_uniq_R1_singleton.txt &&
+						grep '_se-' ${projdir}/samples/${i%.f*}_uniq_R1_singleton.txt | awk '{gsub(/>/,"@"); print}' | awk '{print $1"\t"$2"\t"$2}' | awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$3); print}' | awk '{print $1"\n"$2"\n+\n"$3}' | gzip > ${projdir}/samples/${i%.f*}_uniq_singleton.fq.gz &&
+						grep '_pe-' ${projdir}/samples/${i%.f*}_uniq_R1_singleton.txt | awk '{gsub(/>/,"@"); print}' | awk '{print $1"\t"$2"\t"$2}' | awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$3); print}' | awk '{print $1"/1\n"$2"\n+\n"$3}' | gzip > ${projdir}/samples/${i%.f*}_uniq_R1.fq.gz &&
+						rm ${projdir}/samples/${i%.f*}_uniq_R1_singleton.txt &&
+						awk '{print $1}' ${projdir}/alignment_summaries/background_mutation_test/pop_haps_freqPass.txt | \
+						awk -F'\t' 'BEGIN{OFS="\t"} NR==FNR{a[$1]=$0;next} ($1) in a{print $0, a[$1]}' - ${projdir}/samples/${i%.f*}_uniq_R2.fasta | awk 'NF{NF-=1};1' | awk '{gsub(/>/,"@"); print}' | \
+						awk '{print $1"\t"$2"\t"$2}' | awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$3); print}' | awk '{print $1"/2\n"$2"\n+\n"$3}' | gzip  > ${projdir}/samples/${i%.f*}_uniq_R2.fq.gz &&
+						wait
+					else
+						awk '{print $1}' ${projdir}/alignment_summaries/background_mutation_test/pop_haps_freqPass.txt | \
+						awk -F'\t' 'BEGIN{OFS="\t"} NR==FNR{a[$1]=$0;next} ($1) in a{print $0, a[$1]}' - ${projdir}/samples/${i%.f*}_uniq_R1.fasta | awk 'NF{NF-=1};1' | awk '{gsub(/>/,"@"); print}' | \
+						awk '{print $1"\t"$2"\t"$2}' | awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$3); print}' | awk '{print $1"\n"$2"\n+\n"$3}' | gzip  > ${projdir}/samples/${i%.f*}_uniq_R1.fq.gz &&
+						wait
+					fi
+					thap=$(awk -v var1=$r_hap -v var2=$p_hap 'BEGIN { print  ( var1 + var2 ) }' ) &&
+					mload=$(awk -v var1=$r_hap -v var2=$thap 'BEGIN { print  ( var1 / var2 ) }' ) &&
+					printf "${i%.f*}\t${r_hap}\t${p_hap}\t${thap}\t${mload}\n" > ${projdir}/alignment_summaries/${i%.f*}_pop_mutation_load.hold.txt &&
+					mv ${projdir}/alignment_summaries/${i%.f*}_pop_mutation_load.hold.txt ${projdir}/alignment_summaries/${i%.f*}_pop_mutation_load.txt &&
+					cd ${projdir}/samples
+				 fi
 			done
 		fi
 	done
