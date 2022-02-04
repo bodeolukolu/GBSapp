@@ -324,7 +324,7 @@ main () {
 	fi
 }
 if [[ "$samples_list" == "samples_list_node_1.txt" ]]; then
-	if [[! -f "${projdir}/organize_files_done.txt" ]]; then time main &>> ${projdir}/log.out; fi
+	if [[ ! -f "${projdir}/organize_files_done.txt" ]]; then time main &>> ${projdir}/log.out; fi
 fi
 
 

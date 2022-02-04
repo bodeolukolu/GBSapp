@@ -303,7 +303,7 @@ if [ -d "pe" ]; then
 	fi
 else
 	if [[ "$samples_list" == "samples_list_node_1.txt" ]] && test ! -f ${projdir}/alignment_summaries/total_read_count.txt; then
-		if [[! -f "${projdir}/organize_files_done.txt" ]]; then time main &>> ${projdir}/log.out; fi
+		if [[ ! -f "${projdir}/organize_files_done.txt" ]]; then time main &>> ${projdir}/log.out; fi
 	fi
 fi
 
