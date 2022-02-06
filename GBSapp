@@ -196,13 +196,20 @@ if [ -d "single" ]; then
 fi
 
 # Initial questions before running walkaway
-cd $projdir
+cd $projdir/samples
 
 free=$(df . | awk 'NR==2{print $4}')
-required=$(du -s . | awk '{print $1}')
-required=$((required * 120/100))
+required=$(du -s . | awk '{print $1}') && required0=required
+if [[ "$(ls | head -n1)" =~ "gz" ]]; then  required0=$((required*5))
+if [[ -z $samples_alt_dir || $samples_alt_dir =~ False ]]; then
+  required1=$((required0 * 0.5))
+  required=$((required + required1))
+else
+  required=$((required0 * 0.5))
+fi
 if [[ "$free" -lt "$required" ]]; then
-	echo -e "${magenta}- You might not have enough disk space. Free: $((free/1000000))G; Required(approx. 1.2x the size of fastq files): $((required/1000000))G  ${white}\n"
+  echo -e "${magenta}- You might not have enough disk space. ${white}\n"
+	echo -e "${magenta}- Free: $((free/1000000))G; Required(approx. 0.5x the size of fastq files): $((required/1000000))G  ${white}\n"
 	echo -e "${magenta}- Do you want to continue running GBSapp? ${white}"
 	read -p "- Do you want to continue running GBSapp\n? " -n 1 -r
 	if [[ ! $REPLY =~ ^[Yy]$ ]]; then
