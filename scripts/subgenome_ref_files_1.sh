@@ -381,7 +381,7 @@ main () {
 	cd samples
 
 	for i in $( cat ${projdir}/${samples_list} ); do
-		if test ! -f ${projdir}/compress_done.txt  && test ! -f ${projdir}/preprocess/${i%.f*}_redun.sam && test ! -f ${projdir}/preprocess/${i%.f*}_${ref1%.f*}_precall.bam.bai; then
+		if test ! -f ${projdir}/compress_done.txt && test ! -f ${projdir}/alignment_summaries/total_read_count.hold.txt && test ! -f ${projdir}/preprocess/${i%.f*}_redun.sam && test ! -f ${projdir}/preprocess/${i%.f*}_${ref1%.f*}_precall.bam.bai; then
 			Nwhile=0
 			while test ! -f ${i%.f*}_uniq_R1.fasta; do
 				sleep $[ ( $RANDOM % 30 )  + 10 ]s
@@ -443,7 +443,7 @@ main () {
 	wait
 
 
-	if [[ ! -f "${projdir}/align1_${samples_list}" ]] && [[ ! -f "${projdir}/alignment_summaries/background_mutation_test/pop_haps_freqFail.txt" ]]; then touch "${projdir}/align1_${samples_list}"; fi
+	if [[ ! -f "${projdir}/align1_${samples_list}" ]] && test ! -f ${projdir}/compress_done.txt && [[ ! -f "${projdir}/alignment_summaries/background_mutation_test/pop_haps_freqFail.txt" ]]; then touch "${projdir}/align1_${samples_list}"; fi
 		if [[ "$samples_list" == "samples_list_node_1.txt" ]] && [[ "$mhap_freq" -gt 0 ]] && [[ ! -f "${projdir}/alignment_summaries/background_mutation_test/pop_haps_freqFail.txt" ]]; then
 			align=$(ls ${projdir}/align1_samples_list_node_* | wc -l)
 			while [[ "$align" -lt $nodes ]]; do
@@ -479,8 +479,8 @@ main () {
 
 	cd ${projdir}/samples
 
-	for i in $(cat ${projdir}/${samples_list} ); do
-		if test ! -f ${projdir}/hapfilter_done.txt && test ! -f "${projdir}/preprocess/${i%.f*}_redun.sam" && test ! -f "${projdir}/preprocess/${i%.f*}_${ref1%.f*}_precall.bam.bai"; then
+	for i in $(cat ${projdir}/${samples_list} ); do (
+		if test ! -f ${projdir}/hapfilter_done.txt && test ! -f ${projdir}/compress_done.txt && test ! -f "${projdir}/preprocess/${i%.f*}_redun.sam" && test ! -f "${projdir}/preprocess/${i%.f*}_${ref1%.f*}_precall.bam.bai"; then
 				sleep $[ ( $RANDOM % 30 )  + 10 ]s
 				export nempty=$( wc -l ${i%.f*}_uniq_R2.fasta &> /dev/null | awk '{print $1}' ) &&
 				 if [[ "$mhap_freq" -gt 0 ]]; then
@@ -514,6 +514,9 @@ main () {
 						wait
 					fi
 				 fi
+		fi ) &
+		if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
+			wait
 		fi
 	done
 	wait && touch ${projdir}/compress_done.txt
