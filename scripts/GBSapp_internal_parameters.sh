@@ -66,9 +66,29 @@ if [ "$cluster" == false ];then
   fi
 fi
 
-
+javaversion=$((update-alternatives --list java | grep 'java-8-openjdk') 2>&1)
 mkdir ~/bin
 PATH=~/bin:$PATH
+rm ~/bin/java
+ln -s $javaversion ~/bin/java
+javaversion=$((java -version) 2>&1)
+if [[ "$javaversion" =~ "1.8" ]]; then
+	echo -e "${white}\n- Using $javaversion\n ${white}"
+else
+	mkdir ~/bin
+	PATH=~/bin:$PATH
+	rm ~/bin/java
+	ln -s ${GBSapp_dir}/tools/jdk8*/bin/java ~/bin/java
+	javaversion=$((java -version) 2>&1)
+	if [[ "$javaversion" =~ "1.8" ]]; then
+		echo -e "${white}\n- Using $javaversion\n ${white}"
+	else
+		echo -e "${white}- install java version build 1.8 before proceeding ${white}"
+	fi
+fi
+mkdir ~/bin
+PATH=~/bin:$PATH
+rm ~/bin/java
 ln -s ${GBSapp_dir}/tools/jdk8*/bin/java ~/bin/java
 
 ######################################################################################################################################################
