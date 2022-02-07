@@ -202,10 +202,10 @@ free=$(df . | awk 'NR==2{print $4}')
 required=$(du -s . | awk '{print $1}') && required0=required
 if [[ "$(ls | head -n1)" =~ "gz" ]]; then  required0=$((required*5)); fi
 if [[ -z $samples_alt_dir || $samples_alt_dir =~ False ]]; then
-  required1=$((required0 * 0.5))
+  required1=$((required0 / 2))
   required=$((required + required1))
 else
-  required=$((required0 * 0.5))
+  required=$((required0 / 2))
 fi
 if [[ "$free" -lt "$required" ]]; then
   echo -e "${magenta}- You might not have enough disk space. ${white}\n"
