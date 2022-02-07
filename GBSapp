@@ -162,6 +162,33 @@ fi
 cd $projdir
 samples_alt_dir="$(grep samples_alt_dir config.sh)"
 samples_alt_dir=${samples_alt_dir//*=}
+
+# Initial questions before running walkaway
+cd $projdir/samples
+
+free=$(df . | awk 'NR==2{print $4}')
+required=$(du -s . | awk '{print $1}') && required0=required
+if [[ "$(ls | head -n1)" =~ "gz" ]]; then  required0=$((required*5)); fi
+if [[ -z $samples_alt_dir || $samples_alt_dir =~ False ]]; then
+  required1=$((required0 / 2))
+  required=$((required + required1))
+else
+  required=$((required0 / 2))
+fi
+if [[ "$free" -lt "$required" ]]; then
+  echo -e "${magenta}- You might not have enough disk space. ${white}\n"
+	echo -e "${magenta}- Free: $((free/1000000))G; Required(approx. 0.5x the size of fastq files): $((required/1000000))G  ${white}\n"
+	echo -e "${magenta}- Do you want to continue running GBSapp? ${white}"
+	read -p "- Do you want to continue running GBSapp\n? " -n 1 -r
+	if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+		printf '\n'
+		echo -e "${magenta}- Exiting GBSapp ${white}\n"
+		sleep 5 && exit 1
+	fi
+fi
+
+
+cd $projdir
 if [[ -z "$samples_alt_dir" ]]; then samples_alt_dir=false; fi
 
 if [[ "$samples_alt_dir" == false ]] && [[ -d "./samples" ]] ; then
@@ -195,29 +222,6 @@ if [ -d "single" ]; then
  mv single se
 fi
 
-# Initial questions before running walkaway
-cd $projdir/samples
-
-free=$(df . | awk 'NR==2{print $4}')
-required=$(du -s . | awk '{print $1}') && required0=required
-if [[ "$(ls | head -n1)" =~ "gz" ]]; then  required0=$((required*5)); fi
-if [[ -z $samples_alt_dir || $samples_alt_dir =~ False ]]; then
-  required1=$((required0 / 2))
-  required=$((required + required1))
-else
-  required=$((required0 / 2))
-fi
-if [[ "$free" -lt "$required" ]]; then
-  echo -e "${magenta}- You might not have enough disk space. ${white}\n"
-	echo -e "${magenta}- Free: $((free/1000000))G; Required(approx. 0.5x the size of fastq files): $((required/1000000))G  ${white}\n"
-	echo -e "${magenta}- Do you want to continue running GBSapp? ${white}"
-	read -p "- Do you want to continue running GBSapp\n? " -n 1 -r
-	if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-		printf '\n'
-		echo -e "${magenta}- Exiting GBSapp ${white}\n"
-		sleep 5 && exit 1
-	fi
-fi
 
 if [ -d "./samples/pe" ]; then
   echo -e "${magenta}- GBSapp will modify your sample fastq files by concatenating <pe-R1-reads> and <se-reads> ${white}"
