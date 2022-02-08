@@ -381,7 +381,7 @@ main () {
 	cd samples
 
 	for i in $( cat ${projdir}/${samples_list} ); do
-		if test ! -f ${projdir}/compress_done.txt && test ! -f ${projdir}/alignment_summaries/total_read_count.hold.txt && test ! -f ${projdir}/preprocess/${i%.f*}_redun.sam && test ! -f ${projdir}/preprocess/${i%.f*}_${ref1%.f*}_precall.bam.bai; then
+		if test ! -f ${projdir}/compress_done.txt && test ! -f ${projdir}/alignment_summaries/total_read_count.txt && test ! -f ${projdir}/preprocess/${i%.f*}_redun.sam && test ! -f ${projdir}/preprocess/${i%.f*}_${ref1%.f*}_precall.bam.bai; then
 			Nwhile=0
 			while test ! -f ${i%.f*}_uniq_R1.fasta; do
 				sleep $[ ( $RANDOM % 30 )  + 10 ]s
@@ -443,7 +443,7 @@ main () {
 	wait
 
 
-	if [[ ! -f "${projdir}/align1_${samples_list}" ]] && test ! -f ${projdir}/compress_done.txt && [[ ! -f "${projdir}/alignment_summaries/background_mutation_test/pop_haps_freqFail.txt" ]]; then touch "${projdir}/align1_${samples_list}"; fi
+	if [[ ! -f "${projdir}/align1_${samples_list}" ]] && test ! -f ${projdir}/compress_done.txt; then touch "${projdir}/align1_${samples_list}"; fi
 		if [[ "$samples_list" == "samples_list_node_1.txt" ]] && [[ "$mhap_freq" -gt 0 ]] && [[ ! -f "${projdir}/alignment_summaries/background_mutation_test/pop_haps_freqFail.txt" ]]; then
 			align=$(ls ${projdir}/align1_samples_list_node_* | wc -l)
 			while [[ "$align" -lt $nodes ]]; do
@@ -464,7 +464,7 @@ main () {
 				wait
 			done
 
-			if [[ $align == $nodes ]] && test ! -f ${projdir}/alignment_summaries/background_mutation_test/pop_haps_freqPass.txt; then
+			if [[ $align == $nodes ]] && test ! -f ${projdir}/alignment_summaries/background_mutation_test/pop_haps_freqFail.txt; then
 			cd ${projdir}/alignment_summaries/background_mutation_test/
 			touch ${projdir}/alignment_summaries/background_mutation_test/pop_haps.fasta
 			find -type f -name "*_pop_haps.fasta" | xargs cat > pop_haps.txt &&
@@ -525,7 +525,7 @@ main () {
 	for i in $(cat ${projdir}/${samples_list} ); do
 		cd ${projdir}/refgenomes
 		if test ! -f ${projdir}/precall_done.txt && test ! -f ${projdir}/preprocess/${i%.f*}_${ref1%.f*}_precall.bam.bai; then
-			Nwhile=0
+			export nempty=$( wc -l ${projdir}/samples/${i%.f*}_uniq_R2.fasta &> /dev/null | awk '{print $1}' ) &&
 			while test ! -f ${projdir}/preprocess/${i%.f*}_redun.sam; do
 				if [[ "$nempty" -gt 0 ]]; then
 					$java -ea $Xmx2 -cp ${GBSapp_dir}/tools/bbmap/current/ align2.BBMap fast=t threads=$threads averagepairdist=$PEdist deterministic=t maxindel=$maxindel local=t keepnames=t maxsites=12 saa=f secondary=t ambiguous=all ref=$ref1 in1=${projdir}/samples/${i%.f*}_uniq_R1.fq.gz in2=${projdir}/samples/${i%.f*}_uniq_R2.fq.gz out=${projdir}/preprocess/${i%.f*}_redun_R1R2.sam &&
@@ -546,8 +546,6 @@ main () {
 					rm ${projdir}/samples/${i%.f*}_uniq_R1.fasta 2> /dev/null &&
 					wait
 				fi
-				Nwhile=$((Nwhile+1))
-				if [[ "$Nwhile" -gt 100 ]]; then break; fi
 			done
 			wait
 		fi
@@ -555,20 +553,6 @@ main () {
 	done
 	wait && touch ${projdir}/hapfilter_done.txt
 
-
-	if [[ ! -f "${projdir}/align2_${samples_list}" ]]; then touch "${projdir}/align2_${samples_list}"; fi
-	if [[ "$samples_list" == "samples_list_node_1.txt" ]]; then
-		align=$(ls ${projdir}/align2_samples_list_node_* | wc -l)
-		while [[ "$align" -lt $nodes ]]; do sleep 30; align=$(ls ${projdir}/align2_samples_list_node_* | wc -l); done
-		if [[ $align == $nodes &&  "$(wc -l ${projdir}/alignment_summaries/pop_mutation_load.txt | awk '{print $1}')" -eq 1 ]]; then
-			cd ${projdir}/alignment_summaries
-			find -type f -wholename "*_pop_mutation_load.txt" | xargs cat > pop_mutation_load.hold.txt &&
-			cat pop_mutation_load.hold.txt >> pop_mutation_load.txt &&
-			rm pop_mutation_load.hold.txt &&
-			rm *_pop_mutation_load.txt ${projdir}/align2_${samples_list}
-			wait
-		fi
-	fi
 
 	align2_end=$( wc -l ${projdir}/alignment_summaries/pop_mutation_load.txt | awk '{print $1}')
 	while [[ "$align2_end" -lt 2 ]]; do sleep 10; done
@@ -721,7 +705,7 @@ for i in $(cat ${projdir}/${samples_list} ); do (
 				mv "${projdir}/snpcall/${i%.f*}_${ref1%.f*}.hold.g.vcf.gz" "${projdir}/snpcall/${i%.f*}_${ref1%.f*}.g.vcf.gz" && \
 				mv "${projdir}/snpcall/${i%.f*}_${ref1%.f*}.hold.g.vcf.gz.tbi" "${projdir}/snpcall/${i%.f*}_${ref1%.f*}.g.vcf.gz.tbi" &&
 				Nwhile=$((Nwhile+1))
-				if [[ "$Nwhile" -gt 100 ]]; then break; fi
+				if [[ "$Nwhile" -gt 10 ]]; then break; fi
 		done
 	fi ) &
 	if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
@@ -771,7 +755,7 @@ if [[ "$samples_list" == "samples_list_node_1.txt" ]] && test ! -f ${projdir}/sn
 					mv ${pop}_${ploidy}x_"${selchr}"_raw.hold.vcf.gz ${pop}_${ploidy}x_"${selchr}"_raw.vcf.gz
 					mv ${pop}_${ploidy}x_"${selchr}"_raw.hold.vcf.gz.tbi ${pop}_${ploidy}x_"${selchr}"_raw.vcf.gz.tbi &&
 					Nwhile=$((Nwhile+1))
-					if [[ "$Nwhile" -gt 100 ]]; then break; fi
+					if [[ "$Nwhile" -gt 10 ]]; then break; fi
 				done
 				if LC_ALL=C gzip -l ${pop}_${ploidy}x_"${selchr}"_raw.vcf.gz | awk 'NR==2 {exit($2!=0)}'; then
 					:

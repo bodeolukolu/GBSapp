@@ -213,7 +213,7 @@ if [[ "$free" -lt "$required" ]]; then
 fi
 
 
-cd samples
+cd $projdir/samples
 if [ -d "paired" ]; then
  mv paired pe
 fi
