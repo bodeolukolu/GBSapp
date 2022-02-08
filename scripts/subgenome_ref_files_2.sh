@@ -384,7 +384,7 @@ main () {
 	cd samples
 
 	for i in $(cat ${projdir}/${samples_list} ); do
-		if test ! -f ${projdir}/compress_done.txt && test ! -f ${projdir}/alignment_summaries/total_read_count.txt && test ! -f "${projdir}/preprocess/${i%.f*}_redun.sam" && test ! -f "${projdir}/preprocess/${i%.f*}_${ref1%.f*}_precall.bam.bai"; then
+		if test ! -f ${projdir}/compress_done.txt && test ! -f ${projdir}/organize_files_done.txt && test ! -f "${projdir}/preprocess/${i%.f*}_redun.sam" && test ! -f "${projdir}/preprocess/${i%.f*}_${ref1%.f*}_precall.bam.bai"; then
 			Nwhile=0
 			while test ! -f ${i%.f*}_uniq_R1.fasta; do
 				sleep $[ ( $RANDOM % 30 )  + 10 ]s
