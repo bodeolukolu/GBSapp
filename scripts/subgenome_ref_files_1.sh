@@ -486,18 +486,17 @@ main () {
 				 if [[ "$mhap_freq" -gt 0 ]]; then
 					 if [[ "$nempty" -gt 0 ]]; then
 					  awk '{print $2}' ${projdir}/alignment_summaries/background_mutation_test/pop_haps_freqFail.txt | \
-					  grep -v -x -f - ${projdir}/samples/${i%.f*}_uniq_R1.fasta  | \
-						awk 'NF{NF-=1};1' > ${projdir}/samples/${i%.f*}_uniq_R1_singleton.txt &&
+					  grep -v -x -f - ${projdir}/samples/${i%.f*}_uniq_R1.fasta  > ${projdir}/samples/${i%.f*}_uniq_R1_singleton.txt &&
 						grep '_se-' ${projdir}/samples/${i%.f*}_uniq_R1_singleton.txt | awk '{gsub(/>/,"@"); print}' | awk '{print $1"\t"$2"\t"$2}' | awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$3); print}' | awk '{print $1"\n"$2"\n+\n"$3}' | gzip > ${projdir}/samples/${i%.f*}_uniq_singleton.fq.gz &&
 						grep '_pe-' ${projdir}/samples/${i%.f*}_uniq_R1_singleton.txt | awk '{gsub(/>/,"@"); print}' | awk '{print $1"\t"$2"\t"$2}' | awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$3); print}' | awk '{print $1"/1\n"$2"\n+\n"$3}' | gzip > ${projdir}/samples/${i%.f*}_uniq_R1.fq.gz &&
 						rm ${projdir}/samples/${i%.f*}_uniq_R1_singleton.txt &&
 						awk '{print $2}' ${projdir}/alignment_summaries/background_mutation_test/pop_haps_freqFail.txt | \
-						grep -v -x -f - ${projdir}/samples/${i%.f*}_uniq_R2.fasta | awk 'NF{NF-=1};1' | awk '{gsub(/>/,"@"); print}' | \
+						grep -v -x -f - ${projdir}/samples/${i%.f*}_uniq_R2.fasta | awk '{gsub(/>/,"@"); print}' | \
 						awk '{print $1"\t"$2"\t"$2}' | awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$3); print}' | awk '{print $1"/2\n"$2"\n+\n"$3}' | gzip  > ${projdir}/samples/${i%.f*}_uniq_R2.fq.gz &&
 						wait
 					else
 						awk '{print $2}' ${projdir}/alignment_summaries/background_mutation_test/pop_haps_freqFail.txt | \
-						grep -v -x -f - ${projdir}/samples/${i%.f*}_uniq_R1.fasta | awk 'NF{NF-=1};1' | awk '{gsub(/>/,"@"); print}' | \
+						grep -v -x -f - ${projdir}/samples/${i%.f*}_uniq_R1.fasta | awk '{gsub(/>/,"@"); print}' | \
 						awk '{print $1"\t"$2"\t"$2}' | awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$3); print}' | awk '{print $1"\n"$2"\n+\n"$3}' | gzip  > ${projdir}/samples/${i%.f*}_uniq_R1.fq.gz &&
 						wait
 					fi
