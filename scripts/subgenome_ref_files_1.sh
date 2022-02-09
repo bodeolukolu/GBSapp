@@ -451,7 +451,7 @@ main () {
 			done
 			for i in $( cat ${projdir}/${samples_list} ); do
 				awk -F "\t" 'BEGIN { OFS=FS }; { print $1, substr($2, 1, 64); }' ${projdir}/samples/${i%.f*}_uniq_R1.fasta | awk '{a[$2]++} END{for(s in a){print a[s]" "s}}' | \
-				awk -F'\t' '{gsub(/ /,"\t"); print}' | awk -F'\t' 'BEGIN{OFS="\t"} NR==FNR{a[$2]=$0;next} ($2) in a{print $0, a[$2]}' - ${projdir}/samples/G500_uniq_R1.fasta | \
+				awk -F'\t' '{gsub(/ /,"\t"); print}' | awk -F'\t' 'BEGIN{OFS="\t"} NR==FNR{a[$2]=$0;next} ($2) in a{print $0, a[$2]}' - ${projdir}/samples/${i%.f*}_uniq_R1.fasta | \
 				awk '$3==1{print $1"\t"$2}' > ${projdir}/alignment_summaries/background_mutation_test/${i%.f*}_pop_haps.fasta 2> /dev/null &&
 				wait && Nwhile2=0
 				while ! cat ${projdir}/alignment_summaries/background_mutation_test/${i%.f*}_pop_haps.fasta > /dev/null 2>&1; do
@@ -502,14 +502,14 @@ main () {
 						wait
 					fi
 				 else
-					 if [[ "$nempty" -eq 0 ]]; then
+					 if [[ "$nempty" -gt 0 ]]; then
 						grep '_se-' ${projdir}/samples/${i%.f*}_uniq_R1.fasta | awk '{gsub(/>/,"@"); print}' | awk '{print $1"\t"$2"\t"$2}' | awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$3); print}' | awk '{print $1"\n"$2"\n+\n"$3}' | gzip > ${projdir}/samples/${i%.f*}_uniq_singleton.fq.gz &&
 						grep '_pe-' ${projdir}/samples/${i%.f*}_uniq_R1.fasta | awk '{gsub(/>/,"@"); print}' | awk '{print $1"\t"$2"\t"$2}' | awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$3); print}' | awk '{print $1"/1\n"$2"\n+\n"$3}' | gzip > ${projdir}/samples/${i%.f*}_uniq_R1.fq.gz &&
 						awk '{gsub(/>/,"@"); print}' ${projdir}/samples/${i%.f*}_uniq_R2.fasta | awk '{print $1"\t"$2"\t"$2}' | \
 						awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$3); print}' | awk '{print $1"/2\n"$2"\n+\n"$3}' | gzip  > ${projdir}/samples/${i%.f*}_uniq_R2.fq.gz &&
 						wait
 					else
-						wk '{gsub(/>/,"@"); print}' ${projdir}/samples/${i%.f*}_uniq_R1.fasta | awk '{print $1"\t"$2"\t"$2}' | \
+						awk '{gsub(/>/,"@"); print}' ${projdir}/samples/${i%.f*}_uniq_R1.fasta | awk '{print $1"\t"$2"\t"$2}' | \
 						awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$3); print}' | awk '{print $1"\n"$2"\n+\n"$3}' | gzip  > ${projdir}/samples/${i%.f*}_uniq_R1.fq.gz &&
 						wait
 					fi
@@ -552,12 +552,6 @@ main () {
 		cd ${projdir}/samples
 	done
 	wait && touch ${projdir}/hapfilter_done.txt
-
-
-	align2_end=$( wc -l ${projdir}/alignment_summaries/pop_mutation_load.txt | awk '{print $1}')
-	while [[ "$align2_end" -lt 2 ]]; do sleep 10; done
-	sleep 10
-	cd ${projdir}/samples
 
 
 	for i in $(cat ${projdir}/${samples_list} ); do (
