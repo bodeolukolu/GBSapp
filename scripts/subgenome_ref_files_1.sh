@@ -651,8 +651,6 @@ main () {
 	wait && touch ${projdir}/alignment_done.txt
 }
 cd $projdir
-while [[ ! -f "${projdir}/alignment_summaries/pop_mutation_load.txt" ]]; do sleep 30; done
-sleep 10
 if [ "$walkaway" == false ]; then
 	echo -e "${magenta}- Do you want to perform read alignments and alignment post-processing? ${white}\n"
 	read -p "- y(YES) or n(NO) " -t 36000 -n 1 -r
