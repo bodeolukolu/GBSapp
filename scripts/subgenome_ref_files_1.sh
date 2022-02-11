@@ -737,7 +737,7 @@ if [[ "$samples_list" == "samples_list_node_1.txt" ]] && test ! -f ${projdir}/sn
 			Get_Chromosome=$(awk 'NR>1{print $2,"\t",$3}' ${projdir}/refgenomes/${ref1%.*}.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $0}' | sort -k2,2 -nr | awk '{print $1}' | awk -v pat=${ref1%.f*} '$0 ~ pat')
 			for selchr in $Get_Chromosome; do
 				$GATK --java-options "$Xmxg -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads"  GenomicsDBImport $input -L $selchr --genomicsdb-workspace-path ${pop}_${ploidy}x_"${selchr}"_raw
-			fi
+			done
 			for selchr in $Get_Chromosome; do (
 				Nwhile=0
 				while test ! -f ${pop}_${ploidy}x_"${selchr}"_raw.vcf.gz; do
