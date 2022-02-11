@@ -4,7 +4,7 @@
 </p>
 
 # Introduction
-GBSapp (v. 1.0) is an automated pipeline for variant calling and filtering. The pipeline intuitively integrates existing and novel best practices, some of which can be controlled by user-defined parameters. It optimizes memory and speed at various steps of the pipeline, for example, a novel approach performs compression and decompression of unique reads before and after read alignment, respectively. Summary reports and visualizations allow for QC at each step of the pipeline.
+GBSapp (v. 1.0) is an automated pipeline for variant calling and filtering. The pipeline intuitively integrates existing/novel best practices, some of which can be controlled by user-defined parameters. It optimizes memory and speed at various steps of the pipeline, for example, a novel approach performs compression and decompression of unique reads before and after read alignment, respectively. Summary reports and visualizations allow for QC at each step of the pipeline.
 
 For questions, bugs, and suggestions, please contact bolukolu@utk.edu.
 
@@ -16,10 +16,9 @@ For questions, bugs, and suggestions, please contact bolukolu@utk.edu.
 - Variant calling implemented from 1x (haploid) to 8x (octoploid).
 - Splice-aware aligner allows for RNAseq data as input (recommended only for haploid or diploid genomes)
 - Can exclude reads that are rare haplotypes at population level (due to sequencing error and somaclonal variation).
-- Annonates SNPs based on if reads map to single and multiple loci.
+- Annonate SNPs based on if reads map to single and multiple loci.
 - Functions under-development:
-  - calling microhaplotypes/multilocus markers
-  - additional haplotype-based filtering (useful for targeted-genotyping)
+  - calling microhaplotypes markers
   - generating sequence context for variants
   - estimating ploidy level and aneuploidy.
 
@@ -49,14 +48,14 @@ git clone https://github.com/bodeolukolu/GBSapp.git
 ```bash
 GBSapp_dir/GBSapp install
 ```
-- With the exception of R and Python (v2.6 or greater) all dependencies are installed to a local directory within GBSapp.
+- With the exception of pigz, R, and Python (v2.6 or greater) all dependencies are installed to a local directory within GBSapp.
 
 
 **Dependencies:**<br />
 ```
 Installed on first run of pipeline:
 -----------------------------------
-bbmap, samtools, picard, bcftools, GATK, python, R, R-ggplot2, and R-AGHmatrix
+bbmap, samtools, picard, bcftools, GATK, java, R-ggplot2, and R-AGHmatrix
 
 
 Pre-install before running GBSapp:
@@ -115,6 +114,7 @@ Using a text editor, save a file containing any of the following variables as 'c
 |ploidy_ref2|na|ploid level for subgenome 1|integer|Required|
 |ploidy_ref3|na|ploid level for subgenome 1|integer|Required|
 |ploidy_ref4|na|ploid level for subgenome 1|integer|Required|
+|Get_Chromosome|na|variant calling on specific chromosomes, scaffolds,and contigs|string|optional|
 
 
 
@@ -170,8 +170,7 @@ ref1=TF.fasta
 ref2=TL.fasta
 ploidy_ref1=4
 ploidy_ref2=2
-multilocus=true
-paleopolyploid=false
+Get_Chromosome=TF_Chr01,TF_Chr02
 
 
 # SNP-filtering:
@@ -185,14 +184,14 @@ minRD_2x=6
 minRD_4x=25
 minRD_6x=45
 pseg=0.001
-maf=0.02
+maf=0.05
 snpformats=false
 
 # Advanced parameters
 ###################################################
 maxHaplotype=128
 haplome_number=1
-mhap_freq=1
+mhap_freq=0
 altpos=false
 softclip=true
 ncohorts=1

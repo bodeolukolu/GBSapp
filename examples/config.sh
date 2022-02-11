@@ -13,7 +13,7 @@ ref1=TF.fasta
 ref2=TL.fasta
 ploidy_ref1=4
 ploidy_ref2=2
-
+Get_Chromosome=TF_Chr01,TF_Chr02
 
 # SNP-filtering:
 ####################################################
@@ -26,14 +26,14 @@ minRD_2x=6
 minRD_4x=25
 minRD_6x=45
 pseg=0.001
-maf=0.02
+maf=0.05
 snpformats=false
 
 # Advanced_parameters
 ###################################################
 maxHaplotype=128
 haplome_number=1
-mhap_freq=1
+mhap_freq=0
 softclip=false
 ncohorts=1
 keep_gVCF=false
