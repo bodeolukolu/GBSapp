@@ -417,8 +417,8 @@ if [[ "$string" == false ]]; then
     sleep 5
   fi
 
-  echo $samples_list | awk -F' ' '{ for (i=1;i<=NF;i+=1) print $i }' | grep -v R2.f | grep -v _uniq_R1.fasta | grep -v _uniq_R2.fasta | grep -v _uniq_R1.hold.fasta | \
-  awk '{gsub(/_R1.fastq/,".fastq"); gsub(/.R1.fastq/,".fastq"); gsub(/_R1.fq/,".fq"); gsub(/.R1.fq/,".fq"); print}' > samples_list_node_1.txt
+  echo $samples_list | awk -F' ' '{ for (i=1;i<=NF;i+=1) print $i }' | awk '{gsub(/\.R2.f/,"_R2.f");}1' | grep -v _R2.f | grep -v _uniq_R1.fasta | grep -v _uniq_R2.fasta | grep -v _uniq_R1.hold.fasta | \
+  awk '{gsub(/_R1.fastq/,".fastq"); gsub(/\.R1.fastq/,".fastq"); gsub(/_R1.fq/,".fq"); gsub(/\.R1.fq/,".fq"); print}' > samples_list_node_1.txt
   printf "samples_list=samples_list_node_1.txt\n" >> config.sh
   cat header.txt config.sh fetchdir.txt $string2 $string3 | awk '{ sub("\r$",""); print}' > GBSapp_run.sh
   rm header.txt fetchdir.txt
@@ -518,8 +518,8 @@ if [ -z $cluster ]; then
   printf "walkaway=true \n\n" > walkaway.txt
   printf "GBSapp_dir=${GBSapp_dir}\n" > fetchdir.txt
   printf "projdir=${projdir}" >> fetchdir.txt
-  echo $samples_list | awk -F' ' '{ for (i=1;i<=NF;i+=1) print $i }' | grep -v R2.f | grep -v _uniq_R1.fasta | grep -v _uniq_R2.fasta | grep -v _uniq_R1.hold.fasta | \
-  awk '{gsub(/_R1.fastq/,".fastq"); gsub(/.R1.fastq/,".fastq"); gsub(/_R1.fq/,".fq"); gsub(/.R1.fq/,".fq"); print}' > samples_list_node_1.txt
+  echo $samples_list | awk -F' ' '{ for (i=1;i<=NF;i+=1) print $i }' | awk '{gsub(/\.R2.f/,"_R2.f");}1' | grep -v _R2.f | grep -v _uniq_R1.fasta | grep -v _uniq_R2.fasta | grep -v _uniq_R1.hold.fasta | \
+  awk '{gsub(/_R1.fastq/,".fastq"); gsub(/\.R1.fastq/,".fastq"); gsub(/_R1.fq/,".fq"); gsub(/\.R1.fq/,".fq"); print}' > samples_list_node_1.txt
   printf "samples_list=samples_list_node_1.txt\n" >> config.sh
   cat header.txt steps.txt config.sh walkaway.txt fetchdir.txt $string2 $string3 | awk '{ sub("\r$",""); print}' > GBSapp_run.sh
   rm header.txt walkaway.txt fetchdir.txt steps.txt
@@ -622,7 +622,8 @@ if [[ "$cluster" == true ]]; then
   printf "walkaway=true \n\n" > walkaway.txt
   if [[ $n_nodes -gt 1 ]]; then
     for i in $(seq 1 "$n_nodes"); do
-      echo $samples_list | awk -F' ' -v pos=$i -v skip=$n_nodes '{ for (i=pos;i<=NF;i+=skip) print $i }' | grep -v R2.f | grep -v _uniq_R1.fasta | grep -v _uniq_R2.fasta | grep -v _uniq_R1.hold.fasta | awk '{gsub(/_R1.fastq/,".fastq"); gsub(/.R1.fastq/,".fastq"); gsub(/_R1.fq/,".fq"); gsub(/.R1.fq/,".f"); gsub(/_R1.fq/,".fq"); print}'> samples_list_node_${i}.txt
+      echo $samples_list | awk -F' ' -v pos=$i -v skip=$n_nodes '{ for (i=pos;i<=NF;i+=skip) print $i }' | awk '{gsub(/\.R2.f/,"_R2.f");}1' | grep -v _R2.f | grep -v _uniq_R1.fasta | grep -v _uniq_R2.fasta | \
+      grep -v _uniq_R1.hold.fasta | awk '{gsub(/_R1.fastq/,".fastq"); gsub(/\.R1.fastq/,".fastq"); gsub(/_R1.fq/,".fq"); gsub(/\.R1.fq/,".f"); gsub(/_R1.fq/,".fq"); print}'> samples_list_node_${i}.txt
     done
     wait
     for i in $(seq 1 "$n_nodes"); do
@@ -657,7 +658,7 @@ if [[ "$cluster" == true ]]; then
       echo -e "${magenta}- Revise batch file header in ${projdir}GBSapp_run.sh for your cluster manager ${white}"
     fi
   else
-    echo $samples_list | awk -F' ' '{ for (i=1;i<=NF;i+=1) print $i }' | grep -v R2.f | grep -v _uniq_R1.fasta | grep -v _uniq_R2.fasta | grep -v _uniq_R1.hold.fasta | \
+    echo $samples_list | awk -F' ' '{ for (i=1;i<=NF;i+=1) print $i }' | awk '{gsub(/\.R2.f/,"_R2.f");}1' | grep -v _R2.f | grep -v _uniq_R1.fasta | grep -v _uniq_R2.fasta | grep -v _uniq_R1.hold.fasta | \
     awk '{gsub(/_R1.fastq/,".fastq"); gsub(/.R1.fastq/,".fastq"); gsub(/_R1.fq/,".fq"); gsub(/.R1.fq/,".fq"); print}' > samples_list_node_1.txt
     printf "samples_list=samples_list_node_1.txt\n" >> config.sh
     cat cluster_header.sh steps.txt config.sh walkaway.txt fetchdir.txt $string2 $string3 | awk '{ sub("\r$",""); print}' > GBSapp_run.sh
