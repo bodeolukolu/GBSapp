@@ -42,6 +42,10 @@ if [[ "$1" == "install" ]]; then
   mkdir -p $GBSapp_dir/tools
   cd $GBSapp_dir/tools
   bash $GBSapp_dir/scripts/install.sh
+  mkdir -p ~/bin
+  PATH=~/bin:$PATH
+  rm ~/bin/GBSapp
+  ln -s $GBSapp_dir/GBSapp ~/bin/GBSapp
   wait; exit 0
 fi
 
@@ -50,10 +54,18 @@ if [[ ! -d "$GBSapp_dir/tools" ]]; then
   mkdir -p $GBSapp_dir/tools
   cd $GBSapp_dir/tools
   bash $GBSapp_dir/scripts/install.sh
+  mkdir -p ~/bin
+  PATH=~/bin:$PATH
+  rm ~/bin/GBSapp
+  ln -s $GBSapp_dir/GBSapp ~/bin/GBSapp
 fi
 if [[ -d "$GBSapp_dir/tools" ]]; then
   cd $GBSapp_dir/tools
   bash $GBSapp_dir/scripts/install.sh
+  mkdir -p ~/bin
+  PATH=~/bin:$PATH
+  rm ~/bin/GBSapp
+  ln -s $GBSapp_dir/GBSapp ~/bin/GBSapp
 fi
 
 

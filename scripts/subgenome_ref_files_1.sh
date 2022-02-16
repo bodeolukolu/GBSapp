@@ -426,7 +426,12 @@ main () {
 				find . -size 0 -delete  2> /dev/null &&
 				mv ${i%.f*}_uniq_R1.hold.fasta ${i%.f*}_uniq_R1.fasta  2> /dev/null &&
 				wait && Nwhile=$((Nwhile+1))
-				if [[ "$Nwhile" -gt 100 ]]; then break; fi
+				if [[ "$Nwhile" -gt 100 ]]; then
+					echo -e "${magenta}- There is a problem. GBSapp exiting. Check the log.out file ${white}\n"
+					echo "- There is a problem. GBSapp will exit." &>> ${projdir}/log.out
+					sleep 5 && exit 1
+					break
+				fi
 			done
 		fi
 	done
@@ -458,8 +463,13 @@ main () {
 					awk -F "\t" 'BEGIN { OFS=FS }; { print $1, substr($2, 1, 64); }' ${i%.f*}_uniq_R1.fasta | awk '{a[$2]++} END{for(s in a){print a[s]" "s}}' | \
 					awk -F'\t' '{gsub(/ /,"\t"); print}' | awk -F'\t' 'BEGIN{OFS="\t"} NR==FNR{a[$2]=$0;next} ($2) in a{print $0, a[$2]}' - ./samples/G500_uniq_R1.fasta | \
 					awk phap=$mhap_freq '$3<=phap{print $1"\t"$2}' > ${projdir}/alignment_summaries/background_mutation_test/${i%.f*}_pop_haps.fasta 2> /dev/null &&
-					wait && Nwhile2=$((Nwhile2+1))
-					if [[ "$Nwhile2" -gt 100 ]]; then break; fi
+					wait && Nwhile=$((Nwhile+1))
+					if [[ "$Nwhile" -gt 100 ]]; then
+					  echo -e "${magenta}- There is a problem. GBSapp exiting. Check the log.out file ${white}\n"
+					  echo "- There is a problem. GBSapp will exit." &>> ${projdir}/log.out
+					  sleep 5 && exit 1
+					  break
+					fi
 				done
 				wait
 			done
@@ -525,6 +535,7 @@ main () {
 		cd ${projdir}/refgenomes
 		if test ! -f ${projdir}/precall_done.txt && test ! -f ${projdir}/preprocess/${i%.f*}_${ref1%.f*}_precall.bam.bai; then
 			export nempty=$( wc -l ${projdir}/samples/${i%.f*}_uniq_R2.fasta &> /dev/null | awk '{print $1}' ) &&
+			Nwhile=0
 			while test ! -f ${projdir}/preprocess/${i%.f*}_redun.sam; do
 				if [[ "$nempty" -gt 0 ]]; then
 					$java -ea $Xmx2 -cp ${GBSapp_dir}/tools/bbmap/current/ align2.BBMap fast=t qin=33 threads=$threads averagepairdist=$PEdist deterministic=t maxindel=$maxindel local=t keepnames=t maxsites=12 saa=f secondary=t ambiguous=all ref=$ref1 in1=${projdir}/samples/${i%.f*}_uniq_R1.fq.gz in2=${projdir}/samples/${i%.f*}_uniq_R2.fq.gz out=${projdir}/preprocess/${i%.f*}_redun_R1R2.sam &&
@@ -536,14 +547,21 @@ main () {
 					$java -ea $Xmx2 -cp ${GBSapp_dir}/tools/bbmap/current/ align2.BBMap fast=t qin=33 threads=$threads maxindel=$maxindel local=t keepnames=t maxsites=12 saa=f secondary=t ambiguous=all ref=$ref1 in1=${projdir}/samples/${i%.f*}_uniq_R1.fq.gz out=${projdir}/preprocess/${i%.f*}_redun.hold.sam &&
 					wait
 				fi
-				rm ${projdir}/samples/${i%.f*}_uniq_*.fq.gz && mv ${projdir}/preprocess/${i%.f*}_redun.hold.sam ${projdir}/preprocess/${i%.f*}_redun.sam 2> /dev/null &&
-				wait
+				mv ${projdir}/preprocess/${i%.f*}_redun.hold.sam ${projdir}/preprocess/${i%.f*}_redun.sam 2> /dev/null &&
+				rm ${projdir}/samples/${i%.f*}_uniq_*.fq.gz && wait
 				if [[ "$nempty" -gt 0 ]]; then
 					rm ${projdir}/samples/${i%.f*}_uniq_R1.fasta ${projdir}/samples/${i%.f*}_uniq_R2.fasta 2> /dev/null &&
 					wait
 				else
 					rm ${projdir}/samples/${i%.f*}_uniq_R1.fasta 2> /dev/null &&
 					wait
+				fi
+				wait && Nwhile=$((Nwhile+1))
+				if [[ "$Nwhile" -gt 100 ]]; then
+				  echo -e "${magenta}- There is a problem. GBSapp exiting. Check the log.out file ${white}\n"
+				  echo "- There is a problem. GBSapp will exit." &>> ${projdir}/log.out
+				  sleep 5 && exit 1
+				  break
 				fi
 			done
 			wait
@@ -554,50 +572,61 @@ main () {
 
 
 	for i in $(cat ${projdir}/${samples_list} ); do (
-		if test ! -f ${projdir}/alignment_done.txt; then
-			printf '\n###---'${i%.f*}'---###\n' > ${projdir}/alignment_summaries/${i%.f*}_summ.txt && \
-			$samtools flagstat ${projdir}/preprocess/${i%.f*}_redun.sam >> ${projdir}/alignment_summaries/${i%.f*}_summ.txt && \
-			printf '########################################################################################################\n\n' >> ${projdir}/alignment_summaries/${i%.f*}_summ.txt &&
-			printf 'copy\tFrequency\tPercentage\n' > ${projdir}/alignment_summaries/copy_number/${i%.f*}_copy_number_Unique_Read_histogram.txt && \
-			grep -v '^@' ${projdir}/preprocess/${i%.f*}_redun.sam | awk -F' ' '{print $1}' | awk '{gsub(/_/,"\t"); print $2}' | \
-			sort | uniq -c | awk '{print $2"\t"$1}' > ${projdir}/alignment_summaries/copy_number/${i%.f*}_copy_number.txt  && \
-			awk 'NR==FNR{sum+= $2; next;} {printf("%s\t%s\t%3.3f%%\t%3.0f\n",$1,$2,100*$2/sum,100*$2/sum)}' ${projdir}/alignment_summaries/copy_number/${i%.f*}_copy_number.txt ${projdir}/alignment_summaries/copy_number/${i%.f*}_copy_number.txt > ${projdir}/alignment_summaries/copy_number/${i%.f*}_plot.txt && \
-			unset IFS; printf "%s\t%s\t%s\t%*s\n" $(sed 's/$/ |/' ${projdir}/alignment_summaries/copy_number/${i%.f*}_plot.txt) | tr ' ' '|' | sort -k2,2 -nr | awk '{gsub(/se-/,""); gsub(/pe-/,""); print}' >> ${projdir}/alignment_summaries/copy_number/${i%.f*}_copy_number_Unique_Read_histogram.txt && rm ${projdir}/alignment_summaries/copy_number/${i%.f*}_copy_number.txt ${projdir}/alignment_summaries/copy_number/${i%.f*}_plot.txt
+		Nwhile=0
+		while test ! -f ${projdir}/preprocess/${i%.f*}_${ref1%.f*}.bam.bai; do
+			if test ! -f ${projdir}/alignment_done.txt; then
+				printf '\n###---'${i%.f*}'---###\n' > ${projdir}/alignment_summaries/${i%.f*}_summ.txt && \
+				$samtools flagstat ${projdir}/preprocess/${i%.f*}_redun.sam >> ${projdir}/alignment_summaries/${i%.f*}_summ.txt && \
+				printf '########################################################################################################\n\n' >> ${projdir}/alignment_summaries/${i%.f*}_summ.txt &&
+				printf 'copy\tFrequency\tPercentage\n' > ${projdir}/alignment_summaries/copy_number/${i%.f*}_copy_number_Unique_Read_histogram.txt && \
+				grep -v '^@' ${projdir}/preprocess/${i%.f*}_redun.sam | awk -F' ' '{print $1}' | awk '{gsub(/_/,"\t"); print $2}' | \
+				sort | uniq -c | awk '{print $2"\t"$1}' > ${projdir}/alignment_summaries/copy_number/${i%.f*}_copy_number.txt  && \
+				awk 'NR==FNR{sum+= $2; next;} {printf("%s\t%s\t%3.3f%%\t%3.0f\n",$1,$2,100*$2/sum,100*$2/sum)}' ${projdir}/alignment_summaries/copy_number/${i%.f*}_copy_number.txt ${projdir}/alignment_summaries/copy_number/${i%.f*}_copy_number.txt > ${projdir}/alignment_summaries/copy_number/${i%.f*}_plot.txt && \
+				unset IFS; printf "%s\t%s\t%s\t%*s\n" $(sed 's/$/ |/' ${projdir}/alignment_summaries/copy_number/${i%.f*}_plot.txt) | tr ' ' '|' | sort -k2,2 -nr | awk '{gsub(/se-/,""); gsub(/pe-/,""); print}' >> ${projdir}/alignment_summaries/copy_number/${i%.f*}_copy_number_Unique_Read_histogram.txt && rm ${projdir}/alignment_summaries/copy_number/${i%.f*}_copy_number.txt ${projdir}/alignment_summaries/copy_number/${i%.f*}_plot.txt
 
 
-			grep -v '^@' ${projdir}/preprocess/${i%.f*}_redun.sam | awk '($3 != "\*")' | awk '($6 != "\*")' | awk '!h[$1] { g[$1]=$0 } { h[$1]++ } END { for(k in g) print h[k], g[k] }' | \
-			cat <(grep '^@' ${projdir}/preprocess/${i%.f*}_redun.sam) - > ${projdir}/preprocess/${i%.f*}_del.sam
-			wait
-
-			echo "nloci~mapQ~CHROM~POS" > ${projdir}/alignment_summaries/refgenome_paralogs_${i%.f*}.txt
-			grep -v '^@' ${projdir}/preprocess/${i%.f*}_del.sam | awk -F'\t' '{print $1"\t"$3"\t"$4"\t"$5}' | awk '{gsub(/ /,"\t"); print}' | awk '{print $1"~"$5"~"$3"~"$4}' | grep -v '\*' | grep -v '^@' >> ${projdir}/alignment_summaries/refgenome_paralogs_${i%.f*}.txt &&
-			awk '!visited[$0]++' ${projdir}/alignment_summaries/refgenome_paralogs_${i%.f*}.txt > ${projdir}/alignment_summaries/temp_${i%.f*}.txt &&
-			mv ${projdir}/alignment_summaries/temp_${i%.f*}.txt ${projdir}/alignment_summaries/refgenome_paralogs_${i%.f*}.txt
-			rm ${projdir}/preprocess/${i%.f*}_del.sam
-			wait
-
-
-			awk '/@HD/ || /@SQ/{print}' ${projdir}/preprocess/${i%.f*}_redun.sam > ${projdir}/preprocess/${i%.f*}_heading.sam
-			grep -v '^@' ${projdir}/preprocess/${i%.f*}_redun.sam | awk '($3 != "\*")' | awk '{gsub(/_se-/,"_se-\t",$1); gsub(/_pe-/,"_pe-\t",$1)}1' | \
-			awk '{print $2"\t"$0}' | awk '{$2=$3=""}1' > ${projdir}/preprocess/${i%.f*}_uniq.sam &&
-			for j in $(LC_ALL=C; sort -n -k1,1 ${projdir}/preprocess/${i%.f*}_uniq.sam | awk '{print $1}' | uniq); do
-				awk -v n="^${j}" '$0~n{print $0}' ${projdir}/preprocess/${i%.f*}_uniq.sam | awk -v n="$j" '{for(i=0;i<n;i++) print}' >> ${projdir}/preprocess/${i%.f*}_exp.sam &&
+				grep -v '^@' ${projdir}/preprocess/${i%.f*}_redun.sam | awk '($3 != "\*")' | awk '($6 != "\*")' | awk '!h[$1] { g[$1]=$0 } { h[$1]++ } END { for(k in g) print h[k], g[k] }' | \
+				cat <(grep '^@' ${projdir}/preprocess/${i%.f*}_redun.sam) - > ${projdir}/preprocess/${i%.f*}_del.sam
 				wait
-			done
-			awk '{print "seq"NR"_"$0}' ${projdir}/preprocess/${i%.f*}_exp.sam | tr -s ' ' | awk '{gsub(/256/,"0",$2);gsub(/272/,"16",$2); print}' | \
-			awk '!($3 ~ "\*")' | awk '!($6 ~ "\*")' | cat ${projdir}/preprocess/${i%.f*}_heading.sam - | tr ' ' '\t' > ${projdir}/preprocess/${i%.f*}_${ref1%.f*}.sam &&
-			rm ${projdir}/preprocess/${i%.f*}_exp.sam ${projdir}/preprocess/${i%.f*}_uniq.sam ${projdir}/preprocess/${i%.f*}_heading.sam
 
-			j="${i%.f*}_${ref1%.f*}.sam"
-			cd ${projdir}/preprocess
-			$java $Xmx2 -XX:ParallelGCThreads=$gthreads -jar $picard SortSam I=$j O=${j%.sam*}.bam  SORT_ORDER=coordinate  VALIDATION_STRINGENCY=LENIENT && \
-			$java $Xmx2 -XX:ParallelGCThreads=$gthreads -jar $picard BuildBamIndex INPUT=${j%.sam*}.bam VALIDATION_STRINGENCY=LENIENT && \
-			$java $Xmx2 -XX:ParallelGCThreads=$gthreads -jar $picard AddOrReplaceReadGroups I=${j%.sam*}.bam O=${j%.sam*}_precall.bam RGLB=${i%.f*} RGPL=illumina VALIDATION_STRINGENCY=LENIENT RGPU=run RGSM=${i%.f*} && \
-			$samtools index ${j%.sam*}_precall.bam
-			ls ${i%.f*}_* | grep -v precall | xargs rm
+				echo "nloci~mapQ~CHROM~POS" > ${projdir}/alignment_summaries/refgenome_paralogs_${i%.f*}.txt
+				grep -v '^@' ${projdir}/preprocess/${i%.f*}_del.sam | awk -F'\t' '{print $1"\t"$3"\t"$4"\t"$5}' | awk '{gsub(/ /,"\t"); print}' | awk '{print $1"~"$5"~"$3"~"$4}' | grep -v '\*' | grep -v '^@' >> ${projdir}/alignment_summaries/refgenome_paralogs_${i%.f*}.txt &&
+				awk '!visited[$0]++' ${projdir}/alignment_summaries/refgenome_paralogs_${i%.f*}.txt > ${projdir}/alignment_summaries/temp_${i%.f*}.txt &&
+				mv ${projdir}/alignment_summaries/temp_${i%.f*}.txt ${projdir}/alignment_summaries/refgenome_paralogs_${i%.f*}.txt
+				rm ${projdir}/preprocess/${i%.f*}_del.sam
+				wait
 
-			cd ${projdir}/samples
-		fi ) &
+
+				awk '/@HD/ || /@SQ/{print}' ${projdir}/preprocess/${i%.f*}_redun.sam > ${projdir}/preprocess/${i%.f*}_heading.sam
+				grep -v '^@' ${projdir}/preprocess/${i%.f*}_redun.sam | awk '($3 != "\*")' | awk '{gsub(/_se-/,"_se-\t",$1); gsub(/_pe-/,"_pe-\t",$1)}1' | \
+				awk '{print $2"\t"$0}' | awk '{$2=$3=""}1' > ${projdir}/preprocess/${i%.f*}_uniq.sam &&
+				for j in $(LC_ALL=C; sort -n -k1,1 ${projdir}/preprocess/${i%.f*}_uniq.sam | awk '{print $1}' | uniq); do
+					awk -v n="^${j}" '$0~n{print $0}' ${projdir}/preprocess/${i%.f*}_uniq.sam | awk -v n="$j" '{for(i=0;i<n;i++) print}' >> ${projdir}/preprocess/${i%.f*}_exp.sam &&
+					wait
+				done
+				awk '{print "seq"NR"_"$0}' ${projdir}/preprocess/${i%.f*}_exp.sam | tr -s ' ' | awk '{gsub(/256/,"0",$2);gsub(/272/,"16",$2); print}' | \
+				awk '!($3 ~ "\*")' | awk '!($6 ~ "\*")' | cat ${projdir}/preprocess/${i%.f*}_heading.sam - | tr ' ' '\t' > ${projdir}/preprocess/${i%.f*}_${ref1%.f*}.sam &&
+				rm ${projdir}/preprocess/${i%.f*}_exp.sam ${projdir}/preprocess/${i%.f*}_uniq.sam ${projdir}/preprocess/${i%.f*}_heading.sam
+
+				j="${i%.f*}_${ref1%.f*}.sam"
+				cd ${projdir}/preprocess
+				$java $Xmx2 -XX:ParallelGCThreads=$gthreads -jar $picard SortSam I=$j O=${j%.sam*}.bam  SORT_ORDER=coordinate  VALIDATION_STRINGENCY=LENIENT && \
+				$java $Xmx2 -XX:ParallelGCThreads=$gthreads -jar $picard BuildBamIndex INPUT=${j%.sam*}.bam VALIDATION_STRINGENCY=LENIENT && \
+				$java $Xmx2 -XX:ParallelGCThreads=$gthreads -jar $picard AddOrReplaceReadGroups I=${j%.sam*}.bam O=${j%.sam*}_precall.bam RGLB=${i%.f*} RGPL=illumina VALIDATION_STRINGENCY=LENIENT RGPU=run RGSM=${i%.f*} && \
+				$samtools index ${j%.sam*}_precall.bam
+				ls ${i%.f*}_* | grep -v precall | xargs rm
+
+				cd ${projdir}/samples
+			fi
+			wait && Nwhile=$((Nwhile+1))
+			if [[ "$Nwhile" -gt 100 ]]; then
+			  echo -e "${magenta}- There is a problem. GBSapp exiting. Check the log.out file ${white}\n"
+			  echo "- There is a problem. GBSapp will exit." &>> ${projdir}/log.out
+			  sleep 5 && exit 1
+			  break
+			fi
+		done
+		) &
 		if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
 			wait
 		fi
@@ -703,8 +732,13 @@ for i in $(cat ${projdir}/${samples_list} ); do (
 				fi
 				mv "${projdir}/snpcall/${i%.f*}_${ref1%.f*}.hold.g.vcf.gz" "${projdir}/snpcall/${i%.f*}_${ref1%.f*}.g.vcf.gz" && \
 				mv "${projdir}/snpcall/${i%.f*}_${ref1%.f*}.hold.g.vcf.gz.tbi" "${projdir}/snpcall/${i%.f*}_${ref1%.f*}.g.vcf.gz.tbi" &&
-				Nwhile=$((Nwhile+1))
-				if [[ "$Nwhile" -gt 10 ]]; then break; fi
+				wait && Nwhile=$((Nwhile+1))
+				if [[ "$Nwhile" -gt 100 ]]; then
+				  echo -e "${magenta}- There is a problem. GBSapp exiting. Check the log.out file ${white}\n"
+				  echo "- There is a problem. GBSapp will exit." &>> ${projdir}/log.out
+				  sleep 5 && exit 1
+				  break
+				fi
 		done
 	fi ) &
 	if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
@@ -757,8 +791,13 @@ if [[ "$samples_list" == "samples_list_node_1.txt" ]] && test ! -f ${projdir}/sn
 					rm -r ${pop}_${ploidy}x_"${selchr}"_raw && \
 					mv ${pop}_${ploidy}x_"${selchr}"_raw.hold.vcf.gz ${pop}_${ploidy}x_"${selchr}"_raw.vcf.gz
 					mv ${pop}_${ploidy}x_"${selchr}"_raw.hold.vcf.gz.tbi ${pop}_${ploidy}x_"${selchr}"_raw.vcf.gz.tbi &&
-					Nwhile=$((Nwhile+1))
-					if [[ "$Nwhile" -gt 10 ]]; then break; fi
+					wait && Nwhile=$((Nwhile+1))
+					if [[ "$Nwhile" -gt 100 ]]; then
+					  echo -e "${magenta}- There is a problem. GBSapp exiting. Check the log.out file ${white}\n"
+					  echo "- There is a problem. GBSapp will exit." &>> ${projdir}/log.out
+					  sleep 5 && exit 1
+					  break
+					fi
 				done
 				if LC_ALL=C gzip -l ${pop}_${ploidy}x_"${selchr}"_raw.vcf.gz | awk 'NR==2 {exit($2!=0)}'; then
 					:
