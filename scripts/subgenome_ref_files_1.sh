@@ -489,7 +489,7 @@ main () {
 
 	cd ${projdir}/samples
 
-	for i in $(cat ${projdir}/${samples_list} ); do (
+	for i in $(cat ${projdir}/${samples_list} ); do
 		if test ! -f ${projdir}/hapfilter_done.txt && test ! -f ${projdir}/compress_done.txt && test ! -f "${projdir}/preprocess/${i%.f*}_redun.sam" && test ! -f "${projdir}/preprocess/${i%.f*}_${ref1%.f*}_precall.bam.bai"; then
 				sleep $[ ( $RANDOM % 30 )  + 10 ]s
 				export nempty=$( wc -l ${i%.f*}_uniq_R2.fasta &> /dev/null | awk '{print $1}' ) &&
@@ -523,9 +523,6 @@ main () {
 						wait
 					fi
 				 fi
-		fi ) &
-		if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
-			wait
 		fi
 	done
 	wait && touch ${projdir}/compress_done.txt
