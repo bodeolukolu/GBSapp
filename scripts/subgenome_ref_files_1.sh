@@ -557,7 +557,7 @@ main () {
 
 
 	for i in $(cat ${projdir}/${samples_list} ); do (
-		while test ! -f ${projdir}/preprocess/${i%.f*}_${ref1%.f*}.bam.bai; do
+		while test ! -f ${projdir}/preprocess/${i%.f*}_${ref1%.f*}_precall.bam.bai; do
 			if test ! -f ${projdir}/alignment_done.txt; then
 				printf '\n###---'${i%.f*}'---###\n' > ${projdir}/alignment_summaries/${i%.f*}_summ.txt && \
 				$samtools flagstat ${projdir}/preprocess/${i%.f*}_redun.sam >> ${projdir}/alignment_summaries/${i%.f*}_summ.txt && \
@@ -597,8 +597,8 @@ main () {
 				$java $Xmx2 -XX:ParallelGCThreads=$gthreads -jar $picard SortSam I=$j O=${j%.sam*}.bam  SORT_ORDER=coordinate  VALIDATION_STRINGENCY=LENIENT && \
 				$java $Xmx2 -XX:ParallelGCThreads=$gthreads -jar $picard BuildBamIndex INPUT=${j%.sam*}.bam VALIDATION_STRINGENCY=LENIENT && \
 				$java $Xmx2 -XX:ParallelGCThreads=$gthreads -jar $picard AddOrReplaceReadGroups I=${j%.sam*}.bam O=${j%.sam*}_precall.bam RGLB=${i%.f*} RGPL=illumina VALIDATION_STRINGENCY=LENIENT RGPU=run RGSM=${i%.f*} && \
-				$samtools index ${j%.sam*}_precall.bam
-				ls ${i%.f*}_* | grep -v precall | xargs rm
+				$samtools index ${j%.sam*}_precall.bam &&
+				ls ${i%.f*}_* | grep -v precall | xargs rm &&
 				cd ${projdir}/samples
 			fi
 		done
