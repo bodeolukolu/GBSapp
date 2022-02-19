@@ -167,7 +167,7 @@ free=$(df . | awk 'NR==2{print $4}')
 
 if [[ -z "$samples_alt_dir" ]]; then samples_alt_dir=false; fi
 
-if [[ "$samples_alt_dir" == false ]] && [[ -d "./samples" ]] ; then
+if [[ "$samples_alt_dir" =~ false ]] && [[ -d "./samples" ]] ; then
   :
 else
 	if [ -d ./samples ] && [ "$(ls -A ./samples)" ]; then
@@ -363,7 +363,7 @@ fi
 main() {
 cd $projdir
 cd samples
-export samples_list=$(ls -S *.f* | awk '{gsub(/\n/," "); print}')
+export samples_list=$(ls -RS *.f* ./*/*.f* 2> /dev/null | awk '{gsub(/\n/," "); print}' | awk -F"/" '{print $NF}' | awk '!a[$0]++' )
 cd ../
 
 string="${GBSapp_dir}/scripts/GBSapp_internal_parameters.sh"
