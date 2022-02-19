@@ -385,7 +385,6 @@ main () {
 
 	for i in $(cat ${projdir}/${samples_list} ); do
 		if test ! -f ${projdir}/compress_done.txt && test ! -f ${projdir}/organize_files_done.txt && test ! -f "${projdir}/preprocess/${i%.f*}_redun.sam" && test ! -f "${projdir}/preprocess/${i%.f*}_${ref1%.f*}_precall.bam.bai"; then
-			Nwhile=0
 			while test ! -f ${i%.f*}_uniq_R1.fasta; do
 				sleep $[ ( $RANDOM % 30 )  + 10 ]s
 			  if [[ $(file $i | awk -F' ' '{print $2}') == gzip ]]; then
@@ -428,13 +427,7 @@ main () {
 				rm ${i%.f*}*.txt 2> /dev/null &&
 				find . -size 0 -delete 2> /dev/null &&
 				mv ${i%.f*}_uniq_R1.hold.fasta ${i%.f*}_uniq_R1.fasta 2> /dev/null &&
-				wait && Nwhile=$((Nwhile+1))
-				if [[ "$Nwhile" -gt 3 ]]; then
-				  echo -e "${magenta}- There is a problem. GBSapp exiting. Check the log.out file ${white}\n"
-				  echo "- There is a problem. GBSapp will exit." &>> ${projdir}/log.out
-				  sleep 5 && exit 1
-				  break
-				fi
+				wait
 			done
 		fi
 	done
@@ -538,7 +531,6 @@ main () {
 		cd ${projdir}/refgenomes
 		if test ! -f ${projdir}/precall_done.txt && test ! -f "${projdir}/preprocess/${i%.f*}_${ref1%.f*}_precall.bam.bai"; then
 			export nempty=$( ls ${i%.f*}_uniq_R2.fasta 2> /dev/null | wc -l | awk '{print $1}' )
-			Nwhile=0
 			while test ! -f "${projdir}/preprocess/${i%.f*}_redun.sam"; do
 				if [[ "$nempty" -gt 0 ]]; then
 					$java -ea $Xmx2 -cp ${GBSapp_dir}/tools/bbmap/current/ align2.BBMap fast=t qin=33 threads=$threads averagepairdist=$PEdist deterministic=t maxindel=$maxindel local=t keepnames=t maxsites=12 saa=f secondary=t ambiguous=all ref=panref.fasta in1=${projdir}/samples/${i%.f*}_uniq_R1.fq.gz in2=${projdir}/samples/${i%.f*}_uniq_R2.fq.gz out=${projdir}/preprocess/${i%.f*}_redun_R1R2.sam &&
@@ -560,13 +552,6 @@ main () {
 					rm ${projdir}/samples/${i%.f*}_uniq_R1.fasta 2> /dev/null &&
 					wait
 				fi
-				wait && Nwhile=$((Nwhile+1))
-				if [[ "$Nwhile" -gt 3 ]]; then
-				  echo -e "${magenta}- There is a problem. GBSapp exiting. Check the log.out file ${white}\n"
-				  echo "- There is a problem. GBSapp will exit." &>> ${projdir}/log.out
-				  sleep 5 && exit 1
-				  break
-				fi
 			done
 			wait
 		fi
@@ -577,7 +562,6 @@ main () {
 
 
 	for i in $( cat ${projdir}/${samples_list} ); do (
-		Nwhile=0
 		while test ! -f ${projdir}/preprocess/${i%.f*}_${ref1%.f*}.bam.bai && test ! -f ${projdir}/preprocess/${i%.f*}_${ref2%.f*}.bam.bai && test ! -f ${projdir}/preprocess/${i%.f*}_${ref1%.f*}_${ref2%.f*}.bam.bai; do
 			if test ! -f ${projdir}/alignment_done.txt; then
 				printf '\n###---'${i%.f*}'---###\n' > ${projdir}/alignment_summaries/${i%.f*}_summ.txt && \
@@ -664,15 +648,7 @@ main () {
 			        $samtools index ${j%.sam*}_precall.bam
 			  done
 			  ls ${i%.f*}_* | grep -v precall | xargs rm
-
 			  cd ${projdir}/samples
-			fi
-			wait && Nwhile=$((Nwhile+1))
-			if [[ "$Nwhile" -gt 3 ]]; then
-			  echo -e "${magenta}- There is a problem. GBSapp exiting. Check the log.out file ${white}\n"
-			  echo "- There is a problem. GBSapp will exit." &>> ${projdir}/log.out
-			  sleep 5 && exit 1
-			  break
 			fi
 		done
 		) &
@@ -812,7 +788,6 @@ main () {
 	echo -e "${magenta}- performing SNP calling across entire genome (subgenome 1 and 2) ${white}\n"
 	for i in $(cat ${projdir}/${samples_list} ); do (
 		if test ! -f "${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_raw.vcf" && test ! -f "${projdir}/GVCF_1_2_done.txt"; then
-			Nwhile=0
 			while test ! -f "${projdir}/snpcall/${i%.f*}_${ref1%.f*}_${ref2%.f*}.g.vcf.gz"; do
 				if [[ -z "$Get_Chromosome" ]]; then
 					$GATK --java-options "$Xmxg -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R "${projdir}/refgenomes/panref.fasta" -I "${i%.f*}_${ref1%.f*}_${ref2%.f*}_precall.bam" -ploidy $ploidy -O ${projdir}/snpcall/${i%.f*}_${ref1%.f*}_${ref2%.f*}.hold.g.vcf.gz -ERC GVCF --dont-use-soft-clipped-bases $softclip --max-reads-per-alignment-start "$(( biased_downsample * ploidy ))" --minimum-mapping-quality 0 --max-num-haplotypes-in-population "$((ploidy * maxHaplotype))" &&
@@ -825,13 +800,7 @@ main () {
 				fi
 				mv "${projdir}/snpcall/${i%.f*}_${ref1%.f*}_${ref2%.f*}.hold.g.vcf.gz" "${projdir}/snpcall/${i%.f*}_${ref1%.f*}_${ref2%.f*}.g.vcf.gz" && \
 				mv "${projdir}/snpcall/${i%.f*}_${ref1%.f*}_${ref2%.f*}.hold.g.vcf.gz.tbi" "${projdir}/snpcall/${i%.f*}_${ref1%.f*}_${ref2%.f*}.g.vcf.gz.tbi" &&
-				wait && Nwhile=$((Nwhile+1))
-				if [[ "$Nwhile" -gt 3 ]]; then
-				  echo -e "${magenta}- There is a problem. GBSapp exiting. Check the log.out file ${white}\n"
-				  echo "- There is a problem. GBSapp will exit." &>> ${projdir}/log.out
-				  sleep 5 && exit 1
-				  break
-				fi
+				wait
 			done
 		fi ) &
 		if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
@@ -878,19 +847,12 @@ main () {
 					$GATK --java-options "$Xmxg -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads"  GenomicsDBImport $input -L $selchr --genomicsdb-workspace-path ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_"${selchr}"_raw
 				done
 				for selchr in $Get2_Chromosome; do (
-					Nwhile=0
 					while test ! -f "${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_"${selchr}"_raw.vcf.gz"; do
 						$GATK --java-options "$Xmxg -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads"  GenotypeGVCFs -R ${projdir}/refgenomes/panref.fasta -L $selchr -V gendb://${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_"${selchr}"_raw -O "${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_"${selchr}"_raw.hold.vcf.gz" && \
 						rm -r ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_"${selchr}"_raw && \
 						mv "${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_${selchr}_raw.hold.vcf.gz" "${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_${selchr}_raw.vcf.gz"
 						mv "${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_${selchr}_raw.hold.vcf.gz.tbi" "${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_${selchr}_raw.vcf.gz.tbi" &&
-						wait && Nwhile=$((Nwhile+1))
-						if [[ "$Nwhile" -gt 3 ]]; then
-						  echo -e "${magenta}- There is a problem. GBSapp exiting. Check the log.out file ${white}\n"
-						  echo "- There is a problem. GBSapp will exit." &>> ${projdir}/log.out
-						  sleep 5 && exit 1
-						  break
-						fi
+						wait
 					done
 					if LC_ALL=C gzip -l ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_"${selchr}"_raw.vcf.gz | awk 'NR==2 {exit($2!=0)}'; then
 						:
@@ -956,7 +918,6 @@ main () {
 	echo -e "${magenta}- performing SNP calling on subgenome-1 ${white}\n"
 	for i in $(cat ${projdir}/${samples_list} ); do (
 		if test ! -f "${pop}_${ref1%.f*}_${ploidy_ref1}x_raw.vcf" && test ! -f "${projdir}/GVCF_1_done.txt"; then
-			Nwhile=0
 			while test ! -f ${projdir}/snpcall/${i%.f*}_${ref1%.f*}.g.vcf.gz; do
 				if [[ -z "$Get_Chromosome" ]]; then
 					$GATK --java-options "$Xmxg -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads"  HaplotypeCaller -R ${projdir}/refgenomes/panref.fasta -I ${i%.f*}_${ref1%.f*}_precall.bam -ploidy $ploidy_ref1 -O ${projdir}/snpcall/${i%.f*}_${ref1%.f*}.hold.g.vcf.gz -ERC GVCF --dont-use-soft-clipped-bases $softclip --max-reads-per-alignment-start "$(( biased_downsample * ploidy_ref1 ))" --minimum-mapping-quality 0 --max-num-haplotypes-in-population "$((ploidy_ref1 * maxHaplotype))" &&
@@ -969,13 +930,7 @@ main () {
 				fi
 				mv "${projdir}/snpcall/${i%.f*}_${ref1%.f*}.hold.g.vcf.gz" "${projdir}/snpcall/${i%.f*}_${ref1%.f*}.g.vcf.gz" && \
 				mv "${projdir}/snpcall/${i%.f*}_${ref1%.f*}.hold.g.vcf.gz.tbi" "${projdir}/snpcall/${i%.f*}_${ref1%.f*}.g.vcf.gz.tbi" &&
-				wait && Nwhile=$((Nwhile+1))
-				if [[ "$Nwhile" -gt 3 ]]; then
-				  echo -e "${magenta}- There is a problem. GBSapp exiting. Check the log.out file ${white}\n"
-				  echo "- There is a problem. GBSapp will exit." &>> ${projdir}/log.out
-				  sleep 5 && exit 1
-				  break
-				fi
+				wait
 			done
 		fi ) &
 		if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
@@ -1023,20 +978,13 @@ main () {
 					$GATK --java-options "$Xmxg -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads"  GenomicsDBImport $input -L $selchr --genomicsdb-workspace-path ${pop}_${ref1%.f*}_${ploidy_ref1}x_"${selchr}"_raw
 				done
 				for selchr in $Get2_Chromosome; do (
-					Nwhile=0
 					while test ! -f "${pop}_${ref1%.f*}_${ploidy_ref1}x_${selchr}_raw.vcf.gz"; do
 						$GATK --java-options "$Xmxg -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads"  GenomicsDBImport $input -L $selchr --genomicsdb-workspace-path ${pop}_${ref1%.f*}_${ploidy_ref1}x_"${selchr}"_raw
 						$GATK --java-options "$Xmxg -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads"  GenotypeGVCFs -R ${projdir}/refgenomes/panref.fasta -L $selchr -V gendb://${pop}_${ref1%.f*}_${ploidy_ref1}x_"${selchr}"_raw -O "${pop}_${ref1%.f*}_${ploidy_ref1}x_${selchr}_raw.hold.vcf.gz" && \
 						rm -r ${pop}_${ref1%.f*}_${ploidy_ref1}x_"${selchr}"_raw && \
 						mv "${pop}_${ref1%.f*}_${ploidy_ref1}x_${selchr}_raw.hold.vcf.gz" "${pop}_${ref1%.f*}_${ploidy_ref1}x_${selchr}_raw.vcf.gz"
 						mv "${pop}_${ref1%.f*}_${ploidy_ref1}x_${selchr}_raw.hold.vcf.gz.tbi" "${pop}_${ref1%.f*}_${ploidy_ref1}x_${selchr}_raw.vcf.gz.tbi" &&
-						wait && Nwhile=$((Nwhile+1))
-						if [[ "$Nwhile" -gt 3 ]]; then
-						  echo -e "${magenta}- There is a problem. GBSapp exiting. Check the log.out file ${white}\n"
-						  echo "- There is a problem. GBSapp will exit." &>> ${projdir}/log.out
-						  sleep 5 && exit 1
-						  break
-						fi
+						wait
 					done
 					if LC_ALL=C gzip -l ${pop}_${ref1%.f*}_${ploidy_ref1}x_"${selchr}"_raw.vcf.gz | awk 'NR==2 {exit($2!=0)}'; then
 						:
@@ -1101,7 +1049,6 @@ main () {
 	echo -e "${magenta}- performing SNP calling on subgenome-2 ${white}\n"
 	for i in $(cat ${projdir}/${samples_list} ); do (
 		if test ! -f "${pop}_${ref2%.f*}_${ploidy_ref2}x_raw.vcf" && test ! -f "${projdir}/GVCF_2_done.txt"; then
-			Nwhile=0
 			while test ! -f "${projdir}/snpcall/${i%.f*}_${ref2%.f*}.g.vcf.gz"; do
 				if [[ -z "$Get_Chromosome" ]]; then
 					$GATK --java-options "$Xmxg -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ${projdir}/refgenomes/panref.fasta -I "${i%.f*}_${ref2%.f*}_precall.bam" -ploidy $ploidy_ref2 -O "${projdir}/snpcall/${i%.f*}_${ref2%.f*}.hold.g.vcf.gz" -ERC GVCF --dont-use-soft-clipped-bases $softclip --max-reads-per-alignment-start "$(( biased_downsample * ploidy_ref2 ))" --minimum-mapping-quality 0 --max-num-haplotypes-in-population "$((ploidy_ref2 * maxHaplotype))" &&
@@ -1114,13 +1061,7 @@ main () {
 				fi
 				mv "${projdir}/snpcall/${i%.f*}_${ref2%.f*}.hold.g.vcf.gz" "${projdir}/snpcall/${i%.f*}_${ref2%.f*}.g.vcf.gz" && \
 				mv "${projdir}/snpcall/${i%.f*}_${ref2%.f*}.hold.g.vcf.gz.tbi" "${projdir}/snpcall/${i%.f*}_${ref2%.f*}.g.vcf.gz.tbi" &&
-				wait && Nwhile=$((Nwhile+1))
-				if [[ "$Nwhile" -gt 3 ]]; then
-				  echo -e "${magenta}- There is a problem. GBSapp exiting. Check the log.out file ${white}\n"
-				  echo "- There is a problem. GBSapp will exit." &>> ${projdir}/log.out
-				  sleep 5 && exit 1
-				  break
-				fi
+				wait
 			done
 		fi ) &
 		if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
@@ -1169,18 +1110,11 @@ main () {
 					$GATK --java-options "$Xmxg -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads"  GenomicsDBImport $input -L $selchr --genomicsdb-workspace-path ${pop}_${ref2%.f*}_${ploidy_ref2}x_"${selchr}"_raw
 				done
 				for selchr in $Get2_Chromosome; do (
-					Nwhile=0
 					while test ! -f "${pop}_${ref2%.f*}_${ploidy_ref2}x_${selchr}_raw.vcf.gz"; do
 						$GATK --java-options "$Xmxg -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads"  GenotypeGVCFs -R ${projdir}/refgenomes/panref.fasta -L $selchr -V gendb://${pop}_${ref2%.f*}_${ploidy_ref2}x_"${selchr}"_raw -O "${pop}_${ref2%.f*}_${ploidy_ref2}x_${selchr}_raw.hold.vcf.gz" && \
 						rm -r ${pop}_${ref2%.f*}_${ploidy_ref2}x_"${selchr}"_raw && \
 						mv "${pop}_${ref2%.f*}_${ploidy_ref2}x_${selchr}_raw.hold.vcf.gz" "${pop}_${ref2%.f*}_${ploidy_ref2}x_${selchr}_raw.vcf.gz" &&
-						wait && Nwhile=$((Nwhile+1))
-						if [[ "$Nwhile" -gt 3 ]]; then
-						  echo -e "${magenta}- There is a problem. GBSapp exiting. Check the log.out file ${white}\n"
-						  echo "- There is a problem. GBSapp will exit." &>> ${projdir}/log.out
-						  sleep 5 && exit 1
-						  break
-						fi
+						wait
 					done
 					if LC_ALL=C gzip -l ${pop}_${ref2%.f*}_${ploidy_ref2}x_"${selchr}"_raw.vcf.gz | awk 'NR==2 {exit($2!=0)}'; then
 						:

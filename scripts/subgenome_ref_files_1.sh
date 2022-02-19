@@ -382,7 +382,6 @@ main () {
 
 	for i in $( cat ${projdir}/${samples_list} ); do
 		if test ! -f ${projdir}/compress_done.txt && test ! -f ${projdir}/organize_files_done.txt && test ! -f ${projdir}/preprocess/${i%.f*}_redun.sam && test ! -f ${projdir}/preprocess/${i%.f*}_${ref1%.f*}_precall.bam.bai; then
-			Nwhile=0
 			while test ! -f ${i%.f*}_uniq_R1.fasta; do
 				sleep $[ ( $RANDOM % 30 )  + 10 ]s
 				if [[ $(file $i | awk -F' ' '{print $2}') == gzip ]]; then
@@ -424,14 +423,8 @@ main () {
 				awk 'NF==3 {print ">seq"NR"_pe-"$0}' ${i%.f*}_rdrefseq.txt | awk '{print $1"\t"$2}' | cat - ${i%.f*}_rdrefseq_se.txt > ${i%.f*}_uniq_R1.hold.fasta 2> /dev/null &&
 				rm ${i%.f*}*.txt 2> /dev/null &&
 				find . -size 0 -delete  2> /dev/null &&
-				mv ${i%.f*}_uniq_R1.hold.fasta ${i%.f*}_uniq_R1.fasta  2> /dev/null &&
-				wait && Nwhile=$((Nwhile+1))
-				if [[ "$Nwhile" -gt 3 ]]; then
-					echo -e "${magenta}- There is a problem. GBSapp exiting. Check the log.out file ${white}\n"
-					echo "- There is a problem. GBSapp will exit." &>> ${projdir}/log.out
-					sleep 5 && exit 1
-					break
-				fi
+				mv ${i%.f*}_uniq_R1.hold.fasta ${i%.f*}_uniq_R1.fasta  2> /dev/null
+				wait
 			done
 		fi
 	done
@@ -535,7 +528,6 @@ main () {
 		cd ${projdir}/refgenomes
 		if test ! -f ${projdir}/precall_done.txt && test ! -f ${projdir}/preprocess/${i%.f*}_${ref1%.f*}_precall.bam.bai; then
 			export nempty=$( ls ${i%.f*}_uniq_R2.fasta 2> /dev/null | wc -l | awk '{print $1}' )
-			Nwhile=0
 			while test ! -f ${projdir}/preprocess/${i%.f*}_redun.sam; do
 				if [[ "$nempty" -gt 0 ]]; then
 					$java -ea $Xmx2 -cp ${GBSapp_dir}/tools/bbmap/current/ align2.BBMap fast=t qin=33 threads=$threads averagepairdist=$PEdist deterministic=t maxindel=$maxindel local=t keepnames=t maxsites=12 saa=f secondary=t ambiguous=all ref=$ref1 in1=${projdir}/samples/${i%.f*}_uniq_R1.fq.gz in2=${projdir}/samples/${i%.f*}_uniq_R2.fq.gz out=${projdir}/preprocess/${i%.f*}_redun_R1R2.sam &&
@@ -556,13 +548,6 @@ main () {
 					rm ${projdir}/samples/${i%.f*}_uniq_R1.fasta 2> /dev/null &&
 					wait
 				fi
-				wait && Nwhile=$((Nwhile+1))
-				if [[ "$Nwhile" -gt 3 ]]; then
-				  echo -e "${magenta}- There is a problem. GBSapp exiting. Check the log.out file ${white}\n"
-				  echo "- There is a problem. GBSapp will exit." &>> ${projdir}/log.out
-				  sleep 5 && exit 1
-				  break
-				fi
 			done
 			wait
 		fi
@@ -572,7 +557,6 @@ main () {
 
 
 	for i in $(cat ${projdir}/${samples_list} ); do (
-		Nwhile=0
 		while test ! -f ${projdir}/preprocess/${i%.f*}_${ref1%.f*}.bam.bai; do
 			if test ! -f ${projdir}/alignment_done.txt; then
 				printf '\n###---'${i%.f*}'---###\n' > ${projdir}/alignment_summaries/${i%.f*}_summ.txt && \
@@ -615,15 +599,7 @@ main () {
 				$java $Xmx2 -XX:ParallelGCThreads=$gthreads -jar $picard AddOrReplaceReadGroups I=${j%.sam*}.bam O=${j%.sam*}_precall.bam RGLB=${i%.f*} RGPL=illumina VALIDATION_STRINGENCY=LENIENT RGPU=run RGSM=${i%.f*} && \
 				$samtools index ${j%.sam*}_precall.bam
 				ls ${i%.f*}_* | grep -v precall | xargs rm
-
 				cd ${projdir}/samples
-			fi
-			wait && Nwhile=$((Nwhile+1))
-			if [[ "$Nwhile" -gt 3 ]]; then
-			  echo -e "${magenta}- There is a problem. GBSapp exiting. Check the log.out file ${white}\n"
-			  echo "- There is a problem. GBSapp will exit." &>> ${projdir}/log.out
-			  sleep 5 && exit 1
-			  break
 			fi
 		done
 		) &
@@ -719,7 +695,6 @@ cd $projdir
 cd preprocess
 for i in $(cat ${projdir}/${samples_list} ); do (
 	if test ! -f "${pop}_${ploidy}x_raw.vcf.gz" && test ! -f ${projdir}/GVCF_done.txt; then
-		Nwhile=0
 		while test ! -f "${projdir}/snpcall/${i%.f*}_${ref1%.f*}.g.vcf.gz"; do
 				if [[ -z "$Get_Chromosome" ]]; then
 					$GATK --java-options "$Xmxg -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ${projdir}/refgenomes/$ref1 -I "${i%.f*}_${ref1%.f*}_precall.bam" -ploidy $ploidy -O "${projdir}/snpcall/${i%.f*}_${ref1%.f*}.hold.g.vcf.gz" -ERC GVCF --dont-use-soft-clipped-bases $softclip --max-reads-per-alignment-start 0 --minimum-mapping-quality 0 --max-num-haplotypes-in-population "$((ploidy * maxHaplotype))" &&
@@ -732,13 +707,7 @@ for i in $(cat ${projdir}/${samples_list} ); do (
 				fi
 				mv "${projdir}/snpcall/${i%.f*}_${ref1%.f*}.hold.g.vcf.gz" "${projdir}/snpcall/${i%.f*}_${ref1%.f*}.g.vcf.gz" && \
 				mv "${projdir}/snpcall/${i%.f*}_${ref1%.f*}.hold.g.vcf.gz.tbi" "${projdir}/snpcall/${i%.f*}_${ref1%.f*}.g.vcf.gz.tbi" &&
-				wait && Nwhile=$((Nwhile+1))
-				if [[ "$Nwhile" -gt 3 ]]; then
-				  echo -e "${magenta}- There is a problem. GBSapp exiting. Check the log.out file ${white}\n"
-				  echo "- There is a problem. GBSapp will exit." &>> ${projdir}/log.out
-				  sleep 5 && exit 1
-				  break
-				fi
+				wait
 		done
 	fi ) &
 	if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
@@ -785,19 +754,12 @@ if [[ "$samples_list" == "samples_list_node_1.txt" ]] && test ! -f ${projdir}/sn
 				$GATK --java-options "$Xmxg -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" GenomicsDBImport $input -L $selchr --genomicsdb-workspace-path ${pop}_${ploidy}x_"${selchr}"_raw
 			done
 			for selchr in $Get2_Chromosome; do (
-				Nwhile=0
 				while test ! -f ${pop}_${ploidy}x_"${selchr}"_raw.vcf.gz; do
 					$GATK --java-options "$Xmxg -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" GenotypeGVCFs -R ${projdir}/refgenomes/$ref1 -L $selchr -V gendb://${pop}_${ploidy}x_"${selchr}"_raw -O ${pop}_${ploidy}x_"${selchr}"_raw.hold.vcf.gz && \
 					rm -r ${pop}_${ploidy}x_"${selchr}"_raw && \
 					mv ${pop}_${ploidy}x_"${selchr}"_raw.hold.vcf.gz ${pop}_${ploidy}x_"${selchr}"_raw.vcf.gz
 					mv ${pop}_${ploidy}x_"${selchr}"_raw.hold.vcf.gz.tbi ${pop}_${ploidy}x_"${selchr}"_raw.vcf.gz.tbi &&
-					wait && Nwhile=$((Nwhile+1))
-					if [[ "$Nwhile" -gt 3 ]]; then
-					  echo -e "${magenta}- There is a problem. GBSapp exiting. Check the log.out file ${white}\n"
-					  echo "- There is a problem. GBSapp will exit." &>> ${projdir}/log.out
-					  sleep 5 && exit 1
-					  break
-					fi
+					wait
 				done
 				if LC_ALL=C gzip -l ${pop}_${ploidy}x_"${selchr}"_raw.vcf.gz | awk 'NR==2 {exit($2!=0)}'; then
 					:
