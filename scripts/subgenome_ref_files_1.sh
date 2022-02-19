@@ -426,7 +426,7 @@ main () {
 				find . -size 0 -delete  2> /dev/null &&
 				mv ${i%.f*}_uniq_R1.hold.fasta ${i%.f*}_uniq_R1.fasta  2> /dev/null &&
 				wait && Nwhile=$((Nwhile+1))
-				if [[ "$Nwhile" -gt 100 ]]; then
+				if [[ "$Nwhile" -gt 3 ]]; then
 					echo -e "${magenta}- There is a problem. GBSapp exiting. Check the log.out file ${white}\n"
 					echo "- There is a problem. GBSapp will exit." &>> ${projdir}/log.out
 					sleep 5 && exit 1
@@ -464,7 +464,7 @@ main () {
 					awk -F'\t' '{gsub(/ /,"\t"); print}' | awk -F'\t' 'BEGIN{OFS="\t"} NR==FNR{a[$2]=$0;next} ($2) in a{print $0, a[$2]}' - ./samples/G500_uniq_R1.fasta | \
 					awk phap=$mhap_freq '$3<=phap{print $1"\t"$2}' > ${projdir}/alignment_summaries/background_mutation_test/${i%.f*}_pop_haps.fasta 2> /dev/null &&
 					wait && Nwhile=$((Nwhile+1))
-					if [[ "$Nwhile" -gt 100 ]]; then
+					if [[ "$Nwhile" -gt 3 ]]; then
 					  echo -e "${magenta}- There is a problem. GBSapp exiting. Check the log.out file ${white}\n"
 					  echo "- There is a problem. GBSapp will exit." &>> ${projdir}/log.out
 					  sleep 5 && exit 1
@@ -557,7 +557,7 @@ main () {
 					wait
 				fi
 				wait && Nwhile=$((Nwhile+1))
-				if [[ "$Nwhile" -gt 100 ]]; then
+				if [[ "$Nwhile" -gt 3 ]]; then
 				  echo -e "${magenta}- There is a problem. GBSapp exiting. Check the log.out file ${white}\n"
 				  echo "- There is a problem. GBSapp will exit." &>> ${projdir}/log.out
 				  sleep 5 && exit 1
@@ -619,7 +619,7 @@ main () {
 				cd ${projdir}/samples
 			fi
 			wait && Nwhile=$((Nwhile+1))
-			if [[ "$Nwhile" -gt 100 ]]; then
+			if [[ "$Nwhile" -gt 3 ]]; then
 			  echo -e "${magenta}- There is a problem. GBSapp exiting. Check the log.out file ${white}\n"
 			  echo "- There is a problem. GBSapp will exit." &>> ${projdir}/log.out
 			  sleep 5 && exit 1
@@ -733,7 +733,7 @@ for i in $(cat ${projdir}/${samples_list} ); do (
 				mv "${projdir}/snpcall/${i%.f*}_${ref1%.f*}.hold.g.vcf.gz" "${projdir}/snpcall/${i%.f*}_${ref1%.f*}.g.vcf.gz" && \
 				mv "${projdir}/snpcall/${i%.f*}_${ref1%.f*}.hold.g.vcf.gz.tbi" "${projdir}/snpcall/${i%.f*}_${ref1%.f*}.g.vcf.gz.tbi" &&
 				wait && Nwhile=$((Nwhile+1))
-				if [[ "$Nwhile" -gt 100 ]]; then
+				if [[ "$Nwhile" -gt 3 ]]; then
 				  echo -e "${magenta}- There is a problem. GBSapp exiting. Check the log.out file ${white}\n"
 				  echo "- There is a problem. GBSapp will exit." &>> ${projdir}/log.out
 				  sleep 5 && exit 1
@@ -792,7 +792,7 @@ if [[ "$samples_list" == "samples_list_node_1.txt" ]] && test ! -f ${projdir}/sn
 					mv ${pop}_${ploidy}x_"${selchr}"_raw.hold.vcf.gz ${pop}_${ploidy}x_"${selchr}"_raw.vcf.gz
 					mv ${pop}_${ploidy}x_"${selchr}"_raw.hold.vcf.gz.tbi ${pop}_${ploidy}x_"${selchr}"_raw.vcf.gz.tbi &&
 					wait && Nwhile=$((Nwhile+1))
-					if [[ "$Nwhile" -gt 100 ]]; then
+					if [[ "$Nwhile" -gt 3 ]]; then
 					  echo -e "${magenta}- There is a problem. GBSapp exiting. Check the log.out file ${white}\n"
 					  echo "- There is a problem. GBSapp will exit." &>> ${projdir}/log.out
 					  sleep 5 && exit 1
