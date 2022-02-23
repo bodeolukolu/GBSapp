@@ -30,7 +30,7 @@ if [ -z "$softclip" ]; then
 	softclip=false
 fi
 if [ -z "$joint_calling" ]; then
-	joint_calling=false
+	joint_calling=true
 fi
 if [ -z "$keep_gVCF" ]; then
 	keep_gVCF=false
@@ -698,10 +698,14 @@ if [[ "$joint_calling" == true ]]; then
 		k="${j} ${i}"; input="${input} ${k}"
 	done
 	Get2_Chromosome=$(awk 'NR>1{print $2,"\t",$3}' ${projdir}/refgenomes/${ref1%.*}.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $0}' | sort -k2,2 -nr | awk '{print $1}' | awk -v pat=${ref1%.f*} '$0 ~ pat')
-
+	if [[ ! -z "$Exclude_Chromosome" ]]; then
+		for i in $(echo "$Exclude_Chromosome" | tr ',' '\n'); do
+			Get2_Chromosome=$(echo $Get2_Chromosome | awk -v i=$i '{gsub(i,"");}1')
+		done
+	fi
 	if [[ -z "$Get_Chromosome" ]]; then
 		for selchr in $Get2_Chromosome; do (
-			$GATK --java-options "$Xmxg -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ${projdir}/refgenomes/$ref1 -L $selchr $input -ploidy $ploidy -O ${projdir}/snpcall/${pop}_${ploidy}x_${selchr}_raw.vcf.gz --dont-use-soft-clipped-bases $softclip --max-reads-per-alignment-start 0 --minimum-mapping-quality 0 --max-num-haplotypes-in-population "$((ploidy * maxHaplotype))" &&
+			$GATK --java-options "$Xmxg -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ${projdir}/refgenomes/$ref1 -L "${selchr}" "${input}" -ploidy $ploidy -O ${projdir}/snpcall/${pop}_${ploidy}x_${selchr}_raw.vcf.gz --dont-use-soft-clipped-bases $softclip --max-reads-per-alignment-start 0 --minimum-mapping-quality 0 --max-num-haplotypes-in-population "$((ploidy * maxHaplotype))" &&
 			wait
 			) &
 			if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
@@ -722,7 +726,7 @@ if [[ "$joint_calling" == true ]]; then
 	else
 		echo $Get_Chromosome | tr ',' '\n' | awk '{print "SN:"$1}' | awk 'NR==FNR{a[$1];next}$2 in a{print $0}' - ${ref1%.fasta}.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $2"\t0\t"$3"\t+\t"$2}' | \
 		cat ${ref1%.fasta}.dict - > ${ref1%.fasta}.intervals_list
-		$GATK --java-options "$Xmx2 -XX:+UseParallelGC -XX:ParallelGCThreads=$threads" HaplotypeCaller -R ${projdir}/refgenomes/$ref1 -L ${ref1%.fasta}.intervals_list $input -ploidy $ploidy -O ${projdir}/snpcall/${pop}_${ploidy}x_raw.vcf.gz --dont-use-soft-clipped-bases $softclip --max-reads-per-alignment-start 0 --minimum-mapping-quality 0 --max-num-haplotypes-in-population "$((ploidy * maxHaplotype))" &&
+		$GATK --java-options "$Xmx2 -XX:+UseParallelGC -XX:ParallelGCThreads=$threads" HaplotypeCaller -R ${projdir}/refgenomes/$ref1 -L ${ref1%.fasta}.intervals_list "${input}" -ploidy $ploidy -O ${projdir}/snpcall/${pop}_${ploidy}x_raw.vcf.gz --dont-use-soft-clipped-bases $softclip --max-reads-per-alignment-start 0 --minimum-mapping-quality 0 --max-num-haplotypes-in-population "$((ploidy * maxHaplotype))" &&
 		cd ../snpcall
 		gunzip ${pop}_${ploidy}x_raw.vcf.gz &&
 		wait
@@ -782,11 +786,11 @@ if [[ "$joint_calling" == false ]]; then
 					Get2_Chromosome=$(echo $Get_Chromosome | tr ',' '\n')
 				fi
 				for selchr in $Get2_Chromosome; do
-					$GATK --java-options "$Xmxg -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" GenomicsDBImport $input -L $selchr --genomicsdb-workspace-path ${pop}_${ploidy}x_"${selchr}"_raw
+					$GATK --java-options "$Xmxg -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" GenomicsDBImport "${input}" -L "${selchr}" --genomicsdb-workspace-path ${pop}_${ploidy}x_"${selchr}"_raw
 				done
 				for selchr in $Get2_Chromosome; do (
 					while test ! -f ${pop}_${ploidy}x_"${selchr}"_raw.vcf.gz; do
-						$GATK --java-options "$Xmxg -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" GenotypeGVCFs -R ${projdir}/refgenomes/$ref1 -L $selchr -V gendb://${pop}_${ploidy}x_"${selchr}"_raw -O ${pop}_${ploidy}x_"${selchr}"_raw.hold.vcf.gz && \
+						$GATK --java-options "$Xmxg -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" GenotypeGVCFs -R ${projdir}/refgenomes/$ref1 -L "${selchr}" -V gendb://${pop}_${ploidy}x_"${selchr}"_raw -O ${pop}_${ploidy}x_"${selchr}"_raw.hold.vcf.gz && \
 						rm -r ${pop}_${ploidy}x_"${selchr}"_raw && \
 						mv ${pop}_${ploidy}x_"${selchr}"_raw.hold.vcf.gz ${pop}_${ploidy}x_"${selchr}"_raw.vcf.gz
 						mv ${pop}_${ploidy}x_"${selchr}"_raw.hold.vcf.gz.tbi ${pop}_${ploidy}x_"${selchr}"_raw.vcf.gz.tbi &&
@@ -1786,7 +1790,7 @@ fi
 
 ######################################################################################################################################################
 cd ${projdir}
-rm compress_done.txt hapfilter_done.txt alignment_done.txt precall_done.txt GVCF_done.txt  samples_list_node_*.txt
+rm compress_done.txt hapfilter_done.txt alignment_done.txt precall_done.txt GVCF_done.txt  samples_list_node_*.txt >/dev/null 2>&1
 touch Analysis_Complete
 wait
 echo -e "${magenta}- Run Complete. ${white}\n"

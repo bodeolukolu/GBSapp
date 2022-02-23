@@ -117,6 +117,7 @@ Using a text editor, save a file containing any of the following variables as 'c
 |ploidy_ref3|na|ploid level for subgenome 1|integer|Required|
 |ploidy_ref4|na|ploid level for subgenome 1|integer|Required|
 |Get_Chromosome|na|variant calling on specific chromosomes, scaffolds,and contigs|string|optional|
+|Exclude_Chromosome|na|variant calling to exclude specific chromosomes, scaffolds,and contigs|string|optional|
 
 
 
@@ -146,7 +147,7 @@ Using a text editor, save a file containing any of the following variables as 'c
 |maxHaplotype|128| maximum number of haplotypes per haploid genome across population(increase for polyploids/high heterozygosity/high background mutational load)|integer|Optional|
 |mhap_freq|0| exclude rare haplotypes (e.g. background mutation typical of clonally propagated species or base calling error)|integer|Optional|
 |softclip|false| do not use soft Clipped bases (recommended)|string|Optional|
-|joint_calling|false| joint calling. cohort calling will be performed if false|string|Optional|
+|joint_calling|true| cohort calling will be performed if set to false|string|Optional|
 |keep_gVCF|false| keep sample gVCF files, if additional samples will be included for future joint calling)|string|Optional|
 |maxindel|100| maximum insertion-deletion|integer|Optional|
 |PEdist|250| Initial average distance between paired reads|integer|Optional|
@@ -173,6 +174,7 @@ ref2=TL.fasta
 ploidy_ref1=4
 ploidy_ref2=2
 Get_Chromosome=TF_Chr01,TF_Chr02
+Exclude_Chromosome=TF_Chr00,TF_Chr00
 
 
 # SNP-filtering:
@@ -196,7 +198,7 @@ haplome_number=1
 mhap_freq=0
 altpos=false
 softclip=true
-joint_calling=false
+joint_calling=true
 keep_gVCF=false
 ```
 
