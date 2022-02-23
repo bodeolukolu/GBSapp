@@ -29,11 +29,8 @@ fi
 if [ -z "$softclip" ]; then
 	softclip=false
 fi
-if [ -z "$ncohorts" ]; then
-	ncohorts=1
-fi
-if [ -z "$exit_before_jointcall" ]; then
-	exit_before_jointcall=false
+if [ -z "$joint_calling" ]; then
+	joint_calling=false
 fi
 if [ -z "$keep_gVCF" ]; then
 	keep_gVCF=false
@@ -765,7 +762,6 @@ fi
 echo -e "${blue}\n############################################################################## ${yellow}\n- Performing Variant Calling with GATK HaplotypeCaller\n${blue}##############################################################################${white}\n"
 main () {
 	cd $projdir
-	ncohorts=1
 	cd preprocess
 	mkdir -p processed
 
@@ -817,14 +813,7 @@ main () {
 		if [[ $align == $nodes ]]; then
 			rm ${projdir}/call12_${samples_list}
 			cd ${projdir}/snpcall
-			if [[  "$ncohorts" -eq 1 ]]; then
-				cz=$(ls *.g.vcf.gz | wc -l)
-			fi
-			if [[ "$ncohorts" -gt 1 ]]; then
-				cz=$(ls *.g.vcf.gz | wc -l)
-				cz=$(( (cz / ncohorts ) + (cz % ncohorts > 0)))
-			fi
-
+			cz=$(ls *.g.vcf.gz | wc -l)
 			i=0
 			for f in `find . -maxdepth 1 -iname '*.g.vcf.gz' -type f | shuf`; do
 				d=cohorts_$(printf %02d $((i/cz+1)))
@@ -948,14 +937,7 @@ main () {
 	  if [[ $align == $nodes ]]; then
 	    rm ${projdir}/call1_${samples_list}
 			cd ${projdir}/snpcall
-			if [[  "$ncohorts" -eq 1 ]]; then
-				cz=$(ls *.g.vcf.gz | wc -l)
-			fi
-			if [[ "$ncohorts" -gt 1 ]]; then
-				cz=$(ls *.g.vcf.gz | wc -l)
-				cz=$(( (cz / ncohorts ) + (cz % ncohorts > 0)))
-			fi
-
+			cz=$(ls *.g.vcf.gz | wc -l)
 			i=0
 			for f in `find . -maxdepth 1 -iname '*.g.vcf.gz' -type f | shuf`; do
 				d=cohorts_$(printf %02d $((i/cz+1)))
@@ -1079,14 +1061,7 @@ main () {
 	  if [[ $align == $nodes ]]; then
 	    rm ${projdir}/call2_${samples_list}
 			cd ${projdir}/snpcall
-			if [  "$ncohorts" -eq 1 ]]; then
-				cz=$(ls *.g.vcf.gz | wc -l)
-			fi
-			if [[ "$ncohorts" -gt 1 ]]; then
-				cz=$(ls *.g.vcf.gz | wc -l)
-				cz=$(( (cz / ncohorts ) + (cz % ncohorts > 0)))
-			fi
-
+			cz=$(ls *.g.vcf.gz | wc -l)
 			i=0
 			for f in `find . -maxdepth 1 -iname '*.g.vcf.gz' -type f | shuf`; do
 				d=cohorts_$(printf %02d $((i/cz+1)))
