@@ -774,7 +774,7 @@ main () {
 			if [[ -z "$(ls -A ./processed/ &> /dev/null)" ]]; then
 				:
 			else
-				mv $projdir/processed/processed/*_precall.bam* $projdir/processed/
+				mv $projdir/preprocess/processed/*_precall.bam* $projdir/preprocess/
 			fi
 		fi
 	fi
@@ -782,7 +782,7 @@ main () {
 
 	if [[ "$joint_calling" == true ]]; then
 
-		mv $projdir/processed/processed/*_precall.bam* $projdir/processed/
+		mv $projdir/preprocess/processed/*_precall.bam* $projdir/preprocess/
 
 	  ######################
 
