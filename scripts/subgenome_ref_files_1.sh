@@ -705,20 +705,18 @@ if [[ "$joint_calling" == true ]]; then
 	fi
 	if [[ -z "$Get_Chromosome" ]]; then
 		for selchr in $Get2_Chromosome; do (
-			$GATK --java-options "$Xmxg -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ${projdir}/refgenomes/$ref1 -L ${selchr} ${input} -ploidy $ploidy -O ${projdir}/snpcall/${pop}_${ploidy}x_${selchr}_raw.vcf.gz --dont-use-soft-clipped-bases $softclip --max-reads-per-alignment-start 0 --minimum-mapping-quality 0 --max-num-haplotypes-in-population "$((ploidy * maxHaplotype))" &&
-			wait
+			if test ! -f ${projdir}/snpcall/${pop}_${ploidy}x_${selchr}_raw.vcf; then
+				$GATK --java-options "$Xmxg -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ${projdir}/refgenomes/$ref1 -L ${selchr} ${input} -ploidy $ploidy -O ${projdir}/snpcall/${pop}_${ploidy}x_${selchr}_raw.vcf.gz --dont-use-soft-clipped-bases $softclip --max-reads-per-alignment-start 0 --minimum-mapping-quality 0 --max-num-haplotypes-in-population "$((ploidy * maxHaplotype))" &&
+				gunzip ${projdir}/snpcall/${pop}_${ploidy}x_${selchr}_raw.vcf.gz &&
+				wait
+			fi
 			) &
 			if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
 				wait
 			fi
 		done
+		wait
 		cd ../snpcall
-		for g in $(ls ${pop}_${ploidy}x_*_raw.vcf.gz); do (
-			gunzip $g )&
-			if [[ $(jobs -r -p | wc -l) -ge $N ]]; then
-			wait
-			fi
-		done
 		grep -h '^#' ${pop}_${ploidy}x_*_raw.vcf | awk '!visited[$0]++' | awk '!/^##GATKCommandLine/' > vcf_header.txt
 		cat ${pop}_${ploidy}x_*_raw.vcf | awk '!/^#/' > all.vcf
 		cat vcf_header.txt all.vcf > ${pop}_${ploidy}x_raw.vcf
@@ -1362,6 +1360,7 @@ echo -e "gmiss_smiss_thresholds\t#_of_SNPs\t#_of_eliminated_samples\n-----------
 awk 'FNR==NR{a[$1]=$2;next} ($1 in a) {print $1,"\t",a[$1],"\t",$2}' gmiss_smiss_titration.txt eliminated_samples.txt | cat summary_precall.txt - > gmiss_smiss_unique_mapped.txt
 rm gmiss_smiss_titration.txt eliminated_samples.txt summary_precall.txt
 
+ls ./*/*maf*.txt | grep -v 'maf0.txt' | grep -v 'dose' | grep -v 'binary' | xargs rm
 
 
 cd "$projdir"/snpfilter
@@ -1372,7 +1371,7 @@ for snpfilter_dir in $(ls -d */); do
 		for v in *dose.txt; do
 			vcfdose=${v%_rd*}; vcfdose=${vcfdose#*_}
 			$zcat ../../snpcall/*${vcfdose}.vcf.gz | grep '^#' > ${v%.txt}.vcf
-			awk 'FNR==NR{a[$1,$2]=$0;next}{if(b=a[$2,$3]){print b}}' <($gzip -dc ../../snpcall/*${vcfdose}.vcf.gz) $v >> ${v%.txt}.vcf
+			awk 'FNR==NR{a[$1,$2]=$0;next}{if(b=a[$2,$3]){print b}}' <($gzip -dc ../../snpcall/*${vcfdose}.vcf.gz) $v >> ${v%_dose.txt}.vcf
 			$gzip ${v%.txt}.vcf
 		done
 		for i in *dose.txt *binary.txt; do
@@ -1386,7 +1385,25 @@ for snpfilter_dir in $(ls -d */); do
 		done
 		fi
 		wait
-		cd ../
+		cd unique_mapped
+		for v in *dose.txt; do
+			vcfdose=${v%_rd*}; vcfdose=${vcfdose#*_}
+			$zcat ../../../snpcall/*${vcfdose}.vcf.gz | grep '^#' > ${v%.txt}.vcf
+			awk 'FNR==NR{a[$1,$2]=$0;next}{if(b=a[$2,$3]){print b}}' <($gzip -dc ../../../snpcall/*${vcfdose}.vcf.gz) $v >> ${v%_dose.txt}.vcf
+			$gzip ${v%.txt}.vcf
+		done
+		for i in *dose.txt *binary.txt; do
+			awk -v n="$n" '{gsub(n,""); print $0}' $i > ${i%.txt}_hold.txt
+			mv ${i%.txt}_hold.txt $i
+		done
+		if [[ "${snpformats}" == "true" ]]; then
+		for i in *nucleotide.txt *nucleotidedeg.txt; do
+			awk -v n="$n" '{gsub(n,""); print $0}' $i > ${i%.txt}_hold.txt
+			mv ${i%.txt}_hold.txt $i
+		done
+		fi
+		wait
+		cd ../../
 	fi
 done
 }

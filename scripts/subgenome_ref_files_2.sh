@@ -800,20 +800,18 @@ main () {
 
 	  if [[ -z "$Get_Chromosome" ]]; then
 	    for selchr in $Get2_Chromosome; do (
-	      $GATK --java-options "$Xmxg -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R "${projdir}/refgenomes/panref.fasta" -L ${selchr} ${input} -ploidy $ploidy -O ${projdir}/snpcall/${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_${selchr}_raw.vcf.gz --dont-use-soft-clipped-bases $softclip --max-reads-per-alignment-start 0 --minimum-mapping-quality 0 --max-num-haplotypes-in-population "$((ploidy * maxHaplotype))" &&
-	      wait
+				if test ! -f ${projdir}/snpcall/${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_${selchr}_raw.vcf; then
+		      $GATK --java-options "$Xmxg -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R "${projdir}/refgenomes/panref.fasta" -L ${selchr} ${input} -ploidy $ploidy -O ${projdir}/snpcall/${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_${selchr}_raw.vcf.gz --dont-use-soft-clipped-bases $softclip --max-reads-per-alignment-start 0 --minimum-mapping-quality 0 --max-num-haplotypes-in-population "$((ploidy * maxHaplotype))" &&
+		      gunzip ${projdir}/snpcall/${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_${selchr}_raw.vcf.gz &&
+					wait
+				fi
 	      ) &
 	      if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
 	        wait
 	      fi
 	    done
+			wait
 	    cd ../snpcall
-	    for g in $(ls ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_*_raw.vcf.gz); do (
-	      gunzip $g )&
-	      if [[ $(jobs -r -p | wc -l) -ge $N ]]; then
-	      wait
-	      fi
-	    done
 	    grep -h '^#' ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_*_raw.vcf | awk '!visited[$0]++' | awk '!/^##GATKCommandLine/' > vcf_header.txt
 	    cat ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_*_raw.vcf | awk '!/^#/' > all.vcf
 	    cat vcf_header.txt all.vcf > ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_raw.vcf
@@ -846,20 +844,18 @@ main () {
 
 	  if [[ -z "$Get_Chromosome" ]]; then
 	    for selchr in $Get2_Chromosome; do (
-	      $GATK --java-options "$Xmxg -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R "${projdir}/refgenomes/panref.fasta" -L ${selchr} ${input} -ploidy $ploidy_ref1 -O ${projdir}/snpcall/${pop}_${ref1%.f*}_${ploidy_ref1}x_${selchr}_raw.vcf.gz --dont-use-soft-clipped-bases $softclip --max-reads-per-alignment-start 0 --minimum-mapping-quality 0 --max-num-haplotypes-in-population "$((ploidy_ref1 * maxHaplotype))" &&
-	      wait
+				if test ! -f ${projdir}/snpcall/${pop}_${ref1%.f*}_${ploidy}x_${selchr}_raw.vcf; then
+	      	$GATK --java-options "$Xmxg -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R "${projdir}/refgenomes/panref.fasta" -L ${selchr} ${input} -ploidy $ploidy_ref1 -O ${projdir}/snpcall/${pop}_${ref1%.f*}_${ploidy_ref1}x_${selchr}_raw.vcf.gz --dont-use-soft-clipped-bases $softclip --max-reads-per-alignment-start 0 --minimum-mapping-quality 0 --max-num-haplotypes-in-population "$((ploidy_ref1 * maxHaplotype))" &&
+	      	gunzip ${projdir}/snpcall/${pop}_${ref1%.f*}_${ploidy}x_${selchr}_raw.vcf.gz &&
+					wait
+				fi
 	      ) &
 	      if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
 	        wait
 	      fi
 	    done
+			wait
 	    cd ../snpcall
-	    for g in $(ls ${projdir}/snpcall/${pop}_${ref1%.f*}_${ploidy_ref1}x_*_raw.vcf.gz); do (
-	      gunzip $g )&
-	      if [[ $(jobs -r -p | wc -l) -ge $N ]]; then
-	      wait
-	      fi
-	    done
 	    grep -h '^#' ${pop}_${ref1%.f*}_${ploidy_ref1}x_*_raw.vcf | awk '!visited[$0]++' | awk '!/^##GATKCommandLine/' > vcf_header.txt
 	    cat ${pop}_${ref1%.f*}_${ploidy_ref1}x_*_raw.vcf | awk '!/^#/' > all.vcf
 	    cat vcf_header.txt all.vcf > ${pop}_${ref1%.f*}_${ploidy_ref1}x_raw.vcf
@@ -892,20 +888,18 @@ main () {
 
 	  if [[ -z "$Get_Chromosome" ]]; then
 	    for selchr in $Get2_Chromosome; do (
-	      $GATK --java-options "$Xmxg -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R "${projdir}/refgenomes/panref.fasta" -L ${selchr} ${input} -ploidy $ploidy_ref2 -O ${projdir}/snpcall/${pop}_${ref2%.f*}_${ploidy_ref2}x_${selchr}_raw.vcf.gz --dont-use-soft-clipped-bases $softclip --max-reads-per-alignment-start 0 --minimum-mapping-quality 0 --max-num-haplotypes-in-population "$((ploidy_ref2 * maxHaplotype))" &&
-	      wait
+				if test ! -f ${projdir}/snpcall/${pop}_${ref2%.f*}_${ploidy}x_${selchr}_raw.vcf; then
+	      	$GATK --java-options "$Xmxg -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R "${projdir}/refgenomes/panref.fasta" -L ${selchr} ${input} -ploidy $ploidy_ref2 -O ${projdir}/snpcall/${pop}_${ref2%.f*}_${ploidy_ref2}x_${selchr}_raw.vcf.gz --dont-use-soft-clipped-bases $softclip --max-reads-per-alignment-start 0 --minimum-mapping-quality 0 --max-num-haplotypes-in-population "$((ploidy_ref2 * maxHaplotype))" &&
+	      	gunzip ${projdir}/snpcall/${pop}_${ref2%.f*}_${ploidy}x_${selchr}_raw.vcf.gz &&
+					wait
+				fi
 	      ) &
 	      if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
 	        wait
 	      fi
 	    done
+			wait
 	    cd ../snpcall
-	    for g in $(ls ${projdir}/snpcall/${pop}_${ref2%.f*}_${ploidy_ref2}x_*_raw.vcf.gz); do (
-	      gunzip $g )&
-	      if [[ $(jobs -r -p | wc -l) -ge $N ]]; then
-	      wait
-	      fi
-	    done
 	    grep -h '^#' ${pop}_${ref2%.f*}_${ploidy_ref2}x_*_raw.vcf | awk '!visited[$0]++' | awk '!/^##GATKCommandLine/' > vcf_header.txt
 	    cat ${pop}_${ref2%.f*}_${ploidy_ref2}x_*_raw.vcf | awk '!/^#/' > all.vcf
 	    cat vcf_header.txt all.vcf > ${pop}_${ref2%.f*}_${ploidy_ref2}x_raw.vcf
@@ -1778,6 +1772,8 @@ echo -e "gmiss_smiss_thresholds\t#_of_SNPs\t#_of_eliminated_samples\n-----------
 awk 'FNR==NR{a[$1]=$2;next} ($1 in a) {print $1,"\t",a[$1],"\t",$2}' gmiss_smiss_titration.txt eliminated_samples.txt | cat summary_precall.txt - > gmiss_smiss_unique_mapped.txt
 rm gmiss_smiss_titration.txt eliminated_samples.txt summary_precall.txt
 
+ls ./*/*maf*.txt | grep -v 'maf0.txt' | grep -v 'dose' | grep -v 'binary' | xargs rm
+
 
 cd "$projdir"/snpfilter
 for snpfilter_dir in $(ls -d */); do
@@ -1786,10 +1782,18 @@ for snpfilter_dir in $(ls -d */); do
 		for v in *dose.txt; do
 			vcfdose=${v%_rd*}; vcfdose=${vcfdose#*_}
 			$zcat ../../snpcall/*${vcfdose}.vcf.gz | grep '^#' > ${v%.txt}.vcf
-			awk 'FNR==NR{a[$1,$2]=$0;next}{if(b=a[$2,$3]){print b}}' <(gzip -dc ../../snpcall/*${vcfdose}.vcf.gz) $v >> ${v%.txt}.vcf
+			awk 'FNR==NR{a[$1,$2]=$0;next}{if(b=a[$2,$3]){print b}}' <(gzip -dc ../../snpcall/*${vcfdose}.vcf.gz) $v >> ${v%_dose.txt}.vcf
 			gzip ${v%.txt}.vcf
 		done
-		cd ../
+		wait
+		cd unique_mapped
+		for v in *dose.txt; do
+			vcfdose=${v%_rd*}; vcfdose=${vcfdose#*_}
+			$zcat ../../../snpcall/*${vcfdose}.vcf.gz | grep '^#' > ${v%.txt}.vcf
+			awk 'FNR==NR{a[$1,$2]=$0;next}{if(b=a[$2,$3]){print b}}' <(gzip -dc ../../../snpcall/*${vcfdose}.vcf.gz) $v >> ${v%_dose.txt}.vcf
+			gzip ${v%.txt}.vcf
+		done
+		cd ../../
 	fi
 done
 
