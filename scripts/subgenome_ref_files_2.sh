@@ -780,389 +780,521 @@ main () {
 	fi
 
 
-######################
+	if [[ "$joint_calling" == true ]]; then
 
-	echo -e "${magenta}- performing SNP calling across entire genome (subgenome 1 and 2) ${white}\n"
-	for i in $(cat ${projdir}/${samples_list} ); do (
-		if test ! -f "${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_raw.vcf" && test ! -f "${projdir}/GVCF_1_2_done.txt"; then
-			while test ! -f "${projdir}/snpcall/${i%.f*}_${ref1%.f*}_${ref2%.f*}.g.vcf.gz"; do
-				if [[ -z "$Get_Chromosome" ]]; then
-					$GATK --java-options "$Xmxg -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R "${projdir}/refgenomes/panref.fasta" -I "${i%.f*}_${ref1%.f*}_${ref2%.f*}_precall.bam" -ploidy $ploidy -O ${projdir}/snpcall/${i%.f*}_${ref1%.f*}_${ref2%.f*}.hold.g.vcf.gz -ERC GVCF --dont-use-soft-clipped-bases $softclip --max-reads-per-alignment-start 0 --minimum-mapping-quality 0 --max-num-haplotypes-in-population "$((ploidy * maxHaplotype))" &&
-					wait
-				else
-				  echo $Get_Chromosome | tr ',' '\n' | awk '{print "SN:"$1}' | awk 'NR==FNR{a[$1];next}$2 in a{print $0}' - panref.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $2"\t0\t"$3"\t+\t"$2}' | \
-				  cat panref.dict - > panref.intervals_list
-					$GATK --java-options "$Xmxg -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R "${projdir}/refgenomes/panref.fasta" -L panref.intervals_list -I "${i%.f*}_${ref1%.f*}_${ref2%.f*}_precall.bam" -ploidy $ploidy -O ${projdir}/snpcall/${i%.f*}_${ref1%.f*}_${ref2%.f*}.hold.g.vcf.gz -ERC GVCF --dont-use-soft-clipped-bases $softclip --max-reads-per-alignment-start 0 --minimum-mapping-quality 0 --max-num-haplotypes-in-population "$((ploidy maxHaplotype))" &&
-					wait
-				fi
-				mv "${projdir}/snpcall/${i%.f*}_${ref1%.f*}_${ref2%.f*}.hold.g.vcf.gz" "${projdir}/snpcall/${i%.f*}_${ref1%.f*}_${ref2%.f*}.g.vcf.gz" && \
-				mv "${projdir}/snpcall/${i%.f*}_${ref1%.f*}_${ref2%.f*}.hold.g.vcf.gz.tbi" "${projdir}/snpcall/${i%.f*}_${ref1%.f*}_${ref2%.f*}.g.vcf.gz.tbi" &&
-				wait
-			done
-		fi ) &
-		if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
-			wait
-		fi
-	done
-	wait
+	  ######################
 
-	if [[ ! -f "${projdir}/call12_${samples_list}" ]]; then touch "${projdir}/call12_${samples_list}"; fi
-	if [[ "$samples_list" == "samples_list_node_1.txt" ]] && test ! -f ${projdir}/snpcall/${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_raw.vcf*; then
-		align=$(ls ${projdir}/call12_samples_list_node_* | wc -l)
-		while [[ "$align" -lt $nodes ]]; do sleep 30; align=$(ls ${projdir}/call12_samples_list_node_* | wc -l); done
-		if [[ $align == $nodes ]]; then
-			rm ${projdir}/call12_${samples_list}
-			cd ${projdir}/snpcall
-			cz=$(ls *.g.vcf.gz | wc -l)
-			i=0
-			for f in `find . -maxdepth 1 -iname '*.g.vcf.gz' -type f | shuf`; do
-				d=cohorts_$(printf %02d $((i/cz+1)))
-				mkdir -p $d
-				mv "$f" $d; mv "${f}.tbi" $d
-				let i++
-			done
+	  echo -e "${magenta}- performing SNP calling across entire genome (subgenome 1 and 2) ${white}\n"
+	  j=-I; input=""; k=""
+	  for i in $(ls *_${ref1%.f*}_${ref2%.f*}_precall.bam); do
+	    k="${j} ${i}"; input="${input} ${k}"
+	  done
+	  Get2_Chromosome=$(awk 'NR>1{print $2,"\t",$3}' ${projdir}/refgenomes/panref.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $0}' | sort -k2,2 -nr | awk '{print $1}' )
 
-			for dir in cohorts*/; do
-				cd $dir
-				j=--variant; input=""; k=""
-				for i in $(ls *_${ref1%.f*}_${ref2%.f*}.g.vcf.gz); do
-					k="${j} ${i}"; input="${input} ${k}"
-				done
-				if [[ -z "$Get_Chromosome" ]]; then
-					Get2_Chromosome=$(awk 'NR>1{print $2,"\t",$3}' ${projdir}/refgenomes/panref.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $0}' | sort -k2,2 -nr | awk '{print $1}' )
-				else
-					Get2_Chromosome=$(echo $Get_Chromosome | tr ',' '\n')
-				fi
-				for selchr in $Get2_Chromosome; do
-					$GATK --java-options "$Xmxg -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads"  GenomicsDBImport $input -L $selchr --genomicsdb-workspace-path ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_"${selchr}"_raw
-				done
-				for selchr in $Get2_Chromosome; do (
-					while test ! -f "${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_"${selchr}"_raw.vcf.gz"; do
-						$GATK --java-options "$Xmxg -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads"  GenotypeGVCFs -R ${projdir}/refgenomes/panref.fasta -L $selchr -V gendb://${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_"${selchr}"_raw -O "${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_"${selchr}"_raw.hold.vcf.gz" && \
-						rm -r ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_"${selchr}"_raw && \
-						mv "${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_${selchr}_raw.hold.vcf.gz" "${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_${selchr}_raw.vcf.gz"
-						mv "${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_${selchr}_raw.hold.vcf.gz.tbi" "${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_${selchr}_raw.vcf.gz.tbi" &&
+	  if [[ -z "$Get_Chromosome" ]]; then
+	    for selchr in $Get2_Chromosome; do (
+	      $GATK --java-options "$Xmxg -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R "${projdir}/refgenomes/panref.fasta" -L $selchr $input -ploidy $ploidy -O ${projdir}/snpcall/${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_${selchr}_raw.vcf.gz --dont-use-soft-clipped-bases $softclip --max-reads-per-alignment-start 0 --minimum-mapping-quality 0 --max-num-haplotypes-in-population "$((ploidy * maxHaplotype))" &&
+	      wait
+	      ) &
+	      if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
+	        wait
+	      fi
+	    done
+	    cd ../snpcall
+	    for g in $(ls ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_*_raw.vcf.gz); do (
+	      gunzip $g )&
+	      if [[ $(jobs -r -p | wc -l) -ge $N ]]; then
+	      wait
+	      fi
+	    done
+	    grep -h '^#' ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_*_raw.vcf | awk '!visited[$0]++' | awk '!/^##GATKCommandLine/' > vcf_header.txt
+	    cat ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_*_raw.vcf | awk '!/^#/' > all.vcf
+	    cat vcf_header.txt all.vcf > ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_raw.vcf
+	    rm vcf_header.txt all.vcf *.vcf.gz.tbi ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_*_raw.vcf
+	  else
+	    echo $Get_Chromosome | tr ',' '\n' | awk '{print "SN:"$1}' | awk 'NR==FNR{a[$1];next}$2 in a{print $0}' - panref.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $2"\t0\t"$3"\t+\t"$2}' | \
+	    cat panref.dict - > panref.intervals_list
+	    $GATK --java-options "$Xmx2 -XX:+UseParallelGC -XX:ParallelGCThreads=$threads" HaplotypeCaller -R ${projdir}/refgenomes/panref.fasta -L panref.intervals_list $input -ploidy $ploidy -O ${projdir}/snpcall/${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_raw.vcf.gz --dont-use-soft-clipped-bases $softclip --max-reads-per-alignment-start 0 --minimum-mapping-quality 0 --max-num-haplotypes-in-population "$((ploidy * maxHaplotype))" &&
+	    cd ../snpcall
+	    gunzip ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_raw.vcf &&
+	    wait
+	  fi
+
+	  cd ${projdir}/preprocess
+	  mv *_${ref1%.f*}_${ref2%.f*}_precall* ./processed/
+
+	  ######################
+
+	  echo -e "${magenta}- performing SNP calling on subgenome-1 ${white}\n"
+	  j=-I; input=""; k=""
+	  for i in $(ls *_${ref1%.f*}_precall.bam); do
+	    k="${j} ${i}"; input="${input} ${k}"
+	  done
+	  Get2_Chromosome=$(awk 'NR>1{print $2,"\t",$3}' ${projdir}/refgenomes/panref.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $0}' | sort -k2,2 -nr | awk '{print $1}'| awk -v pat=${ref1%.f*} '$0 ~ pat' )
+
+	  if [[ -z "$Get_Chromosome" ]]; then
+	    for selchr in $Get2_Chromosome; do (
+	      $GATK --java-options "$Xmxg -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R "${projdir}/refgenomes/panref.fasta" -L $selchr $input -ploidy $ploidy_ref1 -O ${projdir}/snpcall/${pop}_${ref1%.f*}_${ploidy_ref1}x_${selchr}_raw.vcf.gz --dont-use-soft-clipped-bases $softclip --max-reads-per-alignment-start 0 --minimum-mapping-quality 0 --max-num-haplotypes-in-population "$((ploidy_ref1 * maxHaplotype))" &&
+	      wait
+	      ) &
+	      if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
+	        wait
+	      fi
+	    done
+	    cd ../snpcall
+	    for g in $(ls ${projdir}/snpcall/${pop}_${ref1%.f*}_${ploidy_ref1}x_*_raw.vcf.gz); do (
+	      gunzip $g )&
+	      if [[ $(jobs -r -p | wc -l) -ge $N ]]; then
+	      wait
+	      fi
+	    done
+	    grep -h '^#' ${pop}_${ref1%.f*}_${ploidy_ref1}x_*_raw.vcf | awk '!visited[$0]++' | awk '!/^##GATKCommandLine/' > vcf_header.txt
+	    cat ${pop}_${ref1%.f*}_${ploidy_ref1}x_*_raw.vcf | awk '!/^#/' > all.vcf
+	    cat vcf_header.txt all.vcf > ${pop}_${ref1%.f*}_${ploidy_ref1}x_raw.vcf
+	    rm vcf_header.txt all.vcf *.vcf.gz.tbi ${pop}_${ref1%.f*}_${ploidy_ref1}x_*_raw.vcf
+	  else
+	    echo $Get_Chromosome | tr ',' '\n' | awk -v pat=${ref1%.f*} '$0 ~ pat' | awk '{print "SN:"$1}' | awk 'NR==FNR{a[$1];next}$2 in a{print $0}' - panref.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $2"\t0\t"$3"\t+\t"$2}' | \
+	    cat panref.dict - > panref.intervals_list
+	    $GATK --java-options "$Xmx2 -XX:+UseParallelGC -XX:ParallelGCThreads=$threads" HaplotypeCaller -R ${projdir}/refgenomes/panref.fasta -L panref.intervals_list $input -ploidy $ploidy -O ${projdir}/snpcall/${pop}_${ref1%.f*}_${ploidy_ref1}x_raw.vcf.gz --dont-use-soft-clipped-bases $softclip --max-reads-per-alignment-start 0 --minimum-mapping-quality 0 --max-num-haplotypes-in-population "$((ploidy_ref1 * maxHaplotype))" &&
+	    cd ../snpcall
+	    gunzip ${pop}_${ref1%.f*}_${ploidy_ref1}x_raw.vcf &&
+	    wait
+	  fi
+
+	  cd ${projdir}/preprocess
+	  mv *_${ref1%.f*}_precall* ./processed/
+
+	  ######################
+
+	  echo -e "${magenta}- performing SNP calling on subgenome-2 ${white}\n"
+	  j=-I; input=""; k=""
+	  for i in $(ls *_${ref2%.f*}_precall.bam); do
+	    k="${j} ${i}"; input="${input} ${k}"
+	  done
+	  Get2_Chromosome=$(awk 'NR>1{print $2,"\t",$3}' ${projdir}/refgenomes/panref.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $0}' | sort -k2,2 -nr | awk '{print $1}'| awk -v pat=${ref2%.f*} '$0 ~ pat' )
+
+	  if [[ -z "$Get_Chromosome" ]]; then
+	    for selchr in $Get2_Chromosome; do (
+	      $GATK --java-options "$Xmxg -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R "${projdir}/refgenomes/panref.fasta" -L $selchr $input -ploidy $ploidy_ref2 -O ${projdir}/snpcall/${pop}_${ref2%.f*}_${ploidy_ref2}x_${selchr}_raw.vcf.gz --dont-use-soft-clipped-bases $softclip --max-reads-per-alignment-start 0 --minimum-mapping-quality 0 --max-num-haplotypes-in-population "$((ploidy_ref2 * maxHaplotype))" &&
+	      wait
+	      ) &
+	      if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
+	        wait
+	      fi
+	    done
+	    cd ../snpcall
+	    for g in $(ls ${projdir}/snpcall/${pop}_${ref2%.f*}_${ploidy_ref2}x_*_raw.vcf.gz); do (
+	      gunzip $g )&
+	      if [[ $(jobs -r -p | wc -l) -ge $N ]]; then
+	      wait
+	      fi
+	    done
+	    grep -h '^#' ${pop}_${ref2%.f*}_${ploidy_ref2}x_*_raw.vcf | awk '!visited[$0]++' | awk '!/^##GATKCommandLine/' > vcf_header.txt
+	    cat ${pop}_${ref2%.f*}_${ploidy_ref2}x_*_raw.vcf | awk '!/^#/' > all.vcf
+	    cat vcf_header.txt all.vcf > ${pop}_${ref2%.f*}_${ploidy_ref2}x_raw.vcf
+	    rm vcf_header.txt all.vcf *.vcf.gz.tbi ${pop}_${ref2%.f*}_${ploidy_ref2}x_*_raw.vcf
+	  else
+	    echo $Get_Chromosome | tr ',' '\n' | awk -v pat=${ref2%.f*} '$0 ~ pat' | awk '{print "SN:"$1}' | awk 'NR==FNR{a[$1];next}$2 in a{print $0}' - panref.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $2"\t0\t"$3"\t+\t"$2}' | \
+	    cat panref.dict - > panref.intervals_list
+	    $GATK --java-options "$Xmx2 -XX:+UseParallelGC -XX:ParallelGCThreads=$threads" HaplotypeCaller -R ${projdir}/refgenomes/panref.fasta -L panref.intervals_list $input -ploidy $ploidy -O ${projdir}/snpcall/${pop}_${ref2%.f*}_${ploidy_ref2}x_raw.vcf.gz --dont-use-soft-clipped-bases $softclip --max-reads-per-alignment-start 0 --minimum-mapping-quality 0 --max-num-haplotypes-in-population "$((ploidy_ref2 * maxHaplotype))" &&
+	    cd ../snpcall
+	    gunzip ${pop}_${ref2%.f*}_${ploidy_ref2}x_raw.vcf &&
+	    wait
+	  fi
+
+	  cd ${projdir}/preprocess
+	  mv *_${ref2%.f*}_precall* ./processed/
+
+	fi
+
+
+	if [[ "$joint_calling" == false ]]; then
+
+		######################
+
+			echo -e "${magenta}- performing SNP calling across entire genome (subgenome 1 and 2) ${white}\n"
+			for i in $(cat ${projdir}/${samples_list} ); do (
+				if test ! -f "${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_raw.vcf" && test ! -f "${projdir}/GVCF_1_2_done.txt"; then
+					while test ! -f "${projdir}/snpcall/${i%.f*}_${ref1%.f*}_${ref2%.f*}.g.vcf.gz"; do
+						if [[ -z "$Get_Chromosome" ]]; then
+							$GATK --java-options "$Xmxg -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R "${projdir}/refgenomes/panref.fasta" -I "${i%.f*}_${ref1%.f*}_${ref2%.f*}_precall.bam" -ploidy $ploidy -O ${projdir}/snpcall/${i%.f*}_${ref1%.f*}_${ref2%.f*}.hold.g.vcf.gz -ERC GVCF --dont-use-soft-clipped-bases $softclip --max-reads-per-alignment-start 0 --minimum-mapping-quality 0 --max-num-haplotypes-in-population "$((ploidy * maxHaplotype))" &&
+							wait
+						else
+						  echo $Get_Chromosome | tr ',' '\n' | awk '{print "SN:"$1}' | awk 'NR==FNR{a[$1];next}$2 in a{print $0}' - panref.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $2"\t0\t"$3"\t+\t"$2}' | \
+						  cat panref.dict - > panref.intervals_list
+							$GATK --java-options "$Xmxg -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R "${projdir}/refgenomes/panref.fasta" -L panref.intervals_list -I "${i%.f*}_${ref1%.f*}_${ref2%.f*}_precall.bam" -ploidy $ploidy -O ${projdir}/snpcall/${i%.f*}_${ref1%.f*}_${ref2%.f*}.hold.g.vcf.gz -ERC GVCF --dont-use-soft-clipped-bases $softclip --max-reads-per-alignment-start 0 --minimum-mapping-quality 0 --max-num-haplotypes-in-population "$((ploidy maxHaplotype))" &&
+							wait
+						fi
+						mv "${projdir}/snpcall/${i%.f*}_${ref1%.f*}_${ref2%.f*}.hold.g.vcf.gz" "${projdir}/snpcall/${i%.f*}_${ref1%.f*}_${ref2%.f*}.g.vcf.gz" && \
+						mv "${projdir}/snpcall/${i%.f*}_${ref1%.f*}_${ref2%.f*}.hold.g.vcf.gz.tbi" "${projdir}/snpcall/${i%.f*}_${ref1%.f*}_${ref2%.f*}.g.vcf.gz.tbi" &&
 						wait
 					done
-					if LC_ALL=C gzip -l ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_"${selchr}"_raw.vcf.gz | awk 'NR==2 {exit($2!=0)}'; then
-						:
-					else
-						rm ../cohorts*/${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_*_raw.vcf.gz*
-						rm ../cohorts*/${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_raw.vcf*
-						rm ../${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_raw_cohorts*.vcf*
-						echo -e "${magenta}- \n- SNP calling failed probably due to insufficient memory ${white}\n"
-						echo -e "${magenta}- \n- Exiting pipeline in 5 seconds ${white}\n"
-						sleep 5 && exit 1
-					fi ) &
-					if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
-						wait
-					fi
-				done
-				wait
-				for g in $(ls ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_*_raw.vcf.gz); do (
-					$gunzip $g ) &
-					if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
-						wait
-					fi
-				done
-				grep -h '^#' ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_*_raw.vcf | awk '!visited[$0]++' | awk '!/^##GATKCommandLine/' > vcf_header.txt
-				cat ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_*_raw.vcf | awk '!/^#/' > all.vcf
-				cat vcf_header.txt all.vcf > ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_raw.vcf
-				rm vcf_header.txt all.vcf
-				rm ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_*_raw.vcf ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_*_raw.vcf.gz.tbi
-				$bcftools view -I ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_raw.vcf -O z -o ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_raw.vcf.gz
-				$bcftools index ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_raw.vcf.gz
-
-				$bcftools annotate -x FORMAT/PL ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_raw.vcf.gz > ../${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_raw_${dir%/}.vcf
-				cd ../
-				$bcftools view -I ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_raw_${dir%/}.vcf -O z -o ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_raw_${dir%/}.vcf.gz
-				$bcftools index ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_raw_${dir%/}.vcf.gz
-				wait
-			done
-			wait
-			if [[ `ls -1 *cohorts*.vcf.gz 2>/dev/null | wc -l` -gt 1 ]]; then
-				$bcftools merge *cohorts*.vcf.gz --force-samples -m all > ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_raw.vcf
-			else
-				cp *cohorts*.vcf.gz ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_raw.vcf.gz
-				$gunzip ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_raw.vcf.gz
-			fi
-
-			if [[ "$keep_gVCF" == true ]]; then
-				mkdir -p keep_gVCF
-				mv ./cohorts*/*.g.vcf ./keep_gVCF
-				rm -r *cohorts*
-			else
-				rm -r cohorts*
-				rm -r *cohorts*
-			fi
-
-			cd ${projdir}/preprocess
-			mv *_${ref1%.f*}_${ref2%.f*}_precall* ./processed/
-		fi
-	fi
-	wait && touch ${projdir}/GVCF_1_2_done.txt
-
-
-######################
-
-	echo -e "${magenta}- performing SNP calling on subgenome-1 ${white}\n"
-	for i in $(cat ${projdir}/${samples_list} ); do (
-		if test ! -f "${pop}_${ref1%.f*}_${ploidy_ref1}x_raw.vcf" && test ! -f "${projdir}/GVCF_1_done.txt"; then
-			while test ! -f ${projdir}/snpcall/${i%.f*}_${ref1%.f*}.g.vcf.gz; do
-				if [[ -z "$Get_Chromosome" ]]; then
-					$GATK --java-options "$Xmxg -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads"  HaplotypeCaller -R ${projdir}/refgenomes/panref.fasta -I ${i%.f*}_${ref1%.f*}_precall.bam -ploidy $ploidy_ref1 -O ${projdir}/snpcall/${i%.f*}_${ref1%.f*}.hold.g.vcf.gz -ERC GVCF --dont-use-soft-clipped-bases $softclip --max-reads-per-alignment-start "$(( biased_downsample * ploidy_ref1 ))" --minimum-mapping-quality 0 --max-num-haplotypes-in-population "$((ploidy_ref1 * maxHaplotype))" &&
-					wait
-				else
-				  echo $Get_Chromosome | tr ',' '\n' | awk '{print "SN:"$1}' | awk 'NR==FNR{a[$1];next}$2 in a{print $0}' - panref.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $2"\t0\t"$3"\t+\t"$2}' | \
-				  cat panref.dict - > panref.intervals_list
-					$GATK --java-options "$Xmxg -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads"  HaplotypeCaller -R ${projdir}/refgenomes/panref.fasta -L panref.intervals_list -I ${i%.f*}_${ref1%.f*}_precall.bam -ploidy $ploidy_ref1 -O ${projdir}/snpcall/${i%.f*}_${ref1%.f*}.hold.g.vcf.gz -ERC GVCF --dont-use-soft-clipped-bases $softclip --max-reads-per-alignment-start "$(( biased_downsample * ploidy_ref1 ))" --minimum-mapping-quality 0 --max-num-haplotypes-in-population "$((ploidy_ref1 * maxHaplotype))" &&
+				fi ) &
+				if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
 					wait
 				fi
-				mv "${projdir}/snpcall/${i%.f*}_${ref1%.f*}.hold.g.vcf.gz" "${projdir}/snpcall/${i%.f*}_${ref1%.f*}.g.vcf.gz" && \
-				mv "${projdir}/snpcall/${i%.f*}_${ref1%.f*}.hold.g.vcf.gz.tbi" "${projdir}/snpcall/${i%.f*}_${ref1%.f*}.g.vcf.gz.tbi" &&
-				wait
 			done
-		fi ) &
-		if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
 			wait
-		fi
-	done
-	wait
 
+			if [[ ! -f "${projdir}/call12_${samples_list}" ]]; then touch "${projdir}/call12_${samples_list}"; fi
+			if [[ "$samples_list" == "samples_list_node_1.txt" ]] && test ! -f ${projdir}/snpcall/${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_raw.vcf*; then
+				align=$(ls ${projdir}/call12_samples_list_node_* | wc -l)
+				while [[ "$align" -lt $nodes ]]; do sleep 30; align=$(ls ${projdir}/call12_samples_list_node_* | wc -l); done
+				if [[ $align == $nodes ]]; then
+					rm ${projdir}/call12_${samples_list}
+					cd ${projdir}/snpcall
+					cz=$(ls *.g.vcf.gz | wc -l)
+					i=0
+					for f in `find . -maxdepth 1 -iname '*.g.vcf.gz' -type f | shuf`; do
+						d=cohorts_$(printf %02d $((i/cz+1)))
+						mkdir -p $d
+						mv "$f" $d; mv "${f}.tbi" $d
+						let i++
+					done
 
-	if [[ ! -f "${projdir}/call1_${samples_list}" ]]; then touch "${projdir}/call1_${samples_list}"; fi
-	if [[ "$samples_list" == "samples_list_node_1.txt" ]] && test ! -f $${projdir}/snpcall/{pop}_${ref1%.f*}_${ploidy_ref1}x_raw.vcf*; then
-	  align=$(ls ${projdir}/call1_samples_list_node_* | wc -l)
-	  while [[ "$align" -lt $nodes ]]; do sleep 30; align=$(ls ${projdir}/call1_samples_list_node_* | wc -l); done
-	  if [[ $align == $nodes ]]; then
-	    rm ${projdir}/call1_${samples_list}
-			cd ${projdir}/snpcall
-			cz=$(ls *.g.vcf.gz | wc -l)
-			i=0
-			for f in `find . -maxdepth 1 -iname '*.g.vcf.gz' -type f | shuf`; do
-				d=cohorts_$(printf %02d $((i/cz+1)))
-				mkdir -p $d
-				mv "$f" $d; mv "${f}.tbi" $d
-				let i++
-			done
+					for dir in cohorts*/; do
+						cd $dir
+						j=--variant; input=""; k=""
+						for i in $(ls *_${ref1%.f*}_${ref2%.f*}.g.vcf.gz); do
+							k="${j} ${i}"; input="${input} ${k}"
+						done
+						if [[ -z "$Get_Chromosome" ]]; then
+							Get2_Chromosome=$(awk 'NR>1{print $2,"\t",$3}' ${projdir}/refgenomes/panref.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $0}' | sort -k2,2 -nr | awk '{print $1}' )
+						else
+							Get2_Chromosome=$(echo $Get_Chromosome | tr ',' '\n')
+						fi
+						for selchr in $Get2_Chromosome; do
+							$GATK --java-options "$Xmxg -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads"  GenomicsDBImport $input -L $selchr --genomicsdb-workspace-path ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_"${selchr}"_raw
+						done
+						for selchr in $Get2_Chromosome; do (
+							while test ! -f "${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_"${selchr}"_raw.vcf.gz"; do
+								$GATK --java-options "$Xmxg -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads"  GenotypeGVCFs -R ${projdir}/refgenomes/panref.fasta -L $selchr -V gendb://${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_"${selchr}"_raw -O "${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_"${selchr}"_raw.hold.vcf.gz" && \
+								rm -r ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_"${selchr}"_raw && \
+								mv "${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_${selchr}_raw.hold.vcf.gz" "${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_${selchr}_raw.vcf.gz"
+								mv "${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_${selchr}_raw.hold.vcf.gz.tbi" "${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_${selchr}_raw.vcf.gz.tbi" &&
+								wait
+							done
+							if LC_ALL=C gzip -l ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_"${selchr}"_raw.vcf.gz | awk 'NR==2 {exit($2!=0)}'; then
+								:
+							else
+								rm ../cohorts*/${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_*_raw.vcf.gz*
+								rm ../cohorts*/${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_raw.vcf*
+								rm ../${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_raw_cohorts*.vcf*
+								echo -e "${magenta}- \n- SNP calling failed probably due to insufficient memory ${white}\n"
+								echo -e "${magenta}- \n- Exiting pipeline in 5 seconds ${white}\n"
+								sleep 5 && exit 1
+							fi ) &
+							if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
+								wait
+							fi
+						done
+						wait
+						for g in $(ls ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_*_raw.vcf.gz); do (
+							$gunzip $g ) &
+							if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
+								wait
+							fi
+						done
+						grep -h '^#' ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_*_raw.vcf | awk '!visited[$0]++' | awk '!/^##GATKCommandLine/' > vcf_header.txt
+						cat ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_*_raw.vcf | awk '!/^#/' > all.vcf
+						cat vcf_header.txt all.vcf > ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_raw.vcf
+						rm vcf_header.txt all.vcf
+						rm ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_*_raw.vcf ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_*_raw.vcf.gz.tbi
+						$bcftools view -I ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_raw.vcf -O z -o ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_raw.vcf.gz
+						$bcftools index ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_raw.vcf.gz
 
-			for dir in cohorts*/; do
-				cd $dir
-				j=--variant; input=""; k=""
-				for i in $(ls *_${ref1%.f*}.g.vcf.gz); do
-					k="${j} ${i}"; input="${input} ${k}"
-				done
-				if [[ -z "$Get_Chromosome" ]]; then
-					Get2_Chromosome=$(awk 'NR>1{print $2,"\t",$3}' ${projdir}/refgenomes/panref.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $0}' | sort -k2,2 -nr | awk '{print $1}'| awk -v pat=${ref1%.f*} '$0 ~ pat' )
-				else
-					Get2_Chromosome=$(echo $Get_Chromosome | tr ',' '\n')
-				fi
-				for selchr in $Get2_Chromosome; do
-					$GATK --java-options "$Xmxg -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads"  GenomicsDBImport $input -L $selchr --genomicsdb-workspace-path ${pop}_${ref1%.f*}_${ploidy_ref1}x_"${selchr}"_raw
-				done
-				for selchr in $Get2_Chromosome; do (
-					while test ! -f "${pop}_${ref1%.f*}_${ploidy_ref1}x_${selchr}_raw.vcf.gz"; do
-						$GATK --java-options "$Xmxg -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads"  GenomicsDBImport $input -L $selchr --genomicsdb-workspace-path ${pop}_${ref1%.f*}_${ploidy_ref1}x_"${selchr}"_raw
-						$GATK --java-options "$Xmxg -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads"  GenotypeGVCFs -R ${projdir}/refgenomes/panref.fasta -L $selchr -V gendb://${pop}_${ref1%.f*}_${ploidy_ref1}x_"${selchr}"_raw -O "${pop}_${ref1%.f*}_${ploidy_ref1}x_${selchr}_raw.hold.vcf.gz" && \
-						rm -r ${pop}_${ref1%.f*}_${ploidy_ref1}x_"${selchr}"_raw && \
-						mv "${pop}_${ref1%.f*}_${ploidy_ref1}x_${selchr}_raw.hold.vcf.gz" "${pop}_${ref1%.f*}_${ploidy_ref1}x_${selchr}_raw.vcf.gz"
-						mv "${pop}_${ref1%.f*}_${ploidy_ref1}x_${selchr}_raw.hold.vcf.gz.tbi" "${pop}_${ref1%.f*}_${ploidy_ref1}x_${selchr}_raw.vcf.gz.tbi" &&
+						$bcftools annotate -x FORMAT/PL ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_raw.vcf.gz > ../${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_raw_${dir%/}.vcf
+						cd ../
+						$bcftools view -I ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_raw_${dir%/}.vcf -O z -o ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_raw_${dir%/}.vcf.gz
+						$bcftools index ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_raw_${dir%/}.vcf.gz
 						wait
 					done
-					if LC_ALL=C gzip -l ${pop}_${ref1%.f*}_${ploidy_ref1}x_"${selchr}"_raw.vcf.gz | awk 'NR==2 {exit($2!=0)}'; then
-						:
+					wait
+					if [[ `ls -1 *cohorts*.vcf.gz 2>/dev/null | wc -l` -gt 1 ]]; then
+						$bcftools merge *cohorts*.vcf.gz --force-samples -m all > ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_raw.vcf
 					else
-						rm ../cohorts*/${pop}_${ref1%.f*}_${ploidy_ref1}x_*_raw.vcf.gz*
-						rm ../cohorts*/${pop}_${ref1%.f*}_${ploidy_ref1}x_raw.vcf*
-						rm ../${pop}_${ref1%.f*}_${ploidy_ref1}x_raw_cohorts*.vcf
-						echo -e "${magenta}- \n- SNP calling failed probably due to insufficient memory ${white}\n"
-						echo -e "${magenta}- \n- Exiting pipeline in 5 seconds ${white}\n"
-						sleep 5 && exit 1
-					fi ) &
-					if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
-						wait
+						cp *cohorts*.vcf.gz ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_raw.vcf.gz
+						$gunzip ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_raw.vcf.gz
 					fi
-				done
-				wait
-				for g in $(ls ${pop}_${ref1%.f*}_${ploidy_ref1}x_*_raw.vcf.gz); do (
-					$gunzip $g ) &
-					if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
-						wait
+
+					if [[ "$keep_gVCF" == true ]]; then
+						mkdir -p keep_gVCF
+						mv ./cohorts*/*.g.vcf ./keep_gVCF
+						rm -r *cohorts*
+					else
+						rm -r cohorts*
+						rm -r *cohorts*
 					fi
-				done
-				grep -h '^#' ${pop}_${ref1%.f*}_${ploidy_ref1}x_*_raw.vcf | awk '!visited[$0]++' | awk '!/^##GATKCommandLine/' > vcf_header.txt
-				cat ${pop}_${ref1%.f*}_${ploidy_ref1}x_*_raw.vcf | awk '!/^#/' > all.vcf
-				cat vcf_header.txt all.vcf > ${pop}_${ref1%.f*}_${ploidy_ref1}x_raw.vcf
-				rm vcf_header.txt all.vcf
-				rm ${pop}_${ref1%.f*}_${ploidy_ref1}x_*_raw.vcf ${pop}_${ref1%.f*}_${ploidy_ref1}x_*_raw.vcf.gz.tbi
-				$bcftools view -I ${pop}_${ref1%.f*}_${ploidy_ref1}x_raw.vcf -O z -o ${pop}_${ref1%.f*}_${ploidy_ref1}x_raw.vcf.gz
-				$bcftools index ${pop}_${ref1%.f*}_${ploidy_ref1}x_raw.vcf.gz
 
-				$bcftools annotate -x FORMAT/PL ${pop}_${ref1%.f*}_${ploidy_ref1}x_raw.vcf.gz > ../${pop}_${ref1%.f*}_${ploidy_ref1}x_raw_${dir%/}.vcf
-				cd ../
-				$bcftools view -I ${pop}_${ref1%.f*}_${ploidy_ref1}x_raw_${dir%/}.vcf -O z -o ${pop}_${ref1%.f*}_${ploidy_ref1}x_raw_${dir%/}.vcf.gz
-				$bcftools index ${pop}_${ref1%.f*}_${ploidy_ref1}x_raw_${dir%/}.vcf.gz
-				wait
-			done
-			wait
-			if [[ `ls -1 *cohorts*.vcf.gz 2>/dev/null | wc -l` -gt 1 ]]; then
-				$bcftools erge *cohorts*.vcf.gz --force-samples -m all > ${pop}_${ref1%.f*}_${ploidy_ref1}x_raw.vcf
-			else
-				cp *cohorts*.vcf.gz ${pop}_${ref1%.f*}_${ploidy_ref1}x_raw.vcf.gz
-				$gunzip ${pop}_${ref1%.f*}_${ploidy_ref1}x_raw.vcf.gz
-			fi
-
-			if [[ "$keep_gVCF" == true ]]; then
-				mkdir -p keep_gVCF
-				mv ./cohorts*/*.g.vcf ./keep_gVCF
-				rm -r *cohorts*
-			else
-				rm -r cohorts*
-				rm -r *cohorts*
-			fi
-
-			cd ${projdir}/preprocess
-			mv *_${ref1%.f*}_precall* ./processed/
-		fi
-	fi
-	wait && touch ${projdir}/GVCF_1_done.txt
-
-######################
-
-	echo -e "${magenta}- performing SNP calling on subgenome-2 ${white}\n"
-	for i in $(cat ${projdir}/${samples_list} ); do (
-		if test ! -f "${pop}_${ref2%.f*}_${ploidy_ref2}x_raw.vcf" && test ! -f "${projdir}/GVCF_2_done.txt"; then
-			while test ! -f "${projdir}/snpcall/${i%.f*}_${ref2%.f*}.g.vcf.gz"; do
-				if [[ -z "$Get_Chromosome" ]]; then
-					$GATK --java-options "$Xmxg -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ${projdir}/refgenomes/panref.fasta -I "${i%.f*}_${ref2%.f*}_precall.bam" -ploidy $ploidy_ref2 -O "${projdir}/snpcall/${i%.f*}_${ref2%.f*}.hold.g.vcf.gz" -ERC GVCF --dont-use-soft-clipped-bases $softclip --max-reads-per-alignment-start "$(( biased_downsample * ploidy_ref2 ))" --minimum-mapping-quality 0 --max-num-haplotypes-in-population "$((ploidy_ref2 * maxHaplotype))" &&
-					wait
-				else
-				  echo $Get_Chromosome | tr ',' '\n' | awk '{print "SN:"$1}' | awk 'NR==FNR{a[$1];next}$2 in a{print $0}' - panref.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $2"\t0\t"$3"\t+\t"$2}' | \
-				  cat panref.dict - > panref.intervals_list
-					$GATK --java-options "$Xmxg -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ${projdir}/refgenomes/panref.fasta -L panref.intervals_list -I "${i%.f*}_${ref2%.f*}_precall.bam" -ploidy $ploidy_ref2 -O "${projdir}/snpcall/${i%.f*}_${ref2%.f*}.hold.g.vcf.gz" -ERC GVCF --dont-use-soft-clipped-bases $softclip --max-reads-per-alignment-start "$(( biased_downsample * ploidy_ref2 ))" --minimum-mapping-quality 0 --max-num-haplotypes-in-population "$((ploidy_ref2 * maxHaplotype))" &&
-					wait
+					cd ${projdir}/preprocess
+					mv *_${ref1%.f*}_${ref2%.f*}_precall* ./processed/
 				fi
-				mv "${projdir}/snpcall/${i%.f*}_${ref2%.f*}.hold.g.vcf.gz" "${projdir}/snpcall/${i%.f*}_${ref2%.f*}.g.vcf.gz" && \
-				mv "${projdir}/snpcall/${i%.f*}_${ref2%.f*}.hold.g.vcf.gz.tbi" "${projdir}/snpcall/${i%.f*}_${ref2%.f*}.g.vcf.gz.tbi" &&
-				wait
-			done
-		fi ) &
-		if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
-			wait
-		fi
-	done
-	wait
+			fi
+			wait && touch ${projdir}/GVCF_1_2_done.txt
 
 
-	if [[ ! -f "${projdir}/call2_${samples_list}" ]]; then touch "${projdir}/call2_${samples_list}"; fi
-	if [[ "$samples_list" == "samples_list_node_1.txt" ]] && test ! -f ${projdir}/snpcall/${pop}_${ref2%.f*}_${ploidy_ref2}x_raw.vcf*; then
-	  align=$(ls ${projdir}/call2_samples_list_node_* | wc -l)
-	  while [[ "$align" -lt $nodes ]]; do sleep 30; align=$(ls ${projdir}/call2_samples_list_node_* | wc -l); done
-	  if [[ $align == $nodes ]]; then
-	    rm ${projdir}/call2_${samples_list}
-			cd ${projdir}/snpcall
-			cz=$(ls *.g.vcf.gz | wc -l)
-			i=0
-			for f in `find . -maxdepth 1 -iname '*.g.vcf.gz' -type f | shuf`; do
-				d=cohorts_$(printf %02d $((i/cz+1)))
-				mkdir -p $d
-				mv "$f" $d; mv "${f}.tbi" $d
-				let i++
-			done
+		######################
 
-
-			for dir in *cohorts*/; do
-				cd $dir
-				j=--variant; input=""; k=""
-				for i in $(ls *_${ref2%.f*}.g.vcf.gz); do
-					k="${j} ${i}"; input="${input} ${k}"
-				done
-				if [[ -z "$Get_Chromosome" ]]; then
-					Get2_Chromosome=$(awk 'NR>1{print $2,"\t",$3}' ${projdir}/refgenomes/panref.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $0}' | sort -k2,2 -nr | awk '{print $1}' | awk -v pat=${ref2%.f*} '$0 ~ pat')
-				else
-					Get2_Chromosome=$(echo $Get_Chromosome | tr ',' '\n')
-				fi
-				for selchr in $Get2_Chromosome; do
-					$GATK --java-options "$Xmxg -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads"  GenomicsDBImport $input -L $selchr --genomicsdb-workspace-path ${pop}_${ref2%.f*}_${ploidy_ref2}x_"${selchr}"_raw
-				done
-				for selchr in $Get2_Chromosome; do (
-					while test ! -f "${pop}_${ref2%.f*}_${ploidy_ref2}x_${selchr}_raw.vcf.gz"; do
-						$GATK --java-options "$Xmxg -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads"  GenotypeGVCFs -R ${projdir}/refgenomes/panref.fasta -L $selchr -V gendb://${pop}_${ref2%.f*}_${ploidy_ref2}x_"${selchr}"_raw -O "${pop}_${ref2%.f*}_${ploidy_ref2}x_${selchr}_raw.hold.vcf.gz" && \
-						rm -r ${pop}_${ref2%.f*}_${ploidy_ref2}x_"${selchr}"_raw && \
-						mv "${pop}_${ref2%.f*}_${ploidy_ref2}x_${selchr}_raw.hold.vcf.gz" "${pop}_${ref2%.f*}_${ploidy_ref2}x_${selchr}_raw.vcf.gz" &&
+			echo -e "${magenta}- performing SNP calling on subgenome-1 ${white}\n"
+			for i in $(cat ${projdir}/${samples_list} ); do (
+				if test ! -f "${pop}_${ref1%.f*}_${ploidy_ref1}x_raw.vcf" && test ! -f "${projdir}/GVCF_1_done.txt"; then
+					while test ! -f ${projdir}/snpcall/${i%.f*}_${ref1%.f*}.g.vcf.gz; do
+						if [[ -z "$Get_Chromosome" ]]; then
+							$GATK --java-options "$Xmxg -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads"  HaplotypeCaller -R ${projdir}/refgenomes/panref.fasta -I ${i%.f*}_${ref1%.f*}_precall.bam -ploidy $ploidy_ref1 -O ${projdir}/snpcall/${i%.f*}_${ref1%.f*}.hold.g.vcf.gz -ERC GVCF --dont-use-soft-clipped-bases $softclip --max-reads-per-alignment-start "$(( biased_downsample * ploidy_ref1 ))" --minimum-mapping-quality 0 --max-num-haplotypes-in-population "$((ploidy_ref1 * maxHaplotype))" &&
+							wait
+						else
+						  echo $Get_Chromosome | tr ',' '\n' | awk -v pat=${ref1%.f*} '$0 ~ pat' | awk '{print "SN:"$1}' | awk 'NR==FNR{a[$1];next}$2 in a{print $0}' - panref.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $2"\t0\t"$3"\t+\t"$2}' | \
+						  cat panref.dict - > panref.intervals_list
+							$GATK --java-options "$Xmxg -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads"  HaplotypeCaller -R ${projdir}/refgenomes/panref.fasta -L panref.intervals_list -I ${i%.f*}_${ref1%.f*}_precall.bam -ploidy $ploidy_ref1 -O ${projdir}/snpcall/${i%.f*}_${ref1%.f*}.hold.g.vcf.gz -ERC GVCF --dont-use-soft-clipped-bases $softclip --max-reads-per-alignment-start "$(( biased_downsample * ploidy_ref1 ))" --minimum-mapping-quality 0 --max-num-haplotypes-in-population "$((ploidy_ref1 * maxHaplotype))" &&
+							wait
+						fi
+						mv "${projdir}/snpcall/${i%.f*}_${ref1%.f*}.hold.g.vcf.gz" "${projdir}/snpcall/${i%.f*}_${ref1%.f*}.g.vcf.gz" && \
+						mv "${projdir}/snpcall/${i%.f*}_${ref1%.f*}.hold.g.vcf.gz.tbi" "${projdir}/snpcall/${i%.f*}_${ref1%.f*}.g.vcf.gz.tbi" &&
 						wait
 					done
-					if LC_ALL=C gzip -l ${pop}_${ref2%.f*}_${ploidy_ref2}x_"${selchr}"_raw.vcf.gz | awk 'NR==2 {exit($2!=0)}'; then
-						:
-					else
-						rm ../cohorts*/${pop}_${ref2%.f*}_${ploidy_ref2}x_*_raw.vcf.gz*
-						rm ../cohorts*/${pop}_${ref2%.f*}_${ploidy_ref2}x_raw.vcf*
-						rm ../${pop}_${ref2%.f*}_${ploidy_ref2}x_raw_cohorts*.vcf*
-						echo -e "${magenta}- \n- SNP calling failed probably due to insufficient memory ${white}\n"
-						echo -e "${magenta}- \n- Exiting pipeline in 5 seconds ${white}\n"
-						sleep 5 && exit 1
-					fi ) &
-					if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
-						wait
-					fi
-				done
-				wait
-				for g in $(ls ${pop}_${ref2%.f*}_${ploidy_ref2}x_*_raw.vcf.gz); do (
-					$gunzip $g ) &
-					if [[ $(jobs -r -p | wc -l) -ge $N ]]; then
-						wait
-					fi
-				done
-				grep -h '^#' ${pop}_${ref2%.f*}_${ploidy_ref2}x_*_raw.vcf | awk '!visited[$0]++' | awk '!/^##GATKCommandLine/' > vcf_header.txt
-				cat ${pop}_${ref2%.f*}_${ploidy_ref2}x_*_raw.vcf | awk '!/^#/' > all.vcf
-				cat vcf_header.txt all.vcf > ${pop}_${ref2%.f*}_${ploidy_ref2}x_raw.vcf
-				rm vcf_header.txt all.vcf
-				rm ${pop}_${ref2%.f*}_${ploidy_ref2}x_*_raw.vcf ${pop}_${ref2%.f*}_${ploidy_ref2}x_*_raw.vcf.gz.tbi
-				$bcftools view -I ${pop}_${ref2%.f*}_${ploidy_ref2}x_raw.vcf -O z -o ${pop}_${ref2%.f*}_${ploidy_ref2}x_raw.vcf.gz
-				$bcftools index ${pop}_${ref2%.f*}_${ploidy_ref2}x_raw.vcf.gz
-
-				$bcftools annotate -x FORMAT/PL ${pop}_${ref2%.f*}_${ploidy_ref2}x_raw.vcf.gz > ../${pop}_${ref2%.f*}_${ploidy_ref2}x_raw_${dir%/}.vcf
-				cd ../
-				$bcftools view -I ${pop}_${ref2%.f*}_${ploidy_ref2}x_raw_${dir%/}.vcf -O z -o ${pop}_${ref2%.f*}_${ploidy_ref2}x_raw_${dir%/}.vcf.gz
-				$bcftools index ${pop}_${ref2%.f*}_${ploidy_ref2}x_raw_${dir%/}.vcf.gz
-				wait
+				fi ) &
+				if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
+					wait
+				fi
 			done
 			wait
-			if [[ `ls -1 *cohorts*.vcf.gz 2>/dev/null | wc -l` -gt 1 ]]; then
-				$bcftools merge *cohorts*.vcf.gz --force-samples -m all > ${pop}_${ref2%.f*}_${ploidy_ref2}x_raw.vcf
-			else
-				cp *cohorts*.vcf.gz ${pop}_${ref2%.f*}_${ploidy_ref2}x_raw.vcf.gz
-				$gunzip ${pop}_${ref2%.f*}_${ploidy_ref2}x_raw.vcf.gz
-			fi
 
-			if [[ "$keep_gVCF" == true ]]; then
-				mkdir -p keep_gVCF
-				mv ./cohorts*/*.g.vcf ./keep_gVCF
-				rm -r *cohorts*
-			else
-				rm -r cohorts*
-				rm -r *cohorts*
-			fi
 
-			cd ${projdir}/preprocess
-			mv *_${ref2%.f*}_precall* ./processed/
+			if [[ ! -f "${projdir}/call1_${samples_list}" ]]; then touch "${projdir}/call1_${samples_list}"; fi
+			if [[ "$samples_list" == "samples_list_node_1.txt" ]] && test ! -f $${projdir}/snpcall/{pop}_${ref1%.f*}_${ploidy_ref1}x_raw.vcf*; then
+			  align=$(ls ${projdir}/call1_samples_list_node_* | wc -l)
+			  while [[ "$align" -lt $nodes ]]; do sleep 30; align=$(ls ${projdir}/call1_samples_list_node_* | wc -l); done
+			  if [[ $align == $nodes ]]; then
+			    rm ${projdir}/call1_${samples_list}
+					cd ${projdir}/snpcall
+					cz=$(ls *.g.vcf.gz | wc -l)
+					i=0
+					for f in `find . -maxdepth 1 -iname '*.g.vcf.gz' -type f | shuf`; do
+						d=cohorts_$(printf %02d $((i/cz+1)))
+						mkdir -p $d
+						mv "$f" $d; mv "${f}.tbi" $d
+						let i++
+					done
+
+					for dir in cohorts*/; do
+						cd $dir
+						j=--variant; input=""; k=""
+						for i in $(ls *_${ref1%.f*}.g.vcf.gz); do
+							k="${j} ${i}"; input="${input} ${k}"
+						done
+						if [[ -z "$Get_Chromosome" ]]; then
+							Get2_Chromosome=$(awk 'NR>1{print $2,"\t",$3}' ${projdir}/refgenomes/panref.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $0}' | sort -k2,2 -nr | awk '{print $1}'| awk -v pat=${ref1%.f*} '$0 ~ pat' )
+						else
+							Get2_Chromosome=$(echo $Get_Chromosome | tr ',' '\n')
+						fi
+						for selchr in $Get2_Chromosome; do
+							$GATK --java-options "$Xmxg -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads"  GenomicsDBImport $input -L $selchr --genomicsdb-workspace-path ${pop}_${ref1%.f*}_${ploidy_ref1}x_"${selchr}"_raw
+						done
+						for selchr in $Get2_Chromosome; do (
+							while test ! -f "${pop}_${ref1%.f*}_${ploidy_ref1}x_${selchr}_raw.vcf.gz"; do
+								$GATK --java-options "$Xmxg -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads"  GenomicsDBImport $input -L $selchr --genomicsdb-workspace-path ${pop}_${ref1%.f*}_${ploidy_ref1}x_"${selchr}"_raw
+								$GATK --java-options "$Xmxg -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads"  GenotypeGVCFs -R ${projdir}/refgenomes/panref.fasta -L $selchr -V gendb://${pop}_${ref1%.f*}_${ploidy_ref1}x_"${selchr}"_raw -O "${pop}_${ref1%.f*}_${ploidy_ref1}x_${selchr}_raw.hold.vcf.gz" && \
+								rm -r ${pop}_${ref1%.f*}_${ploidy_ref1}x_"${selchr}"_raw && \
+								mv "${pop}_${ref1%.f*}_${ploidy_ref1}x_${selchr}_raw.hold.vcf.gz" "${pop}_${ref1%.f*}_${ploidy_ref1}x_${selchr}_raw.vcf.gz"
+								mv "${pop}_${ref1%.f*}_${ploidy_ref1}x_${selchr}_raw.hold.vcf.gz.tbi" "${pop}_${ref1%.f*}_${ploidy_ref1}x_${selchr}_raw.vcf.gz.tbi" &&
+								wait
+							done
+							if LC_ALL=C gzip -l ${pop}_${ref1%.f*}_${ploidy_ref1}x_"${selchr}"_raw.vcf.gz | awk 'NR==2 {exit($2!=0)}'; then
+								:
+							else
+								rm ../cohorts*/${pop}_${ref1%.f*}_${ploidy_ref1}x_*_raw.vcf.gz*
+								rm ../cohorts*/${pop}_${ref1%.f*}_${ploidy_ref1}x_raw.vcf*
+								rm ../${pop}_${ref1%.f*}_${ploidy_ref1}x_raw_cohorts*.vcf
+								echo -e "${magenta}- \n- SNP calling failed probably due to insufficient memory ${white}\n"
+								echo -e "${magenta}- \n- Exiting pipeline in 5 seconds ${white}\n"
+								sleep 5 && exit 1
+							fi ) &
+							if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
+								wait
+							fi
+						done
+						wait
+						for g in $(ls ${pop}_${ref1%.f*}_${ploidy_ref1}x_*_raw.vcf.gz); do (
+							$gunzip $g ) &
+							if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
+								wait
+							fi
+						done
+						grep -h '^#' ${pop}_${ref1%.f*}_${ploidy_ref1}x_*_raw.vcf | awk '!visited[$0]++' | awk '!/^##GATKCommandLine/' > vcf_header.txt
+						cat ${pop}_${ref1%.f*}_${ploidy_ref1}x_*_raw.vcf | awk '!/^#/' > all.vcf
+						cat vcf_header.txt all.vcf > ${pop}_${ref1%.f*}_${ploidy_ref1}x_raw.vcf
+						rm vcf_header.txt all.vcf
+						rm ${pop}_${ref1%.f*}_${ploidy_ref1}x_*_raw.vcf ${pop}_${ref1%.f*}_${ploidy_ref1}x_*_raw.vcf.gz.tbi
+						$bcftools view -I ${pop}_${ref1%.f*}_${ploidy_ref1}x_raw.vcf -O z -o ${pop}_${ref1%.f*}_${ploidy_ref1}x_raw.vcf.gz
+						$bcftools index ${pop}_${ref1%.f*}_${ploidy_ref1}x_raw.vcf.gz
+
+						$bcftools annotate -x FORMAT/PL ${pop}_${ref1%.f*}_${ploidy_ref1}x_raw.vcf.gz > ../${pop}_${ref1%.f*}_${ploidy_ref1}x_raw_${dir%/}.vcf
+						cd ../
+						$bcftools view -I ${pop}_${ref1%.f*}_${ploidy_ref1}x_raw_${dir%/}.vcf -O z -o ${pop}_${ref1%.f*}_${ploidy_ref1}x_raw_${dir%/}.vcf.gz
+						$bcftools index ${pop}_${ref1%.f*}_${ploidy_ref1}x_raw_${dir%/}.vcf.gz
+						wait
+					done
+					wait
+					if [[ `ls -1 *cohorts*.vcf.gz 2>/dev/null | wc -l` -gt 1 ]]; then
+						$bcftools erge *cohorts*.vcf.gz --force-samples -m all > ${pop}_${ref1%.f*}_${ploidy_ref1}x_raw.vcf
+					else
+						cp *cohorts*.vcf.gz ${pop}_${ref1%.f*}_${ploidy_ref1}x_raw.vcf.gz
+						$gunzip ${pop}_${ref1%.f*}_${ploidy_ref1}x_raw.vcf.gz
+					fi
+
+					if [[ "$keep_gVCF" == true ]]; then
+						mkdir -p keep_gVCF
+						mv ./cohorts*/*.g.vcf ./keep_gVCF
+						rm -r *cohorts*
+					else
+						rm -r cohorts*
+						rm -r *cohorts*
+					fi
+
+					cd ${projdir}/preprocess
+					mv *_${ref1%.f*}_precall* ./processed/
+				fi
+			fi
+			wait && touch ${projdir}/GVCF_1_done.txt
+
+		######################
+
+			echo -e "${magenta}- performing SNP calling on subgenome-2 ${white}\n"
+			for i in $(cat ${projdir}/${samples_list} ); do (
+				if test ! -f "${pop}_${ref2%.f*}_${ploidy_ref2}x_raw.vcf" && test ! -f "${projdir}/GVCF_2_done.txt"; then
+					while test ! -f "${projdir}/snpcall/${i%.f*}_${ref2%.f*}.g.vcf.gz"; do
+						if [[ -z "$Get_Chromosome" ]]; then
+							$GATK --java-options "$Xmxg -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ${projdir}/refgenomes/panref.fasta -I "${i%.f*}_${ref2%.f*}_precall.bam" -ploidy $ploidy_ref2 -O "${projdir}/snpcall/${i%.f*}_${ref2%.f*}.hold.g.vcf.gz" -ERC GVCF --dont-use-soft-clipped-bases $softclip --max-reads-per-alignment-start "$(( biased_downsample * ploidy_ref2 ))" --minimum-mapping-quality 0 --max-num-haplotypes-in-population "$((ploidy_ref2 * maxHaplotype))" &&
+							wait
+						else
+						  echo $Get_Chromosome | tr ',' '\n' | awk '{print "SN:"$1}' | awk 'NR==FNR{a[$1];next}$2 in a{print $0}' - panref.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $2"\t0\t"$3"\t+\t"$2}' | \
+						  cat panref.dict - > panref.intervals_list
+							$GATK --java-options "$Xmxg -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ${projdir}/refgenomes/panref.fasta -L panref.intervals_list -I "${i%.f*}_${ref2%.f*}_precall.bam" -ploidy $ploidy_ref2 -O "${projdir}/snpcall/${i%.f*}_${ref2%.f*}.hold.g.vcf.gz" -ERC GVCF --dont-use-soft-clipped-bases $softclip --max-reads-per-alignment-start "$(( biased_downsample * ploidy_ref2 ))" --minimum-mapping-quality 0 --max-num-haplotypes-in-population "$((ploidy_ref2 * maxHaplotype))" &&
+							wait
+						fi
+						mv "${projdir}/snpcall/${i%.f*}_${ref2%.f*}.hold.g.vcf.gz" "${projdir}/snpcall/${i%.f*}_${ref2%.f*}.g.vcf.gz" && \
+						mv "${projdir}/snpcall/${i%.f*}_${ref2%.f*}.hold.g.vcf.gz.tbi" "${projdir}/snpcall/${i%.f*}_${ref2%.f*}.g.vcf.gz.tbi" &&
+						wait
+					done
+				fi ) &
+				if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
+					wait
+				fi
+			done
+			wait
+
+
+			if [[ ! -f "${projdir}/call2_${samples_list}" ]]; then touch "${projdir}/call2_${samples_list}"; fi
+			if [[ "$samples_list" == "samples_list_node_1.txt" ]] && test ! -f ${projdir}/snpcall/${pop}_${ref2%.f*}_${ploidy_ref2}x_raw.vcf*; then
+			  align=$(ls ${projdir}/call2_samples_list_node_* | wc -l)
+			  while [[ "$align" -lt $nodes ]]; do sleep 30; align=$(ls ${projdir}/call2_samples_list_node_* | wc -l); done
+			  if [[ $align == $nodes ]]; then
+			    rm ${projdir}/call2_${samples_list}
+					cd ${projdir}/snpcall
+					cz=$(ls *.g.vcf.gz | wc -l)
+					i=0
+					for f in `find . -maxdepth 1 -iname '*.g.vcf.gz' -type f | shuf`; do
+						d=cohorts_$(printf %02d $((i/cz+1)))
+						mkdir -p $d
+						mv "$f" $d; mv "${f}.tbi" $d
+						let i++
+					done
+
+
+					for dir in *cohorts*/; do
+						cd $dir
+						j=--variant; input=""; k=""
+						for i in $(ls *_${ref2%.f*}.g.vcf.gz); do
+							k="${j} ${i}"; input="${input} ${k}"
+						done
+						if [[ -z "$Get_Chromosome" ]]; then
+							Get2_Chromosome=$(awk 'NR>1{print $2,"\t",$3}' ${projdir}/refgenomes/panref.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $0}' | sort -k2,2 -nr | awk '{print $1}' | awk -v pat=${ref2%.f*} '$0 ~ pat')
+						else
+							Get2_Chromosome=$(echo $Get_Chromosome | tr ',' '\n')
+						fi
+						for selchr in $Get2_Chromosome; do
+							$GATK --java-options "$Xmxg -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads"  GenomicsDBImport $input -L $selchr --genomicsdb-workspace-path ${pop}_${ref2%.f*}_${ploidy_ref2}x_"${selchr}"_raw
+						done
+						for selchr in $Get2_Chromosome; do (
+							while test ! -f "${pop}_${ref2%.f*}_${ploidy_ref2}x_${selchr}_raw.vcf.gz"; do
+								$GATK --java-options "$Xmxg -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads"  GenotypeGVCFs -R ${projdir}/refgenomes/panref.fasta -L $selchr -V gendb://${pop}_${ref2%.f*}_${ploidy_ref2}x_"${selchr}"_raw -O "${pop}_${ref2%.f*}_${ploidy_ref2}x_${selchr}_raw.hold.vcf.gz" && \
+								rm -r ${pop}_${ref2%.f*}_${ploidy_ref2}x_"${selchr}"_raw && \
+								mv "${pop}_${ref2%.f*}_${ploidy_ref2}x_${selchr}_raw.hold.vcf.gz" "${pop}_${ref2%.f*}_${ploidy_ref2}x_${selchr}_raw.vcf.gz" &&
+								wait
+							done
+							if LC_ALL=C gzip -l ${pop}_${ref2%.f*}_${ploidy_ref2}x_"${selchr}"_raw.vcf.gz | awk 'NR==2 {exit($2!=0)}'; then
+								:
+							else
+								rm ../cohorts*/${pop}_${ref2%.f*}_${ploidy_ref2}x_*_raw.vcf.gz*
+								rm ../cohorts*/${pop}_${ref2%.f*}_${ploidy_ref2}x_raw.vcf*
+								rm ../${pop}_${ref2%.f*}_${ploidy_ref2}x_raw_cohorts*.vcf*
+								echo -e "${magenta}- \n- SNP calling failed probably due to insufficient memory ${white}\n"
+								echo -e "${magenta}- \n- Exiting pipeline in 5 seconds ${white}\n"
+								sleep 5 && exit 1
+							fi ) &
+							if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
+								wait
+							fi
+						done
+						wait
+						for g in $(ls ${pop}_${ref2%.f*}_${ploidy_ref2}x_*_raw.vcf.gz); do (
+							$gunzip $g ) &
+							if [[ $(jobs -r -p | wc -l) -ge $N ]]; then
+								wait
+							fi
+						done
+						grep -h '^#' ${pop}_${ref2%.f*}_${ploidy_ref2}x_*_raw.vcf | awk '!visited[$0]++' | awk '!/^##GATKCommandLine/' > vcf_header.txt
+						cat ${pop}_${ref2%.f*}_${ploidy_ref2}x_*_raw.vcf | awk '!/^#/' > all.vcf
+						cat vcf_header.txt all.vcf > ${pop}_${ref2%.f*}_${ploidy_ref2}x_raw.vcf
+						rm vcf_header.txt all.vcf
+						rm ${pop}_${ref2%.f*}_${ploidy_ref2}x_*_raw.vcf ${pop}_${ref2%.f*}_${ploidy_ref2}x_*_raw.vcf.gz.tbi
+						$bcftools view -I ${pop}_${ref2%.f*}_${ploidy_ref2}x_raw.vcf -O z -o ${pop}_${ref2%.f*}_${ploidy_ref2}x_raw.vcf.gz
+						$bcftools index ${pop}_${ref2%.f*}_${ploidy_ref2}x_raw.vcf.gz
+
+						$bcftools annotate -x FORMAT/PL ${pop}_${ref2%.f*}_${ploidy_ref2}x_raw.vcf.gz > ../${pop}_${ref2%.f*}_${ploidy_ref2}x_raw_${dir%/}.vcf
+						cd ../
+						$bcftools view -I ${pop}_${ref2%.f*}_${ploidy_ref2}x_raw_${dir%/}.vcf -O z -o ${pop}_${ref2%.f*}_${ploidy_ref2}x_raw_${dir%/}.vcf.gz
+						$bcftools index ${pop}_${ref2%.f*}_${ploidy_ref2}x_raw_${dir%/}.vcf.gz
+						wait
+					done
+					wait
+					if [[ `ls -1 *cohorts*.vcf.gz 2>/dev/null | wc -l` -gt 1 ]]; then
+						$bcftools merge *cohorts*.vcf.gz --force-samples -m all > ${pop}_${ref2%.f*}_${ploidy_ref2}x_raw.vcf
+					else
+						cp *cohorts*.vcf.gz ${pop}_${ref2%.f*}_${ploidy_ref2}x_raw.vcf.gz
+						$gunzip ${pop}_${ref2%.f*}_${ploidy_ref2}x_raw.vcf.gz
+					fi
+
+					if [[ "$keep_gVCF" == true ]]; then
+						mkdir -p keep_gVCF
+						mv ./cohorts*/*.g.vcf ./keep_gVCF
+						rm -r *cohorts*
+					else
+						rm -r cohorts*
+						rm -r *cohorts*
+					fi
+
+					cd ${projdir}/preprocess
+					mv *_${ref2%.f*}_precall* ./processed/
+				fi
+			fi
+		wait && touch ${projdir}/GVCF_2_done.txt
+
+		######################
+
+		if [[ ! -f "${projdir}/callfinal_${samples_list}" ]]; then touch "${projdir}/callfinal_${samples_list}"; fi
+		if [[ "$samples_list" == "samples_list_node_1.txt" ]]; then
+		  align=$(ls ${projdir}/callfinal_samples_list_node_* | wc -l)
+		  while [[ "$align" -lt $nodes ]]; do sleep 30; align=$(ls ${projdir}/callfinal_samples_list_node_* | wc -l); done
+		  if [[ $align == $nodes ]]; then
+		    rm ${projdir}/callfinal_${samples_list}
+				echo -e "${magenta}- keeping *realign.bam & *realign.bam files in ./preprocess/processed/ ${white}\n"
+				mv ${projdir}/preprocess/processed/* ${projdir}/preprocess/
+				rmdir ${projdir}/preprocess/processed
+			fi
 		fi
-	fi
-wait && touch ${projdir}/GVCF_2_done.txt
 
-######################
-
-if [[ ! -f "${projdir}/callfinal_${samples_list}" ]]; then touch "${projdir}/callfinal_${samples_list}"; fi
-if [[ "$samples_list" == "samples_list_node_1.txt" ]]; then
-  align=$(ls ${projdir}/callfinal_samples_list_node_* | wc -l)
-  while [[ "$align" -lt $nodes ]]; do sleep 30; align=$(ls ${projdir}/callfinal_samples_list_node_* | wc -l); done
-  if [[ $align == $nodes ]]; then
-    rm ${projdir}/callfinal_${samples_list}
-		echo -e "${magenta}- keeping *realign.bam & *realign.bam files in ./preprocess/processed/ ${white}\n"
-		mv ${projdir}/preprocess/processed/* ${projdir}/preprocess/
-		rmdir ${projdir}/preprocess/processed
 	fi
-fi
 
 }
 cd $projdir
