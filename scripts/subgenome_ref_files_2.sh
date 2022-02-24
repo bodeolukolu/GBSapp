@@ -844,9 +844,9 @@ main () {
 
 	  if [[ -z "$Get_Chromosome" ]]; then
 	    for selchr in $Get2_Chromosome; do (
-				if test ! -f ${projdir}/snpcall/${pop}_${ref1%.f*}_${ploidy}x_${selchr}_raw.vcf; then
+				if test ! -f ${projdir}/snpcall/${pop}_${ref1%.f*}_${ploidy_ref1}x_${selchr}_raw.vcf; then
 	      	$GATK --java-options "$Xmxg -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R "${projdir}/refgenomes/panref.fasta" -L ${selchr} ${input} -ploidy $ploidy_ref1 -O ${projdir}/snpcall/${pop}_${ref1%.f*}_${ploidy_ref1}x_${selchr}_raw.vcf.gz --dont-use-soft-clipped-bases $softclip --max-reads-per-alignment-start 0 --minimum-mapping-quality 0 --max-num-haplotypes-in-population "$((ploidy_ref1 * maxHaplotype))" &&
-	      	gunzip ${projdir}/snpcall/${pop}_${ref1%.f*}_${ploidy}x_${selchr}_raw.vcf.gz &&
+	      	gunzip ${projdir}/snpcall/${pop}_${ref1%.f*}_${ploidy_ref1}x_${selchr}_raw.vcf.gz &&
 					wait
 				fi
 	      ) &
@@ -888,9 +888,9 @@ main () {
 
 	  if [[ -z "$Get_Chromosome" ]]; then
 	    for selchr in $Get2_Chromosome; do (
-				if test ! -f ${projdir}/snpcall/${pop}_${ref2%.f*}_${ploidy}x_${selchr}_raw.vcf; then
+				if test ! -f ${projdir}/snpcall/${pop}_${ref2%.f*}_${ploidy_ref2}x_${selchr}_raw.vcf; then
 	      	$GATK --java-options "$Xmxg -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R "${projdir}/refgenomes/panref.fasta" -L ${selchr} ${input} -ploidy $ploidy_ref2 -O ${projdir}/snpcall/${pop}_${ref2%.f*}_${ploidy_ref2}x_${selchr}_raw.vcf.gz --dont-use-soft-clipped-bases $softclip --max-reads-per-alignment-start 0 --minimum-mapping-quality 0 --max-num-haplotypes-in-population "$((ploidy_ref2 * maxHaplotype))" &&
-	      	gunzip ${projdir}/snpcall/${pop}_${ref2%.f*}_${ploidy}x_${selchr}_raw.vcf.gz &&
+	      	gunzip ${projdir}/snpcall/${pop}_${ref2%.f*}_${ploidy_ref2}x_${selchr}_raw.vcf.gz &&
 					wait
 				fi
 	      ) &
