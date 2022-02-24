@@ -921,6 +921,8 @@ main () {
 
 	if [[ "$joint_calling" == false ]]; then
 
+		mv $projdir/preprocess/processed/*_precall.bam* $projdir/preprocess/
+
 		######################
 
 			echo -e "${magenta}- performing SNP calling across entire genome (subgenome 1 and 2) ${white}\n"
