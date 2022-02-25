@@ -78,10 +78,8 @@ The project directory should contain the following files and directories:
 ![alt text](https://github.com/bodeolukolu/GBSapp/blob/master/misc/project_dir_setup.PNG?raw=true)
 
 From command line, run GBSapp with options shown below (absolute or relative path)
-```bash
-$ GBSapp	<path-to-project-directory>
-$ bash GBSapp.sh	<path-to-project-directory>
-$ bash	<path-to-GBSapp-directory/GBSapp.sh>	<path-to-project-directory>
+```
+$ bash	<path-to-GBSapp-directory/GBSapp>	<path-to-project-directory>
 ```
 
 ### Overview of workflow
