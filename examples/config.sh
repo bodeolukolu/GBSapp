@@ -5,6 +5,7 @@ walkaway=true
 cluster=true
 nodes=1
 samples_alt_dir=false
+lib_type=RRS
 
 # Variant calling
 ###################################################

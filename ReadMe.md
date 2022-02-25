@@ -100,6 +100,7 @@ Using a text editor, save a file containing any of the following variables as 'c
 |cluster|false|run on compute cluster node (default: slurm) or workstation|true or false|Optional|
 |nodes|1|number of nodes|integer|Optional|
 |samples_alt_dir|false|links samples in separate directory to project directory|true or false|Optional|
+|lib_type|RRS|RRS (reduced representation sequence e.g. GBS, ddRADseq, qRRS) or WGS (shotgun whole genome sequence)|string|Optional|
 
 
 
@@ -165,6 +166,7 @@ walkaway=true
 cluster=true
 nodes=1
 samples_alt_dir=false
+lib_type=RRS
 
 # Variant calling
 ###################################################
@@ -212,11 +214,11 @@ ploidy=2
 ```
 Since most of the parameters are hard-coded in an intuitive manner, by specifying only the ploidy levels, the pipelines determines the other parameters as stated below:<br />
 - threads: computes available number of cores (n) and and uses n-2 threads
-- defaults: walkaway=true, cluster=false, reference genome ID is generated if a reference genome fasta files is provided, copy=1, paleopolyploid=false, genotype and sample missingness rate are 0.2, 2x ploidy uses minRD=6, maf=0.02, no samples are exclude and samples are considered to be unrelated.
+- defaults: refer to parameters above
 
 ## Related Software
 - Next-Generation Sequence (NGS) data filtering
-    - [ngsComposer: Empirical Base-call error-filtering and read preprocessing pipeline.](https://github.com/ryandkuster/ngsComposer)
+    - [ngsComposer: Empirical Base-call error-filtering and read preprocessing pipeline.](https://github.com/bodeolukolu/ngsComposer)
 
 ## Select Article Referencing GBSapp
 1. ngsComposer: an automated pipeline for empirically based NGS data quality filtering. [Kuster et al. 2021](https://doi.org/10.1093/bib/bbab092)
@@ -265,11 +267,11 @@ While the installation of samtools and bcftools are automated, the installation 
 **Problem with amount of memory and/or processors/cores specified:**<br />
 ```
 - This might be due to specifing values greater than available resources
-- Re-submit job with appropriate values or modify header of the GBSapprun.sh batch file.
-- If using compute cluster managers other than SLURM, header of GBSapprun.sh batch can also be modified to fit the syntax of the cluster manager been used.
+- Re-submit job with appropriate values or modify header of the GBSapp_run.sh batch file.
+- If using compute cluster managers other than SLURM, header of GBSapp_run.sh batch can also be modified to fit the syntax of the cluster manager been used.
 ```
 ## Versioning
 Versioning will follow major.minor.patch <a href="https://semver.org">semantic versioning format</a>.
 
 ## License
-<a href="https://github.com/ryandkuster/composer/blob/master/LICENSE">Apache License Version 2.0</a>
+<a href="https://github.com/bodeolukolu/GBSapp/blob/master/LICENSE">Apache License Version 2.0</a>
