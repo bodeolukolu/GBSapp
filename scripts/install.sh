@@ -10,9 +10,14 @@ white=$'\e[0m'
 
 
 main () {
-  echo -e "${blue}\n############################################## ${yellow}\n- downloading and installing BBmap ${blue}\n##############################################${white}"
-  wget https://sourceforge.net/projects/bbmap/files/latest/download &&
-  tar -xvzf download*; rm download*
+  echo -e "${blue}\n############################################## ${yellow}\n- downloading and installing NGM ${blue}\n##############################################${white}"
+  wget https://github.com/Cibiv/NextGenMap/tarball/master -O NGM.tar.gz
+  tar xvfz NGM.tar.gz; rm NGM.tar.gz
+  cd Cibiv-NextGenMap*
+  mkdir -p build/
+  cd build/
+  cmake ..
+  make
 }
 dirtool=bbmap
 if [ -d $dirtool ]; then

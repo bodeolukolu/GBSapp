@@ -159,7 +159,7 @@ else
 	rm ref.txt
 	$samtools faidx $ref1
 	$java -jar $picard CreateSequenceDictionary REFERENCE= $ref1 OUTPUT=${ref1%.f*}.dict
-	$java -ea $Xmx2 -cp ${GBSapp_dir}/tools/bbmap/current/ align2.BBMap ref=$ref1 k=4 threads=$threads
+	$ngm -r $ref1
 
 fi
 
@@ -524,19 +524,19 @@ main () {
 	wait && touch ${projdir}/compress_done.txt
 
 
-	for i in $(cat ${projdir}/${samples_list} ); do
+	for i in $(cat ${projdir}/${samples_list} ); do (
 		cd ${projdir}/refgenomes
 		if [[ "$lib_type" == "RRS" ]] && test ! -f ${projdir}/precall_done.txt && test ! -f ${projdir}/preprocess/${i%.f*}_${ref1%.f*}_precall.bam.bai; then
 			export nempty=$( ls ${i%.f*}_uniq_R2.fasta 2> /dev/null | wc -l | awk '{print $1}' )
 			while test ! -f ${projdir}/preprocess/${i%.f*}_redun.sam; do
 				if [[ "$nempty" -gt 0 ]]; then
-					$java -ea $Xmx2 -cp ${GBSapp_dir}/tools/bbmap/current/ align2.BBMap fast=t qin=33 threads=$threads averagepairdist=$PEdist deterministic=t maxindel=$maxindel local=t keepnames=t maxsites=12 saa=f secondary=t ambiguous=all ref=$ref1 in1=${projdir}/samples/${i%.f*}_uniq_R1.fq.gz in2=${projdir}/samples/${i%.f*}_uniq_R2.fq.gz out=${projdir}/preprocess/${i%.f*}_redun_R1R2.sam &&
-					$java -ea $Xmx2 -cp ${GBSapp_dir}/tools/bbmap/current/ align2.BBMap fast=t qin=33 threads=$threads averagepairdist=$PEdist deterministic=t maxindel=$maxindel local=t keepnames=t maxsites=12 saa=f secondary=t ambiguous=all ref=$ref1 in1=${projdir}/samples/${i%.f*}_uniq_singleton.fq.gz out=${projdir}/preprocess/${i%.f*}_redun_singleton.sam &&
+					$ngm -r $ref1 --qry1 ${projdir}/samples/${i%.f*}_uniq_R1.fq.gz --qry2 ${projdir}/samples/${i%.f*}_uniq_R2.fq.gz -o ${projdir}/preprocess/${i%.f*}_redun_R1R2.sam -t $gthreads --min-identity 0 --strata 12 &&
+					$ngm -r $ref1 --qry1 ${projdir}/samples/${i%.f*}_uniq_R1.fq.gz --qry2 ${projdir}/samples/${i%.f*}_uniq_R2.fq.gz -o ${projdir}/preprocess/${i%.f*}_redun_R1R2.sam -t $gthreads --min-identity 0 --strata 12 &&
 					grep -v '^@' ${projdir}/preprocess/${i%.f*}_redun_singleton.sam | cat ${projdir}/preprocess/${i%.f*}_redun_R1R2.sam - > ${projdir}/preprocess/${i%.f*}_redun.hold.sam &&
 					rm ${projdir}/preprocess/${i%.f*}_redun_singleton.sam ${projdir}/preprocess/${i%.f*}_redun_R1R2.sam &&
 					wait
 				else
-					$java -ea $Xmx2 -cp ${GBSapp_dir}/tools/bbmap/current/ align2.BBMap fast=t qin=33 threads=$threads maxindel=$maxindel local=t keepnames=t maxsites=12 saa=f secondary=t ambiguous=all ref=$ref1 in1=${projdir}/samples/${i%.f*}_uniq_R1.fq.gz out=${projdir}/preprocess/${i%.f*}_redun.hold.sam &&
+					$ngm -r $ref1 -q ${projdir}/samples/${i%.f*}_uniq_R1.fq.gz -o ${projdir}/preprocess/${i%.f*}_redun.hold.sam -t $gthreads --min-identity 0 --strata 12 &&
 					wait
 				fi
 				mv ${projdir}/preprocess/${i%.f*}_redun.hold.sam ${projdir}/preprocess/${i%.f*}_redun.sam 2> /dev/null &&
@@ -551,19 +551,22 @@ main () {
 			done
 			wait
 		fi
-		cd ${projdir}/samples
+		cd ${projdir}/samples ) &
+		if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
+			wait
+		fi
 	done
 
-	for i in $(cat ${projdir}/${samples_list} ); do
+	for i in $(cat ${projdir}/${samples_list} ); do (
 		cd ${projdir}/refgenomes
 		if [[ "$lib_type" == "WGS" ]] && test ! -f ${projdir}/precall_done.txt && test ! -f ${projdir}/preprocess/${i%.f*}_${ref1%.f*}_precall.bam.bai; then
 			export nempty=$( ls ${i%.f*}_R2.fastq.gz 2> /dev/null | wc -l | awk '{print $1}' )
 			while test ! -f ${projdir}/preprocess/${i%.f*}_redun.sam; do
 				if [[ "$nempty" -gt 0 ]]; then
-					$java -ea $Xmx2 -cp ${GBSapp_dir}/tools/bbmap/current/ align2.BBMap fast=t qin=33 threads=$threads averagepairdist=$PEdist deterministic=t maxindel=$maxindel local=t keepnames=t maxsites=12 saa=f secondary=t ambiguous=all ref=$ref1 in1=${projdir}/samples/$i in2=${projdir}/samples/${i%.f*}_R2.fastq.gz out=${projdir}/preprocess/${i%.f*}_redun.hold.sam &&
+					$ngm -r $ref1 --qry1 ${projdir}/samples/$i --qry2 ${projdir}/samples/${i%.f*}_R2.fastq.gz -o ${projdir}/preprocess/${i%.f*}_redun.hold.sam -t $gthreads --min-identity 0 --strata 12 &&
 					wait
 				else
-					$java -ea $Xmx2 -cp ${GBSapp_dir}/tools/bbmap/current/ align2.BBMap fast=t qin=33 threads=$threads maxindel=$maxindel local=t keepnames=t maxsites=12 saa=f secondary=t ambiguous=all ref=$ref1 in1=${projdir}/samples/$i out=${projdir}/preprocess/${i%.f*}_redun.hold.sam &&
+					$ngm -r $ref1 -q ${projdir}/samples/$i -o ${projdir}/preprocess/${i%.f*}_redun.hold.sam -t $gthreads --min-identity 0 --strata 12 &&
 					wait
 				fi
 				mv ${projdir}/preprocess/${i%.f*}_redun.hold.sam ${projdir}/preprocess/${i%.f*}_redun.sam 2> /dev/null &&
@@ -571,7 +574,10 @@ main () {
 			done
 			wait
 		fi
-		cd ${projdir}/samples
+		cd ${projdir}/samples ) &
+		if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
+			wait
+		fi
 	done
 	wait && touch ${projdir}/hapfilter_done.txt
 

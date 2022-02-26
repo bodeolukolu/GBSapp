@@ -93,15 +93,12 @@ ln -s ${GBSapp_dir}/tools/jdk8*/bin/java ~/bin/java
 
 ######################################################################################################################################################
 # tools
-export bbmap=${GBSapp_dir}/tools/bbmap/bbmap.sh
-export bbwrap=${GBSapp_dir}/tools/bbmap/bbwrap.sh
+export ngm=${GBSapp_dir}/tools/Cibiv-NextGenMap-33e92fb/bin/ngm*/ngm
 export samtools=${GBSapp_dir}/tools/samtools*/samtools && samtools=${samtools//'//'/'/'}
 export bcftools=${GBSapp_dir}/tools/bcftools*/bcftools && bcftools=${bcftools//'//'/'/'}
 export picard=${GBSapp_dir}/tools/picard.jar && picard=${picard//'//'/'/'}
 export GATK=${GBSapp_dir}/tools/gatk-4.2.2.0/gatk && GATK=${GATK//'//'/'/'}
 export java=${GBSapp_dir}/tools/jdk8*/bin/java && java=${java//'//'/'/'}
-
-
 
 
 if command -v pigz &>/dev/null; then

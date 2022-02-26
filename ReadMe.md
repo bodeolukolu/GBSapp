@@ -55,7 +55,7 @@ GBSapp_dir/GBSapp install
 ```
 Installed on first run of pipeline:
 -----------------------------------
-bbmap, samtools, picard, bcftools, GATK, java, R-ggplot2, and R-AGHmatrix
+NextGenMap, samtools, picard, bcftools, GATK, java, R-ggplot2, and R-AGHmatrix
 
 
 Pre-install before running GBSapp:
