@@ -33,7 +33,7 @@ if [ -z "$softclip" ]; then
 	softclip=false
 fi
 if [ -z "$joint_calling" ]; then
-	joint_calling=true
+	joint_calling=false
 fi
 if [ -z "$keep_gVCF" ]; then
 	keep_gVCF=false
