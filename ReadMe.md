@@ -146,7 +146,7 @@ Using a text editor, save a file containing any of the following variables as 'c
 |maxHaplotype|128| maximum number of haplotypes per haploid genome across population(increase for polyploids/high heterozygosity/high background mutational load)|integer|Optional|
 |mhap_freq|0| exclude rare haplotypes (e.g. background mutation typical of clonally propagated species or base calling error)|integer|Optional|
 |softclip|false| do not use soft Clipped bases (recommended)|string|Optional|
-|joint_calling|true| cohort calling will be performed if set to false|string|Optional|
+|joint_calling|false| cohort calling will be performed if set to false|string|Optional|
 |keep_gVCF|false| keep sample gVCF files, if additional samples will be included for future joint calling)|string|Optional|
 |maxindel|100| maximum insertion-deletion|integer|Optional|
 |PEdist|250| Initial average distance between paired reads|integer|Optional|
@@ -198,7 +198,7 @@ haplome_number=1
 mhap_freq=0
 altpos=false
 softclip=true
-joint_calling=true
+joint_calling=false
 keep_gVCF=false
 ```
 
