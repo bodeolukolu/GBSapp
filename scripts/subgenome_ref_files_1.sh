@@ -530,13 +530,13 @@ main () {
 			export nempty=$( ls ${i%.f*}_uniq_R2.fasta 2> /dev/null | wc -l | awk '{print $1}' )
 			while test ! -f ${projdir}/preprocess/${i%.f*}_redun.sam; do
 				if [[ "$nempty" -gt 0 ]]; then
-					$ngm -r $ref1 --qry1 ${projdir}/samples/${i%.f*}_uniq_R1.fq.gz --qry2 ${projdir}/samples/${i%.f*}_uniq_R2.fq.gz -o ${projdir}/preprocess/${i%.f*}_redun_R1R2.sam -t $gthreads --min-identity 0 --strata 12 &&
-					$ngm -r $ref1 --qry1 ${projdir}/samples/${i%.f*}_uniq_R1.fq.gz --qry2 ${projdir}/samples/${i%.f*}_uniq_R2.fq.gz -o ${projdir}/preprocess/${i%.f*}_redun_R1R2.sam -t $gthreads --min-identity 0 --strata 12 &&
+					$ngm -r $ref1 --qry1 ${projdir}/samples/${i%.f*}_uniq_R1.fq.gz --qry2 ${projdir}/samples/${i%.f*}_uniq_R2.fq.gz -o ${projdir}/preprocess/${i%.f*}_redun_R1R2.sam -t $gthreads --min-identity 0 --topn 12 --strata 12 &&
+					$ngm -r $ref1 --qry1 ${projdir}/samples/${i%.f*}_uniq_R1.fq.gz --qry2 ${projdir}/samples/${i%.f*}_uniq_R2.fq.gz -o ${projdir}/preprocess/${i%.f*}_redun_R1R2.sam -t $gthreads --min-identity 0 --topn 12 --strata 12 &&
 					grep -v '^@' ${projdir}/preprocess/${i%.f*}_redun_singleton.sam | cat ${projdir}/preprocess/${i%.f*}_redun_R1R2.sam - > ${projdir}/preprocess/${i%.f*}_redun.hold.sam &&
 					rm ${projdir}/preprocess/${i%.f*}_redun_singleton.sam ${projdir}/preprocess/${i%.f*}_redun_R1R2.sam &&
 					wait
 				else
-					$ngm -r $ref1 -q ${projdir}/samples/${i%.f*}_uniq_R1.fq.gz -o ${projdir}/preprocess/${i%.f*}_redun.hold.sam -t $gthreads --min-identity 0 --strata 12 &&
+					$ngm -r $ref1 -q ${projdir}/samples/${i%.f*}_uniq_R1.fq.gz -o ${projdir}/preprocess/${i%.f*}_redun.hold.sam -t $gthreads --min-identity 0 --topn 12 --strata 12 &&
 					wait
 				fi
 				mv ${projdir}/preprocess/${i%.f*}_redun.hold.sam ${projdir}/preprocess/${i%.f*}_redun.sam 2> /dev/null &&
@@ -1420,7 +1420,7 @@ for snpfilter_dir in $(ls -d */); do
 		fi
 		wait
 		cd unique_mapped
-		for v in *dose.txt; do
+		for v in *dose*; do
 			vcfdose=${v%_rd*}; vcfdose=${vcfdose#*_}
 			$zcat ../../../snpcall/*${vcfdose}.vcf.gz | grep '^#' > ${v%.txt}.vcf
 			awk 'FNR==NR{a[$1,$2]=$0;next}{if(b=a[$2,$3]){print b}}' <($gzip -dc ../../../snpcall/*${vcfdose}.vcf.gz) $v >> ${v%_dose.txt}.vcf
