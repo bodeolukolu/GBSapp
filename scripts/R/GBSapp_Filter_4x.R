@@ -1499,10 +1499,10 @@ copy_filter <- function(){
   snpidMfu <- subset(snpidMfu, select=c("CHROM","POS")); snpidMfm <- subset(snpidMfm, select=c("CHROM","POS"))
   subgenome_uniqmap <- merge(snpid, snpidMfu, by = c("CHROM","POS"), all.x = FALSE, all.y = FALSE)
   subgenome_uniqmap <- subgenome_uniqmap[!duplicated(subgenome_uniqmap), ]
-  write.table (subgenome_uniqmap, file=paste("./unique_mapped/",pop,"_4x","_rd",rd+1,"_maf",MinorAlleleFreq,"_dose_unique_mapped.txt",sep=""), row.names=F, quote = FALSE, sep = "\t")
+  write.table (subgenome_uniqmap, file=paste("./unique_mapped/",pop,"_4x","_rd",rd+1,"_noSDdose_unique_mapped.txt",sep=""), row.names=F, quote = FALSE, sep = "\t")
   subgenome_multimap <- merge(snpid, snpidMfm, by = c("CHROM","POS"), all.x = FALSE, all.y = FALSE)
   subgenome_multimap <- subgenome_multimap[!duplicated(subgenome_multimap), ]
-  write.table (subgenome_multimap, file=paste("./unique_mapped/",pop,"_4x","_rd",rd+1,"_maf",MinorAlleleFreq,"_dose_multi_mapped.txt",sep=""), row.names=F, quote = FALSE, sep = "\t")
+  write.table (subgenome_multimap, file=paste("./unique_mapped/",pop,"_4x","_rd",rd+1,"_noSDdose_unique_mapped.txt",sep=""), row.names=F, quote = FALSE, sep = "\t")
 }
 copy_filter()
 
