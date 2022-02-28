@@ -47,6 +47,7 @@ subgenome_1 <- read.table (file=paste("../../snpcall/",pop,"_6x","_DP_GT.txt",se
 subgenome_1[, 5:(((ncol(subgenome_1)-4)/2)+4)] <- lapply(subgenome_1[,5:(((ncol(subgenome_1)-4)/2)+4)], gsub, pattern = "0,0", replacement = "0", fixed = TRUE)
 subgenome_1[, 5:(((ncol(subgenome_1)-4)/2)+4)] <- lapply(5:(((ncol(subgenome_1)-4)/2)+4), function(x) as.numeric(subgenome_1[[x]]))
 subgenome_1[,(((ncol(subgenome_1)-4)/2)+5):ncol(subgenome_1)] <- lapply(subgenome_1[,(((ncol(subgenome_1)-4)/2)+5):ncol(subgenome_1)], gsub, pattern = "|", replacement = "/", fixed = TRUE)
+subgenome_1[][subgenome_1[] <= "./././././."] <- NA
 RD_snpfiltering <- function(){
   #remove samples that you want to exclude from the analysis
   if (length(remove_id_list) > 0) {
@@ -2496,21 +2497,27 @@ copy_filter <- function(){
     snpid$match <- paste(snpid$CHROM,snpid$position,sep="_")
     snpidN$match <- paste(snpidN$CHROM,snpidN$position,sep="_")
     snpidM <- merge(snpid, snpidN, by = c("match"), all.x = TRUE, all.y =FALSE)
-    snpidM <- subset(snpidM, select=c(2,3,7)); names(snpidM) <- c("CHROM","POS","nloci")
+    snpidM$diff <- abs(snpidM$POS.x - snpidM$POS.y)
+    snpidM <- subset(snpidM, select=c(2,3,7,9)); names(snpidM) <- c("CHROM","POS","nloci","diff")
+    snpidM <- aggregate(diff ~ CHROM + POS + nloci, snpidM, min)
+    snpidM <- aggregate(nloci ~ CHROM + POS, snpidM, max)
     snpidM <- snpidM[order(snpidM$CHROM, snpidM$POS),]
-    snpidM <- snpidM[!duplicated(snpidM), ]
     snpidM <- na.omit(snpidM)
     snpidMf <- rbind(snpidMf,snpidM)
   }
   snpidMf <- snpidMf[order(snpidMf$CHROM, snpidMf$POS),]
   snpidMf <- snpidMf[!duplicated(snpidMf), ]
-  write.table (snpidM, file=paste("./unique_mapped/",pop,"_6x","_refgenome_nloci_matched.txt",sep=""), row.names=F, quote = FALSE, sep = "\t")
-  snpidMf <- subset(snpidMf, snpidMf$nloci <= hap)
+  write.table (snpidMf, file=paste("./unique_mapped/",pop,"_2x","_refgenome_nloci_matched.txt",sep=""), row.names=F, quote = FALSE, sep = "\t")
+  snpidMfu <- subset(snpidMf, snpidMf$nloci <= hap)
+  snpidMfm <- subset(snpidMf, snpidMf$nloci > hap)
   snpid <- snpid_data
-  snpidMf <- subset(snpidMf, select=c("CHROM","POS"))
-  subgenome_uniqmap <- merge(snpid, snpidMf, by = c("CHROM","POS"), all.x = FALSE, all.y = FALSE)
+  snpidMfu <- subset(snpidMfu, select=c("CHROM","POS")); snpidMfm <- subset(snpidMfm, select=c("CHROM","POS"))
+  subgenome_uniqmap <- merge(snpid, snpidMfu, by = c("CHROM","POS"), all.x = FALSE, all.y = FALSE)
   subgenome_uniqmap <- subgenome_uniqmap[!duplicated(subgenome_uniqmap), ]
-  write.table (subgenome_uniqmap, file=paste("./unique_mapped/",pop,"_6x","_rd",rd+1,"_noSDdose_unique_mapped.txt",sep=""), row.names=F, quote = FALSE, sep = "\t")
+  write.table (subgenome_uniqmap, file=paste("./unique_mapped/",pop,"_6x","_rd",rd+1,"_maf",MinorAlleleFreq,"_dose_unique_mapped.txt",sep=""), row.names=F, quote = FALSE, sep = "\t")
+  subgenome_multimap <- merge(snpid, snpidMfm, by = c("CHROM","POS"), all.x = FALSE, all.y = FALSE)
+  subgenome_multimap <- subgenome_multimap[!duplicated(subgenome_multimap), ]
+  write.table (subgenome_multimap, file=paste("./unique_mapped/",pop,"_6x","_rd",rd+1,"_maf",MinorAlleleFreq,"_dose_multi_mapped.txt",sep=""), row.names=F, quote = FALSE, sep = "\t")
 }
 copy_filter()
 
