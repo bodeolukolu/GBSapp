@@ -19,7 +19,7 @@ main () {
   cmake ..
   make
 }
-dirtool=bbmap
+dirtool=*NextGenMap*
 if [ -d $dirtool ]; then
   :
 else
