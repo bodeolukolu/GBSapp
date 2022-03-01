@@ -897,7 +897,7 @@ copy_filter <- function(){
   write.table (subgenome_uniqmap, file=paste("./unique_mapped/",pop,"_2x","_rd",rd+1,"_noSDdose_unique_mapped.txt",sep=""), row.names=F, quote = FALSE, sep = "\t")
   subgenome_multimap <- merge(snpid, snpidMfm, by = c("CHROM","POS"), all.x = FALSE, all.y = FALSE)
   subgenome_multimap <- subgenome_multimap[!duplicated(subgenome_multimap), ]
-  write.table (subgenome_multimap, file=paste("./unique_mapped/",pop,"_2x","_rd",rd+1,"_noSDdose_unique_mapped.txt",sep=""), row.names=F, quote = FALSE, sep = "\t")
+  write.table (subgenome_multimap, file=paste("./unique_mapped/",pop,"_2x","_rd",rd+1,"_noSDdose_multi_mapped.txt",sep=""), row.names=F, quote = FALSE, sep = "\t")
 }
 copy_filter()
 
