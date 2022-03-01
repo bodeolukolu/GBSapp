@@ -627,8 +627,7 @@ main () {
 				$java $Xmx2 -XX:ParallelGCThreads=$gthreads -jar $picard BuildBamIndex INPUT=${j%.sam*}.bam VALIDATION_STRINGENCY=LENIENT && \
 				$java $Xmx2 -XX:ParallelGCThreads=$gthreads -jar $picard AddOrReplaceReadGroups I=${j%.sam*}.bam O=${j%.sam*}_precall.bam RGLB=${i%.f*} RGPL=illumina VALIDATION_STRINGENCY=LENIENT RGPU=run RGSM=${i%.f*} && \
 				$samtools index ${j%.sam*}_precall.bam &&
-				ls ${i%.f*}_* | grep -v precall | xargs rm &&
-				cd ${projdir}/samples
+				wait
 			fi
 		done
 		) &
@@ -638,6 +637,8 @@ main () {
 	done
 
 	wait && touch ${projdir}/precall_done.txt
+	ls ${projdir}/preprocess/* | grep -v precall | xargs rm &&
+	cd ${projdir}/samples
 
 	if [[ ! -f "${projdir}/align3_${samples_list}" ]]; then touch "${projdir}/align3_${samples_list}"; fi
 	if [[ "$samples_list" == "samples_list_node_1.txt" ]]; then

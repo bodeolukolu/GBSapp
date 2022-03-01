@@ -676,8 +676,6 @@ main () {
 			        $samtools index ${j%.sam*}_precall.bam
 			  done
 				wait
-			  ls ${i%.f*}_* | grep -v precall | xargs rm &&
-			  cd ${projdir}/samples
 			fi
 		done
 		) &
@@ -686,7 +684,8 @@ main () {
 		fi
 	done
 	wait && touch ${projdir}/precall_done.txt
-
+	ls ${projdir}/preprocess/* | grep -v precall | xargs rm &&
+	cd ${projdir}/samples
 
 	if [[ ! -f "${projdir}/align3_${samples_list}" ]]; then touch "${projdir}/align3_${samples_list}"; fi
 	if [[ "$samples_list" == "samples_list_node_1.txt" ]]; then
