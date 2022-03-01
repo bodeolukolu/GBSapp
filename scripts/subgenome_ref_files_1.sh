@@ -1408,7 +1408,7 @@ for snpfilter_dir in $(ls -d */); do
 		for v in *dose.txt; do
 			vcfdose=${v%_rd*}; vcfdose=${vcfdose#*_}
 			$zcat ../../snpcall/*${vcfdose}.vcf.gz | grep '^#' > ${v%.txt}.vcf
-			awk 'FNR==NR{a[$1,$2]=$0;next}{if(b=a[$2,$3]){print b}}' <($gzip -dc ../../snpcall/*${vcfdose}.vcf.gz) $v >> ${v%_dose.txt}.vcf
+			awk 'FNR==NR{a[$1,$2]=$0;next}{if(b=a[$2,$3]){print b}}' <($gzip -dc ../../snpcall/*${vcfdose}.vcf.gz) $v >> ${v%.txt}.vcf
 			$gzip ${v%.txt}.vcf
 		done
 		for i in *dose.txt *binary.txt; do
@@ -1426,7 +1426,7 @@ for snpfilter_dir in $(ls -d */); do
 		for v in *dose*; do
 			vcfdose=${v%_rd*}; vcfdose=${vcfdose#*_}
 			$zcat ../../../snpcall/*${vcfdose}.vcf.gz | grep '^#' > ${v%.txt}.vcf
-			awk 'FNR==NR{a[$1,$2]=$0;next}{if(b=a[$2,$3]){print b}}' <($gzip -dc ../../../snpcall/*${vcfdose}.vcf.gz) $v >> ${v%_dose.txt}.vcf
+			awk 'FNR==NR{a[$1,$2]=$0;next}{if(b=a[$2,$3]){print b}}' <($gzip -dc ../../../snpcall/*${vcfdose}.vcf.gz) $v >> ${v%.txt}.vcf
 			$gzip ${v%.txt}.vcf
 		done
 		for i in *dose.txt *binary.txt; do
