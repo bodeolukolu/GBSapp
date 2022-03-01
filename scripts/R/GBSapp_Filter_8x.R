@@ -3845,7 +3845,7 @@ copy_filter <- function(){
   snpid_data <- read.table(paste(pop,"_8x","_rd",rd+1,"_noSDdose.txt",sep=""), header=T, sep="\t",stringsAsFactors=FALSE, check.names = FALSE)
   snpidN_data <- read.table("../../alignment_summaries/refgenome_paralogs.txt", header=T, sep="\t", quote="", check.names=FALSE, fill=F)
   
-  for (intrange in c(100,1000)) {
+  for (intrange in c(100)) {
     snpid <- snpid_data
     snpid <- subset(snpid, select=c("CHROM","POS"))
     snpidmiss <- subset(snpidMf, select=c("CHROM","POS"))
@@ -3888,9 +3888,11 @@ copy_filter <- function(){
   snpidMfu <- subset(snpidMfu, select=c("CHROM","POS")); snpidMfm <- subset(snpidMfm, select=c("CHROM","POS"))
   subgenome_uniqmap <- merge(snpid, snpidMfu, by = c("CHROM","POS"), all.x = FALSE, all.y = FALSE)
   subgenome_uniqmap <- subgenome_uniqmap[!duplicated(subgenome_uniqmap), ]
+  subgenome_uniqmap <- subgenome_uniqmap[,c(which(colnames(subgenome_uniqmap)=="SNP"),which(colnames(subgenome_uniqmap)!="SNP"))]
   write.table (subgenome_uniqmap, file=paste("./unique_mapped/",pop,"_8x","_rd",rd+1,"_noSDdose_unique_mapped.txt",sep=""), row.names=F, quote = FALSE, sep = "\t")
   subgenome_multimap <- merge(snpid, snpidMfm, by = c("CHROM","POS"), all.x = FALSE, all.y = FALSE)
   subgenome_multimap <- subgenome_multimap[!duplicated(subgenome_multimap), ]
+  subgenome_multimap <- subgenome_multimap[,c(which(colnames(subgenome_multimap)=="SNP"),which(colnames(subgenome_multimap)!="SNP"))]
   write.table (subgenome_multimap, file=paste("./unique_mapped/",pop,"_8x","_rd",rd+1,"_noSDdose_multi_mapped.txt",sep=""), row.names=F, quote = FALSE, sep = "\t")
 }
 copy_filter()

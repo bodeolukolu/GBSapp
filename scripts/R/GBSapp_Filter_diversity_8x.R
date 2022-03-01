@@ -587,7 +587,7 @@ copy_filter <- function(){
   snpid_data <- read.table(paste(pop,"8x","_rd",rd+1,"_maf",MinorAlleleFreq,"_dose.txt",sep=""), header=T, sep="\t",stringsAsFactors=FALSE, check.names = F)
   snpidN_data <- read.table("../../alignment_summaries/refgenome_paralogs.txt", header=T, sep="\t", quote="", check.names=FALSE, fill=F)
   
-  for (intrange in c(100,1000)) {
+  for (intrange in c(100)) {
     snpid <- snpid_data
     snpid <- subset(snpid, select=c("CHROM","POS"))
     snpidmiss <- subset(snpidMf, select=c("CHROM","POS"))

@@ -1820,7 +1820,9 @@ echo -e "gmiss_smiss_thresholds\t#_of_SNPs\t#_of_eliminated_samples\n-----------
 awk 'FNR==NR{a[$1]=$2;next} ($1 in a) {print $1,"\t",a[$1],"\t",$2}' gmiss_smiss_titration.txt eliminated_samples.txt | cat summary_precall.txt - > gmiss_smiss_unique_mapped.txt
 rm gmiss_smiss_titration.txt eliminated_samples.txt summary_precall.txt
 
-ls ./*/*maf*.txt | grep -v 'maf0.txt' | grep -v 'dose' | grep -v 'binary' | xargs rm
+ls ./*/*maf*.txt | grep -v 'maf0.txt' | grep -v 'dose' | xargs rm
+rm *_plusSD.txt 2> /dev/null
+rm *SD_1_G*G*.txt
 
 
 cd "$projdir"/snpfilter
