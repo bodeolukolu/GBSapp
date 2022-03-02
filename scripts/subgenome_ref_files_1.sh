@@ -534,11 +534,11 @@ main () {
 			export nempty=$( ls ${projdir}/samples/${i%.f*}_uniq_R2.fq.gz 2> /dev/null | wc -l | awk '{print $1}' )
 			while test ! -f ${projdir}/preprocess/${i%.f*}_redun.sam; do
 				if [[ "$nempty" -gt 0 ]]; then
-					$ngm -r panref.fasta --qry ${projdir}/samples/${i%.f*}_uniq_R1.fq.gz -o ${projdir}/preprocess/${i%.f*}_redun_R1.sam -t $gthreads --min-identity 0 --topn 12 -strata 12 &&
-					$ngm -r panref.fasta --qry ${projdir}/samples/${i%.f*}_uniq_R2.fq.gz -o ${projdir}/preprocess/${i%.f*}_redun_R2.sam -t $gthreads --min-identity 0 --topn 12 --strata 12 &&
-					$ngm -r $ref1 -q ${projdir}/samples/${i%.f*}_uniq_singleton.fq.gz -o ${projdir}/preprocess/${i%.f*}_redun_singleton.sam -t $gthreads --min-identity 0 --topn 12 --strata 12 &&
+					$ngm -r $ref1 --qry ${projdir}/samples/${i%.f*}_uniq_R1.fq.gz -o ${projdir}/preprocess/${i%.f*}_redun_R1.sam -t $gthreads --min-identity 0 --topn 12 -strata 12 &&
+					$ngm -r $ref1 --qry ${projdir}/samples/${i%.f*}_uniq_R2.fq.gz -o ${projdir}/preprocess/${i%.f*}_redun_R2.sam -t $gthreads --min-identity 0 --topn 12 --strata 12 &&
+					$ngm -r $ref1 --qry ${projdir}/samples/${i%.f*}_uniq_singleton.fq.gz -o ${projdir}/preprocess/${i%.f*}_redun_singleton.sam -t $gthreads --min-identity 0 --topn 12 --strata 12 &&
 					grep -v '^@' ${projdir}/preprocess/${i%.f*}_redun_R2.sam | cat ${projdir}/preprocess/${i%.f*}_redun_R1.sam -  | cat - <(grep -v '^@' ${projdir}/preprocess/${i%.f*}_redun_singleton.sam) > ${projdir}/preprocess/${i%.f*}_redun.hold.sam &&
-					rm ${projdir}/preprocess/${i%.f*}_redun_singleton.sam ${projdir}/preprocess/${i%.f*}_redun_R1R2.sam &&
+					rm ${projdir}/preprocess/${i%.f*}_redun_singleton.sam ${projdir}/preprocess/${i%.f*}_redun_R*.sam &&
 					wait
 				else
 					$ngm -r $ref1 -q ${projdir}/samples/${i%.f*}_uniq_R1.fq.gz -o ${projdir}/preprocess/${i%.f*}_redun.hold.sam -t $gthreads --min-identity 0 --topn 12 --strata 12 &&
@@ -566,7 +566,7 @@ main () {
 					grep -v '^@' ${projdir}/preprocess/${i%.f*}_R2.sam | cat ${projdir}/preprocess/${i%.f*}_R1.sam - > ${projdir}/preprocess/${i%.f*}_redun.hold.sam &&
 					wait
 				else
-					$ngm -r $ref1 -q ${projdir}/samples/$i -o ${projdir}/preprocess/${i%.f*}_redun.hold.sam -t $gthreads --min-identity 0 --topn 12 --strata 12 &&
+					$ngm -r $ref1 --qry ${projdir}/samples/$i -o ${projdir}/preprocess/${i%.f*}_redun.hold.sam -t $gthreads --min-identity 0 --topn 12 --strata 12 &&
 					wait
 				fi
 				mv ${projdir}/preprocess/${i%.f*}_redun.hold.sam ${projdir}/preprocess/${i%.f*}_redun.sam 2> /dev/null &&
@@ -589,7 +589,7 @@ main () {
 				$samtools flagstat ${projdir}/preprocess/${i%.f*}_redun.sam >> ${projdir}/alignment_summaries/${i%.f*}_summ.txt && \
 				printf '########################################################################################################\n\n' >> ${projdir}/alignment_summaries/${i%.f*}_summ.txt &&
 				printf 'copy\tFrequency\tPercentage\n' > ${projdir}/alignment_summaries/copy_number/${i%.f*}_copy_number_Unique_Read_histogram.txt && \
-				grep -v '^@' ${projdir}/preprocess/${i%.f*}_redun.sam | awk -F' ' '{print $1}' | awk '{gsub(/_/,"\t"); print $2}' | \
+				grep -v '^@' ${projdir}/preprocess/${i%.f*}_redun.sam | awk -F' ' '{print $1}' | awk '{gsub(/_/,"\t");gsub(/\//,"\t");gsub(/pe-/,"");gsub(/se-/,""); print $2}' | \
 				sort | uniq -c | awk '{print $2"\t"$1}' > ${projdir}/alignment_summaries/copy_number/${i%.f*}_copy_number.txt  && \
 				awk 'NR==FNR{sum+= $2; next;} {printf("%s\t%s\t%3.3f%%\t%3.0f\n",$1,$2,100*$2/sum,100*$2/sum)}' ${projdir}/alignment_summaries/copy_number/${i%.f*}_copy_number.txt ${projdir}/alignment_summaries/copy_number/${i%.f*}_copy_number.txt > ${projdir}/alignment_summaries/copy_number/${i%.f*}_plot.txt && \
 				unset IFS; printf "%s\t%s\t%s\t%*s\n" $(sed 's/$/ |/' ${projdir}/alignment_summaries/copy_number/${i%.f*}_plot.txt) | tr ' ' '|' | sort -k2,2 -nr | awk '{gsub(/se-/,""); gsub(/pe-/,""); print}' >> ${projdir}/alignment_summaries/copy_number/${i%.f*}_copy_number_Unique_Read_histogram.txt && rm ${projdir}/alignment_summaries/copy_number/${i%.f*}_copy_number.txt ${projdir}/alignment_summaries/copy_number/${i%.f*}_plot.txt
