@@ -27,14 +27,12 @@ fi
 done
 for i in "${subgenomeID[@]}"; do
 for j in file_seq*.txt; do
-header=$(awk 'NR==1' $j | awk -v id="$i" '$0 ~ id {print id}' )
+header=$(awk 'NR==1' $j | awk '{gsub(/Chr/,"");}1' | awk -v id="$i" '$0 ~ id {print id}' )
 if [[ $header == $i ]]; then
-awk -v id="$i" -v idtrim="${i}.*" '{NR==1 && gsub(idtrim,""); print}' $j | awk '{gsub(" ",""); print}' >> ${genome}${i}.fasta
+awk -v id="$i" '{NR==1 && gsub(id,"");gsub(/>hr/,">Chr"); print}' $j | awk '{gsub(" ",""); print}' >> ${genome}${i}.fasta
 fi
 done
 done
 rm file_seq*
 mkdir original_ref-seq
 mv $input ./original_ref-seq
-
-
