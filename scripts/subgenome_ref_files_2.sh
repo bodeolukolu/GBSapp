@@ -47,7 +47,7 @@ main () {
 cd $projdir
 cd refgenomes
 for i in *.gz; do
-	$gunzip $i >/dev/null 2>&1
+	gunzip $i >/dev/null 2>&1
 done
 
 if [[ -d "ref" ]]; then
@@ -383,18 +383,18 @@ main () {
 	cd $projdir
 	cd samples
 
-	for i in $(cat ${projdir}/${samples_list} ); do
+	for i in $(cat ${projdir}/${samples_list} ); do (
 		if [[ "$lib_type" == "RRS" ]] && test ! -f ${projdir}/compress_done.txt && test ! -f ${projdir}/organize_files_done.txt && test ! -f "${projdir}/preprocess/${i%.f*}_redun.sam" && test ! -f "${projdir}/preprocess/${i%.f*}_${ref1%.f*}_precall.bam.bai"; then
 			while test ! -f ${i%.f*}_uniq_R1.fasta; do
 			  if [[ $(file $i | awk -F' ' '{print $2}') == gzip ]]; then
-					$gunzip -c $i | awk 'NR%2==0' | awk 'NR%2' > ${i%.f*}_uniq.txt 2> /dev/null &&
+					gunzip -c $i | awk 'NR%2==0' | awk 'NR%2' > ${i%.f*}_uniq.txt 2> /dev/null &&
 					wait
 					if test -f ${i%.f*}_R2*; then
-						$gunzip -c ${i%.f*}_R2* | awk 'NR%2==0' | awk 'NR%2' > ${i%.f*}_R2_uniq.txt 2> /dev/null &&
+						gunzip -c ${i%.f*}_R2* | awk 'NR%2==0' | awk 'NR%2' > ${i%.f*}_R2_uniq.txt 2> /dev/null &&
 						wait
 					fi
 					if test -f ${i%.f*}.R2*;
-						then $gunzip -c ${i%.f*}.R2* | awk 'NR%2==0' | awk 'NR%2' > ${i%.f*}_R2_uniq.txt 2> /dev/null &&
+						then gunzip -c ${i%.f*}.R2* | awk 'NR%2==0' | awk 'NR%2' > ${i%.f*}_R2_uniq.txt 2> /dev/null &&
 						wait
 					fi
 			  else
@@ -429,6 +429,10 @@ main () {
 				wait
 			done
 		fi
+		) &
+		if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
+			wait
+		fi
 	done
 	wait && touch ${projdir}/organize_files_done.txt
 
@@ -449,7 +453,7 @@ main () {
 			while [[ "$align" -lt $nodes ]]; do
 				sleep 30; align=$(ls ${projdir}/align1_samples_list_node_* | wc -l)
 			done
-			for i in $( cat ${projdir}/${samples_list} ); do
+			for i in $( cat ${projdir}/${samples_list} ); do (
 				awk -F "\t" 'BEGIN { OFS=FS }; { print $1, substr($2, 1, 64); }' ${projdir}/samples/${i%.f*}_uniq_R1.fasta | awk '{a[$2]++} END{for(s in a){print a[s]" "s}}' | \
 				awk -F'\t' '{gsub(/ /,"\t"); print}' | awk -F'\t' 'BEGIN{OFS="\t"} NR==FNR{a[$2]=$0;next} ($2) in a{print $0, a[$2]}' - ${projdir}/samples/${i%.f*}_uniq_R1.fasta | \
 				awk '$3==1{print $1"\t"$2}' > ${projdir}/alignment_summaries/background_mutation_test/${i%.f*}_pop_haps.fasta 2> /dev/null &&
@@ -467,6 +471,10 @@ main () {
 					fi
 				done
 				wait
+				) &
+				if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
+					wait
+				fi
 			done
 
 			if [[ $align == $nodes ]] && test ! -f ${projdir}/alignment_summaries/background_mutation_test/pop_haps_freqFail.txt; then
@@ -962,7 +970,7 @@ main () {
 						else
 						  echo $Get_Chromosome | tr ',' '\n' | awk '{print "SN:"$1}' | awk 'NR==FNR{a[$1];next}$2 in a{print $0}' - panref.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $2"\t0\t"$3"\t+\t"$2}' | \
 						  cat panref.dict - > panref.intervals_list
-							$GATK --java-options "$Xmxg -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R "${projdir}/refgenomes/panref.fasta" -L panref.intervals_list -I "${i%.f*}_${ref1%.f*}_${ref2%.f*}_precall.bam" -ploidy $ploidy -O ${projdir}/snpcall/${i%.f*}_${ref1%.f*}_${ref2%.f*}.hold.g.vcf.gz -ERC GVCF --dont-use-soft-clipped-bases $softclip --max-reads-per-alignment-start 0 --minimum-mapping-quality 0 --max-num-haplotypes-in-population "$((ploidy maxHaplotype))" &&
+							$GATK --java-options "$Xmxg -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R "${projdir}/refgenomes/panref.fasta" -L panref.intervals_list -I "${i%.f*}_${ref1%.f*}_${ref2%.f*}_precall.bam" -ploidy $ploidy -O ${projdir}/snpcall/${i%.f*}_${ref1%.f*}_${ref2%.f*}.hold.g.vcf.gz -ERC GVCF --dont-use-soft-clipped-bases $softclip --max-reads-per-alignment-start 0 --minimum-mapping-quality 0 --max-num-haplotypes-in-population "$((ploidy * maxHaplotype))" &&
 							wait
 						fi
 						mv "${projdir}/snpcall/${i%.f*}_${ref1%.f*}_${ref2%.f*}.hold.g.vcf.gz" "${projdir}/snpcall/${i%.f*}_${ref1%.f*}_${ref2%.f*}.g.vcf.gz" && \
@@ -1035,7 +1043,7 @@ main () {
 						done
 						wait
 						for g in $(ls ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_*_raw.vcf.gz); do (
-							$gunzip $g ) &
+							gunzip $g ) &
 							if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
 								wait
 							fi
@@ -1059,7 +1067,7 @@ main () {
 						$bcftools merge *cohorts*.vcf.gz --force-samples -m all > ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_raw.vcf
 					else
 						cp *cohorts*.vcf.gz ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_raw.vcf.gz
-						$gunzip ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_raw.vcf.gz
+						gunzip ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_raw.vcf.gz
 					fi
 
 					if [[ "$keep_gVCF" == true ]]; then
@@ -1165,7 +1173,7 @@ main () {
 						done
 						wait
 						for g in $(ls ${pop}_${ref1%.f*}_${ploidy_ref1}x_*_raw.vcf.gz); do (
-							$gunzip $g ) &
+							gunzip $g ) &
 							if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
 								wait
 							fi
@@ -1189,7 +1197,7 @@ main () {
 						$bcftools erge *cohorts*.vcf.gz --force-samples -m all > ${pop}_${ref1%.f*}_${ploidy_ref1}x_raw.vcf
 					else
 						cp *cohorts*.vcf.gz ${pop}_${ref1%.f*}_${ploidy_ref1}x_raw.vcf.gz
-						$gunzip ${pop}_${ref1%.f*}_${ploidy_ref1}x_raw.vcf.gz
+						gunzip ${pop}_${ref1%.f*}_${ploidy_ref1}x_raw.vcf.gz
 					fi
 
 					if [[ "$keep_gVCF" == true ]]; then
@@ -1293,7 +1301,7 @@ main () {
 						done
 						wait
 						for g in $(ls ${pop}_${ref2%.f*}_${ploidy_ref2}x_*_raw.vcf.gz); do (
-							$gunzip $g ) &
+							gunzip $g ) &
 							if [[ $(jobs -r -p | wc -l) -ge $N ]]; then
 								wait
 							fi
@@ -1317,7 +1325,7 @@ main () {
 						$bcftools merge *cohorts*.vcf.gz --force-samples -m all > ${pop}_${ref2%.f*}_${ploidy_ref2}x_raw.vcf
 					else
 						cp *cohorts*.vcf.gz ${pop}_${ref2%.f*}_${ploidy_ref2}x_raw.vcf.gz
-						$gunzip ${pop}_${ref2%.f*}_${ploidy_ref2}x_raw.vcf.gz
+						gunzip ${pop}_${ref2%.f*}_${ploidy_ref2}x_raw.vcf.gz
 					fi
 
 					if [[ "$keep_gVCF" == true ]]; then
@@ -1498,7 +1506,7 @@ cd ${projdir}/snpcall
 if [ -z "$(ls -A *_DP_GT.txt 2>/dev/null)" ]; then
 	if [ -z "$(ls -A *_x.vcf 2>/dev/null)" ]; then
 		if [ -z "$(ls -A *_raw.vcf 2>/dev/null)" ]; then
-			for g in *_raw.vcf.gz; do $gunzip $g;	done
+			for g in *_raw.vcf.gz; do gunzip $g;	done
 		fi
 	fi
 fi
@@ -1598,7 +1606,7 @@ wait
 
 cd $projdir
 cd samples
-window1=$(ls -S | head -1 | xargs $zcat -fq | awk '{ print length }' | sort -n | tail -1)
+window1=$(ls -S | head -1 | xargs zcat -fq | awk '{ print length }' | sort -n | tail -1)
 window=$((window1 + 20))
 cd ${projdir}
 
@@ -1835,7 +1843,7 @@ for snpfilter_dir in $(ls -d */); do
 		cd $snpfilter_dir
 		for v in *dose.txt; do
 			vcfdose=${v%_rd*}; vcfdose=${vcfdose#*_}
-			$zcat ../../snpcall/*${vcfdose}.vcf.gz | grep '^#' > ${v%.txt}.vcf
+			zcat ../../snpcall/*${vcfdose}.vcf.gz | grep '^#' > ${v%.txt}.vcf
 			awk 'FNR==NR{a[$1,$2]=$0;next}{if(b=a[$2,$3]){print b}}' <(gzip -dc ../../snpcall/*${vcfdose}.vcf.gz) $v >> ${v%.txt}.vcf
 			gzip ${v%.txt}.vcf
 			for i in *dose*; do j=$(echo $i | awk '{gsub(/_dose/,"");gsub(/_noSDdose/,"");}1'); mv $i $j; done
@@ -1844,7 +1852,7 @@ for snpfilter_dir in $(ls -d */); do
 		cd unique_mapped
 		for v in *dose*; do
 			vcfdose=${v%_rd*}; vcfdose=${vcfdose#*_}
-			$zcat ../../../snpcall/*${vcfdose}.vcf.gz | grep '^#' > ${v%.txt}.vcf
+			zcat ../../../snpcall/*${vcfdose}.vcf.gz | grep '^#' > ${v%.txt}.vcf
 			awk 'FNR==NR{a[$1,$2]=$0;next}{if(b=a[$2,$3]){print b}}' <(gzip -dc ../../../snpcall/*${vcfdose}.vcf.gz) $v >> ${v%.txt}.vcf
 			gzip ${v%.txt}.vcf
 			for i in *dose*; do j=$(echo $i | awk '{gsub(/_dose/,"");gsub(/_noSDdose/,"");}1'); mv $i $j; done

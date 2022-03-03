@@ -48,7 +48,7 @@ git clone https://github.com/bodeolukolu/GBSapp.git
 ```bash
 GBSapp_dir/GBSapp install
 ```
-- With the exception of pigz, R, and Python (v2.6 or greater) all dependencies are installed to a local directory within GBSapp.
+- With the exception of R, and Python (v2.6 or greater) all dependencies are installed to a local directory within GBSapp.
 
 
 **Dependencies:**<br />
@@ -62,7 +62,6 @@ Pre-install before running GBSapp:
 ----------------------------------
 - R
 - python v2.6 or greater
-- pigz (not required, but recommended for parallel gzip and gunzip i.e. faster)
 ```
 
 

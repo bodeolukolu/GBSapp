@@ -101,17 +101,6 @@ export GATK=${GBSapp_dir}/tools/gatk-4.2.2.0/gatk && GATK=${GATK//'//'/'/'}
 export java=${GBSapp_dir}/tools/jdk8*/bin/java && java=${java//'//'/'/'}
 
 
-if command -v pigz &>/dev/null; then
-  export gzip=pigz
-  export gunzip=unpigz
-  export zcat="unpigz -c"
-else
-  export gzip=gzip
-  export gunzip=gunzip
-  export zcat=zcat
-fi
-
-
 samtoolsout=$($samtools --version | head -n 3)
 if [ -z "$samtoolsout" ];then
   echo -e "${white}- samtools installation within GBSapp is probably missing a dependency on host system ${white}"
