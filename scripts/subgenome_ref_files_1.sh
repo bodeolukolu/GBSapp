@@ -52,7 +52,7 @@ done
 if [[ -d "ref" ]]; then
 	:
 else
-	checknfastafiles=$(ls *.f* | grep -v .fai | grep -v .ngm | wc -l)
+	checknfastafiles=$(ls *.f* | grep -v .fai | grep -v .ngm | grep -v _original.fasta | wc -l)
 	if [[ $checknfastafiles -gt 1 ]]; then
 		echo -e "${magenta}- expecting only 1 fasta file for reference genome ${white}\n"
 		echo -e "${magenta}- GBSapp will quit in 5 seconds ${white}\n"
