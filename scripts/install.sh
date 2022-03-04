@@ -23,7 +23,7 @@ dirtool=*NextGenMap*
 if [ -d $dirtool ]; then
   :
 else
-  echo -e "${magenta}- Performing installation of dependency (BBmap) ${white}"
+  echo -e "${magenta}- Performing installation of dependency (NextGenMap aligner: NGM) ${white}"
   main &>> ./log.out
 fi
 
