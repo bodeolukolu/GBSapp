@@ -93,7 +93,7 @@ ln -s ${GBSapp_dir}/tools/jdk8*/bin/java ~/bin/java
 
 ######################################################################################################################################################
 # tools
-export ngm=${GBSapp_dir}/tools/Cibiv-NextGenMap-33e92fb/bin/ngm*/ngm
+export ngm=${GBSapp_dir}/tools/*NextGenMap*/bin/ngm*/ngm
 export samtools=${GBSapp_dir}/tools/samtools*/samtools && samtools=${samtools//'//'/'/'}
 export bcftools=${GBSapp_dir}/tools/bcftools*/bcftools && bcftools=${bcftools//'//'/'/'}
 export picard=${GBSapp_dir}/tools/picard.jar && picard=${picard//'//'/'/'}
