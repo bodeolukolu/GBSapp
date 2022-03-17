@@ -388,14 +388,14 @@ main () {
 		if [[ "$lib_type" == "RRS" ]] && test ! -f ${projdir}/compress_done.txt && test ! -f ${projdir}/organize_files_done.txt && test ! -f ${projdir}/preprocess/${i%.f*}_redun.sam && test ! -f ${projdir}/preprocess/${i%.f*}_${ref1%.f*}_precall.bam.bai; then
 			if test ! -f ${i%.f*}_uniq_R1.fasta; then
 				if [[ $(file $i | awk -F' ' '{print $2}') == gzip ]]; then
-					gunzip -c $i | awk 'NR%2==0' | awk 'NR%2' | gzip > ${i%.f*}_uniq.txt.gz 2> /dev/null &&
+					zcat $i | awk 'NR%2==0' | awk 'NR%2' | gzip > ${i%.f*}_uniq.txt.gz 2> /dev/null &&
 					wait
 					if test -f ${i%.f*}_R2*; then
-						gunzip -c ${i%.f*}_R2* | awk 'NR%2==0' | awk 'NR%2' | gzip > ${i%.f*}_R2_uniq.txt.gz 2> /dev/null &&
+						zcat ${i%.f*}_R2* | awk 'NR%2==0' | awk 'NR%2' | gzip > ${i%.f*}_R2_uniq.txt.gz 2> /dev/null &&
 						wait
 					fi
 					if test -f ${i%.f*}.R2*; then
-						gunzip -c ${i%.f*}.R2* | awk 'NR%2==0' | awk 'NR%2' | gzip > ${i%.f*}_R2_uniq.txt.gz 2> /dev/null &&
+						zcat ${i%.f*}.R2* | awk 'NR%2==0' | awk 'NR%2' | gzip > ${i%.f*}_R2_uniq.txt.gz 2> /dev/null &&
 						wait
 					fi
 				else
