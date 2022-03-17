@@ -15,7 +15,7 @@ ref2=TL.fasta
 ploidy_ref1=4
 ploidy_ref2=2
 Get_Chromosome=TF_Chr01,TF_Chr02
-Exclude_Chromosome=TF_Chr00,TF_Chr00
+Exclude_Chromosome=TF_Chr00,TL_Chr00
 
 # SNP-filtering:
 ####################################################
@@ -37,6 +37,7 @@ maxHaplotype=128
 haplome_number=1
 mhap_freq=0
 softclip=false
+downsample=false
 joint_calling=false
 keep_gVCF=false
 maxindel=100

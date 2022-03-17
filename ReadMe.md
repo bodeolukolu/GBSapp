@@ -145,6 +145,7 @@ Using a text editor, save a file containing any of the following variables as 'c
 |maxHaplotype|128| maximum number of haplotypes per haploid genome across population(increase for polyploids/high heterozygosity/high background mutational load)|integer|Optional|
 |mhap_freq|0| exclude rare haplotypes (e.g. background mutation typical of clonally propagated species or base calling error)|integer|Optional|
 |softclip|false| do not use soft Clipped bases (recommended)|string|Optional|
+|downsample|false| maximum number of reads to use|true or false|Optional|
 |joint_calling|false| cohort calling will be performed if set to false|string|Optional|
 |keep_gVCF|false| keep sample gVCF files, if additional samples will be included for future joint calling)|string|Optional|
 |maxindel|100| maximum insertion-deletion|integer|Optional|
@@ -195,10 +196,12 @@ snpformats=false
 maxHaplotype=128
 haplome_number=1
 mhap_freq=0
-altpos=false
-softclip=true
+softclip=false
+downsample=false
 joint_calling=false
 keep_gVCF=false
+maxindel=100
+PEdist=250
 ```
 
 Alternatively, a configuration file (outlined below) specifying only the ploidy level is sufficient to run GBSapp.
