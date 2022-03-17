@@ -388,7 +388,7 @@ main () {
 		if [[ "$lib_type" == "RRS" ]] && test ! -f ${projdir}/compress_done.txt && test ! -f ${projdir}/organize_files_done.txt && test ! -f ${projdir}/preprocess/${i%.f*}_redun.sam && test ! -f ${projdir}/preprocess/${i%.f*}_${ref1%.f*}_precall.bam.bai; then
 			if test ! -f ${i%.f*}_uniq_R1.fasta; then
 				if [[ $(file $i | awk -F' ' '{print $2}') == gzip ]]; then
-					gunzip -c $i | awk 'NR%2==0' | awk 'NR%2' | gzip >> ${i%.f*}_uniq.txt.gz 2> /dev/null &&
+					gunzip -c $i | awk 'NR%2==0' | awk 'NR%2' | gzip > ${i%.f*}_uniq.txt.gz 2> /dev/null &&
 					wait
 					if test -f ${i%.f*}_R2*; then
 						gunzip -c ${i%.f*}_R2* | awk 'NR%2==0' | awk 'NR%2' | gzip > ${i%.f*}_R2_uniq.txt.gz 2> /dev/null &&
@@ -419,7 +419,7 @@ main () {
 				wait
 
 				zcat ${i%.f*}_uniq.txt.gz | printf "${i%.f*}""\t""$(wc -l)""\n" > ${projdir}/alignment_summaries/${i%.f*}_total_read_count.txt  2> /dev/null &&
-				export LC_ALL=C; paste -d ~ <(zcat ${i%.f*}_uniq.txt.gz) <(zcat ${i%.f*}_R2_uniq.txt.gz) 2> /dev/null | expand -t $(( $(wc -L < $i ) + 2 )) | awk '{!seen[$0]++}END{for (i in seen) print seen[i], i}' | awk '{$1=$1};1' | \
+				export LC_ALL=C; paste -d ~ <(zcat ${i%.f*}_uniq.txt.gz) <(zcat ${i%.f*}_R2_uniq.txt.gz 2> /dev/null) 2> /dev/null | expand -t $(( $(wc -L < $i ) + 2 )) | awk '{!seen[$0]++}END{for (i in seen) print seen[i], i}' | awk '{$1=$1};1' | \
 				awk '{gsub(" /"," "); print}' | awk '{gsub("/\n","\n"); print}' | awk '{gsub("/"," "); print}' | awk '{gsub(" ","\t"); print}' | gzip > ${i%.f*}_rdrefseq.txt.gz 2> /dev/null &&
 				awk 'NF==2 {print ">seq"NR"_se-"$1"\t"$2}' <(zcat ${i%.f*}_rdrefseq.txt.gz) | gzip > ${i%.f*}_rdrefseq_se.txt.gz 2> /dev/null &&
 				awk 'NF==3 {print ">seq"NR"_pe-"$0}' <(zcat ${i%.f*}_rdrefseq.txt.gz) | awk '{print $1"\t"$3}' | gzip > ${i%.f*}_uniq_R2.fasta.gz 2> /dev/null &&
