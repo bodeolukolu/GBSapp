@@ -608,17 +608,17 @@ main () {
 		if test ! -f ${projdir}/preprocess/${i%.f*}_${ref1%.f*}_precall.bam.bai; then
 			if test ! -f ${projdir}/alignment_done.txt; then
 				printf '\n###---'${i%.f*}'---###\n' > ${projdir}/alignment_summaries/${i%.f*}_summ.txt && \
-				$samtools flagstat <(zcat ${projdir}/preprocess/${i%.f*}_redun.sam) >> ${projdir}/alignment_summaries/${i%.f*}_summ.txt && \
+				$samtools flagstat <(zcat ${projdir}/preprocess/${i%.f*}_redun.sam.gz) >> ${projdir}/alignment_summaries/${i%.f*}_summ.txt && \
 				printf '########################################################################################################\n\n' >> ${projdir}/alignment_summaries/${i%.f*}_summ.txt &&
 				printf 'copy\tFrequency\tPercentage\n' > ${projdir}/alignment_summaries/copy_number/${i%.f*}_copy_number_Unique_Read_histogram.txt && \
-				grep -v '^@' <(zcat ${projdir}/preprocess/${i%.f*}_redun.sam) | awk -F' ' '{print $1}' | awk '{gsub(/_/,"\t");gsub(/\//,"\t");gsub(/pe-/,"");gsub(/se-/,""); print $2}' | \
+				grep -v '^@' <(zcat ${projdir}/preprocess/${i%.f*}_redun.sam.gz) | awk -F' ' '{print $1}' | awk '{gsub(/_/,"\t");gsub(/\//,"\t");gsub(/pe-/,"");gsub(/se-/,""); print $2}' | \
 				sort | uniq -c | awk '{print $2"\t"$1}' > ${projdir}/alignment_summaries/copy_number/${i%.f*}_copy_number.txt  && \
 				awk 'NR==FNR{sum+= $2; next;} {printf("%s\t%s\t%3.3f%%\t%3.0f\n",$1,$2,100*$2/sum,100*$2/sum)}' ${projdir}/alignment_summaries/copy_number/${i%.f*}_copy_number.txt ${projdir}/alignment_summaries/copy_number/${i%.f*}_copy_number.txt > ${projdir}/alignment_summaries/copy_number/${i%.f*}_plot.txt && \
 				unset IFS; printf "%s\t%s\t%s\t%*s\n" $(sed 's/$/ |/' ${projdir}/alignment_summaries/copy_number/${i%.f*}_plot.txt) | tr ' ' '|' | sort -k2,2 -nr | awk '{gsub(/se-/,""); gsub(/pe-/,""); print}' >> ${projdir}/alignment_summaries/copy_number/${i%.f*}_copy_number_Unique_Read_histogram.txt && rm ${projdir}/alignment_summaries/copy_number/${i%.f*}_copy_number.txt ${projdir}/alignment_summaries/copy_number/${i%.f*}_plot.txt
 
 
-				grep -v '^@' <(zcat ${projdir}/preprocess/${i%.f*}_redun.sam) | awk '($3 != "\*")' | awk '($6 != "\*")' | awk '!h[$1] { g[$1]=$0 } { h[$1]++ } END { for(k in g) print h[k], g[k] }' | \
-				cat <(zcat ${projdir}/preprocess/${i%.f*}_redun.sam | grep '^@') - > ${projdir}/preprocess/${i%.f*}_del.sam
+				grep -v '^@' <(zcat ${projdir}/preprocess/${i%.f*}_redun.sam.gz) | awk '($3 != "\*")' | awk '($6 != "\*")' | awk '!h[$1] { g[$1]=$0 } { h[$1]++ } END { for(k in g) print h[k], g[k] }' | \
+				cat <(zcat ${projdir}/preprocess/${i%.f*}_redun.sam.gz | grep '^@') - > ${projdir}/preprocess/${i%.f*}_del.sam
 				wait
 
 				echo "nloci~mapQ~CHROM~POS" > ${projdir}/alignment_summaries/refgenome_paralogs_${i%.f*}.txt
@@ -629,8 +629,8 @@ main () {
 				wait
 
 
-				awk '/@HD/ || /@SQ/{print}' <(zcat ${projdir}/preprocess/${i%.f*}_redun.sam) > ${projdir}/preprocess/${i%.f*}_heading.sam
-				grep -v '^@' <(zcat ${projdir}/preprocess/${i%.f*}_redun.sam) | awk '($3 != "\*")' | awk '{gsub(/_se-/,"_se-\t",$1); gsub(/_pe-/,"_pe-\t",$1)}1' | \
+				awk '/@HD/ || /@SQ/{print}' <(zcat ${projdir}/preprocess/${i%.f*}_redun.sam.gz) > ${projdir}/preprocess/${i%.f*}_heading.sam
+				grep -v '^@' <(zcat ${projdir}/preprocess/${i%.f*}_redun.sam.gz) | awk '($3 != "\*")' | awk '{gsub(/_se-/,"_se-\t",$1); gsub(/_pe-/,"_pe-\t",$1)}1' | \
 				awk '{print $2"\t"$0}' | awk '{$2=$3=""}1' | awk -F'\t' 'BEGIN{OFS="\t"} {if ($5==0) {$5=$5+40}}1' > ${projdir}/preprocess/${i%.f*}_uniq.sam &&
 				for j in $(LC_ALL=C; sort -n -k1,1 ${projdir}/preprocess/${i%.f*}_uniq.sam | awk '{print $1}' | uniq); do
 					awk -v n="^${j}" '$0~n{print $0}' ${projdir}/preprocess/${i%.f*}_uniq.sam | awk -v n="$j" '{for(i=0;i<n;i++) print}' >> ${projdir}/preprocess/${i%.f*}_exp.sam &&
