@@ -399,6 +399,7 @@ main () {
 						zcat ${i%.f*}.R2* | awk 'NR%2==0' | awk 'NR%2' | gzip > ${i%.f*}_R2_uniq.txt.gz 2> /dev/null &&
 						wait
 					fi
+					wait
 				else
 					awk 'NR%2==0' $i | awk 'NR%2' | gzip > ${i%.f*}_uniq.txt.gz 2> /dev/null &&
 					wait
