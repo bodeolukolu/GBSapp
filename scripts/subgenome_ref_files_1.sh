@@ -33,7 +33,7 @@ if [ -z "$softclip" ]; then
 	softclip=false
 fi
 if [ -z "$downsample" ]; then
-	downsample=false
+	downsample=0
 fi
 if [ -z "$joint_calling" ]; then
 	joint_calling=false
@@ -394,6 +394,7 @@ main () {
 						zcat ${i%.f*}_R2* | awk 'NR%2==0' | awk 'NR%2' | gzip > ${i%.f*}_R2_uniq.txt.gz 2> /dev/null &&
 						wait
 					fi
+					wait
 					if test -f ${i%.f*}.R2*; then
 						zcat ${i%.f*}.R2* | awk 'NR%2==0' | awk 'NR%2' | gzip > ${i%.f*}_R2_uniq.txt.gz 2> /dev/null &&
 						wait
@@ -405,31 +406,46 @@ main () {
 						awk 'NR%2==0' ${i%.f*}_R2* | awk 'NR%2' | gzip > ${i%.f*}_R2_uniq.txt.gz 2> /dev/null &&
 						wait
 					fi
+					wait
 					if test -f ${i%.f*}.R2*; then
 						awk 'NR%2==0' ${i%.f*}.R2* | awk 'NR%2' | gzip > ${i%.f*}_R2_uniq.txt.gz 2> /dev/null &&
 						wait
 					fi
+					wait
 				fi
 				wait
 				if test -f "${i%.f*}_R2_uniq.txt.gz"; then
 					zcat ${i%.f*}_uniq.txt.gz | printf "${i%.f*}""\t""$(wc -l)""\n" > ${projdir}/alignment_summaries/${i%.f*}_total_read_count.txt  2> /dev/null &&
+					wait
 					export LC_ALL=C; paste -d ~ <(zcat ${i%.f*}_uniq.txt.gz) <(zcat ${i%.f*}_R2_uniq.txt.gz 2> /dev/null) | expand -t $(( $(wc -L < $i ) + 2 )) | awk '{!seen[$0]++}END{for (i in seen) print seen[i], i}' | awk '{$1=$1};1' | \
 					awk '{gsub(" /"," "); print}' | awk '{gsub("/\n","\n"); print}' | awk '{gsub("/"," "); print}' | awk '{gsub(" ","\t"); print}' | gzip > ${i%.f*}_rdrefseq.txt.gz 2> /dev/null &&
+					wait
 					awk 'NF==2 {print ">seq"NR"_se-"$1"\t"$2}' <(zcat ${i%.f*}_rdrefseq.txt.gz 2> /dev/null) | gzip > ${i%.f*}_rdrefseq_se.txt.gz 2> /dev/null &&
+					wait
 					awk 'NF==3 {print ">seq"NR"_pe-"$0}' <(zcat ${i%.f*}_rdrefseq.txt.gz 2> /dev/null) | awk '{print $1"\t"$3}' | gzip > ${i%.f*}_uniq_R2.fasta.gz 2> /dev/null &&
+					wait
 					awk 'NF==3 {print ">seq"NR"_pe-"$0}' <(zcat ${i%.f*}_rdrefseq.txt.gz 2> /dev/null) | awk '{print $1"\t"$2}' | gzip | cat - <(zcat ${i%.f*}_rdrefseq_se.txt.gz) > ${i%.f*}_uniq_R1.hold.fasta.gz 2> /dev/null &&
+					wait
 					rm ${i%.f*}*.txt* 2> /dev/null &&
+					wait
 					find . -size 0 -delete  2> /dev/null &&
+					wait
 					mv ${i%.f*}_uniq_R1.hold.fasta.gz ${i%.f*}_uniq_R1.fasta.gz  2> /dev/null &&
 					wait
 				else
-					touch ${i%.f*}_R2_uniq.txt
+					touch ${i%.f*}_R2_uniq.txt &&
+					wait
 					zcat ${i%.f*}_uniq.txt.gz | printf "${i%.f*}""\t""$(wc -l)""\n" > ${projdir}/alignment_summaries/${i%.f*}_total_read_count.txt  2> /dev/null &&
+					wait
 					export LC_ALL=C; paste -d ~ <(zcat ${i%.f*}_uniq.txt.gz) ${i%.f*}_R2_uniq.txt | expand -t $(( $(wc -L < $i ) + 2 )) | awk '{!seen[$0]++}END{for (i in seen) print seen[i], i}' | awk '{$1=$1};1' | \
 					awk '{gsub(" /"," "); print}' | awk '{gsub("/\n","\n"); print}' | awk '{gsub("/"," "); print}' | awk '{gsub(" ","\t"); print}' | gzip > ${i%.f*}_rdrefseq.txt.gz 2> /dev/null &&
+					wait
 					awk 'NF==2 {print ">seq"NR"_pe-"$0}' <(zcat ${i%.f*}_rdrefseq.txt.gz 2> /dev/null) | awk '{print $1"\t"$2}' | gzip > ${i%.f*}_uniq_R1.hold.fasta.gz 2> /dev/null &&
+					wait
 					rm ${i%.f*}*.txt* 2> /dev/null &&
+					wait
 					find . -size 0 -delete  2> /dev/null &&
+					wait
 					mv ${i%.f*}_uniq_R1.hold.fasta.gz ${i%.f*}_uniq_R1.fasta.gz  2> /dev/null &&
 					wait
 				fi

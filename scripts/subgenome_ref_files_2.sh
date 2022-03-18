@@ -33,7 +33,7 @@ if [ -z "$softclip" ]; then
 	softclip=false
 fi
 if [ -z "$downsample" ]; then
-	downsample=false
+	downsample=0
 fi
 if [ -z "$joint_calling" ]; then
 	joint_calling=false
