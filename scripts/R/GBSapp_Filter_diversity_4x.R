@@ -6,7 +6,6 @@
 # minRD <-
 # hap <-
 # MinorAlleleFreq <-
-# snpformats <-
 # remove_id_list <- NULL
 # remove_id_list <- c("NA_1","NA_2")
 # remove_id_list <- paste(remove_id_list, "_GT", sep="")
@@ -25,8 +24,7 @@ remove_id_list <- unlist(strsplit(args[5],","))
 remove_id_list <- paste(remove_id_list, "_GT", sep="")
 libdir <- args[6]
 MinorAlleleFreq <- args[7]
-snpformats <- args[8]
-hap <- args[9]
+hap <- args[8]
 gmissingness <- as.numeric(gmissingness)
 smissingness <- as.numeric(smissingness)
 minRD <- as.numeric(minRD)
@@ -221,49 +219,6 @@ RD_snpfiltering <- function() {
     subgenome_SDmafn <- subgenome_SDmafn[,c(which(colnames(subgenome_SDmafn)=="SNP"),which(colnames(subgenome_SDmafn)!="SNP"))]
     write.table (subgenome_SDmafn, file=paste(pop,"_4x","_rd",rd+1,"_maf",MinorAlleleFreq,"_binary.txt",sep=""), row.names=F, quote = FALSE, sep = "\t")
 
-    if (snpformats == "true") {
-      alleles <- unique(subset(subgenome_SDmafn, select=c(4,5)))
-      rownames(alleles) <- NULL
-      alleles[] <- lapply(alleles, as.character)
-      alleles$ref0 <- alleles$REF; alleles$alt0 <- alleles$ALT
-      for (i in 1:nrow(alleles)) {
-        alleles[i,3] <- gsub(",.*", "", alleles[i,3])
-        alleles[i,4] <- gsub(",.*", "", alleles[i,4])
-      }
-      geno <- NULL
-      for (i in 1:nrow(alleles)) {
-        ref <- as.vector(alleles[i,3]); REFsub <- as.vector(alleles[i,1])
-        alt <- as.vector(alleles[i,4]); ALTsub <- as.vector(alleles[i,2])
-        snplen = nchar(ref) + nchar(alt)
-        output <- subset(subgenome_SDmafn, REF == REFsub & ALT == ALTsub)
-        output[] <- lapply(output, as.character)
-        if (snplen == 2) {
-          for (j in 1:nrow(output)) {
-            output[j,6:ncol(output)] <- gsub("0", ref, output[j,6:ncol(output)])
-            output[j,6:ncol(output)] <- gsub("1", alt, output[j,6:ncol(output)])
-          }
-        }else{
-          for (j in 1:nrow(output)) {
-            if (nchar(ref) == 1) {
-              output[j,6:ncol(output)] <- gsub("0", "-", output[j,6:ncol(output)])
-            }else{output[j,6:ncol(output)] <- gsub("0", "+", output[j,6:ncol(output)])}
-            if (nchar(alt) == 1) {
-              output[j,6:ncol(output)] <- gsub("1", "-", output[j,6:ncol(output)])
-            }else{output[j,6:ncol(output)] <- gsub("1", "+", output[j,6:ncol(output)])}
-            if (nchar(ref) > 1 & nchar(alt) > 1) {
-              output[j,6:ncol(output)] <- gsub("0", "+", output[j,6:ncol(output)])
-            }else{output[j,6:ncol(output)] <- gsub("1", "-", output[j,6:ncol(output)])}
-          }
-        }
-        output[] <- lapply(output, as.character)
-        for (k in 1:nrow(output)) {
-          output[k,6:ncol(output)] <- gsub("/", "", output[k,6:ncol(output)])
-        }
-        geno <- rbind(geno,output); gc()
-      }
-      geno <- geno[order(geno$CHROM, geno$POS),]
-      write.table (geno, file=paste(pop,"_4x","_rd",rd+1,"_maf0.02_nucleotide.txt",sep=""), row.names=F, quote = FALSE, sep = "\t")
-    }
     
     subgenome_SDmafn <- data.frame(lapply(subgenome_SDmafn, as.character), stringsAsFactors=FALSE, check.names = FALSE)
     subgenome_SDmafn[][subgenome_SDmafn[]=="0/0/0/0"] <- "0"
@@ -297,50 +252,6 @@ RD_snpfiltering <- function() {
     subgenome_SDmaf0.02 <- subgenome_SDmaf0.02[,c(which(colnames(subgenome_SDmaf0.02)=="SNP"),which(colnames(subgenome_SDmaf0.02)!="SNP"))]
     write.table (subgenome_SDmaf0.02, file=paste(pop,"_4x","_rd",rd+1,"_maf0.02_binary.txt",sep=""), row.names=F, quote = FALSE, sep = "\t")
 
-    if ( snpformats == "true") {
-      alleles <- unique(subset(subgenome_SDmaf0.02, select=c(4,5)))
-      rownames(alleles) <- NULL
-      alleles[] <- lapply(alleles, as.character)
-      alleles$ref0 <- alleles$REF; alleles$alt0 <- alleles$ALT
-      for (i in 1:nrow(alleles)) {
-        alleles[i,3] <- gsub(",.*", "", alleles[i,3])
-        alleles[i,4] <- gsub(",.*", "", alleles[i,4])
-      }
-      geno <- NULL
-      for (i in 1:nrow(alleles)) {
-        ref <- as.vector(alleles[i,3]); REFsub <- as.vector(alleles[i,1])
-        alt <- as.vector(alleles[i,4]); ALTsub <- as.vector(alleles[i,2])
-        snplen = nchar(ref) + nchar(alt)
-        output <- subset(subgenome_SDmaf0.02, REF == REFsub & ALT == ALTsub)
-        output[] <- lapply(output, as.character)
-        if (snplen == 2) {
-          for (j in 1:nrow(output)) {
-            output[j,6:ncol(output)] <- gsub("0", ref, output[j,6:ncol(output)])
-            output[j,6:ncol(output)] <- gsub("1", alt, output[j,6:ncol(output)])
-          }
-        }
-        if (snplen != 2) {
-          for (j in 1:nrow(output)) {
-            if (nchar(ref) == 1) {
-              output[j,6:ncol(output)] <- gsub("0", "-", output[j,6:ncol(output)])
-            }else{output[j,6:ncol(output)] <- gsub("0", "+", output[j,6:ncol(output)])}
-            if (nchar(alt) == 1) {
-              output[j,6:ncol(output)] <- gsub("1", "-", output[j,6:ncol(output)])
-            }else{output[j,6:ncol(output)] <- gsub("1", "+", output[j,6:ncol(output)])}
-            if (nchar(ref) > 1 & nchar(alt) > 1) {
-              output[j,6:ncol(output)] <- gsub("0", "+", output[j,6:ncol(output)])
-            }else{output[j,6:ncol(output)] <- gsub("1", "-", output[j,6:ncol(output)])}
-          }
-        }
-        output[] <- lapply(output, as.character)
-        for (k in 1:nrow(output)) {
-          output[k,6:ncol(output)] <- gsub("/", "", output[k,6:ncol(output)])
-        }
-        geno <- rbind(geno,output); gc()
-      }
-      geno <- geno[order(geno$CHROM, geno$POS),]
-      write.table (geno, file=paste(pop,"_4x","_rd",rd+1,"_maf0.02_nucleotide.txt",sep=""), row.names=F, quote = FALSE, sep = "\t")
-    }
     
     subgenome_SDmaf0.02 <- data.frame(lapply(subgenome_SDmaf0.02, as.character), stringsAsFactors=FALSE, check.names = FALSE)
     subgenome_SDmaf0.02[][subgenome_SDmaf0.02[]=="0/0/0/0"] <- "0"

@@ -135,14 +135,12 @@ Using a text editor, save a file containing any of the following variables as 'c
 |minRD_8x|100|minimum read depth threshold|integer|Optional|
 |pseg|0.001|p-value threshold for chi-square test of segregation distortion|decimal number|Optional|
 |maf|0.02|minor allele frequency threshold|decimal number|Optional|
-|snpformats|false|variant data set with alleles formatted as base (A,C,G,T) and/or degenerate notation|true or false|Optional|
 
 
 
 **Advanced parameters**
 |Variable      |Default       |Usage         |Input         |required/Optional|
 |:-------------|:-------------|:-------------|:-------------|:----------------|
-|multilocus|true|call varints from paralogous sequences|true or false|Optional|
 |maxHaplotype|128|maximum number of haplotypes per haploid genome across population(increase for polyploids/high heterozygosity/high background mutational load)|integer|Optional|
 |mhap_freq|0|exclude rare haplotypes (e.g. background mutation typical of clonally propagated species or base calling error)|integer|Optional|
 |softclip|false|do not use soft Clipped bases (recommended)|string|Optional|
@@ -190,7 +188,6 @@ minRD_4x=25
 minRD_6x=45
 pseg=0.001
 maf=0.05
-snpformats=false
 
 # Advanced parameters
 ###################################################

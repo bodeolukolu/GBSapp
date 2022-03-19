@@ -6,7 +6,6 @@
 # gmissingness <-
 # smissingness <-
 # minRD <-
-# snpformats <-
 # pseg <-
 # hap <-
 # remove_id_list <- NULL
@@ -28,9 +27,8 @@ remove_id_list <- NULL
 remove_id_list <- unlist(strsplit(args[7],","))
 remove_id_list <- paste(remove_id_list, "_GT", sep="")
 libdir <- args[8]
-snpformats <- args[9]
-pseg <- args[10]
-hap <- args[11]
+pseg <- args[9]
+hap <- args[10]
 gmissingness <- as.numeric(gmissingness)
 smissingness <- as.numeric(smissingness)
 minRD <- as.numeric(minRD)
@@ -411,101 +409,6 @@ final_summary <- function(){
   subgenome_1_noSD <- subgenome_1_noSD[,c(which(colnames(subgenome_1_noSD)=="SNP"),which(colnames(subgenome_1_noSD)!="SNP"))]
   write.table (subgenome_1_noSD, file=paste(pop,"_2x","_rd",rd+1,"_noSDbinary.txt",sep=""), row.names=F, quote = FALSE, sep = "\t")
 
-  if (snpformats == "true") {
-    alleles <- unique(subset(subgenome_1_noSD, select=c(4,5)))
-    rownames(alleles) <- NULL
-    alleles[] <- lapply(alleles, as.character)
-    alleles$ref0 <- alleles$REF; alleles$alt0 <- alleles$ALT
-    for (i in 1:nrow(alleles)) {
-      alleles[i,3] <- gsub(",.*", "", alleles[i,3])
-      alleles[i,4] <- gsub(",.*", "", alleles[i,4])
-    }
-    geno <- NULL
-    for (i in 1:nrow(alleles)) {
-      ref <- as.vector(alleles[i,3]); REFsub <- as.vector(alleles[i,1])
-      alt <- as.vector(alleles[i,4]); ALTsub <- as.vector(alleles[i,2])
-      snplen = nchar(ref) + nchar(alt)
-      output <- subset(subgenome_1_noSD, REF == REFsub & ALT == ALTsub)
-      output[] <- lapply(output, as.character)
-      if (snplen == 2) {
-        for (j in 1:nrow(output)) {
-          output[j,6:ncol(output)] <- gsub("0", ref, output[j,6:ncol(output)])
-          output[j,6:ncol(output)] <- gsub("1", alt, output[j,6:ncol(output)])
-        }
-      }else{
-        for (j in 1:nrow(output)) {
-          if (nchar(ref) == 1) {
-            output[j,6:ncol(output)] <- gsub("0", "-", output[j,6:ncol(output)])
-          }else{output[j,6:ncol(output)] <- gsub("0", "+", output[j,6:ncol(output)])}
-          if (nchar(alt) == 1) {
-            output[j,6:ncol(output)] <- gsub("1", "-", output[j,6:ncol(output)])
-          }else{output[j,6:ncol(output)] <- gsub("1", "+", output[j,6:ncol(output)])}
-          if (nchar(ref) > 1 & nchar(alt) > 1) {
-            output[j,6:ncol(output)] <- gsub("0", "+", output[j,6:ncol(output)])
-          }else{output[j,6:ncol(output)] <- gsub("1", "-", output[j,6:ncol(output)])}
-        }
-      }
-      output[] <- lapply(output, as.character)
-      for (k in 1:nrow(output)) {
-        output[k,6:ncol(output)] <- gsub("/", "", output[k,6:ncol(output)])
-      }
-      geno <- rbind(geno,output); gc()
-    }
-    geno <- geno[order(geno$CHROM, geno$POS),]
-    write.table (geno, file=paste(pop,"_2x","_rd",rd+1,"_noSDnucleotide.txt",sep=""), row.names=F, quote = FALSE, sep = "\t")
-    genodeg <- geno
-    for (l in 1:nrow(genodeg)) {
-      if (genodeg[l,4]=="A" & genodeg[l,5]=="A") {
-        genodeg[l,6:ncol(genodeg)] <- gsub("AA", "A", genodeg[l,6:ncol(genodeg)])
-      }
-      if (genodeg[l,4]=="A" & genodeg[l,5]=="C" | genodeg[l,4]=="C" & genodeg[l,5]=="A") {
-        genodeg[l,6:ncol(genodeg)] <- gsub("AA", "A", genodeg[l,6:ncol(genodeg)])
-        genodeg[l,6:ncol(genodeg)] <- gsub("AC", "M", genodeg[l,6:ncol(genodeg)])
-        genodeg[l,6:ncol(genodeg)] <- gsub("CA", "M", genodeg[l,6:ncol(genodeg)])
-        genodeg[l,6:ncol(genodeg)] <- gsub("CC", "C", genodeg[l,6:ncol(genodeg)])
-      }
-      if (genodeg[l,4]=="A" & genodeg[l,5]=="G" | genodeg[l,4]=="G" & genodeg[l,5]=="A") {
-        genodeg[l,6:ncol(genodeg)] <- gsub("AA", "A", genodeg[l,6:ncol(genodeg)])
-        genodeg[l,6:ncol(genodeg)] <- gsub("AG", "R", genodeg[l,6:ncol(genodeg)])
-        genodeg[l,6:ncol(genodeg)] <- gsub("GA", "R", genodeg[l,6:ncol(genodeg)])
-        genodeg[l,6:ncol(genodeg)] <- gsub("GG", "G", genodeg[l,6:ncol(genodeg)])
-      }
-      if (genodeg[l,4]=="A" & genodeg[l,5]=="T" | genodeg[l,4]=="T" & genodeg[l,5]=="A") {
-        genodeg[l,6:ncol(genodeg)] <- gsub("AA", "A", genodeg[l,6:ncol(genodeg)])
-        genodeg[l,6:ncol(genodeg)] <- gsub("AT", "W", genodeg[l,6:ncol(genodeg)])
-        genodeg[l,6:ncol(genodeg)] <- gsub("TA", "W", genodeg[l,6:ncol(genodeg)])
-        genodeg[l,6:ncol(genodeg)] <- gsub("TT", "T", genodeg[l,6:ncol(genodeg)])
-      }
-      if (genodeg[l,4]=="C" & genodeg[l,5]=="C") {
-        genodeg[l,6:ncol(genodeg)] <- gsub("CC", "C", genodeg[l,6:ncol(genodeg)])
-      }
-      if (genodeg[l,4]=="C" & genodeg[l,5]=="G" | genodeg[l,4]=="G" & genodeg[l,5]=="C") {
-        genodeg[l,6:ncol(genodeg)] <- gsub("CC", "C", genodeg[l,6:ncol(genodeg)])
-        genodeg[l,6:ncol(genodeg)] <- gsub("CG", "S", genodeg[l,6:ncol(genodeg)])
-        genodeg[l,6:ncol(genodeg)] <- gsub("GC", "S", genodeg[l,6:ncol(genodeg)])
-        genodeg[l,6:ncol(genodeg)] <- gsub("GG", "G", genodeg[l,6:ncol(genodeg)])
-      }
-      if (genodeg[l,4]=="C" & genodeg[l,5]=="T" | genodeg[l,4]=="T" & genodeg[l,5]=="C") {
-        genodeg[l,6:ncol(genodeg)] <- gsub("CC", "C", genodeg[l,6:ncol(genodeg)])
-        genodeg[l,6:ncol(genodeg)] <- gsub("CT", "Y", genodeg[l,6:ncol(genodeg)])
-        genodeg[l,6:ncol(genodeg)] <- gsub("TC", "Y", genodeg[l,6:ncol(genodeg)])
-        genodeg[l,6:ncol(genodeg)] <- gsub("TT", "T", genodeg[l,6:ncol(genodeg)])
-      }
-      if (genodeg[l,4]=="G" & genodeg[l,5]=="G") {
-        genodeg[l,6:ncol(genodeg)] <- gsub("GG", "G", genodeg[l,6:ncol(genodeg)])
-      }
-      if (genodeg[l,4]=="G" & genodeg[l,5]=="T" | genodeg[l,4]=="T" & genodeg[l,5]=="G") {
-        genodeg[l,6:ncol(genodeg)] <- gsub("GG", "G", genodeg[l,6:ncol(genodeg)])
-        genodeg[l,6:ncol(genodeg)] <- gsub("GT", "K", genodeg[l,6:ncol(genodeg)])
-        genodeg[l,6:ncol(genodeg)] <- gsub("TG", "K", genodeg[l,6:ncol(genodeg)])
-        genodeg[l,6:ncol(genodeg)] <- gsub("TT", "T", genodeg[l,6:ncol(genodeg)])
-      }
-      if (genodeg[l,4]=="T" & genodeg[l,5]=="T") {
-        genodeg[l,6:ncol(genodeg)] <- gsub("TT", "T", genodeg[l,6:ncol(genodeg)])
-      }
-    }
-    write.table (geno, file=paste(pop,"_2x","_rd",rd+1,"_noSDnucleotidedeg.txt",sep=""), row.names=F, quote = FALSE, sep = "\t")
-  }
   
   subgenome_1_noSD[][subgenome_1_noSD[]=="0/0"] <- "0"
   subgenome_1_noSD[][subgenome_1_noSD[]=="0/1"] <- "1"

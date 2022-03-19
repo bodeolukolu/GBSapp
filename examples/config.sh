@@ -29,11 +29,9 @@ minRD_4x=25
 minRD_6x=45
 pseg=0.001
 maf=0.05
-snpformats=false
 
 # Advanced_parameters
 ###################################################
-multilocus=true
 maxHaplotype=128
 haplome_number=1
 mhap_freq=0

@@ -1312,9 +1312,7 @@ fi
 if [ -z $maf ]; then
 	maf=0.02
 fi
-if [ -z $snpformats ]; then
-	snpformats=false
-fi
+
 
 for smiss in ${sample_missingness[@]}; do
 for gmiss in ${genotype_missingness[@]}; do
@@ -1323,7 +1321,7 @@ if [[ -z "$p1" ]]; then
 		cd ${projdir}/snpfilter
 		cp -r 1x 1x_diversity_gmiss"${gmiss}"_smiss"${smiss}"
 		cd ./1x_diversity_gmiss"${gmiss}"_smiss"${smiss}"
-		Rscript "${GBSapp_dir}"/scripts/R/GBSapp_Filter_diversity_1x.R $pop $gmiss $smiss $minRD_1x $exclude_samples "${GBSapp_dir}/tools/R" $maf $snpformats $haplome_number
+		Rscript "${GBSapp_dir}"/scripts/R/GBSapp_Filter_diversity_1x.R $pop $gmiss $smiss $minRD_1x $exclude_samples "${GBSapp_dir}/tools/R" $maf $haplome_number
 		wait
 		rm ${pop}_1x_rawRD${minRD_1x}_DP_GT.txt ${pop}_1x_DP_GT.txt ${pop}_1x_rd${minRD_1x}.txt
 		mkdir visualizations; mv *.tiff ./visualizations/
@@ -1342,7 +1340,7 @@ if [[ -z "$p1" ]]; then
 		cd ${projdir}/snpfilter
 		cp -r 2x 2x_diversity_gmiss"${gmiss}"_smiss"${smiss}"
 		cd ./2x_diversity_gmiss"${gmiss}"_smiss"${smiss}"
-		Rscript "${GBSapp_dir}"/scripts/R/GBSapp_Filter_diversity_2x.R $pop $gmiss $smiss $minRD_2x $exclude_samples "${GBSapp_dir}/tools/R" $maf $snpformats $haplome_number
+		Rscript "${GBSapp_dir}"/scripts/R/GBSapp_Filter_diversity_2x.R $pop $gmiss $smiss $minRD_2x $exclude_samples "${GBSapp_dir}/tools/R" $maf $haplome_number
 		wait
 		rm ${pop}_2x_rawRD${minRD_2x}_DP_GT.txt ${pop}_2x_DP_GT.txt ${pop}_2x_rd${minRD_2x}.txt
 		mkdir visualizations; mv *.tiff ./visualizations/
@@ -1361,7 +1359,7 @@ if [[ -z "$p1" ]]; then
 		cd ${projdir}/snpfilter
 		cp -r 4x 4x_diversity_gmiss"${gmiss}"_smiss"${smiss}"
 		cd ./4x_diversity_gmiss"${gmiss}"_smiss"${smiss}"
-		Rscript "${GBSapp_dir}"/scripts/R/GBSapp_Filter_diversity_4x.R $pop $gmiss $smiss $minRD_4x $exclude_samples "${GBSapp_dir}/tools/R" $maf $snpformats $haplome_number
+		Rscript "${GBSapp_dir}"/scripts/R/GBSapp_Filter_diversity_4x.R $pop $gmiss $smiss $minRD_4x $exclude_samples "${GBSapp_dir}/tools/R" $maf $haplome_number
 		wait
 		rm ${pop}_4x_rawRD${minRD_4x}_DP_GT.txt ${pop}_4x_DP_GT.txt ${pop}_4x_rd${minRD_4x}.txt
 		mkdir visualizations; mv *.tiff ./visualizations/
@@ -1380,7 +1378,7 @@ if [[ -z "$p1" ]]; then
 		cd ${projdir}/snpfilter
 		cp -r 6x 6x_diversity_gmiss"${gmiss}"_smiss"${smiss}"
 		cd ./6x_diversity_gmiss"${gmiss}"_smiss"${smiss}"
-		Rscript "${GBSapp_dir}"/scripts/R/GBSapp_Filter_diversity_6x.R $pop $gmiss $smiss $minRD_6x $exclude_samples "${GBSapp_dir}/tools/R" $maf $snpformats $haplome_number
+		Rscript "${GBSapp_dir}"/scripts/R/GBSapp_Filter_diversity_6x.R $pop $gmiss $smiss $minRD_6x $exclude_samples "${GBSapp_dir}/tools/R" $maf $haplome_number
 		wait
 		rm ${pop}_6x_rawRD${minRD_6x}_DP_GT.txt ${pop}_6x_DP_GT.txt ${pop}_6x_rd${minRD_6x}.txt
 		mkdir visualizations; mv *.tiff ./visualizations/
@@ -1399,7 +1397,7 @@ if [[ -z "$p1" ]]; then
 		cd ${projdir}/snpfilter
 		cp -r 8x 8x_diversity_gmiss"${gmiss}"_smiss"${smiss}"
 		cd ./8x_diversity_gmiss"${gmiss}"_smiss"${smiss}"
-		Rscript "${GBSapp_dir}"/scripts/R/GBSapp_Filter_diversity_8x.R $pop $gmiss $smiss $minRD_8x $exclude_samples "${GBSapp_dir}/tools/R" $maf $snpformats $haplome_number
+		Rscript "${GBSapp_dir}"/scripts/R/GBSapp_Filter_diversity_8x.R $pop $gmiss $smiss $minRD_8x $exclude_samples "${GBSapp_dir}/tools/R" $maf $haplome_number
 		wait
 		rm ${pop}_8x_rawRD${minRD_8x}_DP_GT.txt ${pop}_8x_DP_GT.txt ${pop}_8x_rd${minRD_8x}.txt
 		mkdir visualizations; mv *.tiff ./visualizations/
@@ -1421,7 +1419,7 @@ if [[ "$p1" ]]; then
 		cd ${projdir}/snpfilter
 		cp -r 2x 2x_biparental_gmiss"${gmiss}"_smiss"${smiss}"
 		cd ./2x_biparental_gmiss"${gmiss}"_smiss"${smiss}"
-		Rscript "${GBSapp_dir}"/scripts/R/GBSapp_Filter_2x.R "$pop" "$p1" "$p2" "$gmiss" "$smiss" "$minRD_2x" "$exclude_samples" "${GBSapp_dir}/tools/R" "$snpformats" "$pseg" "$haplome_number"
+		Rscript "${GBSapp_dir}"/scripts/R/GBSapp_Filter_2x.R "$pop" "$p1" "$p2" "$gmiss" "$smiss" "$minRD_2x" "$exclude_samples" "${GBSapp_dir}/tools/R" "$pseg" "$haplome_number"
 		wait
 		rm ${pop}_2x_rawRD${minRD_2x}_DP_GT.txt ${pop}_2x_DP_GT.txt ${pop}_2x_rd${minRD_2x}.txt
 		mkdir visualizations; mv *.tiff ./visualizations/
@@ -1440,7 +1438,7 @@ if [[ "$p1" ]]; then
 		cd ${projdir}/snpfilter
 		cp -r 4x 4x_biparental_gmiss"${gmiss}"_smiss"${smiss}"
 		cd ./4x_biparental_gmiss"${gmiss}"_smiss"${smiss}"
-		Rscript "${GBSapp_dir}"/scripts/R/GBSapp_Filter_4x.R "$pop" "$p1" "$p2" "$gmiss" "$smiss" "$minRD_4x" "$exclude_samples" "${GBSapp_dir}/tools/R" "$snpformats" "$pseg" "$haplome_number"
+		Rscript "${GBSapp_dir}"/scripts/R/GBSapp_Filter_4x.R "$pop" "$p1" "$p2" "$gmiss" "$smiss" "$minRD_4x" "$exclude_samples" "${GBSapp_dir}/tools/R" "$pseg" "$haplome_number"
 		wait
 		rm ${pop}_4x_rawRD${minRD_4x}_DP_GT.txt ${pop}_4x_DP_GT.txt ${pop}_4x_rd${minRD_4x}.txt
 		mkdir visualizations; mv *.tiff ./visualizations/
@@ -1459,7 +1457,7 @@ if [[ "$p1" ]]; then
 		cd ${projdir}/snpfilter
 		cp -r 6x 6x_biparental_gmiss"${gmiss}"_smiss"${smiss}"
 		cd ./6x_biparental_gmiss"${gmiss}"_smiss"${smiss}"
-		Rscript "${GBSapp_dir}"/scripts/R/GBSapp_Filter_6x.R "$pop" "$p1" "$p2" "$gmiss" "$smiss" "$minRD_6x" "$exclude_samples" "${GBSapp_dir}/tools/R" "$snpformats" "$pseg" "$haplome_number"
+		Rscript "${GBSapp_dir}"/scripts/R/GBSapp_Filter_6x.R "$pop" "$p1" "$p2" "$gmiss" "$smiss" "$minRD_6x" "$exclude_samples" "${GBSapp_dir}/tools/R" "$pseg" "$haplome_number"
 		wait
 		rm ${pop}_6x_rawRD${minRD_6x}_DP_GT.txt ${pop}_6x_DP_GT.txt ${pop}_6x_rd${minRD_6x}.txt
 		mkdir visualizations; mv *.tiff ./visualizations/
@@ -1478,7 +1476,7 @@ if [[ "$p1" ]]; then
 		cd ${projdir}/snpfilter
 		cp -r 8x 8x_biparental_gmiss"${gmiss}"_smiss"${smiss}"
 		cd ./8x_biparental_gmiss"${gmiss}"_smiss"${smiss}"
-		Rscript "${GBSapp_dir}"/scripts/R/GBSapp_Filter_8x.R "$pop" "$p1" "$p2" "$gmiss" "$smiss" "$minRD_8x" "$exclude_samples" "${GBSapp_dir}/tools/R" "$snpformats" "$pseg" "$haplome_number"
+		Rscript "${GBSapp_dir}"/scripts/R/GBSapp_Filter_8x.R "$pop" "$p1" "$p2" "$gmiss" "$smiss" "$minRD_8x" "$exclude_samples" "${GBSapp_dir}/tools/R" "$pseg" "$haplome_number"
 		wait
 		rm ${pop}_8x_rawRD${minRD_8x}_DP_GT.txt ${pop}_8x_DP_GT.txt ${pop}_8x_rd${minRD_8x}.txt
 		mkdir visualizations; mv *.tiff ./visualizations/
@@ -1516,6 +1514,8 @@ rm gmiss_smiss_titration.txt eliminated_samples.txt summary_precall.txt
 ls ./*/*maf*.txt | grep -v 'maf0.txt' | grep -v 'dose' | xargs rm
 ls ./*/*_plusSD.txt | xargs rm 2> /dev/null
 ls ./*/*SD_1_G*G*.txt | xargs rm 2> /dev/null
+ls ./*/*binary*.txt | xargs rm 2> /dev/null
+
 
 cd "$projdir"/snpfilter
 n="${ref1%.f*}_"
@@ -1532,14 +1532,12 @@ for snpfilter_dir in $(ls -d */); do
 			awk -v n="$n" '{gsub(n,""); print $0}' $i > ${i%.txt}_hold.txt
 			mv ${i%.txt}_hold.txt $i
 		done
-		if [[ "${snpformats}" == "true" ]]; then
-		for i in *nucleotide.txt *nucleotidedeg.txt; do
-			awk -v n="$n" '{gsub(n,""); print $0}' $i > ${i%.txt}_hold.txt
-			mv ${i%.txt}_hold.txt $i
-		done
-		fi
 		wait
-		for i in *dose*; do j=$(echo $i | awk '{gsub(/_dose/,"");gsub(/_noSDdose/,"");}1'); mv $i $j; done
+		for i in *dose*; do
+			Rscript "${GBSapp_dir}"/scripts/R/hapmap_format.R "$i" "${i%.txt}.hmp.txt"
+		done
+		wait
+
 		cd unique_mapped
 		for v in *dose*; do
 			vcfdose=${v%_rd*}; vcfdose=${vcfdose#*_}
@@ -1547,18 +1545,15 @@ for snpfilter_dir in $(ls -d */); do
 			awk 'FNR==NR{a[$1,$2]=$0;next}{if(b=a[$2,$3]){print b}}' <(gzip -dc ../../../snpcall/*${vcfdose}.vcf.gz) $v >> ${v%.txt}.vcf
 			gzip ${v%.txt}.vcf
 		done
+		wait
 		for i in *dose*; do
 			awk -v n="$n" '{gsub(n,""); print $0}' $i > ${i%.txt}_hold.txt
 			mv ${i%.txt}_hold.txt $i
 		done
-		if [[ "${snpformats}" == "true" ]]; then
-		for i in *nucleotide.txt *nucleotidedeg.txt; do
-			awk -v n="$n" '{gsub(n,""); print $0}' $i > ${i%.txt}_hold.txt
-			mv ${i%.txt}_hold.txt $i
+		for i in *dose*; do
+			Rscript "${GBSapp_dir}"/scripts/R/hapmap_format.R "$i" "${i%.txt}.hmp.txt"
 		done
-		fi
-		wait
-		for i in *dose*; do j=$(echo $i | awk '{gsub(/_dose/,"");gsub(/_noSDdose/,"");}1'); mv $i $j; done
+
 		cd ../../
 	fi
 done
