@@ -12,17 +12,25 @@ geno$CHROM <- as.numeric(as.character(geno$CHROM))
 
 # convert genotype file to hapmap file
 if("pvalue" %in% colnames(geno_2x)) {geno_2x <- subset(geno_2x, select=-c(pvalue))}
+
 geno[,6:ncol(geno)][is.na(geno[,6:ncol(geno)])] <- "NN"
-geno_overlap_del <- geno  
-geno_overlap_del$ALT <- grepl(pattern = "\\*", geno_overlap_del$ALT)
-geno_overlap_del <- geno_overlap_del[geno_overlap_del$ALT == TRUE, ]
 geno_indel <- subset(geno, nchar(geno$REF) > 1 | nchar(geno$ALT) > 1 )
+geno_overlap <- geno  
+geno_overlap$ALT <- grepl(pattern = "\\*", geno_overlap$ALT)
+geno_overlap <- geno_overlap[geno_overlap$ALT == TRUE, ]
+geno_indel <- rbind(geno_indel,geno_overlap)
 geno_snp <- subset(geno, nchar(geno$REF) == 1 & nchar(geno$ALT) == 1 )
+geno_snp$overlap <- geno_snp$ALT
+geno_snp$overlap <- grepl(pattern = "\\*", geno_snp$overlap)
+geno_snp <- geno_snp[geno_snp$overlap == FALSE, ]
+geno_snp <- subset(geno_snp, select=-c(overlap))
+
 geno <- geno[-c(1:nrow(geno)),]
 geno_indel$refcode <- nchar(geno_indel$REF);  geno_indel$refcode[ geno_indel$refcode == 1] <- "-"
 geno_indel$refcode[ geno_indel$refcode > 1] <- "+"
 geno_indel$altcode <- nchar(geno_indel$ALT);  geno_indel$altcode[ geno_indel$altcode < 2] <- "-"
 geno_indel$altcode[ geno_indel$altcode > 1] <- "+"
+
 for (r in c("-","+")){
   for (c in c("-","+")) {
     geno_indelsub <- subset(geno_indel, geno_indel$refcode == r & geno_indel$altcode == c)
