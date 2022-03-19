@@ -17,6 +17,15 @@ fi
 if [[ -z $PEdist ]]; then
 	PEdist=250
 fi
+if [ -z "$multilocus" ]; then
+	multilocus=true
+fi
+if [ "$multilocus" == "true" ]; then
+	multilocus=0
+fi
+if [ "$multilocus" == "false" ]; then
+	multilocus=null
+fi
 if [ -z "$maxHaplotype" ]; then
 	maxHaplotype=128
 fi
@@ -382,7 +391,7 @@ main &>> log.out
 
 ######################################################################################################################################################
 echo -e "${blue}\n############################################################################## ${yellow}\n- GBSapp is Performing Read Alignments & Alignment Post-Processing\n${blue}##############################################################################${white}\n"
-main () {
+mainCFI () {
 	cd $projdir
 	cd samples
 
@@ -459,7 +468,85 @@ main () {
 			wait
 		fi
 	done
-	wait && touch ${projdir}/organize_files_done.txt
+}
+cd $projdir
+if [ "$walkaway" == false ]; then
+	echo -e "${magenta}- Do you want to perform read alignments and alignment post-processing (step1: Indexing)? ${white}\n"
+	read -p "- y(YES) or n(NO) " -t 36000 -n 1 -r
+	if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+		printf '\n'
+		echo -e "${magenta}- skipping read alignments and alignment post-processing (step1: Indexing) ${white}\n"
+	else
+		printf '\n'
+		if test -f ${projdir}/alignment_done.txt; then
+			echo -e "${magenta}- read alignments and alignment post-processing already performed (step1: Indexing) ${white}\n"
+		else
+			echo -e "${magenta}- performing read alignments and alignment post-processing (step1: Indexing) ${white}\n"
+			time mainCFI &>> log.out
+		fi
+	fi
+fi
+if [ "$walkaway" == true ]; then
+	if [ "$alignments" == 1 ]; then
+		if test -f ${projdir}/alignment_done.txt; then
+			echo -e "${magenta}- read alignments and alignment post-processing already performed (step1: Indexing) ${white}\n"
+		else
+			echo -e "${magenta}- performing read alignments and alignment post-processing (step1: Indexing) ${white}\n"
+			time mainCFI &>> log.out
+		fi
+	else
+		echo -e "${magenta}- skipping read alignments and alignment post-processing (step1: Indexing) ${white}\n"
+	fi
+fi
+
+
+mainCFI_check () {
+	cd $projdir/samples
+	find . -size 0 -delete  2> /dev/null &&
+	wait
+	touch ../report_fq_compress_index.txt
+	for i in *_uniq_R1.fasta.gz; do
+		if [[ -n "$(gunzip <$i | head -c 1 | tr '\0\n' __)" ]] || [[ -z $i ]]; then
+			:
+		else
+			rm $i  2> /dev/null &&
+			echo $i >> ../report_fq_compress_index.txt
+		fi
+	done
+	END=10
+	while [[ $(wc -l ../report_fq_compress_index.txt | awk '{print $1}') -gt 0 ]] && [[ $END -gt 0 ]]; do
+		echo -e "${magenta}- $(wc -l ../report_fq_compress_index.txt | awk '{print $1}') fastq file not properly processed ${white}\n"
+		echo -e "${magenta}- re-submitting fastq Compression/Indexing function to process only interrupted fastq file processing ${white}\n"
+	  time mainCFI &>> log.out
+	  END=$(($END-1))
+		: > ../report_fq_compress_index.txt
+		for i in *_uniq_R1.fasta.gz; do
+			if [ -n "$(gunzip <$i | head -c 1 | tr '\0\n' __)" ]; then
+				:
+			else
+				echo $i >> ../report_fq_compress_index.txt
+			fi
+		done
+	done
+	find ../report_fq_compress_index.txt -size 0 -delete  2> /dev/null &&
+	wait
+	touch ${projdir}/organize_files_done.txt
+}
+cd $projdir
+if test -f ${projdir}/alignment_done.txt; then
+	echo -e "${magenta}- read alignments and alignment post-processing (step1: Indexing) already performed ${white}\n"
+else
+	if test ! -f ${projdir}/organize_files_done.txt; then
+		echo -e "${magenta}- performing checking read compression/indexing ${white}\n"
+		time mainCFI_check &>> log.out
+	fi
+fi
+
+
+
+main () {
+	cd $projdir
+	cd samples
 
 	if [[ "$lib_type" == "RRS" ]] && [[ "$(wc -l ${projdir}/alignment_summaries/total_read_count.txt | awk '{print $1}')" -le 1 ]]; then
 		cd ${projdir}/alignment_summaries/
@@ -682,7 +769,7 @@ main () {
 
         awk '/@HD/ || /@SQ/{print}' <(zcat ${projdir}/preprocess/${i%.f*}_redun.sam.gz) > ${projdir}/preprocess/${i%.f*}_heading_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}.sam
 				grep -v '^@' ${projdir}/preprocess/${i%.f*}_del_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}.sam | awk '($3 != "\*")' | awk '{gsub(/_se-/,"_se-\t",$1); gsub(/_pe-/,"_pe-\t",$1)}1' | \
-				awk '{print $2"\t"$0}' | awk '{$2=$3=""}1' | awk -F'\t' 'BEGIN{OFS="\t"} {if ($5==0) {$5=$5+40}}1' > ${projdir}/preprocess/${i%.f*}_uniq_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}.sam
+				awk '{print $2"\t"$0}' | awk '{$2=$3=""}1' | awk -v multilocus=$multilocus -F'\t' 'BEGIN{OFS="\t"} {if ($5==multilocus) {$5=$5+40}}1' > ${projdir}/preprocess/${i%.f*}_uniq_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}.sam
 				for j in $(LC_ALL=C; sort -n -k1,1 ${projdir}/preprocess/${i%.f*}_uniq_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}.sam | awk '{print $1}' | uniq); do
 				  awk -v n="^${j}" '$0~n{print $0}' ${projdir}/preprocess/${i%.f*}_uniq_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}.sam | awk -v n="$j" '{for(i=0;i<n;i++) print}' >> ${projdir}/preprocess/${i%.f*}_exp_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}.sam
 				done; wait
@@ -692,7 +779,7 @@ main () {
 
         awk '/@HD/ || /@SQ/{print}' <(zcat ${projdir}/preprocess/${i%.f*}_redun.sam.gz) > ${projdir}/preprocess/${i%.f*}_heading_${ref1%.f*}_${ref2%.f*}.sam
         grep -v '^@' ${projdir}/preprocess/${i%.f*}_del_${ref1%.f*}_${ref2%.f*}.sam | awk '($3 != "\*")' | awk '{gsub(/_se-/,"_se-\t",$1); gsub(/_pe-/,"_pe-\t",$1)}1' | \
-        awk '{print $2"\t"$0}' | awk '{$2=$3=""}1' | awk -F'\t' 'BEGIN{OFS="\t"} {if ($5==0) {$5=$5+40}}1' > ${projdir}/preprocess/${i%.f*}_uniq_${ref1%.f*}_${ref2%.f*}.sam
+        awk '{print $2"\t"$0}' | awk '{$2=$3=""}1' | awk -v multilocus=$multilocus -F'\t' 'BEGIN{OFS="\t"} {if ($5==multilocus) {$5=$5+40}}1' > ${projdir}/preprocess/${i%.f*}_uniq_${ref1%.f*}_${ref2%.f*}.sam
         for j in $(LC_ALL=C; sort -n -k1,1 ${projdir}/preprocess/${i%.f*}_uniq_${ref1%.f*}_${ref2%.f*}.sam | awk '{print $1}' | uniq); do
         	awk -v n="^${j}" '$0~n{print $0}' ${projdir}/preprocess/${i%.f*}_uniq_${ref1%.f*}_${ref2%.f*}.sam | awk -v n="$j" '{for(i=0;i<n;i++) print}' >> ${projdir}/preprocess/${i%.f*}_exp_${ref1%.f*}_${ref2%.f*}.sam
         done; wait
@@ -702,7 +789,7 @@ main () {
 
         awk '/@HD/ || /@SQ/{print}' <(zcat ${projdir}/preprocess/${i%.f*}_redun.sam.gz) > ${projdir}/preprocess/${i%.f*}_heading_${ref1%.f*}_${ref3%.f*}.sam
         grep -v '^@' ${projdir}/preprocess/${i%.f*}_del_${ref1%.f*}_${ref3%.f*}.sam | awk '($3 != "\*")' | awk '{gsub(/_se-/,"_se-\t",$1); gsub(/_pe-/,"_pe-\t",$1)}1' | \
-        awk '{print $2"\t"$0}' | awk '{$2=$3=""}1' | awk -F'\t' 'BEGIN{OFS="\t"} {if ($5==0) {$5=$5+40}}1' > ${projdir}/preprocess/${i%.f*}_uniq_${ref1%.f*}_${ref3%.f*}.sam
+        awk '{print $2"\t"$0}' | awk '{$2=$3=""}1' | awk -v multilocus=$multilocus -F'\t' 'BEGIN{OFS="\t"} {if ($5==multilocus) {$5=$5+40}}1' > ${projdir}/preprocess/${i%.f*}_uniq_${ref1%.f*}_${ref3%.f*}.sam
         for j in $(LC_ALL=C; sort -n -k1,1 ${projdir}/preprocess/${i%.f*}_uniq_${ref1%.f*}_${ref3%.f*}.sam | awk '{print $1}' | uniq); do
         	awk -v n="^${j}" '$0~n{print $0}' ${projdir}/preprocess/${i%.f*}_uniq_${ref1%.f*}_${ref3%.f*}.sam | awk -v n="$j" '{for(i=0;i<n;i++) print}' >> ${projdir}/preprocess/${i%.f*}_exp_${ref1%.f*}_${ref3%.f*}.sam
         done; wait
@@ -712,7 +799,7 @@ main () {
 
         awk '/@HD/ || /@SQ/{print}' <(zcat ${projdir}/preprocess/${i%.f*}_redun.sam.gz) > ${projdir}/preprocess/${i%.f*}_heading_${ref2%.f*}_${ref3%.f*}.sam
         grep -v '^@' ${projdir}/preprocess/${i%.f*}_del_${ref2%.f*}_${ref3%.f*}.sam | awk '($3 != "\*")' | awk '{gsub(/_se-/,"_se-\t",$1); gsub(/_pe-/,"_pe-\t",$1)}1' | \
-        awk '{print $2"\t"$0}' | awk '{$2=$3=""}1' | awk -F'\t' 'BEGIN{OFS="\t"} {if ($5==0) {$5=$5+40}}1' > ${projdir}/preprocess/${i%.f*}_uniq_${ref2%.f*}_${ref3%.f*}.sam
+        awk '{print $2"\t"$0}' | awk '{$2=$3=""}1' | awk -v multilocus=$multilocus -F'\t' 'BEGIN{OFS="\t"} {if ($5==multilocus) {$5=$5+40}}1' > ${projdir}/preprocess/${i%.f*}_uniq_${ref2%.f*}_${ref3%.f*}.sam
         for j in $(LC_ALL=C; sort -n -k1,1 ${projdir}/preprocess/${i%.f*}_uniq_${ref2%.f*}_${ref3%.f*}.sam | awk '{print $1}' | uniq); do
         	awk -v n="^${j}" '$0~n{print $0}' ${projdir}/preprocess/${i%.f*}_uniq_${ref2%.f*}_${ref3%.f*}.sam | awk -v n="$j" '{for(i=0;i<n;i++) print}' >> ${projdir}/preprocess/${i%.f*}_exp_${ref2%.f*}_${ref3%.f*}.sam
         done; wait
@@ -722,7 +809,7 @@ main () {
 
 				awk '/@HD/ || /@SQ/{print}' <(zcat ${projdir}/preprocess/${i%.f*}_redun.sam.gz) > ${projdir}/preprocess/${i%.f*}_heading_${ref1%.f*}.sam
 				grep -v '^@' ${projdir}/preprocess/${i%.f*}_del_${ref1%.f*}.sam | awk '($3 != "\*")' | awk '{gsub(/_se-/,"_se-\t",$1); gsub(/_pe-/,"_pe-\t",$1)}1' | \
-				awk '{print $2"\t"$0}' | awk '{$2=$3=""}1' | awk -F'\t' 'BEGIN{OFS="\t"} {if ($5==0) {$5=$5+40}}1' > ${projdir}/preprocess/${i%.f*}_uniq_${ref1%.f*}.sam
+				awk '{print $2"\t"$0}' | awk '{$2=$3=""}1' | awk -v multilocus=$multilocus -F'\t' 'BEGIN{OFS="\t"} {if ($5==multilocus) {$5=$5+40}}1' > ${projdir}/preprocess/${i%.f*}_uniq_${ref1%.f*}.sam
 				for j in $(LC_ALL=C; sort -n -k1,1 ${projdir}/preprocess/${i%.f*}_uniq_${ref1%.f*}.sam | awk '{print $1}' | uniq); do
 				  awk -v n="^${j}" '$0~n{print $0}' ${projdir}/preprocess/${i%.f*}_uniq_${ref1%.f*}.sam | awk -v n="$j" '{for(i=0;i<n;i++) print}' >> ${projdir}/preprocess/${i%.f*}_exp_${ref1%.f*}.sam
 				done; wait
@@ -732,7 +819,7 @@ main () {
 
 				awk '/@HD/ || /@SQ/{print}' <(zcat ${projdir}/preprocess/${i%.f*}_redun.sam.gz) > ${projdir}/preprocess/${i%.f*}_heading_${ref2%.f*}.sam
 				grep -v '^@' ${projdir}/preprocess/${i%.f*}_del_${ref2%.f*}.sam | awk '($3 != "\*")' | awk '{gsub(/_se-/,"_se-\t",$1); gsub(/_pe-/,"_pe-\t",$1)}1' | \
-				awk '{print $2"\t"$0}' | awk '{$2=$3=""}1' | awk -F'\t' 'BEGIN{OFS="\t"} {if ($5==0) {$5=$5+40}}1' > ${projdir}/preprocess/${i%.f*}_uniq_${ref2%.f*}.sam
+				awk '{print $2"\t"$0}' | awk '{$2=$3=""}1' | awk -v multilocus=$multilocus -F'\t' 'BEGIN{OFS="\t"} {if ($5==multilocus) {$5=$5+40}}1' > ${projdir}/preprocess/${i%.f*}_uniq_${ref2%.f*}.sam
 				for j in $(LC_ALL=C; sort -n -k1,1 ${projdir}/preprocess/${i%.f*}_uniq_${ref2%.f*}.sam | awk '{print $1}' | uniq); do
 				  awk -v n="^${j}" '$0~n{print $0}' ${projdir}/preprocess/${i%.f*}_uniq_${ref2%.f*}.sam | awk -v n="$j" '{for(i=0;i<n;i++) print}' >> ${projdir}/preprocess/${i%.f*}_exp_${ref2%.f*}.sam
 				done; wait
@@ -742,7 +829,7 @@ main () {
 
         awk '/@HD/ || /@SQ/{print}' <(zcat ${projdir}/preprocess/${i%.f*}_redun.sam.gz) > ${projdir}/preprocess/${i%.f*}_heading_${ref3%.f*}.sam
 				grep -v '^@' ${projdir}/preprocess/${i%.f*}_del_${ref3%.f*}.sam | awk '($3 != "\*")' | awk '{gsub(/_se-/,"_se-\t",$1); gsub(/_pe-/,"_pe-\t",$1)}1' | \
-				awk '{print $2"\t"$0}' | awk '{$2=$3=""}1' | awk -F'\t' 'BEGIN{OFS="\t"} {if ($5==0) {$5=$5+40}}1' > ${projdir}/preprocess/${i%.f*}_uniq_${ref3%.f*}.sam
+				awk '{print $2"\t"$0}' | awk '{$2=$3=""}1' | awk -v multilocus=$multilocus -F'\t' 'BEGIN{OFS="\t"} {if ($5==multilocus) {$5=$5+40}}1' > ${projdir}/preprocess/${i%.f*}_uniq_${ref3%.f*}.sam
 				for j in $(LC_ALL=C; sort -n -k1,1 ${projdir}/preprocess/${i%.f*}_uniq_${ref3%.f*}.sam | awk '{print $1}' | uniq); do
 				  awk -v n="^${j}" '$0~n{print $0}' ${projdir}/preprocess/${i%.f*}_uniq_${ref3%.f*}.sam | awk -v n="$j" '{for(i=0;i<n;i++) print}' >> ${projdir}/preprocess/${i%.f*}_exp_${ref3%.f*}.sam
 				done; wait

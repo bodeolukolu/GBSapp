@@ -142,14 +142,15 @@ Using a text editor, save a file containing any of the following variables as 'c
 **Advanced parameters**
 |Variable      |Default       |Usage         |Input         |required/Optional|
 |:-------------|:-------------|:-------------|:-------------|:----------------|
-|maxHaplotype|128| maximum number of haplotypes per haploid genome across population(increase for polyploids/high heterozygosity/high background mutational load)|integer|Optional|
-|mhap_freq|0| exclude rare haplotypes (e.g. background mutation typical of clonally propagated species or base calling error)|integer|Optional|
-|softclip|false| do not use soft Clipped bases (recommended)|string|Optional|
-|downsample|0| maximum number of reads to use|integer|Optional|
+|multilocus|true|call varints from paralogous sequences|true or false|Optional|
+|maxHaplotype|128|maximum number of haplotypes per haploid genome across population(increase for polyploids/high heterozygosity/high background mutational load)|integer|Optional|
+|mhap_freq|0|exclude rare haplotypes (e.g. background mutation typical of clonally propagated species or base calling error)|integer|Optional|
+|softclip|false|do not use soft Clipped bases (recommended)|string|Optional|
+|downsample|0|maximum number of reads to use|integer|Optional|
 |joint_calling|false| cohort calling will be performed if set to false|string|Optional|
-|keep_gVCF|false| keep sample gVCF files, if additional samples will be included for future joint calling)|string|Optional|
-|maxindel|100| maximum insertion-deletion|integer|Optional|
-|PEdist|250| Initial average distance between paired reads|integer|Optional|
+|keep_gVCF|false|keep sample gVCF files, if additional samples will be included for future joint calling)|string|Optional|
+|maxindel|100|maximum insertion-deletion|integer|Optional|
+|PEdist|250|Initial average distance between paired reads|integer|Optional|
 
 **Note: na indicates that variable is user-defined or hard-coded/computed intuitively, as well as a function of ploidy.*
 
@@ -193,6 +194,7 @@ snpformats=false
 
 # Advanced parameters
 ###################################################
+multilocus=true
 maxHaplotype=128
 haplome_number=1
 mhap_freq=0
