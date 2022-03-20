@@ -397,7 +397,7 @@ mainCFI () {
 
 	for i in $( cat ${projdir}/${samples_list} ); do (
 		if [[ "$lib_type" == "RRS" ]] && test ! -f ${projdir}/compress_done.txt && test ! -f ${projdir}/organize_files_done.txt && test ! -f ${projdir}/preprocess/${i%.f*}_redun.sam && test ! -f ${projdir}/preprocess/${i%.f*}_${ref1%.f*}_precall.bam.bai; then
-			if test ! -f ${i%.f*}_uniq_R1.fasta; then
+			if test ! -f ${i%.f*}_uniq_R1.fasta.gz; then
 				if [[ $(file $i | awk -F' ' '{print $2}') == gzip ]]; then
 					zcat $i | awk 'NR%2==0' | awk 'NR%2' | gzip > ${i%.f*}_uniq.txt.gz 2> /dev/null &&
 					wait
@@ -519,7 +519,7 @@ mainCFI_check () {
 		echo -e "${magenta}- re-submitting fastq Compression/Indexing function to process only interrupted fastq file processing ${white}\n"
 		for i in $( cat ${projdir}/${samples_list} ); do
 			if [[ "$lib_type" == "RRS" ]] && test ! -f ${projdir}/compress_done.txt && test ! -f ${projdir}/organize_files_done.txt && test ! -f ${projdir}/preprocess/${i%.f*}_redun.sam && test ! -f ${projdir}/preprocess/${i%.f*}_${ref1%.f*}_precall.bam.bai; then
-				if test ! -f ${i%.f*}_uniq_R1.fasta; then
+				if test ! -f ${i%.f*}_uniq_R1.fasta.gz; then
 					if [[ $(file $i | awk -F' ' '{print $2}') == gzip ]]; then
 						zcat $i | awk 'NR%2==0' | awk 'NR%2' | gzip > ${i%.f*}_uniq.txt.gz 2> /dev/null &&
 						wait
