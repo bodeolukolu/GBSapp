@@ -400,28 +400,28 @@ mainCFI () {
 		if [[ "$lib_type" == "RRS" ]] && test ! -f ${projdir}/compress_done.txt && test ! -f ${projdir}/organize_files_done.txt && test ! -f ${projdir}/preprocess/${i%.f*}_redun.sam && test ! -f ${projdir}/preprocess/${i%.f*}_${ref1%.f*}_precall.bam.bai; then
 			if test ! -f ${i%.f*}_uniq_R1.fasta.gz; then
 				if [[ $(file $i | awk -F' ' '{print $2}') == gzip ]]; then
-					zcat $i | awk 'NR%2==0' | awk 'NR%2' | gzip > ${i%.f*}_uniq.txt.gz 2> /dev/null &&
+					zcat $i | awk 'NR%2==0' | awk 'NR%2' | $gzip > ${i%.f*}_uniq.txt.gz 2> /dev/null &&
 					wait
 					if test -f ${i%.f*}_R2*; then
-						zcat ${i%.f*}_R2* | awk 'NR%2==0' | awk 'NR%2' | gzip > ${i%.f*}_R2_uniq.txt.gz 2> /dev/null &&
+						zcat ${i%.f*}_R2* | awk 'NR%2==0' | awk 'NR%2' | $gzip > ${i%.f*}_R2_uniq.txt.gz 2> /dev/null &&
 						wait
 					fi
 					wait
 					if test -f ${i%.f*}.R2*; then
-						zcat ${i%.f*}.R2* | awk 'NR%2==0' | awk 'NR%2' | gzip > ${i%.f*}_R2_uniq.txt.gz 2> /dev/null &&
+						zcat ${i%.f*}.R2* | awk 'NR%2==0' | awk 'NR%2' | $gzip > ${i%.f*}_R2_uniq.txt.gz 2> /dev/null &&
 						wait
 					fi
 					wait
 				else
-					awk 'NR%2==0' $i | awk 'NR%2' | gzip > ${i%.f*}_uniq.txt.gz 2> /dev/null &&
+					awk 'NR%2==0' $i | awk 'NR%2' | $gzip > ${i%.f*}_uniq.txt.gz 2> /dev/null &&
 					wait
 					if test -f ${i%.f*}_R2*; then
-						awk 'NR%2==0' ${i%.f*}_R2* | awk 'NR%2' | gzip > ${i%.f*}_R2_uniq.txt.gz 2> /dev/null &&
+						awk 'NR%2==0' ${i%.f*}_R2* | awk 'NR%2' | $gzip > ${i%.f*}_R2_uniq.txt.gz 2> /dev/null &&
 						wait
 					fi
 					wait
 					if test -f ${i%.f*}.R2*; then
-						awk 'NR%2==0' ${i%.f*}.R2* | awk 'NR%2' | gzip > ${i%.f*}_R2_uniq.txt.gz 2> /dev/null &&
+						awk 'NR%2==0' ${i%.f*}.R2* | awk 'NR%2' | $gzip > ${i%.f*}_R2_uniq.txt.gz 2> /dev/null &&
 						wait
 					fi
 					wait
@@ -431,11 +431,11 @@ mainCFI () {
 					zcat ${i%.f*}_uniq.txt.gz | printf "${i%.f*}""\t""$(wc -l)""\n" > ${projdir}/alignment_summaries/${i%.f*}_total_read_count.txt  2> /dev/null &&
 					wait
 					export LC_ALL=C; paste -d ~ <(zcat ${i%.f*}_uniq.txt.gz) <(zcat ${i%.f*}_R2_uniq.txt.gz 2> /dev/null) | expand -t $(( $(wc -L < $i ) + 2 )) | awk '{!seen[$0]++}END{for (i in seen) print seen[i], i}' | awk '{$1=$1};1' | \
-					awk '{gsub(" /"," "); print}' | awk '{gsub("/\n","\n"); print}' | awk '{gsub("/"," "); print}' | awk '{gsub(" ","\t"); print}' | gzip > ${i%.f*}_rdrefseq.txt.gz 2> /dev/null &&
+					awk '{gsub(" /"," "); print}' | awk '{gsub("/\n","\n"); print}' | awk '{gsub("/"," "); print}' | awk '{gsub(" ","\t"); print}' | $gzip > ${i%.f*}_rdrefseq.txt.gz 2> /dev/null &&
 					wait
-					awk 'NF==2 {print ">seq"NR"_se-"$1"\t"$2}' <(zcat ${i%.f*}_rdrefseq.txt.gz 2> /dev/null) | gzip > ${i%.f*}_rdrefseq_se.txt.gz 2> /dev/null &&
+					awk 'NF==2 {print ">seq"NR"_se-"$1"\t"$2}' <(zcat ${i%.f*}_rdrefseq.txt.gz 2> /dev/null) | $gzip > ${i%.f*}_rdrefseq_se.txt.gz 2> /dev/null &&
 					wait
-					awk 'NF==3 {print ">seq"NR"_pe-"$0}' <(zcat ${i%.f*}_rdrefseq.txt.gz 2> /dev/null) | awk '{print $1"\t"$3}' | gzip > ${i%.f*}_uniq_R2.fasta.gz 2> /dev/null &&
+					awk 'NF==3 {print ">seq"NR"_pe-"$0}' <(zcat ${i%.f*}_rdrefseq.txt.gz 2> /dev/null) | awk '{print $1"\t"$3}' | $gzip > ${i%.f*}_uniq_R2.fasta.gz 2> /dev/null &&
 					wait
 					awk 'NF==3 {print ">seq"NR"_pe-"$0}' <(zcat ${i%.f*}_rdrefseq.txt.gz 2> /dev/null) | awk '{print $1"\t"$2}' | gzip | cat - <(zcat ${i%.f*}_rdrefseq_se.txt.gz) > ${i%.f*}_uniq_R1.hold.fasta.gz 2> /dev/null &&
 					wait
@@ -451,9 +451,9 @@ mainCFI () {
 					zcat ${i%.f*}_uniq.txt.gz | printf "${i%.f*}""\t""$(wc -l)""\n" > ${projdir}/alignment_summaries/${i%.f*}_total_read_count.txt  2> /dev/null &&
 					wait
 					export LC_ALL=C; paste -d ~ <(zcat ${i%.f*}_uniq.txt.gz) ${i%.f*}_R2_uniq.txt | expand -t $(( $(wc -L < $i ) + 2 )) | awk '{!seen[$0]++}END{for (i in seen) print seen[i], i}' | awk '{$1=$1};1' | \
-					awk '{gsub(" /"," "); print}' | awk '{gsub("/\n","\n"); print}' | awk '{gsub("/"," "); print}' | awk '{gsub(" ","\t"); print}' | gzip > ${i%.f*}_rdrefseq.txt.gz 2> /dev/null &&
+					awk '{gsub(" /"," "); print}' | awk '{gsub("/\n","\n"); print}' | awk '{gsub("/"," "); print}' | awk '{gsub(" ","\t"); print}' | $gzip > ${i%.f*}_rdrefseq.txt.gz 2> /dev/null &&
 					wait
-					awk 'NF==2 {print ">seq"NR"_pe-"$0}' <(zcat ${i%.f*}_rdrefseq.txt.gz 2> /dev/null) | awk '{print $1"\t"$2}' | gzip > ${i%.f*}_uniq_R1.hold.fasta.gz 2> /dev/null &&
+					awk 'NF==2 {print ">seq"NR"_pe-"$0}' <(zcat ${i%.f*}_rdrefseq.txt.gz 2> /dev/null) | awk '{print $1"\t"$2}' | $gzip > ${i%.f*}_uniq_R1.hold.fasta.gz 2> /dev/null &&
 					wait
 					rm ${i%.f*}*.txt* 2> /dev/null &&
 					wait
@@ -519,28 +519,28 @@ mainCFI_check () {
 			if [[ "$lib_type" == "RRS" ]] && test ! -f ${projdir}/compress_done.txt && test ! -f ${projdir}/organize_files_done.txt && test ! -f ${projdir}/preprocess/${i%.f*}_redun.sam && test ! -f ${projdir}/preprocess/${i%.f*}_${ref1%.f*}_precall.bam.bai; then
 				if test ! -f ${i%.f*}_uniq_R1.fasta.gz; then
 					if [[ $(file $i | awk -F' ' '{print $2}') == gzip ]]; then
-						zcat $i | awk 'NR%2==0' | awk 'NR%2' | gzip > ${i%.f*}_uniq.txt.gz 2> /dev/null &&
+						zcat $i | awk 'NR%2==0' | awk 'NR%2' | $gzip > ${i%.f*}_uniq.txt.gz 2> /dev/null &&
 						wait
 						if test -f ${i%.f*}_R2*; then
-							zcat ${i%.f*}_R2* | awk 'NR%2==0' | awk 'NR%2' | gzip > ${i%.f*}_R2_uniq.txt.gz 2> /dev/null &&
+							zcat ${i%.f*}_R2* | awk 'NR%2==0' | awk 'NR%2' | $gzip > ${i%.f*}_R2_uniq.txt.gz 2> /dev/null &&
 							wait
 						fi
 						wait
 						if test -f ${i%.f*}.R2*; then
-							zcat ${i%.f*}.R2* | awk 'NR%2==0' | awk 'NR%2' | gzip > ${i%.f*}_R2_uniq.txt.gz 2> /dev/null &&
+							zcat ${i%.f*}.R2* | awk 'NR%2==0' | awk 'NR%2' | $gzip > ${i%.f*}_R2_uniq.txt.gz 2> /dev/null &&
 							wait
 						fi
 						wait
 					else
-						awk 'NR%2==0' $i | awk 'NR%2' | gzip > ${i%.f*}_uniq.txt.gz 2> /dev/null &&
+						awk 'NR%2==0' $i | awk 'NR%2' | $gzip > ${i%.f*}_uniq.txt.gz 2> /dev/null &&
 						wait
 						if test -f ${i%.f*}_R2*; then
-							awk 'NR%2==0' ${i%.f*}_R2* | awk 'NR%2' | gzip > ${i%.f*}_R2_uniq.txt.gz 2> /dev/null &&
+							awk 'NR%2==0' ${i%.f*}_R2* | awk 'NR%2' | $gzip > ${i%.f*}_R2_uniq.txt.gz 2> /dev/null &&
 							wait
 						fi
 						wait
 						if test -f ${i%.f*}.R2*; then
-							awk 'NR%2==0' ${i%.f*}.R2* | awk 'NR%2' | gzip > ${i%.f*}_R2_uniq.txt.gz 2> /dev/null &&
+							awk 'NR%2==0' ${i%.f*}.R2* | awk 'NR%2' | $gzip > ${i%.f*}_R2_uniq.txt.gz 2> /dev/null &&
 							wait
 						fi
 						wait
@@ -550,11 +550,11 @@ mainCFI_check () {
 						zcat ${i%.f*}_uniq.txt.gz | printf "${i%.f*}""\t""$(wc -l)""\n" > ${projdir}/alignment_summaries/${i%.f*}_total_read_count.txt  2> /dev/null &&
 						wait
 						export LC_ALL=C; paste -d ~ <(zcat ${i%.f*}_uniq.txt.gz) <(zcat ${i%.f*}_R2_uniq.txt.gz 2> /dev/null) | expand -t $(( $(wc -L < $i ) + 2 )) | awk '{!seen[$0]++}END{for (i in seen) print seen[i], i}' | awk '{$1=$1};1' | \
-						awk '{gsub(" /"," "); print}' | awk '{gsub("/\n","\n"); print}' | awk '{gsub("/"," "); print}' | awk '{gsub(" ","\t"); print}' | gzip > ${i%.f*}_rdrefseq.txt.gz 2> /dev/null &&
+						awk '{gsub(" /"," "); print}' | awk '{gsub("/\n","\n"); print}' | awk '{gsub("/"," "); print}' | awk '{gsub(" ","\t"); print}' | $gzip > ${i%.f*}_rdrefseq.txt.gz 2> /dev/null &&
 						wait
-						awk 'NF==2 {print ">seq"NR"_se-"$1"\t"$2}' <(zcat ${i%.f*}_rdrefseq.txt.gz 2> /dev/null) | gzip > ${i%.f*}_rdrefseq_se.txt.gz 2> /dev/null &&
+						awk 'NF==2 {print ">seq"NR"_se-"$1"\t"$2}' <(zcat ${i%.f*}_rdrefseq.txt.gz 2> /dev/null) | $gzip > ${i%.f*}_rdrefseq_se.txt.gz 2> /dev/null &&
 						wait
-						awk 'NF==3 {print ">seq"NR"_pe-"$0}' <(zcat ${i%.f*}_rdrefseq.txt.gz 2> /dev/null) | awk '{print $1"\t"$3}' | gzip > ${i%.f*}_uniq_R2.fasta.gz 2> /dev/null &&
+						awk 'NF==3 {print ">seq"NR"_pe-"$0}' <(zcat ${i%.f*}_rdrefseq.txt.gz 2> /dev/null) | awk '{print $1"\t"$3}' | $gzip > ${i%.f*}_uniq_R2.fasta.gz 2> /dev/null &&
 						wait
 						awk 'NF==3 {print ">seq"NR"_pe-"$0}' <(zcat ${i%.f*}_rdrefseq.txt.gz 2> /dev/null) | awk '{print $1"\t"$2}' | gzip | cat - <(zcat ${i%.f*}_rdrefseq_se.txt.gz) > ${i%.f*}_uniq_R1.hold.fasta.gz 2> /dev/null &&
 						wait
@@ -570,9 +570,9 @@ mainCFI_check () {
 						zcat ${i%.f*}_uniq.txt.gz | printf "${i%.f*}""\t""$(wc -l)""\n" > ${projdir}/alignment_summaries/${i%.f*}_total_read_count.txt  2> /dev/null &&
 						wait
 						export LC_ALL=C; paste -d ~ <(zcat ${i%.f*}_uniq.txt.gz) ${i%.f*}_R2_uniq.txt | expand -t $(( $(wc -L < $i ) + 2 )) | awk '{!seen[$0]++}END{for (i in seen) print seen[i], i}' | awk '{$1=$1};1' | \
-						awk '{gsub(" /"," "); print}' | awk '{gsub("/\n","\n"); print}' | awk '{gsub("/"," "); print}' | awk '{gsub(" ","\t"); print}' | gzip > ${i%.f*}_rdrefseq.txt.gz 2> /dev/null &&
+						awk '{gsub(" /"," "); print}' | awk '{gsub("/\n","\n"); print}' | awk '{gsub("/"," "); print}' | awk '{gsub(" ","\t"); print}' | $gzip > ${i%.f*}_rdrefseq.txt.gz 2> /dev/null &&
 						wait
-						awk 'NF==2 {print ">seq"NR"_pe-"$0}' <(zcat ${i%.f*}_rdrefseq.txt.gz 2> /dev/null) | awk '{print $1"\t"$2}' | gzip > ${i%.f*}_uniq_R1.hold.fasta.gz 2> /dev/null &&
+						awk 'NF==2 {print ">seq"NR"_pe-"$0}' <(zcat ${i%.f*}_rdrefseq.txt.gz 2> /dev/null) | awk '{print $1"\t"$2}' | $gzip > ${i%.f*}_uniq_R1.hold.fasta.gz 2> /dev/null &&
 						wait
 						rm ${i%.f*}*.txt* 2> /dev/null &&
 						wait
@@ -635,7 +635,7 @@ main () {
 		for i in $( cat ${projdir}/${samples_list} ); do
 			zcat ${projdir}/samples/${i%.f*}_uniq_R1.fasta.gz | awk -F "\t" 'BEGIN { OFS=FS }; { print $1, substr($2, 1, 64); }' | awk '{a[$2]++} END{for(s in a){print a[s]" "s}}' | \
 			awk -F'\t' '{gsub(/ /,"\t"); print}' | awk -F'\t' 'BEGIN{OFS="\t"} NR==FNR{a[$2]=$0;next} ($2) in a{print $0, a[$2]}' - <(zcat ${projdir}/samples/${i%.f*}_uniq_R1.fasta.gz) | \
-			awk '$3==1{print $1"\t"$2}' | gzip > ${projdir}/alignment_summaries/background_mutation_test/${i%.f*}_pop_haps.fasta.gz 2> /dev/null &&
+			awk '$3==1{print $1"\t"$2}' | $gzip > ${projdir}/alignment_summaries/background_mutation_test/${i%.f*}_pop_haps.fasta.gz 2> /dev/null &&
 			wait
 		done
 
@@ -661,33 +661,33 @@ main () {
 				 if [[ "$mhap_freq" -gt 0 ]]; then
 					 if [[ "$nempty" -gt 0 ]]; then
 					  awk '{print $2}' ${projdir}/alignment_summaries/background_mutation_test/pop_haps_freqFail.txt | \
-					  grep -v -x -f - <(zcat ${projdir}/samples/${i%.f*}_uniq_R1.fasta.gz) | gzip > ${projdir}/samples/${i%.f*}_uniq_R1_singleton.txt.gz &&
-						grep '_se-' <(zcat ${projdir}/samples/${i%.f*}_uniq_R1_singleton.txt.gz) | awk '{gsub(/>/,"@"); print}' | awk '{print $1"\t"$2"\t"$2}' | awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$3); print}' | awk '{print $1"\n"$2"\n+\n"$3}' | gzip > ${projdir}/samples/${i%.f*}_uniq_singleton.fq.gz &&
-						grep '_pe-' <(zcat ${projdir}/samples/${i%.f*}_uniq_R1_singleton.txt.gz) | awk '{gsub(/>/,"@"); print}' | awk '{print $1"\t"$2"\t"$2}' | awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$3); print}' | awk '{print $1"/1\n"$2"\n+\n"$3}' | gzip > ${projdir}/samples/${i%.f*}_uniq_R1.fq.gz &&
+					  grep -v -x -f - <(zcat ${projdir}/samples/${i%.f*}_uniq_R1.fasta.gz) | $gzip > ${projdir}/samples/${i%.f*}_uniq_R1_singleton.txt.gz &&
+						grep '_se-' <(zcat ${projdir}/samples/${i%.f*}_uniq_R1_singleton.txt.gz) | awk '{gsub(/>/,"@"); print}' | awk '{print $1"\t"$2"\t"$2}' | awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$3); print}' | awk '{print $1"\n"$2"\n+\n"$3}' | $gzip > ${projdir}/samples/${i%.f*}_uniq_singleton.fq.gz &&
+						grep '_pe-' <(zcat ${projdir}/samples/${i%.f*}_uniq_R1_singleton.txt.gz) | awk '{gsub(/>/,"@"); print}' | awk '{print $1"\t"$2"\t"$2}' | awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$3); print}' | awk '{print $1"/1\n"$2"\n+\n"$3}' | $gzip > ${projdir}/samples/${i%.f*}_uniq_R1.fq.gz &&
 						rm ${projdir}/samples/${i%.f*}_uniq_R1_singleton.txt.gz &&
 						awk '{print $2}' ${projdir}/alignment_summaries/background_mutation_test/pop_haps_freqFail.txt | \
 						grep -v -x -f - <(zcat ${projdir}/samples/${i%.f*}_uniq_R2.fasta.gz) | awk '{gsub(/>/,"@"); print}' | \
-						awk '{print $1"\t"$2"\t"$2}' | awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$3); print}' | awk '{print $1"/2\n"$2"\n+\n"$3}' | gzip  > ${projdir}/samples/${i%.f*}_uniq_R2.fq.gz &&
+						awk '{print $1"\t"$2"\t"$2}' | awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$3); print}' | awk '{print $1"/2\n"$2"\n+\n"$3}' | $gzip > ${projdir}/samples/${i%.f*}_uniq_R2.fq.gz &&
 						rm ${projdir}/samples/${i%.f*}_uniq_R1.fasta.gz ${projdir}/samples/${i%.f*}_uniq_R2.fasta.gz
 						wait
 					else
 						awk '{print $2}' ${projdir}/alignment_summaries/background_mutation_test/pop_haps_freqFail.txt | \
 						grep -v -x -f - <(zcat ${projdir}/samples/${i%.f*}_uniq_R1.fasta.gz) | awk '{gsub(/>/,"@"); print}' | \
-						awk '{print $1"\t"$2"\t"$2}' | awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$3); print}' | awk '{print $1"\n"$2"\n+\n"$3}' | gzip  > ${projdir}/samples/${i%.f*}_uniq_R1.fq.gz &&
+						awk '{print $1"\t"$2"\t"$2}' | awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$3); print}' | awk '{print $1"\n"$2"\n+\n"$3}' | $gzip > ${projdir}/samples/${i%.f*}_uniq_R1.fq.gz &&
 						rm ${projdir}/samples/${i%.f*}_uniq_R1.fasta.gz
 						wait
 					fi
 				 else
 					 if [[ "$nempty" -gt 0 ]]; then
-						grep '_se-' <(zcat ${projdir}/samples/${i%.f*}_uniq_R1.fasta.gz) | awk '{gsub(/>/,"@"); print}' | awk '{print $1"\t"$2"\t"$2}' | awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$3); print}' | awk '{print $1"\n"$2"\n+\n"$3}' | gzip > ${projdir}/samples/${i%.f*}_uniq_singleton.fq.gz &&
-						grep '_pe-' <(zcat ${projdir}/samples/${i%.f*}_uniq_R1.fasta.gz) | awk '{gsub(/>/,"@"); print}' | awk '{print $1"\t"$2"\t"$2}' | awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$3); print}' | awk '{print $1"/1\n"$2"\n+\n"$3}' | gzip > ${projdir}/samples/${i%.f*}_uniq_R1.fq.gz &&
+						grep '_se-' <(zcat ${projdir}/samples/${i%.f*}_uniq_R1.fasta.gz) | awk '{gsub(/>/,"@"); print}' | awk '{print $1"\t"$2"\t"$2}' | awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$3); print}' | awk '{print $1"\n"$2"\n+\n"$3}' | $gzip > ${projdir}/samples/${i%.f*}_uniq_singleton.fq.gz &&
+						grep '_pe-' <(zcat ${projdir}/samples/${i%.f*}_uniq_R1.fasta.gz) | awk '{gsub(/>/,"@"); print}' | awk '{print $1"\t"$2"\t"$2}' | awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$3); print}' | awk '{print $1"/1\n"$2"\n+\n"$3}' | $gzip > ${projdir}/samples/${i%.f*}_uniq_R1.fq.gz &&
 						awk '{gsub(/>/,"@"); print}' <(zcat ${projdir}/samples/${i%.f*}_uniq_R2.fasta.gz) | awk '{print $1"\t"$2"\t"$2}' | \
-						awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$3); print}' | awk '{print $1"/2\n"$2"\n+\n"$3}' | gzip  > ${projdir}/samples/${i%.f*}_uniq_R2.fq.gz &&
+						awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$3); print}' | awk '{print $1"/2\n"$2"\n+\n"$3}' | $gzip > ${projdir}/samples/${i%.f*}_uniq_R2.fq.gz &&
 						rm ${projdir}/samples/${i%.f*}_uniq_R1.fasta.gz ${projdir}/samples/${i%.f*}_uniq_R2.fasta.gz
 						wait
 					else
 						awk '{gsub(/>/,"@"); print}' <(zcat ${projdir}/samples/${i%.f*}_uniq_R1.fasta.gz) | awk '{print $1"\t"$2"\t"$2}' | \
-						awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$3); print}' | awk '{print $1"\n"$2"\n+\n"$3}' | gzip  > ${projdir}/samples/${i%.f*}_uniq_R1.fq.gz &&
+						awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$3); print}' | awk '{print $1"\n"$2"\n+\n"$3}' | $gzip > ${projdir}/samples/${i%.f*}_uniq_R1.fq.gz &&
 						rm ${projdir}/samples/${i%.f*}_uniq_R1.fasta.gz
 						wait
 					fi
@@ -706,7 +706,7 @@ main () {
 					$ngm -r $ref1 --qry ${projdir}/samples/${i%.f*}_uniq_R1.fq.gz -o ${projdir}/preprocess/${i%.f*}_redun_R1.sam -t $threads --min-identity 0 --topn 12 -strata 12 &&
 					$ngm -r $ref1 --qry ${projdir}/samples/${i%.f*}_uniq_R2.fq.gz -o ${projdir}/preprocess/${i%.f*}_redun_R2.sam -t $threads --min-identity 0 --topn 12 --strata 12 &&
 					$ngm -r $ref1 --qry ${projdir}/samples/${i%.f*}_uniq_singleton.fq.gz -o ${projdir}/preprocess/${i%.f*}_redun_singleton.sam -t $threads --min-identity 0 --topn 12 --strata 12 &&
-					grep -v '^@' ${projdir}/preprocess/${i%.f*}_redun_R2.sam | cat ${projdir}/preprocess/${i%.f*}_redun_R1.sam -  | cat - <(grep -v '^@' ${projdir}/preprocess/${i%.f*}_redun_singleton.sam) | gzip > ${projdir}/preprocess/${i%.f*}_redun.hold.sam.gz &&
+					grep -v '^@' ${projdir}/preprocess/${i%.f*}_redun_R2.sam | cat ${projdir}/preprocess/${i%.f*}_redun_R1.sam -  | cat - <(grep -v '^@' ${projdir}/preprocess/${i%.f*}_redun_singleton.sam) | $gzip > ${projdir}/preprocess/${i%.f*}_redun.hold.sam.gz &&
 					rm ${projdir}/preprocess/${i%.f*}_redun_singleton.sam ${projdir}/preprocess/${i%.f*}_redun_R*.sam &&
 					wait
 				else
@@ -730,7 +730,7 @@ main () {
 				if [[ "$nempty" -gt 0 ]]; then
 					$ngm -r $ref1 --qry ${projdir}/samples/$i -o ${projdir}/preprocess/${i%.f*}_R1.sam -t $threads --min-identity 0 --topn 12 --strata 12 &&
 					$ngm -r $ref1 --qry ${projdir}/samples/${i%.f*}_R2.fastq.gz -o ${projdir}/preprocess/${i%.f*}_R2.sam -t $threads --min-identity 0 --topn 12 --strata 12 &&
-					grep -v '^@' ${projdir}/preprocess/${i%.f*}_R2.sam | cat ${projdir}/preprocess/${i%.f*}_R1.sam - | gzip > ${projdir}/preprocess/${i%.f*}_redun.hold.sam.gz &&
+					grep -v '^@' ${projdir}/preprocess/${i%.f*}_R2.sam | cat ${projdir}/preprocess/${i%.f*}_R1.sam - | $gzip > ${projdir}/preprocess/${i%.f*}_redun.hold.sam.gz &&
 					wait
 				else
 					$ngm -r $ref1 --qry ${projdir}/samples/$i -o ${projdir}/preprocess/${i%.f*}_redun.hold.sam -t $threads --min-identity 0 --topn 12 --strata 12 &&
