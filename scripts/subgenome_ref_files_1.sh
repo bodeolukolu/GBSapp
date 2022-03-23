@@ -389,11 +389,12 @@ main &>> log.out
 
 ######################################################################################################################################################
 echo -e "${blue}\n############################################################################## ${yellow}\n- Performing Read Alignments & Alignment Post-Processing\n${blue}##############################################################################${white}\n"
+
 mainCFI () {
 	cd $projdir
 	cd samples
 
-	for i in $( cat ${projdir}/${samples_list} ); do (
+	for i in $( cat ${projdir}/${samples_list} ); do
 		if [[ "$lib_type" == "RRS" ]] && test ! -f ${projdir}/compress_done.txt && test ! -f ${projdir}/organize_files_done.txt && test ! -f ${projdir}/preprocess/${i%.f*}_redun.sam && test ! -f ${projdir}/preprocess/${i%.f*}_${ref1%.f*}_precall.bam.bai; then
 			if test ! -f ${i%.f*}_uniq_R1.fasta.gz; then
 				if [[ $(file $i | awk -F' ' '{print $2}') == gzip ]]; then
@@ -461,9 +462,6 @@ mainCFI () {
 				fi
 				wait
 			fi
-		fi ) &
-		if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
-			wait
 		fi
 	done
 }
@@ -632,15 +630,11 @@ main () {
 		while [[ "$align" -lt $nodes ]]; do
 			sleep 30; align=$(ls ${projdir}/align1_samples_list_node_* | wc -l)
 		done
-		for i in $( cat ${projdir}/${samples_list} ); do (
+		for i in $( cat ${projdir}/${samples_list} ); do
 			zcat ${projdir}/samples/${i%.f*}_uniq_R1.fasta.gz | awk -F "\t" 'BEGIN { OFS=FS }; { print $1, substr($2, 1, 64); }' | awk '{a[$2]++} END{for(s in a){print a[s]" "s}}' | \
 			awk -F'\t' '{gsub(/ /,"\t"); print}' | awk -F'\t' 'BEGIN{OFS="\t"} NR==FNR{a[$2]=$0;next} ($2) in a{print $0, a[$2]}' - <(zcat ${projdir}/samples/${i%.f*}_uniq_R1.fasta.gz) | \
 			awk '$3==1{print $1"\t"$2}' | gzip > ${projdir}/alignment_summaries/background_mutation_test/${i%.f*}_pop_haps.fasta.gz 2> /dev/null &&
 			wait
-			) &
-			if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
-				wait
-			fi
 		done
 
 		if [[ $align == $nodes ]] && test ! -f ${projdir}/alignment_summaries/background_mutation_test/pop_haps_freqFail.txt; then
@@ -658,7 +652,7 @@ main () {
 
 	cd ${projdir}/samples
 
-	for i in $(cat ${projdir}/${samples_list} ); do (
+	for i in $(cat ${projdir}/${samples_list} ); do
 		if [[ "$lib_type" == "RRS" ]] && test ! -f ${projdir}/hapfilter_done.txt && test ! -f ${projdir}/compress_done.txt && test ! -f "${projdir}/preprocess/${i%.f*}_redun.sam" && test ! -f "${projdir}/preprocess/${i%.f*}_${ref1%.f*}_precall.bam.bai"; then
 				sleep $[ ( $RANDOM % 30 )  + 10 ]s
 				export nempty=$( ls ${projdir}/samples/${i%.f*}_uniq_R2.fasta 2> /dev/null | wc -l | awk '{print $1}' )
@@ -696,28 +690,25 @@ main () {
 						wait
 					fi
 				 fi
-		fi ) &
-		if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
-			wait
 		fi
 	done
 	wait && touch ${projdir}/compress_done.txt
 
 
-	for i in $(cat ${projdir}/${samples_list} ); do (
+	for i in $(cat ${projdir}/${samples_list} ); do
 		cd ${projdir}/refgenomes
 		if [[ "$lib_type" == "RRS" ]] && test ! -f ${projdir}/precall_done.txt && test ! -f ${projdir}/preprocess/${i%.f*}_${ref1%.f*}_precall.bam.bai; then
 			export nempty=$( ls ${projdir}/samples/${i%.f*}_uniq_R2.fq.gz 2> /dev/null | wc -l | awk '{print $1}' )
 			if test ! -f ${projdir}/preprocess/${i%.f*}_redun.sam; then
 				if [[ "$nempty" -gt 0 ]]; then
-					$ngm -r $ref1 --qry ${projdir}/samples/${i%.f*}_uniq_R1.fq.gz -o ${projdir}/preprocess/${i%.f*}_redun_R1.sam -t $gthreads --min-identity 0 --topn 12 -strata 12 &&
-					$ngm -r $ref1 --qry ${projdir}/samples/${i%.f*}_uniq_R2.fq.gz -o ${projdir}/preprocess/${i%.f*}_redun_R2.sam -t $gthreads --min-identity 0 --topn 12 --strata 12 &&
-					$ngm -r $ref1 --qry ${projdir}/samples/${i%.f*}_uniq_singleton.fq.gz -o ${projdir}/preprocess/${i%.f*}_redun_singleton.sam -t $gthreads --min-identity 0 --topn 12 --strata 12 &&
+					$ngm -r $ref1 --qry ${projdir}/samples/${i%.f*}_uniq_R1.fq.gz -o ${projdir}/preprocess/${i%.f*}_redun_R1.sam -t $threads --min-identity 0 --topn 12 -strata 12 &&
+					$ngm -r $ref1 --qry ${projdir}/samples/${i%.f*}_uniq_R2.fq.gz -o ${projdir}/preprocess/${i%.f*}_redun_R2.sam -t $threads --min-identity 0 --topn 12 --strata 12 &&
+					$ngm -r $ref1 --qry ${projdir}/samples/${i%.f*}_uniq_singleton.fq.gz -o ${projdir}/preprocess/${i%.f*}_redun_singleton.sam -t $threads --min-identity 0 --topn 12 --strata 12 &&
 					grep -v '^@' ${projdir}/preprocess/${i%.f*}_redun_R2.sam | cat ${projdir}/preprocess/${i%.f*}_redun_R1.sam -  | cat - <(grep -v '^@' ${projdir}/preprocess/${i%.f*}_redun_singleton.sam) | gzip > ${projdir}/preprocess/${i%.f*}_redun.hold.sam.gz &&
 					rm ${projdir}/preprocess/${i%.f*}_redun_singleton.sam ${projdir}/preprocess/${i%.f*}_redun_R*.sam &&
 					wait
 				else
-					$ngm -r $ref1 -q ${projdir}/samples/${i%.f*}_uniq_R1.fq.gz -o ${projdir}/preprocess/${i%.f*}_redun.hold.sam -t $gthreads --min-identity 0 --topn 12 --strata 12 &&
+					$ngm -r $ref1 -q ${projdir}/samples/${i%.f*}_uniq_R1.fq.gz -o ${projdir}/preprocess/${i%.f*}_redun.hold.sam -t $threads --min-identity 0 --topn 12 --strata 12 &&
 					gzip ${projdir}/preprocess/${i%.f*}_redun.hold.sam &&
 					wait
 				fi
@@ -726,24 +717,21 @@ main () {
 			fi
 			wait
 		fi
-		cd ${projdir}/samples ) &
-		if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
-			wait
-		fi
+		cd ${projdir}/samples
 	done
 
-	for i in $(cat ${projdir}/${samples_list} ); do (
+	for i in $(cat ${projdir}/${samples_list} ); do
 		cd ${projdir}/refgenomes
 		if [[ "$lib_type" == "WGS" ]] && test ! -f ${projdir}/precall_done.txt && test ! -f ${projdir}/preprocess/${i%.f*}_${ref1%.f*}_precall.bam.bai; then
 			export nempty=$( ls ${projdir}/samples/${i%.f*}_R2.f*.gz 2> /dev/null | wc -l | awk '{print $1}' )
 			if test ! -f ${projdir}/preprocess/${i%.f*}_redun.sam; then
 				if [[ "$nempty" -gt 0 ]]; then
-					$ngm -r $ref1 --qry ${projdir}/samples/$i -o ${projdir}/preprocess/${i%.f*}_R1.sam -t $gthreads --min-identity 0 --topn 12 --strata 12 &&
-					$ngm -r $ref1 --qry ${projdir}/samples/${i%.f*}_R2.fastq.gz -o ${projdir}/preprocess/${i%.f*}_R2.sam -t $gthreads --min-identity 0 --topn 12 --strata 12 &&
+					$ngm -r $ref1 --qry ${projdir}/samples/$i -o ${projdir}/preprocess/${i%.f*}_R1.sam -t $threads --min-identity 0 --topn 12 --strata 12 &&
+					$ngm -r $ref1 --qry ${projdir}/samples/${i%.f*}_R2.fastq.gz -o ${projdir}/preprocess/${i%.f*}_R2.sam -t $threads --min-identity 0 --topn 12 --strata 12 &&
 					grep -v '^@' ${projdir}/preprocess/${i%.f*}_R2.sam | cat ${projdir}/preprocess/${i%.f*}_R1.sam - | gzip > ${projdir}/preprocess/${i%.f*}_redun.hold.sam.gz &&
 					wait
 				else
-					$ngm -r $ref1 --qry ${projdir}/samples/$i -o ${projdir}/preprocess/${i%.f*}_redun.hold.sam -t $gthreads --min-identity 0 --topn 12 --strata 12 &&
+					$ngm -r $ref1 --qry ${projdir}/samples/$i -o ${projdir}/preprocess/${i%.f*}_redun.hold.sam -t $threads --min-identity 0 --topn 12 --strata 12 &&
 					gzip ${projdir}/preprocess/${i%.f*}_redun.hold.sam &&
 					wait
 				fi
@@ -752,15 +740,12 @@ main () {
 			fi
 			wait
 		fi
-		cd ${projdir}/samples ) &
-		if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
-			wait
-		fi
+		cd ${projdir}/samples
 	done
 	wait && touch ${projdir}/hapfilter_done.txt
 
 
-	for i in $(cat ${projdir}/${samples_list} ); do (
+	for i in $(cat ${projdir}/${samples_list} ); do
 		if test ! -f ${projdir}/preprocess/${i%.f*}_${ref1%.f*}_precall.bam.bai; then
 			if test ! -f ${projdir}/alignment_done.txt; then
 				printf '\n###---'${i%.f*}'---###\n' > ${projdir}/alignment_summaries/${i%.f*}_summ.txt && \
@@ -807,10 +792,7 @@ main () {
 				wait
 			fi
 		fi
-		) &
-		if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
-			wait
-		fi
+
 	done
 
 	wait && touch ${projdir}/precall_done.txt
