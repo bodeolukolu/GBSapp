@@ -26,7 +26,7 @@ fi
 if [ "$multilocus" == "false" ]; then
 	multilocus=null
 fi
-if [ -z "$maxHaplotype" ]; then
+if [ -z "$maxype" ]; then
 	maxHaplotype=128
 fi
 if [ -z "$haplome_number" ]; then
@@ -61,7 +61,7 @@ for i in *.gz; do
 	gunzip $i >/dev/null 2>&1
 done
 
-if [[ -d "ref" ]]; then
+if ls ./*.ngm 1> /dev/null 2>&1; then
 	:
 else
 	checknfastafiles=$(ls *.f* | grep -v .fai | grep -v .ngm | grep -v _original.fasta | wc -l)

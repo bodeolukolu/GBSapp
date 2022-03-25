@@ -62,7 +62,7 @@ for i in *.gz; do
 	gunzip $i >/dev/null 2>&1
 done
 
-if [[ -d "ref" ]]; then
+if ls ./*.ngm 1> /dev/null 2>&1; then
 	:
 else
 	checknfastafiles=$(ls *.f* | grep -v .fai | grep -v .ngm | grep -v panref | grep -v _original.fasta | wc -l)
