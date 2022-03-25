@@ -100,7 +100,7 @@ export picard=${GBSapp_dir}/tools/picard.jar && picard=${picard//'//'/'/'}
 export GATK=${GBSapp_dir}/tools/gatk-4.2.5.0/gatk && GATK=${GATK//'//'/'/'}
 export java=${GBSapp_dir}/tools/jdk8*/bin/java && java=${java//'//'/'/'}
 if command -v pigz &>/dev/null; then
-  export gzip=pigz
+  export gzip=gzip
 else
   export gzip=gzip
 fi

@@ -429,6 +429,7 @@ if [[ "$string" == false ]]; then
     echo -e "${magenta}\n- shell script will be saved to ${projdir}GBSapp_run.sh ${white}\n"
     exit 1
   else
+    echo -e "${magenta}\n ${white}\n"
     bash ${projdir}GBSapp_run.sh
   fi
 fi
@@ -531,6 +532,7 @@ if [ -z $cluster ]; then
     echo -e "${magenta}\n- shell script will be saved to ${projdir}GBSapp_run.sh ${white}\n"
     exit 1
   else
+    echo -e "${magenta}\n ${white}\n"
     nohup bash ${projdir}GBSapp_run.sh > terminal.out 2>&1 &
   fi
 fi
@@ -648,6 +650,7 @@ if [[ "$cluster" == true ]]; then
         echo -e "${magenta}\n- shell script will be saved to ${projdir}GBSapp_run_node_*.sh ${white}\n"
         exit 1
       else
+        echo -e "${magenta}\n ${white}\n"
         sbatch ${projdir}GBSapp_run_node_1.sh
         for nn in $(seq 2 "$n_nodes"); do
           sbatch ${projdir}GBSapp_run_node_${nn}.sh
@@ -672,6 +675,7 @@ if [[ "$cluster" == true ]]; then
         echo -e "${magenta}\n- shell script will be saved to ${projdir}GBSapp_run.sh ${white}\n"
         exit 1
       else
+        echo -e "${magenta}\n ${white}\n"
         sbatch ${projdir}GBSapp_run.sh
       fi
     else

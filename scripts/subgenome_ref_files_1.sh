@@ -467,17 +467,17 @@ mainCFI () {
 }
 cd $projdir
 if [ "$walkaway" == false ]; then
-	echo -e "${magenta}- Do you want to perform read alignments and alignment post-processing (step1: Indexing)? ${white}\n"
+	echo -e "${magenta}- Do you want to perform pre-processing? ${white}\n"
 	read -p "- y(YES) or n(NO) " -t 36000 -n 1 -r
 	if [[ ! $REPLY =~ ^[Yy]$ ]]; then
 		printf '\n'
-		echo -e "${magenta}- skipping read alignments and alignment post-processing (step1: Indexing) ${white}\n"
+		echo -e "${magenta}- skipping pre-processing ${white}\n"
 	else
 		printf '\n'
 		if test -f ${projdir}/alignment_done.txt; then
-			echo -e "${magenta}- read alignments and alignment post-processing already performed (step1: Indexing) ${white}\n"
+			echo -e "${magenta}- pre-processing already performed ${white}\n"
 		else
-			echo -e "${magenta}- performing read alignments and alignment post-processing (step1: Indexing) ${white}\n"
+			echo -e "${magenta}- performing pre-processing ${white}\n"
 			time mainCFI &>> log.out
 		fi
 	fi
@@ -485,13 +485,13 @@ fi
 if [ "$walkaway" == true ]; then
 	if [ "$alignments" == 1 ]; then
 		if test -f ${projdir}/alignment_done.txt; then
-			echo -e "${magenta}- read alignments and alignment post-processing already performed (step1: Indexing) ${white}\n"
+			echo -e "${magenta}- pre-processing already performed ${white}\n"
 		else
-			echo -e "${magenta}- performing read alignments and alignment post-processing (step1: Indexing) ${white}\n"
+			echo -e "${magenta}- performing pre-processing ${white}\n"
 			time mainCFI &>> log.out
 		fi
 	else
-		echo -e "${magenta}- skipping read alignments and alignment post-processing (step1: Indexing) ${white}\n"
+		echo -e "${magenta}- skipping pre-processing ${white}\n"
 	fi
 fi
 
@@ -502,7 +502,7 @@ mainCFI_check () {
 	wait
 	touch ../report_fq_compress_index.txt
 	for i in *_uniq_R1.fasta.gz; do
-		if [[ -n "$(gunzip <$i | head -c 1 | tr '\0\n' __)" ]] || [[ -z $i ]]; then
+		if [[ "$(zcat $i | head -n1 | wc -l 2> /dev/null)" -gt 0 ]] || [[ -z $i ]]; then
 			:
 		else
 			rm $i  2> /dev/null &&
@@ -511,8 +511,8 @@ mainCFI_check () {
 	done
 	END=10
 	while [[ $END -gt 0 ]]; do
-		echo -e "${magenta}- $(wc -l ../report_fq_compress_index.txt | awk '{print $1}') fastq file not properly processed ${white}\n"
-		echo -e "${magenta}- re-submitting fastq Compression/Indexing function to process only interrupted fastq file processing ${white}\n"
+		echo -e "${magenta}- $(wc -l ../report_fq_compress_index.txt | awk '{print $1}') fastq files not properly processed ${white}\n"
+		echo -e "${magenta}- re-submitting fastq Compression/Indexing for interrupted fastq files ${white}\n"
 		for i in $( cat ${projdir}/${samples_list} ); do
 			if [[ "$lib_type" == "RRS" ]] && test ! -f ${projdir}/compress_done.txt && test ! -f ${projdir}/organize_files_done.txt && test ! -f ${projdir}/preprocess/${i%.f*}_redun.sam && test ! -f ${projdir}/preprocess/${i%.f*}_${ref1%.f*}_precall.bam.bai; then
 				if test ! -f ${i%.f*}_uniq_R1.fasta.gz; then
@@ -599,10 +599,10 @@ mainCFI_check () {
 }
 cd $projdir
 if test -f ${projdir}/alignment_done.txt; then
-	echo -e "${magenta}- read alignments and alignment post-processing (step1: Indexing) already performed ${white}\n"
+	echo -e "${magenta}- pre-processing already performed ${white}\n"
 else
 	if test ! -f ${projdir}/organize_files_done.txt; then
-		echo -e "${magenta}- performing checking read compression/indexing ${white}\n"
+		echo -e "${magenta}- checking fastq read compression/indexing ${white}\n"
 		time mainCFI_check &>> log.out
 	fi
 fi
