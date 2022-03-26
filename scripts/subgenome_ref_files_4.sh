@@ -767,20 +767,65 @@ main () {
 				awk '!h[$4] { g[$4]=$0 } { h[$4]++ } END { for(k in g) print h[k], g[k] }' | awk '{print $1"\t"$5"\t"$3}' > ${projdir}/preprocess/${i%.f*}_Index_subgenome.txt
 
         awk '{if($1==4) print $2}' ${projdir}/preprocess/${i%.f*}_Index_subgenome.txt | grep -Fw -f - <(zcat ${projdir}/preprocess/${i%.f*}_redun.sam.gz) | cat <(zcat ${projdir}/preprocess/${i%.f*}_redun.sam.gz | grep '^@') - > ${projdir}/preprocess/${i%.f*}_del_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.sam
-        awk '{if($1==3) print $0}' ${projdir}/preprocess/${i%.f*}_Index_subgenome.txt | awk -v ref1=${ref1%.f*} -v ref2=${ref2%.f*} -v ref3=${ref3%.f*} '{if($3== ref1 || $3 == ref2 || $3 == ref3) print $2}' | grep -Fw -f - <(zcat ${projdir}/preprocess/${i%.f*}_redun.sam.gz) | cat <(zcat ${projdir}/preprocess/${i%.f*}_redun.sam.gz | grep '^@') - > ${projdir}/preprocess/${i%.f*}_del_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}.sam
-        awk '{if($1==3) print $0}' ${projdir}/preprocess/${i%.f*}_Index_subgenome.txt | awk -v ref1=${ref1%.f*} -v ref2=${ref2%.f*} -v ref3=${ref4%.f*} '{if($3== ref1 || $3 == ref2 || $3 == ref4) print $2}' | grep -Fw -f - <(zcat ${projdir}/preprocess/${i%.f*}_redun.sam.gz) | cat <(zcat ${projdir}/preprocess/${i%.f*}_redun.sam.gz | grep '^@') - > ${projdir}/preprocess/${i%.f*}_del_${ref1%.f*}_${ref2%.f*}_${ref4%.f*}.sam
-        awk '{if($1==3) print $0}' ${projdir}/preprocess/${i%.f*}_Index_subgenome.txt | awk -v ref1=${ref1%.f*} -v ref2=${ref3%.f*} -v ref3=${ref4%.f*} '{if($3== ref1 || $3 == ref3 || $3 == ref4) print $2}' | grep -Fw -f - <(zcat ${projdir}/preprocess/${i%.f*}_redun.sam.gz) | cat <(zcat ${projdir}/preprocess/${i%.f*}_redun.sam.gz | grep '^@') - > ${projdir}/preprocess/${i%.f*}_del_${ref1%.f*}_${ref3%.f*}_${ref4%.f*}.sam
-        awk '{if($1==3) print $0}' ${projdir}/preprocess/${i%.f*}_Index_subgenome.txt | awk -v ref1=${ref2%.f*} -v ref2=${ref3%.f*} -v ref3=${ref4%.f*} '{if($3== ref2 || $3 == ref3 || $3 == ref4) print $2}' | grep -Fw -f - <(zcat ${projdir}/preprocess/${i%.f*}_redun.sam.gz) | cat <(zcat ${projdir}/preprocess/${i%.f*}_redun.sam.gz | grep '^@') - > ${projdir}/preprocess/${i%.f*}_del_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.sam
-        awk '{if($1==2) print $0}' ${projdir}/preprocess/${i%.f*}_Index_subgenome.txt | awk -v ref1=${ref1%.f*} -v ref2=${ref2%.f*} '{if($3== ref1 || $3 == ref2) print $2}' | grep -Fw -f - <(zcat ${projdir}/preprocess/${i%.f*}_redun.sam.gz) | cat <(zcat ${projdir}/preprocess/${i%.f*}_redun.sam.gz | grep '^@') - > ${projdir}/preprocess/${i%.f*}_del_${ref1%.f*}_${ref2%.f*}.sam
-        awk '{if($1==2) print $0}' ${projdir}/preprocess/${i%.f*}_Index_subgenome.txt | awk -v ref1=${ref1%.f*} -v ref3=${ref3%.f*} '{if($3== ref1 || $3 == ref3) print $2}' | grep -Fw -f - <(zcat ${projdir}/preprocess/${i%.f*}_redun.sam.gz) | cat <(zcat ${projdir}/preprocess/${i%.f*}_redun.sam.gz | grep '^@') - > ${projdir}/preprocess/${i%.f*}_del_${ref1%.f*}_${ref3%.f*}.sam
-        awk '{if($1==2) print $0}' ${projdir}/preprocess/${i%.f*}_Index_subgenome.txt | awk -v ref1=${ref1%.f*} -v ref4=${ref4%.f*} '{if($3== ref1 || $3 == ref4) print $2}' | grep -Fw -f - <(zcat ${projdir}/preprocess/${i%.f*}_redun.sam.gz) | cat <(zcat ${projdir}/preprocess/${i%.f*}_redun.sam.gz | grep '^@') - > ${projdir}/preprocess/${i%.f*}_del_${ref1%.f*}_${ref4%.f*}.sam
-        awk '{if($1==2) print $0}' ${projdir}/preprocess/${i%.f*}_Index_subgenome.txt | awk -v ref2=${ref2%.f*} -v ref3=${ref3%.f*} '{if($3== ref2 || $3 == ref3) print $2}' | grep -Fw -f - <(zcat ${projdir}/preprocess/${i%.f*}_redun.sam.gz) | cat <(zcat ${projdir}/preprocess/${i%.f*}_redun.sam.gz | grep '^@') - > ${projdir}/preprocess/${i%.f*}_del_${ref2%.f*}_${ref3%.f*}.sam
-        awk '{if($1==2) print $0}' ${projdir}/preprocess/${i%.f*}_Index_subgenome.txt | awk -v ref2=${ref2%.f*} -v ref4=${ref4%.f*} '{if($3== ref2 || $3 == ref4) print $2}' | grep -Fw -f - <(zcat ${projdir}/preprocess/${i%.f*}_redun.sam.gz) | cat <(zcat ${projdir}/preprocess/${i%.f*}_redun.sam.gz | grep '^@') - > ${projdir}/preprocess/${i%.f*}_del_${ref2%.f*}_${ref4%.f*}.sam
-        awk '{if($1==2) print $0}' ${projdir}/preprocess/${i%.f*}_Index_subgenome.txt | awk -v ref3=${ref3%.f*} -v ref4=${ref4%.f*} '{if($3== ref3 || $3 == ref4) print $2}' | grep -Fw -f - <(zcat ${projdir}/preprocess/${i%.f*}_redun.sam.gz) | cat <(zcat ${projdir}/preprocess/${i%.f*}_redun.sam.gz | grep '^@') - > ${projdir}/preprocess/${i%.f*}_del_${ref3%.f*}_${ref4%.f*}.sam
-        awk -v ref1=${ref1%.f*} '{if($1==1 && $3 == ref1) print $2}' ${projdir}/preprocess/${i%.f*}_Index_subgenome.txt | grep -Fw -f - <(zcat ${projdir}/preprocess/${i%.f*}_redun.sam.gz) | cat <(grep '^@' ${projdir}/preprocess/${i%.f*}_redun.sam.gz) - > ${projdir}/preprocess/${i%.f*}_del_${ref1%.f*}.sam
-        awk -v ref2=${ref2%.f*} '{if($1==1 && $3 == ref2) print $2}' ${projdir}/preprocess/${i%.f*}_Index_subgenome.txt | grep -Fw -f - <(zcat ${projdir}/preprocess/${i%.f*}_redun.sam.gz) | cat <(grep '^@' ${projdir}/preprocess/${i%.f*}_redun.sam.gz) - > ${projdir}/preprocess/${i%.f*}_del_${ref2%.f*}.sam
-        awk -v ref3=${ref3%.f*} '{if($1==1 && $3 == ref3) print $2}' ${projdir}/preprocess/${i%.f*}_Index_subgenome.txt | grep -Fw -f - <(zcat ${projdir}/preprocess/${i%.f*}_redun.sam.gz) | cat <(grep '^@' ${projdir}/preprocess/${i%.f*}_redun.sam.gz) - > ${projdir}/preprocess/${i%.f*}_del_${ref3%.f*}.sam
-        awk -v ref4=${ref4%.f*} '{if($1==1 && $3 == ref4) print $2}' ${projdir}/preprocess/${i%.f*}_Index_subgenome.txt | grep -Fw -f - <(zcat ${projdir}/preprocess/${i%.f*}_redun.sam.gz) | cat <(grep '^@' ${projdir}/preprocess/${i%.f*}_redun.sam.gz) - > ${projdir}/preprocess/${i%.f*}_del_${ref4%.f*}.sam
+
+        awk '{if($1==3) print $0}' ${projdir}/preprocess/${i%.f*}_Index_subgenome.txt | awk -v ref1=${ref1%.f*} -v ref2=${ref2%.f*} -v ref3=${ref3%.f*} '{if($3== ref1 || $3 == ref2 || $3 == ref3) print $2}' | grep -Fw -f - <(zcat ${projdir}/preprocess/${i%.f*}_redun.sam.gz) > ${projdir}/preprocess/${i%.f*}_del0_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}.sam
+				awk -v ref4=${ref4%.f*} -F'\t' '$3 ~ ref4{print $1}' ${projdir}/preprocess/${i%.f*}_del0_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}.sam | \
+				grep -vFwf - ${projdir}/preprocess/${i%.f*}_del0_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}.sam | \
+				cat <(zcat ${projdir}/preprocess/${i%.f*}_redun.sam.gz | grep '^@') - > ${projdir}/preprocess/${i%.f*}_del_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}.sam
+				rm ${projdir}/preprocess/${i%.f*}_del0_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}.sam
+        awk '{if($1==3) print $0}' ${projdir}/preprocess/${i%.f*}_Index_subgenome.txt | awk -v ref1=${ref1%.f*} -v ref2=${ref2%.f*} -v ref3=${ref4%.f*} '{if($3== ref1 || $3 == ref2 || $3 == ref4) print $2}' | grep -Fw -f - <(zcat ${projdir}/preprocess/${i%.f*}_redun.sam.gz) > ${projdir}/preprocess/${i%.f*}_del0_${ref1%.f*}_${ref2%.f*}_${ref4%.f*}.sam
+				awk -v ref3=${ref3%.f*} -F'\t' '$3 ~ ref3{print $1}' ${projdir}/preprocess/${i%.f*}_del0_${ref1%.f*}_${ref2%.f*}_${ref4%.f*}.sam | \
+				grep -vFwf - ${projdir}/preprocess/${i%.f*}_del0_${ref1%.f*}_${ref2%.f*}_${ref4%.f*}.sam | \
+				cat <(zcat ${projdir}/preprocess/${i%.f*}_redun.sam.gz | grep '^@') - > ${projdir}/preprocess/${i%.f*}_del_${ref1%.f*}_${ref2%.f*}_${ref4%.f*}.sam
+				rm ${projdir}/preprocess/${i%.f*}_del0_${ref1%.f*}_${ref2%.f*}_${ref4%.f*}.sam
+        awk '{if($1==3) print $0}' ${projdir}/preprocess/${i%.f*}_Index_subgenome.txt | awk -v ref1=${ref1%.f*} -v ref2=${ref3%.f*} -v ref3=${ref4%.f*} '{if($3== ref1 || $3 == ref3 || $3 == ref4) print $2}' | grep -Fw -f - <(zcat ${projdir}/preprocess/${i%.f*}_redun.sam.gz) > ${projdir}/preprocess/${i%.f*}_del0_${ref1%.f*}_${ref3%.f*}_${ref4%.f*}.sam
+				awk -v ref2=${ref2%.f*} -F'\t' '$3 ~ ref2{print $1}' ${projdir}/preprocess/${i%.f*}_del0_${ref1%.f*}_${ref3%.f*}_${ref4%.f*}.sam | \
+				grep -vFwf - ${projdir}/preprocess/${i%.f*}_del0_${ref1%.f*}_${ref3%.f*}_${ref4%.f*}.sam | \
+				cat <(zcat ${projdir}/preprocess/${i%.f*}_redun.sam.gz | grep '^@') - > ${projdir}/preprocess/${i%.f*}_del_${ref1%.f*}_${ref3%.f*}_${ref4%.f*}.sam
+				rm ${projdir}/preprocess/${i%.f*}_del0_${ref1%.f*}_${ref3%.f*}_${ref4%.f*}.sam
+        awk '{if($1==3) print $0}' ${projdir}/preprocess/${i%.f*}_Index_subgenome.txt | awk -v ref1=${ref2%.f*} -v ref2=${ref3%.f*} -v ref3=${ref4%.f*} '{if($3== ref2 || $3 == ref3 || $3 == ref4) print $2}' | grep -Fw -f - <(zcat ${projdir}/preprocess/${i%.f*}_redun.sam.gz) > ${projdir}/preprocess/${i%.f*}_del0_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.sam
+				awk -v ref1=${ref1%.f*} -F'\t' '$3 ~ ref1{print $1}' ${projdir}/preprocess/${i%.f*}_del0_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.sam | \
+				grep -vFwf - ${projdir}/preprocess/${i%.f*}_del0_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.sam | \
+				cat <(zcat ${projdir}/preprocess/${i%.f*}_redun.sam.gz | grep '^@') - > ${projdir}/preprocess/${i%.f*}_del_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.sam
+				rm ${projdir}/preprocess/${i%.f*}_del0_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.sam
+
+
+        awk '{if($1==2) print $0}' ${projdir}/preprocess/${i%.f*}_Index_subgenome.txt | awk -v ref1=${ref1%.f*} -v ref2=${ref2%.f*} '{if($3== ref1 || $3 == ref2) print $2}' | grep -Fw -f - <(zcat ${projdir}/preprocess/${i%.f*}_redun.sam.gz) > ${projdir}/preprocess/${i%.f*}_del0_${ref1%.f*}_${ref2%.f*}.sam
+				awk -v ref3=${ref3%.f*} ref4=${ref4%.f*} -F'\t' '$3 ~ ref3 || $3 ~ ref4{print $1}' ${projdir}/preprocess/${i%.f*}_del0_${ref1%.f*}_${ref2%.f*}.sam | \
+				grep -vFwf - ${projdir}/preprocess/${i%.f*}_del0_${ref1%.f*}_${ref2%.f*}.sam | \
+				cat <(zcat ${projdir}/preprocess/${i%.f*}_redun.sam.gz | grep '^@') - > ${projdir}/preprocess/${i%.f*}_del_${ref1%.f*}_${ref2%.f*}.sam
+				rm ${projdir}/preprocess/${i%.f*}_del0_${ref1%.f*}_${ref2%.f*}.sam
+        awk '{if($1==2) print $0}' ${projdir}/preprocess/${i%.f*}_Index_subgenome.txt | awk -v ref1=${ref1%.f*} -v ref3=${ref3%.f*} '{if($3== ref1 || $3 == ref3) print $2}' | grep -Fw -f - <(zcat ${projdir}/preprocess/${i%.f*}_redun.sam.gz) > ${projdir}/preprocess/${i%.f*}_del0_${ref1%.f*}_${ref3%.f*}.sam
+				awk -v ref2=${ref2%.f*} ref4=${ref4%.f*} -F'\t' '$3 ~ ref2 || $3 ~ ref4{print $1}' ${projdir}/preprocess/${i%.f*}_del0_${ref1%.f*}_${ref3%.f*}.sam | \
+				grep -vFwf - ${projdir}/preprocess/${i%.f*}_del0_${ref1%.f*}_${ref3%.f*}.sam | \
+				cat <(zcat ${projdir}/preprocess/${i%.f*}_redun.sam.gz | grep '^@') - > ${projdir}/preprocess/${i%.f*}_del_${ref1%.f*}_${ref3%.f*}.sam
+				rm ${projdir}/preprocess/${i%.f*}_del0_${ref1%.f*}_${ref3%.f*}.sam
+        awk '{if($1==2) print $0}' ${projdir}/preprocess/${i%.f*}_Index_subgenome.txt | awk -v ref1=${ref1%.f*} -v ref4=${ref4%.f*} '{if($3== ref1 || $3 == ref4) print $2}' | grep -Fw -f - <(zcat ${projdir}/preprocess/${i%.f*}_redun.sam.gz) > ${projdir}/preprocess/${i%.f*}_del0_${ref1%.f*}_${ref4%.f*}.sam
+				awk -v ref2=${ref2%.f*} ref3=${ref3%.f*} -F'\t' '$3 ~ ref2 || $3 ~ ref3{print $1}' ${projdir}/preprocess/${i%.f*}_del0_${ref1%.f*}_${ref4%.f*}.sam | \
+				grep -vFwf - ${projdir}/preprocess/${i%.f*}_del0_${ref1%.f*}_${ref4%.f*}.sam | \
+				cat <(zcat ${projdir}/preprocess/${i%.f*}_redun.sam.gz | grep '^@') - > ${projdir}/preprocess/${i%.f*}_del_${ref1%.f*}_${ref4%.f*}.sam
+				rm ${projdir}/preprocess/${i%.f*}_del0_${ref1%.f*}_${ref2%.f*}.sam
+        awk '{if($1==2) print $0}' ${projdir}/preprocess/${i%.f*}_Index_subgenome.txt | awk -v ref2=${ref2%.f*} -v ref3=${ref3%.f*} '{if($3== ref2 || $3 == ref3) print $2}' | grep -Fw -f - <(zcat ${projdir}/preprocess/${i%.f*}_redun.sam.gz) > ${projdir}/preprocess/${i%.f*}_del0_${ref2%.f*}_${ref3%.f*}.sam
+				awk -v ref1=${ref1%.f*} ref4=${ref4%.f*} -F'\t' '$3 ~ ref1 || $3 ~ ref4{print $1}' ${projdir}/preprocess/${i%.f*}_del0_${ref2%.f*}_${ref3%.f*}.sam | \
+				grep -vFwf - ${projdir}/preprocess/${i%.f*}_del0_${ref2%.f*}_${ref3%.f*}.sam | \
+				cat <(zcat ${projdir}/preprocess/${i%.f*}_redun.sam.gz | grep '^@') - > ${projdir}/preprocess/${i%.f*}_del_${ref2%.f*}_${ref3%.f*}.sam
+				rm ${projdir}/preprocess/${i%.f*}_del0_${ref2%.f*}_${ref3%.f*}.sam
+        awk '{if($1==2) print $0}' ${projdir}/preprocess/${i%.f*}_Index_subgenome.txt | awk -v ref2=${ref2%.f*} -v ref4=${ref4%.f*} '{if($3== ref2 || $3 == ref4) print $2}' | grep -Fw -f - <(zcat ${projdir}/preprocess/${i%.f*}_redun.sam.gz) > ${projdir}/preprocess/${i%.f*}_del0_${ref2%.f*}_${ref3%.f*}.sam
+				awk -v ref1=${ref1%.f*} ref3=${ref3%.f*} -F'\t' '$3 ~ ref1 || $3 ~ ref3{print $1}' ${projdir}/preprocess/${i%.f*}_del0_${ref2%.f*}_${ref4%.f*}.sam | \
+				grep -vFwf - ${projdir}/preprocess/${i%.f*}_del0_${ref2%.f*}_${ref4%.f*}.sam | \
+				cat <(zcat ${projdir}/preprocess/${i%.f*}_redun.sam.gz | grep '^@') - > ${projdir}/preprocess/${i%.f*}_del_${ref2%.f*}_${ref4%.f*}.sam
+				rm ${projdir}/preprocess/${i%.f*}_del0_${ref2%.f*}_${ref4%.f*}.sam
+        awk '{if($1==2) print $0}' ${projdir}/preprocess/${i%.f*}_Index_subgenome.txt | awk -v ref3=${ref3%.f*} -v ref4=${ref4%.f*} '{if($3== ref3 || $3 == ref4) print $2}' | grep -Fw -f - <(zcat ${projdir}/preprocess/${i%.f*}_redun.sam.gz) > ${projdir}/preprocess/${i%.f*}_del0_${ref3%.f*}_${ref4%.f*}.sam
+				awk -v ref3=${ref3%.f*} ref4=${ref4%.f*} -F'\t' '$3 ~ ref3 || $3 ~ ref4{print $1}' ${projdir}/preprocess/${i%.f*}_del0_${ref3%.f*}_${ref4%.f*}.sam | \
+				grep -vFwf - ${projdir}/preprocess/${i%.f*}_del0_${ref3%.f*}_${ref4%.f*}.sam | \
+				cat <(zcat ${projdir}/preprocess/${i%.f*}_redun.sam.gz | grep '^@') - > ${projdir}/preprocess/${i%.f*}_del_${ref3%.f*}_${ref4%.f*}.sam
+				rm ${projdir}/preprocess/${i%.f*}_del0_${ref3%.f*}_${ref4%.f*}.sam
+
+        awk -v ref1=${ref1%.f*} '{if($1==1 && $3 == ref1) print $2}' ${projdir}/preprocess/${i%.f*}_Index_subgenome.txt | grep -Fw -f - <(zcat ${projdir}/preprocess/${i%.f*}_redun.sam.gz)	| cat <(zcat ${projdir}/preprocess/${i%.f*}_redun.sam.gz | grep '^@') - > ${projdir}/preprocess/${i%.f*}_del_${ref1%.f*}.sam
+        awk -v ref2=${ref2%.f*} '{if($1==1 && $3 == ref2) print $2}' ${projdir}/preprocess/${i%.f*}_Index_subgenome.txt | grep -Fw -f - <(zcat ${projdir}/preprocess/${i%.f*}_redun.sam.gz) | cat <(zcat ${projdir}/preprocess/${i%.f*}_redun.sam.gz | grep '^@') - > ${projdir}/preprocess/${i%.f*}_del_${ref2%.f*}.sam
+        awk -v ref3=${ref3%.f*} '{if($1==1 && $3 == ref3) print $2}' ${projdir}/preprocess/${i%.f*}_Index_subgenome.txt | grep -Fw -f - <(zcat ${projdir}/preprocess/${i%.f*}_redun.sam.gz) | cat <(zcat ${projdir}/preprocess/${i%.f*}_redun.sam.gz | grep '^@') - > ${projdir}/preprocess/${i%.f*}_del_${ref3%.f*}.sam
+        awk -v ref4=${ref4%.f*} '{if($1==1 && $3 == ref4) print $2}' ${projdir}/preprocess/${i%.f*}_Index_subgenome.txt | grep -Fw -f - <(zcat ${projdir}/preprocess/${i%.f*}_redun.sam.gz) | cat <(zcat ${projdir}/preprocess/${i%.f*}_redun.sam.gz | grep '^@') - > ${projdir}/preprocess/${i%.f*}_del_${ref4%.f*}.sam
+
 				rm ${projdir}/preprocess/${i%.f*}_Index0_subgenome.txt ${projdir}/preprocess/${i%.f*}_Index_subgenome.txt
 
         echo "nloci~POS~mapQ~CHROM~CHROM" > ${projdir}/alignment_summaries/refgenome_paralogs_${i%.f*}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.txt
@@ -879,156 +924,208 @@ main () {
 				mv ${projdir}/alignment_summaries/temp_${i%.f*}.txt ${projdir}/alignment_summaries/refgenome_paralogs_${i%.f*}_${ref2%.f*}.txt
 				wait
 
+				{
+	        awk '/@HD/ || /@SQ/{print}' <(zcat ${projdir}/preprocess/${i%.f*}_redun.sam.gz) > ${projdir}/preprocess/${i%.f*}_heading_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.sam
+					grep -v '^@' ${projdir}/preprocess/${i%.f*}_del_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.sam | awk '($3 != "\*")' | awk '{gsub(/_se-/,"_se-\t",$1); gsub(/_pe-/,"_pe-\t",$1)}1' | \
+					awk '{print $2"\t"$0}' | awk '{$2=$3=""}1' | awk -v multilocus=$multilocus -F'\t' 'BEGIN{OFS="\t"} {if ($5==multilocus) {$5=$5+40}}1' > ${projdir}/preprocess/${i%.f*}_uniq_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.sam
+					for j in $(LC_ALL=C; sort -n -k1,1 ${projdir}/preprocess/${i%.f*}_uniq_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.sam | awk '{print $1}' | uniq); do
+					  awk -v n="^${j}" '$0~n{print $0}' ${projdir}/preprocess/${i%.f*}_uniq_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.sam | awk -v n="$j" '{for(i=0;i<n;i++) print}' >> ${projdir}/preprocess/${i%.f*}_exp_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.sam
+					done; wait
+					awk '{print "seq"NR"_"$0}' ${projdir}/preprocess/${i%.f*}_exp_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.sam | tr -s ' ' | awk '{gsub(/256/,"0",$2); gsub(/272/,"16",$2); print}' | \
+					awk '($3 != "\*")' | awk '($6 != "\*")'  | cat ${projdir}/preprocess/${i%.f*}_heading_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.sam - | tr ' ' '\t' > ${projdir}/preprocess/${i%.f*}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.sam
+					rm ${projdir}/preprocess/${i%.f*}_exp_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.sam ${projdir}/preprocess/${i%.f*}_uniq_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.sam ${projdir}/preprocess/${i%.f*}_heading_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.sam ${projdir}/preprocess/${i%.f*}_del_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.sam
+				} & PIDexp1=$!
 
-        awk '/@HD/ || /@SQ/{print}' <(zcat ${projdir}/preprocess/${i%.f*}_redun.sam.gz) > ${projdir}/preprocess/${i%.f*}_heading_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.sam
-				grep -v '^@' ${projdir}/preprocess/${i%.f*}_del_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.sam | awk '($3 != "\*")' | awk '{gsub(/_se-/,"_se-\t",$1); gsub(/_pe-/,"_pe-\t",$1)}1' | \
-				awk '{print $2"\t"$0}' | awk '{$2=$3=""}1' | awk -v multilocus=$multilocus -F'\t' 'BEGIN{OFS="\t"} {if ($5==multilocus) {$5=$5+40}}1' > ${projdir}/preprocess/${i%.f*}_uniq_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.sam
-				for j in $(LC_ALL=C; sort -n -k1,1 ${projdir}/preprocess/${i%.f*}_uniq_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.sam | awk '{print $1}' | uniq); do
-				  awk -v n="^${j}" '$0~n{print $0}' ${projdir}/preprocess/${i%.f*}_uniq_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.sam | awk -v n="$j" '{for(i=0;i<n;i++) print}' >> ${projdir}/preprocess/${i%.f*}_exp_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.sam
-				done; wait
-				awk '{print "seq"NR"_"$0}' ${projdir}/preprocess/${i%.f*}_exp_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.sam | tr -s ' ' | awk '{gsub(/256/,"0",$2); gsub(/272/,"16",$2); print}' | \
-				awk '($3 != "\*")' | awk '($6 != "\*")'  | cat ${projdir}/preprocess/${i%.f*}_heading_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.sam - | tr ' ' '\t' > ${projdir}/preprocess/${i%.f*}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.sam
-				rm ${projdir}/preprocess/${i%.f*}_exp_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.sam ${projdir}/preprocess/${i%.f*}_uniq_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.sam ${projdir}/preprocess/${i%.f*}_heading_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.sam ${projdir}/preprocess/${i%.f*}_del_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.sam
+				{
+	        awk '/@HD/ || /@SQ/{print}' <(zcat ${projdir}/preprocess/${i%.f*}_redun.sam.gz) > ${projdir}/preprocess/${i%.f*}_heading_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}.sam
+					grep -v '^@' ${projdir}/preprocess/${i%.f*}_del_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}.sam | awk '($3 != "\*")' | awk '{gsub(/_se-/,"_se-\t",$1); gsub(/_pe-/,"_pe-\t",$1)}1' | \
+					awk '{print $2"\t"$0}' | awk '{$2=$3=""}1' | awk -v multilocus=$multilocus -F'\t' 'BEGIN{OFS="\t"} {if ($5==multilocus) {$5=$5+40}}1' > ${projdir}/preprocess/${i%.f*}_uniq_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}.sam
+					for j in $(LC_ALL=C; sort -n -k1,1 ${projdir}/preprocess/${i%.f*}_uniq_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}.sam | awk '{print $1}' | uniq); do
+					  awk -v n="^${j}" '$0~n{print $0}' ${projdir}/preprocess/${i%.f*}_uniq_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}.sam | awk -v n="$j" '{for(i=0;i<n;i++) print}' >> ${projdir}/preprocess/${i%.f*}_exp_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}.sam
+					done; wait
+					awk '{print "seq"NR"_"$0}' ${projdir}/preprocess/${i%.f*}_exp_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}.sam | tr -s ' ' | awk '{gsub(/256/,"0",$2); gsub(/272/,"16",$2); print}' | \
+					awk '($3 != "\*")' | awk '($6 != "\*")'  | cat ${projdir}/preprocess/${i%.f*}_heading_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}.sam - | tr ' ' '\t' > ${projdir}/preprocess/${i%.f*}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}.sam
+					rm ${projdir}/preprocess/${i%.f*}_exp_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}.sam ${projdir}/preprocess/${i%.f*}_uniq_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}.sam ${projdir}/preprocess/${i%.f*}_heading_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}.sam ${projdir}/preprocess/${i%.f*}_del_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}.sam
+				} & PIDexp2=$!
 
-        awk '/@HD/ || /@SQ/{print}' <(zcat ${projdir}/preprocess/${i%.f*}_redun.sam.gz) > ${projdir}/preprocess/${i%.f*}_heading_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}.sam
-				grep -v '^@' ${projdir}/preprocess/${i%.f*}_del_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}.sam | awk '($3 != "\*")' | awk '{gsub(/_se-/,"_se-\t",$1); gsub(/_pe-/,"_pe-\t",$1)}1' | \
-				awk '{print $2"\t"$0}' | awk '{$2=$3=""}1' | awk -v multilocus=$multilocus -F'\t' 'BEGIN{OFS="\t"} {if ($5==multilocus) {$5=$5+40}}1' > ${projdir}/preprocess/${i%.f*}_uniq_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}.sam
-				for j in $(LC_ALL=C; sort -n -k1,1 ${projdir}/preprocess/${i%.f*}_uniq_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}.sam | awk '{print $1}' | uniq); do
-				  awk -v n="^${j}" '$0~n{print $0}' ${projdir}/preprocess/${i%.f*}_uniq_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}.sam | awk -v n="$j" '{for(i=0;i<n;i++) print}' >> ${projdir}/preprocess/${i%.f*}_exp_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}.sam
-				done; wait
-				awk '{print "seq"NR"_"$0}' ${projdir}/preprocess/${i%.f*}_exp_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}.sam | tr -s ' ' | awk '{gsub(/256/,"0",$2); gsub(/272/,"16",$2); print}' | \
-				awk '($3 != "\*")' | awk '($6 != "\*")'  | cat ${projdir}/preprocess/${i%.f*}_heading_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}.sam - | tr ' ' '\t' > ${projdir}/preprocess/${i%.f*}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}.sam
-				rm ${projdir}/preprocess/${i%.f*}_exp_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}.sam ${projdir}/preprocess/${i%.f*}_uniq_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}.sam ${projdir}/preprocess/${i%.f*}_heading_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}.sam ${projdir}/preprocess/${i%.f*}_del_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}.sam
+				{
+	        awk '/@HD/ || /@SQ/{print}' <(zcat ${projdir}/preprocess/${i%.f*}_redun.sam.gz) > ${projdir}/preprocess/${i%.f*}_heading_${ref1%.f*}_${ref2%.f*}_${ref4%.f*}.sam
+					grep -v '^@' ${projdir}/preprocess/${i%.f*}_del_${ref1%.f*}_${ref2%.f*}_${ref4%.f*}.sam | awk '($3 != "\*")' | awk '{gsub(/_se-/,"_se-\t",$1); gsub(/_pe-/,"_pe-\t",$1)}1' | \
+					awk '{print $2"\t"$0}' | awk '{$2=$3=""}1' | awk -v multilocus=$multilocus -F'\t' 'BEGIN{OFS="\t"} {if ($5==multilocus) {$5=$5+40}}1' > ${projdir}/preprocess/${i%.f*}_uniq_${ref1%.f*}_${ref2%.f*}_${ref4%.f*}.sam
+					for j in $(LC_ALL=C; sort -n -k1,1 ${projdir}/preprocess/${i%.f*}_uniq_${ref1%.f*}_${ref2%.f*}_${ref4%.f*}.sam | awk '{print $1}' | uniq); do
+					  awk -v n="^${j}" '$0~n{print $0}' ${projdir}/preprocess/${i%.f*}_uniq_${ref1%.f*}_${ref2%.f*}_${ref4%.f*}.sam | awk -v n="$j" '{for(i=0;i<n;i++) print}' >> ${projdir}/preprocess/${i%.f*}_exp_${ref1%.f*}_${ref2%.f*}_${ref4%.f*}.sam
+					done; wait
+					awk '{print "seq"NR"_"$0}' ${projdir}/preprocess/${i%.f*}_exp_${ref1%.f*}_${ref2%.f*}_${ref4%.f*}.sam | tr -s ' ' | awk '{gsub(/256/,"0",$2); gsub(/272/,"16",$2); print}' | \
+					awk '($3 != "\*")' | awk '($6 != "\*")'  | cat ${projdir}/preprocess/${i%.f*}_heading_${ref1%.f*}_${ref2%.f*}_${ref4%.f*}.sam - | tr ' ' '\t' > ${projdir}/preprocess/${i%.f*}_${ref1%.f*}_${ref2%.f*}_${ref4%.f*}.sam
+					rm ${projdir}/preprocess/${i%.f*}_exp_${ref1%.f*}_${ref2%.f*}_${ref4%.f*}.sam ${projdir}/preprocess/${i%.f*}_uniq_${ref1%.f*}_${ref2%.f*}_${ref4%.f*}.sam ${projdir}/preprocess/${i%.f*}_heading_${ref1%.f*}_${ref2%.f*}_${ref4%.f*}.sam ${projdir}/preprocess/${i%.f*}_del_${ref1%.f*}_${ref2%.f*}_${ref4%.f*}.sam
+				} & PIDexp3=$!
 
-        awk '/@HD/ || /@SQ/{print}' <(zcat ${projdir}/preprocess/${i%.f*}_redun.sam.gz) > ${projdir}/preprocess/${i%.f*}_heading_${ref1%.f*}_${ref2%.f*}_${ref4%.f*}.sam
-				grep -v '^@' ${projdir}/preprocess/${i%.f*}_del_${ref1%.f*}_${ref2%.f*}_${ref4%.f*}.sam | awk '($3 != "\*")' | awk '{gsub(/_se-/,"_se-\t",$1); gsub(/_pe-/,"_pe-\t",$1)}1' | \
-				awk '{print $2"\t"$0}' | awk '{$2=$3=""}1' | awk -v multilocus=$multilocus -F'\t' 'BEGIN{OFS="\t"} {if ($5==multilocus) {$5=$5+40}}1' > ${projdir}/preprocess/${i%.f*}_uniq_${ref1%.f*}_${ref2%.f*}_${ref4%.f*}.sam
-				for j in $(LC_ALL=C; sort -n -k1,1 ${projdir}/preprocess/${i%.f*}_uniq_${ref1%.f*}_${ref2%.f*}_${ref4%.f*}.sam | awk '{print $1}' | uniq); do
-				  awk -v n="^${j}" '$0~n{print $0}' ${projdir}/preprocess/${i%.f*}_uniq_${ref1%.f*}_${ref2%.f*}_${ref4%.f*}.sam | awk -v n="$j" '{for(i=0;i<n;i++) print}' >> ${projdir}/preprocess/${i%.f*}_exp_${ref1%.f*}_${ref2%.f*}_${ref4%.f*}.sam
-				done; wait
-				awk '{print "seq"NR"_"$0}' ${projdir}/preprocess/${i%.f*}_exp_${ref1%.f*}_${ref2%.f*}_${ref4%.f*}.sam | tr -s ' ' | awk '{gsub(/256/,"0",$2); gsub(/272/,"16",$2); print}' | \
-				awk '($3 != "\*")' | awk '($6 != "\*")'  | cat ${projdir}/preprocess/${i%.f*}_heading_${ref1%.f*}_${ref2%.f*}_${ref4%.f*}.sam - | tr ' ' '\t' > ${projdir}/preprocess/${i%.f*}_${ref1%.f*}_${ref2%.f*}_${ref4%.f*}.sam
-				rm ${projdir}/preprocess/${i%.f*}_exp_${ref1%.f*}_${ref2%.f*}_${ref4%.f*}.sam ${projdir}/preprocess/${i%.f*}_uniq_${ref1%.f*}_${ref2%.f*}_${ref4%.f*}.sam ${projdir}/preprocess/${i%.f*}_heading_${ref1%.f*}_${ref2%.f*}_${ref4%.f*}.sam ${projdir}/preprocess/${i%.f*}_del_${ref1%.f*}_${ref2%.f*}_${ref4%.f*}.sam
+				{
+	        awk '/@HD/ || /@SQ/{print}' <(zcat ${projdir}/preprocess/${i%.f*}_redun.sam.gz) > ${projdir}/preprocess/${i%.f*}_heading_${ref1%.f*}_${ref3%.f*}_${ref4%.f*}.sam
+					grep -v '^@' ${projdir}/preprocess/${i%.f*}_del_${ref1%.f*}_${ref3%.f*}_${ref4%.f*}.sam | awk '($3 != "\*")' | awk '{gsub(/_se-/,"_se-\t",$1); gsub(/_pe-/,"_pe-\t",$1)}1' | \
+					awk '{print $2"\t"$0}' | awk '{$2=$3=""}1' | awk -v multilocus=$multilocus -F'\t' 'BEGIN{OFS="\t"} {if ($5==multilocus) {$5=$5+40}}1' > ${projdir}/preprocess/${i%.f*}_uniq_${ref1%.f*}_${ref3%.f*}_${ref4%.f*}.sam
+					for j in $(LC_ALL=C; sort -n -k1,1 ${projdir}/preprocess/${i%.f*}_uniq_${ref1%.f*}_${ref3%.f*}_${ref4%.f*}.sam | awk '{print $1}' | uniq); do
+					  awk -v n="^${j}" '$0~n{print $0}' ${projdir}/preprocess/${i%.f*}_uniq_${ref1%.f*}_${ref3%.f*}_${ref4%.f*}.sam | awk -v n="$j" '{for(i=0;i<n;i++) print}' >> ${projdir}/preprocess/${i%.f*}_exp_${ref1%.f*}_${ref3%.f*}_${ref4%.f*}.sam
+					done; wait
+					awk '{print "seq"NR"_"$0}' ${projdir}/preprocess/${i%.f*}_exp_${ref1%.f*}_${ref3%.f*}_${ref4%.f*}.sam | tr -s ' ' | awk '{gsub(/256/,"0",$2); gsub(/272/,"16",$2); print}' | \
+					awk '($3 != "\*")' | awk '($6 != "\*")'  | cat ${projdir}/preprocess/${i%.f*}_heading_${ref1%.f*}_${ref3%.f*}_${ref4%.f*}.sam - | tr ' ' '\t' > ${projdir}/preprocess/${i%.f*}_${ref1%.f*}_${ref3%.f*}_${ref4%.f*}.sam
+					rm ${projdir}/preprocess/${i%.f*}_exp_${ref1%.f*}_${ref3%.f*}_${ref4%.f*}.sam ${projdir}/preprocess/${i%.f*}_uniq_${ref1%.f*}_${ref3%.f*}_${ref4%.f*}.sam ${projdir}/preprocess/${i%.f*}_heading_${ref1%.f*}_${ref3%.f*}_${ref4%.f*}.sam ${projdir}/preprocess/${i%.f*}_del_${ref1%.f*}_${ref3%.f*}_${ref4%.f*}.sam
+				} & PIDexp4=$!
 
-        awk '/@HD/ || /@SQ/{print}' <(zcat ${projdir}/preprocess/${i%.f*}_redun.sam.gz) > ${projdir}/preprocess/${i%.f*}_heading_${ref1%.f*}_${ref3%.f*}_${ref4%.f*}.sam
-				grep -v '^@' ${projdir}/preprocess/${i%.f*}_del_${ref1%.f*}_${ref3%.f*}_${ref4%.f*}.sam | awk '($3 != "\*")' | awk '{gsub(/_se-/,"_se-\t",$1); gsub(/_pe-/,"_pe-\t",$1)}1' | \
-				awk '{print $2"\t"$0}' | awk '{$2=$3=""}1' | awk -v multilocus=$multilocus -F'\t' 'BEGIN{OFS="\t"} {if ($5==multilocus) {$5=$5+40}}1' > ${projdir}/preprocess/${i%.f*}_uniq_${ref1%.f*}_${ref3%.f*}_${ref4%.f*}.sam
-				for j in $(LC_ALL=C; sort -n -k1,1 ${projdir}/preprocess/${i%.f*}_uniq_${ref1%.f*}_${ref3%.f*}_${ref4%.f*}.sam | awk '{print $1}' | uniq); do
-				  awk -v n="^${j}" '$0~n{print $0}' ${projdir}/preprocess/${i%.f*}_uniq_${ref1%.f*}_${ref3%.f*}_${ref4%.f*}.sam | awk -v n="$j" '{for(i=0;i<n;i++) print}' >> ${projdir}/preprocess/${i%.f*}_exp_${ref1%.f*}_${ref3%.f*}_${ref4%.f*}.sam
-				done; wait
-				awk '{print "seq"NR"_"$0}' ${projdir}/preprocess/${i%.f*}_exp_${ref1%.f*}_${ref3%.f*}_${ref4%.f*}.sam | tr -s ' ' | awk '{gsub(/256/,"0",$2); gsub(/272/,"16",$2); print}' | \
-				awk '($3 != "\*")' | awk '($6 != "\*")'  | cat ${projdir}/preprocess/${i%.f*}_heading_${ref1%.f*}_${ref3%.f*}_${ref4%.f*}.sam - | tr ' ' '\t' > ${projdir}/preprocess/${i%.f*}_${ref1%.f*}_${ref3%.f*}_${ref4%.f*}.sam
-				rm ${projdir}/preprocess/${i%.f*}_exp_${ref1%.f*}_${ref3%.f*}_${ref4%.f*}.sam ${projdir}/preprocess/${i%.f*}_uniq_${ref1%.f*}_${ref3%.f*}_${ref4%.f*}.sam ${projdir}/preprocess/${i%.f*}_heading_${ref1%.f*}_${ref3%.f*}_${ref4%.f*}.sam ${projdir}/preprocess/${i%.f*}_del_${ref1%.f*}_${ref3%.f*}_${ref4%.f*}.sam
+				wait $PIDexp1
+				wait $PIDexp2
+				wait $PIDexp3
+				wait $PIDexp4
+				wait
 
-        awk '/@HD/ || /@SQ/{print}' <(zcat ${projdir}/preprocess/${i%.f*}_redun.sam.gz) > ${projdir}/preprocess/${i%.f*}_heading_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.sam
-				grep -v '^@' ${projdir}/preprocess/${i%.f*}_del_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.sam | awk '($3 != "\*")' | awk '{gsub(/_se-/,"_se-\t",$1); gsub(/_pe-/,"_pe-\t",$1)}1' | \
-				awk '{print $2"\t"$0}' | awk '{$2=$3=""}1' | awk -v multilocus=$multilocus -F'\t' 'BEGIN{OFS="\t"} {if ($5==multilocus) {$5=$5+40}}1' > ${projdir}/preprocess/${i%.f*}_uniq_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.sam
-				for j in $(LC_ALL=C; sort -n -k1,1 ${projdir}/preprocess/${i%.f*}_uniq_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.sam | awk '{print $1}' | uniq); do
-				  awk -v n="^${j}" '$0~n{print $0}' ${projdir}/preprocess/${i%.f*}_uniq_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.sam | awk -v n="$j" '{for(i=0;i<n;i++) print}' >> ${projdir}/preprocess/${i%.f*}_exp_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.sam
-				done; wait
-				awk '{print "seq"NR"_"$0}' ${projdir}/preprocess/${i%.f*}_exp_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.sam | tr -s ' ' | awk '{gsub(/256/,"0",$2); gsub(/272/,"16",$2); print}' | \
-				awk '($3 != "\*")' | awk '($6 != "\*")'  | cat ${projdir}/preprocess/${i%.f*}_heading_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.sam - | tr ' ' '\t' > ${projdir}/preprocess/${i%.f*}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.sam
-				rm ${projdir}/preprocess/${i%.f*}_exp_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.sam ${projdir}/preprocess/${i%.f*}_uniq_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.sam ${projdir}/preprocess/${i%.f*}_heading_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.sam ${projdir}/preprocess/${i%.f*}_del_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.sam
+				{
+	        awk '/@HD/ || /@SQ/{print}' <(zcat ${projdir}/preprocess/${i%.f*}_redun.sam.gz) > ${projdir}/preprocess/${i%.f*}_heading_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.sam
+					grep -v '^@' ${projdir}/preprocess/${i%.f*}_del_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.sam | awk '($3 != "\*")' | awk '{gsub(/_se-/,"_se-\t",$1); gsub(/_pe-/,"_pe-\t",$1)}1' | \
+					awk '{print $2"\t"$0}' | awk '{$2=$3=""}1' | awk -v multilocus=$multilocus -F'\t' 'BEGIN{OFS="\t"} {if ($5==multilocus) {$5=$5+40}}1' > ${projdir}/preprocess/${i%.f*}_uniq_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.sam
+					for j in $(LC_ALL=C; sort -n -k1,1 ${projdir}/preprocess/${i%.f*}_uniq_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.sam | awk '{print $1}' | uniq); do
+					  awk -v n="^${j}" '$0~n{print $0}' ${projdir}/preprocess/${i%.f*}_uniq_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.sam | awk -v n="$j" '{for(i=0;i<n;i++) print}' >> ${projdir}/preprocess/${i%.f*}_exp_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.sam
+					done; wait
+					awk '{print "seq"NR"_"$0}' ${projdir}/preprocess/${i%.f*}_exp_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.sam | tr -s ' ' | awk '{gsub(/256/,"0",$2); gsub(/272/,"16",$2); print}' | \
+					awk '($3 != "\*")' | awk '($6 != "\*")'  | cat ${projdir}/preprocess/${i%.f*}_heading_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.sam - | tr ' ' '\t' > ${projdir}/preprocess/${i%.f*}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.sam
+					rm ${projdir}/preprocess/${i%.f*}_exp_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.sam ${projdir}/preprocess/${i%.f*}_uniq_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.sam ${projdir}/preprocess/${i%.f*}_heading_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.sam ${projdir}/preprocess/${i%.f*}_del_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.sam
+				} & PIDexp5=$!
 
-        awk '/@HD/ || /@SQ/{print}' <(zcat ${projdir}/preprocess/${i%.f*}_redun.sam.gz) > ${projdir}/preprocess/${i%.f*}_heading_${ref1%.f*}_${ref2%.f*}.sam
-        grep -v '^@' ${projdir}/preprocess/${i%.f*}_del_${ref1%.f*}_${ref2%.f*}.sam | awk '($3 != "\*")' | awk '{gsub(/_se-/,"_se-\t",$1); gsub(/_pe-/,"_pe-\t",$1)}1' | \
-        awk '{print $2"\t"$0}' | awk '{$2=$3=""}1' | awk -v multilocus=$multilocus -F'\t' 'BEGIN{OFS="\t"} {if ($5==multilocus) {$5=$5+40}}1' > ${projdir}/preprocess/${i%.f*}_uniq_${ref1%.f*}_${ref2%.f*}.sam
-        for j in $(LC_ALL=C; sort -n -k1,1 ${projdir}/preprocess/${i%.f*}_uniq_${ref1%.f*}_${ref2%.f*}.sam | awk '{print $1}' | uniq); do
-        	awk -v n="^${j}" '$0~n{print $0}' ${projdir}/preprocess/${i%.f*}_uniq_${ref1%.f*}_${ref2%.f*}.sam | awk -v n="$j" '{for(i=0;i<n;i++) print}' >> ${projdir}/preprocess/${i%.f*}_exp_${ref1%.f*}_${ref2%.f*}.sam
-        done; wait
-        awk '{print "seq"NR"_"$0}' ${projdir}/preprocess/${i%.f*}_exp_${ref1%.f*}_${ref2%.f*}.sam | tr -s ' ' | awk '{gsub(/256/,"0",$2); gsub(/272/,"16",$2); print}' | \
-        awk '($3 != "\*")' | awk '($6 != "\*")'  | cat ${projdir}/preprocess/${i%.f*}_heading_${ref1%.f*}_${ref2%.f*}.sam - | tr ' ' '\t' > ${projdir}/preprocess/${i%.f*}_${ref1%.f*}_${ref2%.f*}.sam
-        rm ${projdir}/preprocess/${i%.f*}_exp_${ref1%.f*}_${ref2%.f*}.sam ${projdir}/preprocess/${i%.f*}_uniq_${ref1%.f*}_${ref2%.f*}.sam ${projdir}/preprocess/${i%.f*}_heading_${ref1%.f*}_${ref2%.f*}.sam ${projdir}/preprocess/${i%.f*}_del_${ref1%.f*}_${ref2%.f*}.sam
+				{
+	        awk '/@HD/ || /@SQ/{print}' <(zcat ${projdir}/preprocess/${i%.f*}_redun.sam.gz) > ${projdir}/preprocess/${i%.f*}_heading_${ref1%.f*}_${ref2%.f*}.sam
+	        grep -v '^@' ${projdir}/preprocess/${i%.f*}_del_${ref1%.f*}_${ref2%.f*}.sam | awk '($3 != "\*")' | awk '{gsub(/_se-/,"_se-\t",$1); gsub(/_pe-/,"_pe-\t",$1)}1' | \
+	        awk '{print $2"\t"$0}' | awk '{$2=$3=""}1' | awk -v multilocus=$multilocus -F'\t' 'BEGIN{OFS="\t"} {if ($5==multilocus) {$5=$5+40}}1' > ${projdir}/preprocess/${i%.f*}_uniq_${ref1%.f*}_${ref2%.f*}.sam
+	        for j in $(LC_ALL=C; sort -n -k1,1 ${projdir}/preprocess/${i%.f*}_uniq_${ref1%.f*}_${ref2%.f*}.sam | awk '{print $1}' | uniq); do
+	        	awk -v n="^${j}" '$0~n{print $0}' ${projdir}/preprocess/${i%.f*}_uniq_${ref1%.f*}_${ref2%.f*}.sam | awk -v n="$j" '{for(i=0;i<n;i++) print}' >> ${projdir}/preprocess/${i%.f*}_exp_${ref1%.f*}_${ref2%.f*}.sam
+	        done; wait
+	        awk '{print "seq"NR"_"$0}' ${projdir}/preprocess/${i%.f*}_exp_${ref1%.f*}_${ref2%.f*}.sam | tr -s ' ' | awk '{gsub(/256/,"0",$2); gsub(/272/,"16",$2); print}' | \
+	        awk '($3 != "\*")' | awk '($6 != "\*")'  | cat ${projdir}/preprocess/${i%.f*}_heading_${ref1%.f*}_${ref2%.f*}.sam - | tr ' ' '\t' > ${projdir}/preprocess/${i%.f*}_${ref1%.f*}_${ref2%.f*}.sam
+	        rm ${projdir}/preprocess/${i%.f*}_exp_${ref1%.f*}_${ref2%.f*}.sam ${projdir}/preprocess/${i%.f*}_uniq_${ref1%.f*}_${ref2%.f*}.sam ${projdir}/preprocess/${i%.f*}_heading_${ref1%.f*}_${ref2%.f*}.sam ${projdir}/preprocess/${i%.f*}_del_${ref1%.f*}_${ref2%.f*}.sam
+				} & PIDexp6=$!
 
-        awk '/@HD/ || /@SQ/{print}' <(zcat ${projdir}/preprocess/${i%.f*}_redun.sam.gz) > ${projdir}/preprocess/${i%.f*}_heading_${ref1%.f*}_${ref3%.f*}.sam
-        grep -v '^@' ${projdir}/preprocess/${i%.f*}_del_${ref1%.f*}_${ref3%.f*}.sam | awk '($3 != "\*")' | awk '{gsub(/_se-/,"_se-\t",$1); gsub(/_pe-/,"_pe-\t",$1)}1' | \
-        awk '{print $2"\t"$0}' | awk '{$2=$3=""}1' | awk -v multilocus=$multilocus -F'\t' 'BEGIN{OFS="\t"} {if ($5==multilocus) {$5=$5+40}}1' > ${projdir}/preprocess/${i%.f*}_uniq_${ref1%.f*}_${ref3%.f*}.sam
-        for j in $(LC_ALL=C; sort -n -k1,1 ${projdir}/preprocess/${i%.f*}_uniq_${ref1%.f*}_${ref3%.f*}.sam | awk '{print $1}' | uniq); do
-        	awk -v n="^${j}" '$0~n{print $0}' ${projdir}/preprocess/${i%.f*}_uniq_${ref1%.f*}_${ref3%.f*}.sam | awk -v n="$j" '{for(i=0;i<n;i++) print}' >> ${projdir}/preprocess/${i%.f*}_exp_${ref1%.f*}_${ref3%.f*}.sam
-        done; wait
-        awk '{print "seq"NR"_"$0}' ${projdir}/preprocess/${i%.f*}_exp_${ref1%.f*}_${ref3%.f*}.sam | tr -s ' ' | awk '{gsub(/256/,"0",$2); gsub(/272/,"16",$2); print}' | \
-        awk '($3 != "\*")' | awk '($6 != "\*")'  | cat ${projdir}/preprocess/${i%.f*}_heading_${ref1%.f*}_${ref3%.f*}.sam - | tr ' ' '\t' > ${projdir}/preprocess/${i%.f*}_${ref1%.f*}_${ref3%.f*}.sam
-        rm ${projdir}/preprocess/${i%.f*}_exp_${ref1%.f*}_${ref3%.f*}.sam ${projdir}/preprocess/${i%.f*}_uniq_${ref1%.f*}_${ref3%.f*}.sam ${projdir}/preprocess/${i%.f*}_heading_${ref1%.f*}_${ref3%.f*}.sam ${projdir}/preprocess/${i%.f*}_del_${ref1%.f*}_${ref3%.f*}.sam
+				{
+	        awk '/@HD/ || /@SQ/{print}' <(zcat ${projdir}/preprocess/${i%.f*}_redun.sam.gz) > ${projdir}/preprocess/${i%.f*}_heading_${ref1%.f*}_${ref3%.f*}.sam
+	        grep -v '^@' ${projdir}/preprocess/${i%.f*}_del_${ref1%.f*}_${ref3%.f*}.sam | awk '($3 != "\*")' | awk '{gsub(/_se-/,"_se-\t",$1); gsub(/_pe-/,"_pe-\t",$1)}1' | \
+	        awk '{print $2"\t"$0}' | awk '{$2=$3=""}1' | awk -v multilocus=$multilocus -F'\t' 'BEGIN{OFS="\t"} {if ($5==multilocus) {$5=$5+40}}1' > ${projdir}/preprocess/${i%.f*}_uniq_${ref1%.f*}_${ref3%.f*}.sam
+	        for j in $(LC_ALL=C; sort -n -k1,1 ${projdir}/preprocess/${i%.f*}_uniq_${ref1%.f*}_${ref3%.f*}.sam | awk '{print $1}' | uniq); do
+	        	awk -v n="^${j}" '$0~n{print $0}' ${projdir}/preprocess/${i%.f*}_uniq_${ref1%.f*}_${ref3%.f*}.sam | awk -v n="$j" '{for(i=0;i<n;i++) print}' >> ${projdir}/preprocess/${i%.f*}_exp_${ref1%.f*}_${ref3%.f*}.sam
+	        done; wait
+	        awk '{print "seq"NR"_"$0}' ${projdir}/preprocess/${i%.f*}_exp_${ref1%.f*}_${ref3%.f*}.sam | tr -s ' ' | awk '{gsub(/256/,"0",$2); gsub(/272/,"16",$2); print}' | \
+	        awk '($3 != "\*")' | awk '($6 != "\*")'  | cat ${projdir}/preprocess/${i%.f*}_heading_${ref1%.f*}_${ref3%.f*}.sam - | tr ' ' '\t' > ${projdir}/preprocess/${i%.f*}_${ref1%.f*}_${ref3%.f*}.sam
+	        rm ${projdir}/preprocess/${i%.f*}_exp_${ref1%.f*}_${ref3%.f*}.sam ${projdir}/preprocess/${i%.f*}_uniq_${ref1%.f*}_${ref3%.f*}.sam ${projdir}/preprocess/${i%.f*}_heading_${ref1%.f*}_${ref3%.f*}.sam ${projdir}/preprocess/${i%.f*}_del_${ref1%.f*}_${ref3%.f*}.sam
+				} & PIDexp7=$!
 
-        awk '/@HD/ || /@SQ/{print}' <(zcat ${projdir}/preprocess/${i%.f*}_redun.sam.gz) > ${projdir}/preprocess/${i%.f*}_heading_${ref1%.f*}_${ref4%.f*}.sam
-        grep -v '^@' ${projdir}/preprocess/${i%.f*}_del_${ref1%.f*}_${ref4%.f*}.sam | awk '($3 != "\*")' | awk '{gsub(/_se-/,"_se-\t",$1); gsub(/_pe-/,"_pe-\t",$1)}1' | \
-        awk '{print $2"\t"$0}' | awk '{$2=$3=""}1' | awk -v multilocus=$multilocus -F'\t' 'BEGIN{OFS="\t"} {if ($5==multilocus) {$5=$5+40}}1' > ${projdir}/preprocess/${i%.f*}_uniq_${ref1%.f*}_${ref4%.f*}.sam
-        for j in $(LC_ALL=C; sort -n -k1,1 ${projdir}/preprocess/${i%.f*}_uniq_${ref1%.f*}_${ref4%.f*}.sam | awk '{print $1}' | uniq); do
-        	awk -v n="^${j}" '$0~n{print $0}' ${projdir}/preprocess/${i%.f*}_uniq_${ref1%.f*}_${ref4%.f*}.sam | awk -v n="$j" '{for(i=0;i<n;i++) print}' >> ${projdir}/preprocess/${i%.f*}_exp_${ref1%.f*}_${ref4%.f*}.sam
-        done; wait
-        awk '{print "seq"NR"_"$0}' ${projdir}/preprocess/${i%.f*}_exp_${ref1%.f*}_${ref4%.f*}.sam | tr -s ' ' | awk '{gsub(/256/,"0",$2); gsub(/272/,"16",$2); print}' | \
-        awk '($3 != "\*")' | awk '($6 != "\*")'  | cat ${projdir}/preprocess/${i%.f*}_heading_${ref1%.f*}_${ref4%.f*}.sam - | tr ' ' '\t' > ${projdir}/preprocess/${i%.f*}_${ref1%.f*}_${ref4%.f*}.sam
-        rm ${projdir}/preprocess/${i%.f*}_exp_${ref1%.f*}_${ref4%.f*}.sam ${projdir}/preprocess/${i%.f*}_uniq_${ref1%.f*}_${ref4%.f*}.sam ${projdir}/preprocess/${i%.f*}_heading_${ref1%.f*}_${ref4%.f*}.sam ${projdir}/preprocess/${i%.f*}_del_${ref1%.f*}_${ref4%.f*}.sam
+				{
+	        awk '/@HD/ || /@SQ/{print}' <(zcat ${projdir}/preprocess/${i%.f*}_redun.sam.gz) > ${projdir}/preprocess/${i%.f*}_heading_${ref1%.f*}_${ref4%.f*}.sam
+	        grep -v '^@' ${projdir}/preprocess/${i%.f*}_del_${ref1%.f*}_${ref4%.f*}.sam | awk '($3 != "\*")' | awk '{gsub(/_se-/,"_se-\t",$1); gsub(/_pe-/,"_pe-\t",$1)}1' | \
+	        awk '{print $2"\t"$0}' | awk '{$2=$3=""}1' | awk -v multilocus=$multilocus -F'\t' 'BEGIN{OFS="\t"} {if ($5==multilocus) {$5=$5+40}}1' > ${projdir}/preprocess/${i%.f*}_uniq_${ref1%.f*}_${ref4%.f*}.sam
+	        for j in $(LC_ALL=C; sort -n -k1,1 ${projdir}/preprocess/${i%.f*}_uniq_${ref1%.f*}_${ref4%.f*}.sam | awk '{print $1}' | uniq); do
+	        	awk -v n="^${j}" '$0~n{print $0}' ${projdir}/preprocess/${i%.f*}_uniq_${ref1%.f*}_${ref4%.f*}.sam | awk -v n="$j" '{for(i=0;i<n;i++) print}' >> ${projdir}/preprocess/${i%.f*}_exp_${ref1%.f*}_${ref4%.f*}.sam
+	        done; wait
+	        awk '{print "seq"NR"_"$0}' ${projdir}/preprocess/${i%.f*}_exp_${ref1%.f*}_${ref4%.f*}.sam | tr -s ' ' | awk '{gsub(/256/,"0",$2); gsub(/272/,"16",$2); print}' | \
+	        awk '($3 != "\*")' | awk '($6 != "\*")'  | cat ${projdir}/preprocess/${i%.f*}_heading_${ref1%.f*}_${ref4%.f*}.sam - | tr ' ' '\t' > ${projdir}/preprocess/${i%.f*}_${ref1%.f*}_${ref4%.f*}.sam
+	        rm ${projdir}/preprocess/${i%.f*}_exp_${ref1%.f*}_${ref4%.f*}.sam ${projdir}/preprocess/${i%.f*}_uniq_${ref1%.f*}_${ref4%.f*}.sam ${projdir}/preprocess/${i%.f*}_heading_${ref1%.f*}_${ref4%.f*}.sam ${projdir}/preprocess/${i%.f*}_del_${ref1%.f*}_${ref4%.f*}.sam
+				} & PIDexp8=$!
 
-        awk '/@HD/ || /@SQ/{print}' <(zcat ${projdir}/preprocess/${i%.f*}_redun.sam.gz) > ${projdir}/preprocess/${i%.f*}_heading_${ref2%.f*}_${ref3%.f*}.sam
-        grep -v '^@' ${projdir}/preprocess/${i%.f*}_del_${ref2%.f*}_${ref3%.f*}.sam | awk '($3 != "\*")' | awk '{gsub(/_se-/,"_se-\t",$1); gsub(/_pe-/,"_pe-\t",$1)}1' | \
-        awk '{print $2"\t"$0}' | awk '{$2=$3=""}1' | awk -v multilocus=$multilocus -F'\t' 'BEGIN{OFS="\t"} {if ($5==multilocus) {$5=$5+40}}1' > ${projdir}/preprocess/${i%.f*}_uniq_${ref2%.f*}_${ref3%.f*}.sam
-        for j in $(LC_ALL=C; sort -n -k1,1 ${projdir}/preprocess/${i%.f*}_uniq_${ref2%.f*}_${ref3%.f*}.sam | awk '{print $1}' | uniq); do
-        	awk -v n="^${j}" '$0~n{print $0}' ${projdir}/preprocess/${i%.f*}_uniq_${ref2%.f*}_${ref3%.f*}.sam | awk -v n="$j" '{for(i=0;i<n;i++) print}' >> ${projdir}/preprocess/${i%.f*}_exp_${ref2%.f*}_${ref3%.f*}.sam
-        done; wait
-        awk '{print "seq"NR"_"$0}' ${projdir}/preprocess/${i%.f*}_exp_${ref2%.f*}_${ref3%.f*}.sam | tr -s ' ' | awk '{gsub(/256/,"0",$2); gsub(/272/,"16",$2); print}' | \
-        awk '($3 != "\*")' | awk '($6 != "\*")'  | cat ${projdir}/preprocess/${i%.f*}_heading_${ref2%.f*}_${ref3%.f*}.sam - | tr ' ' '\t' > ${projdir}/preprocess/${i%.f*}_${ref2%.f*}_${ref3%.f*}.sam
-        rm ${projdir}/preprocess/${i%.f*}_exp_${ref2%.f*}_${ref3%.f*}.sam ${projdir}/preprocess/${i%.f*}_uniq_${ref2%.f*}_${ref3%.f*}.sam ${projdir}/preprocess/${i%.f*}_heading_${ref2%.f*}_${ref3%.f*}.sam ${projdir}/preprocess/${i%.f*}_del_${ref2%.f*}_${ref3%.f*}.sam
+				wait $PIDexp5
+				wait $PIDexp6
+				wait $PIDexp7
+				wait $PIDexp8
+				wait
 
-        awk '/@HD/ || /@SQ/{print}' <(zcat ${projdir}/preprocess/${i%.f*}_redun.sam.gz) > ${projdir}/preprocess/${i%.f*}_heading_${ref2%.f*}_${ref4%.f*}.sam
-        grep -v '^@' ${projdir}/preprocess/${i%.f*}_del_${ref2%.f*}_${ref4%.f*}.sam | awk '($3 != "\*")' | awk '{gsub(/_se-/,"_se-\t",$1); gsub(/_pe-/,"_pe-\t",$1)}1' | \
-        awk '{print $2"\t"$0}' | awk '{$2=$3=""}1' | awk -v multilocus=$multilocus -F'\t' 'BEGIN{OFS="\t"} {if ($5==multilocus) {$5=$5+40}}1' > ${projdir}/preprocess/${i%.f*}_uniq_${ref2%.f*}_${ref4%.f*}.sam
-        for j in $(LC_ALL=C; sort -n -k1,1 ${projdir}/preprocess/${i%.f*}_uniq_${ref2%.f*}_${ref4%.f*}.sam | awk '{print $1}' | uniq); do
-        	awk -v n="^${j}" '$0~n{print $0}' ${projdir}/preprocess/${i%.f*}_uniq_${ref2%.f*}_${ref4%.f*}.sam | awk -v n="$j" '{for(i=0;i<n;i++) print}' >> ${projdir}/preprocess/${i%.f*}_exp_${ref2%.f*}_${ref4%.f*}.sam
-        done; wait
-        awk '{print "seq"NR"_"$0}' ${projdir}/preprocess/${i%.f*}_exp_${ref2%.f*}_${ref4%.f*}.sam | tr -s ' ' | awk '{gsub(/256/,"0",$2); gsub(/272/,"16",$2); print}' | \
-        awk '($3 != "\*")' | awk '($6 != "\*")'  | cat ${projdir}/preprocess/${i%.f*}_heading_${ref2%.f*}_${ref4%.f*}.sam - | tr ' ' '\t' > ${projdir}/preprocess/${i%.f*}_${ref2%.f*}_${ref4%.f*}.sam
-        rm ${projdir}/preprocess/${i%.f*}_exp_${ref2%.f*}_${ref4%.f*}.sam ${projdir}/preprocess/${i%.f*}_uniq_${ref2%.f*}_${ref4%.f*}.sam ${projdir}/preprocess/${i%.f*}_heading_${ref2%.f*}_${ref4%.f*}.sam ${projdir}/preprocess/${i%.f*}_del_${ref2%.f*}_${ref4%.f*}.sam
+				{
+	        awk '/@HD/ || /@SQ/{print}' <(zcat ${projdir}/preprocess/${i%.f*}_redun.sam.gz) > ${projdir}/preprocess/${i%.f*}_heading_${ref2%.f*}_${ref3%.f*}.sam
+	        grep -v '^@' ${projdir}/preprocess/${i%.f*}_del_${ref2%.f*}_${ref3%.f*}.sam | awk '($3 != "\*")' | awk '{gsub(/_se-/,"_se-\t",$1); gsub(/_pe-/,"_pe-\t",$1)}1' | \
+	        awk '{print $2"\t"$0}' | awk '{$2=$3=""}1' | awk -v multilocus=$multilocus -F'\t' 'BEGIN{OFS="\t"} {if ($5==multilocus) {$5=$5+40}}1' > ${projdir}/preprocess/${i%.f*}_uniq_${ref2%.f*}_${ref3%.f*}.sam
+	        for j in $(LC_ALL=C; sort -n -k1,1 ${projdir}/preprocess/${i%.f*}_uniq_${ref2%.f*}_${ref3%.f*}.sam | awk '{print $1}' | uniq); do
+	        	awk -v n="^${j}" '$0~n{print $0}' ${projdir}/preprocess/${i%.f*}_uniq_${ref2%.f*}_${ref3%.f*}.sam | awk -v n="$j" '{for(i=0;i<n;i++) print}' >> ${projdir}/preprocess/${i%.f*}_exp_${ref2%.f*}_${ref3%.f*}.sam
+	        done; wait
+	        awk '{print "seq"NR"_"$0}' ${projdir}/preprocess/${i%.f*}_exp_${ref2%.f*}_${ref3%.f*}.sam | tr -s ' ' | awk '{gsub(/256/,"0",$2); gsub(/272/,"16",$2); print}' | \
+	        awk '($3 != "\*")' | awk '($6 != "\*")'  | cat ${projdir}/preprocess/${i%.f*}_heading_${ref2%.f*}_${ref3%.f*}.sam - | tr ' ' '\t' > ${projdir}/preprocess/${i%.f*}_${ref2%.f*}_${ref3%.f*}.sam
+	        rm ${projdir}/preprocess/${i%.f*}_exp_${ref2%.f*}_${ref3%.f*}.sam ${projdir}/preprocess/${i%.f*}_uniq_${ref2%.f*}_${ref3%.f*}.sam ${projdir}/preprocess/${i%.f*}_heading_${ref2%.f*}_${ref3%.f*}.sam ${projdir}/preprocess/${i%.f*}_del_${ref2%.f*}_${ref3%.f*}.sam
+				} & PIDexp9=$!
 
-        awk '/@HD/ || /@SQ/{print}' <(zcat ${projdir}/preprocess/${i%.f*}_redun.sam.gz) > ${projdir}/preprocess/${i%.f*}_heading_${ref3%.f*}_${ref4%.f*}.sam
-        grep -v '^@' ${projdir}/preprocess/${i%.f*}_del_${ref3%.f*}_${ref4%.f*}.sam | awk '($3 != "\*")' | awk '{gsub(/_se-/,"_se-\t",$1); gsub(/_pe-/,"_pe-\t",$1)}1' | \
-        awk '{print $2"\t"$0}' | awk '{$2=$3=""}1' | awk -v multilocus=$multilocus -F'\t' 'BEGIN{OFS="\t"} {if ($5==multilocus) {$5=$5+40}}1' > ${projdir}/preprocess/${i%.f*}_uniq_${ref3%.f*}_${ref4%.f*}.sam
-        for j in $(LC_ALL=C; sort -n -k1,1 ${projdir}/preprocess/${i%.f*}_uniq_${ref3%.f*}_${ref4%.f*}.sam | awk '{print $1}' | uniq); do
-        	awk -v n="^${j}" '$0~n{print $0}' ${projdir}/preprocess/${i%.f*}_uniq_${ref3%.f*}_${ref4%.f*}.sam | awk -v n="$j" '{for(i=0;i<n;i++) print}' >> ${projdir}/preprocess/${i%.f*}_exp_${ref3%.f*}_${ref4%.f*}.sam
-        done; wait
-        awk '{print "seq"NR"_"$0}' ${projdir}/preprocess/${i%.f*}_exp_${ref3%.f*}_${ref4%.f*}.sam | tr -s ' ' | awk '{gsub(/256/,"0",$2); gsub(/272/,"16",$2); print}' | \
-        awk '($3 != "\*")' | awk '($6 != "\*")'  | cat ${projdir}/preprocess/${i%.f*}_heading_${ref3%.f*}_${ref4%.f*}.sam - | tr ' ' '\t' > ${projdir}/preprocess/${i%.f*}_${ref3%.f*}_${ref4%.f*}.sam
-        rm ${projdir}/preprocess/${i%.f*}_exp_${ref3%.f*}_${ref4%.f*}.sam ${projdir}/preprocess/${i%.f*}_uniq_${ref3%.f*}_${ref4%.f*}.sam ${projdir}/preprocess/${i%.f*}_heading_${ref3%.f*}_${ref4%.f*}.sam ${projdir}/preprocess/${i%.f*}_del_${ref3%.f*}_${ref4%.f*}.sam
+				{
+	        awk '/@HD/ || /@SQ/{print}' <(zcat ${projdir}/preprocess/${i%.f*}_redun.sam.gz) > ${projdir}/preprocess/${i%.f*}_heading_${ref2%.f*}_${ref4%.f*}.sam
+	        grep -v '^@' ${projdir}/preprocess/${i%.f*}_del_${ref2%.f*}_${ref4%.f*}.sam | awk '($3 != "\*")' | awk '{gsub(/_se-/,"_se-\t",$1); gsub(/_pe-/,"_pe-\t",$1)}1' | \
+	        awk '{print $2"\t"$0}' | awk '{$2=$3=""}1' | awk -v multilocus=$multilocus -F'\t' 'BEGIN{OFS="\t"} {if ($5==multilocus) {$5=$5+40}}1' > ${projdir}/preprocess/${i%.f*}_uniq_${ref2%.f*}_${ref4%.f*}.sam
+	        for j in $(LC_ALL=C; sort -n -k1,1 ${projdir}/preprocess/${i%.f*}_uniq_${ref2%.f*}_${ref4%.f*}.sam | awk '{print $1}' | uniq); do
+	        	awk -v n="^${j}" '$0~n{print $0}' ${projdir}/preprocess/${i%.f*}_uniq_${ref2%.f*}_${ref4%.f*}.sam | awk -v n="$j" '{for(i=0;i<n;i++) print}' >> ${projdir}/preprocess/${i%.f*}_exp_${ref2%.f*}_${ref4%.f*}.sam
+	        done; wait
+	        awk '{print "seq"NR"_"$0}' ${projdir}/preprocess/${i%.f*}_exp_${ref2%.f*}_${ref4%.f*}.sam | tr -s ' ' | awk '{gsub(/256/,"0",$2); gsub(/272/,"16",$2); print}' | \
+	        awk '($3 != "\*")' | awk '($6 != "\*")'  | cat ${projdir}/preprocess/${i%.f*}_heading_${ref2%.f*}_${ref4%.f*}.sam - | tr ' ' '\t' > ${projdir}/preprocess/${i%.f*}_${ref2%.f*}_${ref4%.f*}.sam
+	        rm ${projdir}/preprocess/${i%.f*}_exp_${ref2%.f*}_${ref4%.f*}.sam ${projdir}/preprocess/${i%.f*}_uniq_${ref2%.f*}_${ref4%.f*}.sam ${projdir}/preprocess/${i%.f*}_heading_${ref2%.f*}_${ref4%.f*}.sam ${projdir}/preprocess/${i%.f*}_del_${ref2%.f*}_${ref4%.f*}.sam
+				} & PIDexp10=$!
 
-				awk '/@HD/ || /@SQ/{print}' <(zcat ${projdir}/preprocess/${i%.f*}_redun.sam.gz) > ${projdir}/preprocess/${i%.f*}_heading_${ref1%.f*}.sam
-				grep -v '^@' ${projdir}/preprocess/${i%.f*}_del_${ref1%.f*}.sam | awk '($3 != "\*")' | awk '{gsub(/_se-/,"_se-\t",$1); gsub(/_pe-/,"_pe-\t",$1)}1' | \
-				awk '{print $2"\t"$0}' | awk '{$2=$3=""}1' | awk -v multilocus=$multilocus -F'\t' 'BEGIN{OFS="\t"} {if ($5==multilocus) {$5=$5+40}}1' > ${projdir}/preprocess/${i%.f*}_uniq_${ref1%.f*}.sam
-				for j in $(LC_ALL=C; sort -n -k1,1 ${projdir}/preprocess/${i%.f*}_uniq_${ref1%.f*}.sam | awk '{print $1}' | uniq); do
-				  awk -v n="^${j}" '$0~n{print $0}' ${projdir}/preprocess/${i%.f*}_uniq_${ref1%.f*}.sam | awk -v n="$j" '{for(i=0;i<n;i++) print}' >> ${projdir}/preprocess/${i%.f*}_exp_${ref1%.f*}.sam
-				done; wait
-				awk '{print "seq"NR"_"$0}' ${projdir}/preprocess/${i%.f*}_exp_${ref1%.f*}.sam | tr -s ' ' | awk '{gsub(/256/,"0",$2); gsub(/272/,"16",$2); print}' | \
-				awk '($3 != "\*")' | awk '($6 != "\*")'  | cat ${projdir}/preprocess/${i%.f*}_heading_${ref1%.f*}.sam - | tr ' ' '\t' > ${projdir}/preprocess/${i%.f*}_${ref1%.f*}.sam
-				rm ${projdir}/preprocess/${i%.f*}_exp_${ref1%.f*}.sam ${projdir}/preprocess/${i%.f*}_uniq_${ref1%.f*}.sam ${projdir}/preprocess/${i%.f*}_heading_${ref1%.f*}.sam ${projdir}/preprocess/${i%.f*}_del_${ref1%.f*}.sam
+				{
+	        awk '/@HD/ || /@SQ/{print}' <(zcat ${projdir}/preprocess/${i%.f*}_redun.sam.gz) > ${projdir}/preprocess/${i%.f*}_heading_${ref3%.f*}_${ref4%.f*}.sam
+	        grep -v '^@' ${projdir}/preprocess/${i%.f*}_del_${ref3%.f*}_${ref4%.f*}.sam | awk '($3 != "\*")' | awk '{gsub(/_se-/,"_se-\t",$1); gsub(/_pe-/,"_pe-\t",$1)}1' | \
+	        awk '{print $2"\t"$0}' | awk '{$2=$3=""}1' | awk -v multilocus=$multilocus -F'\t' 'BEGIN{OFS="\t"} {if ($5==multilocus) {$5=$5+40}}1' > ${projdir}/preprocess/${i%.f*}_uniq_${ref3%.f*}_${ref4%.f*}.sam
+	        for j in $(LC_ALL=C; sort -n -k1,1 ${projdir}/preprocess/${i%.f*}_uniq_${ref3%.f*}_${ref4%.f*}.sam | awk '{print $1}' | uniq); do
+	        	awk -v n="^${j}" '$0~n{print $0}' ${projdir}/preprocess/${i%.f*}_uniq_${ref3%.f*}_${ref4%.f*}.sam | awk -v n="$j" '{for(i=0;i<n;i++) print}' >> ${projdir}/preprocess/${i%.f*}_exp_${ref3%.f*}_${ref4%.f*}.sam
+	        done; wait
+	        awk '{print "seq"NR"_"$0}' ${projdir}/preprocess/${i%.f*}_exp_${ref3%.f*}_${ref4%.f*}.sam | tr -s ' ' | awk '{gsub(/256/,"0",$2); gsub(/272/,"16",$2); print}' | \
+	        awk '($3 != "\*")' | awk '($6 != "\*")'  | cat ${projdir}/preprocess/${i%.f*}_heading_${ref3%.f*}_${ref4%.f*}.sam - | tr ' ' '\t' > ${projdir}/preprocess/${i%.f*}_${ref3%.f*}_${ref4%.f*}.sam
+	        rm ${projdir}/preprocess/${i%.f*}_exp_${ref3%.f*}_${ref4%.f*}.sam ${projdir}/preprocess/${i%.f*}_uniq_${ref3%.f*}_${ref4%.f*}.sam ${projdir}/preprocess/${i%.f*}_heading_${ref3%.f*}_${ref4%.f*}.sam ${projdir}/preprocess/${i%.f*}_del_${ref3%.f*}_${ref4%.f*}.sam
+				} & PIDexp11=$!
 
-				awk '/@HD/ || /@SQ/{print}' <(zcat ${projdir}/preprocess/${i%.f*}_redun.sam.gz) > ${projdir}/preprocess/${i%.f*}_heading_${ref2%.f*}.sam
-				grep -v '^@' ${projdir}/preprocess/${i%.f*}_del_${ref2%.f*}.sam | awk '($3 != "\*")' | awk '{gsub(/_se-/,"_se-\t",$1); gsub(/_pe-/,"_pe-\t",$1)}1' | \
-				awk '{print $2"\t"$0}' | awk '{$2=$3=""}1' | awk -v multilocus=$multilocus -F'\t' 'BEGIN{OFS="\t"} {if ($5==multilocus) {$5=$5+40}}1' > ${projdir}/preprocess/${i%.f*}_uniq_${ref2%.f*}.sam
-				for j in $(LC_ALL=C; sort -n -k1,1 ${projdir}/preprocess/${i%.f*}_uniq_${ref2%.f*}.sam | awk '{print $1}' | uniq); do
-				  awk -v n="^${j}" '$0~n{print $0}' ${projdir}/preprocess/${i%.f*}_uniq_${ref2%.f*}.sam | awk -v n="$j" '{for(i=0;i<n;i++) print}' >> ${projdir}/preprocess/${i%.f*}_exp_${ref2%.f*}.sam
-				done; wait
-				awk '{print "seq"NR"_"$0}' ${projdir}/preprocess/${i%.f*}_exp_${ref2%.f*}.sam | tr -s ' ' | awk '{gsub(/256/,"0",$2); gsub(/272/,"16",$2); print}' | \
-				awk '($3 != "\*")' | awk '($6 != "\*")'  | cat ${projdir}/preprocess/${i%.f*}_heading_${ref2%.f*}.sam - | tr ' ' '\t' > ${projdir}/preprocess/${i%.f*}_${ref2%.f*}.sam
-				rm ${projdir}/preprocess/${i%.f*}_exp_${ref2%.f*}.sam ${projdir}/preprocess/${i%.f*}_uniq_${ref2%.f*}.sam ${projdir}/preprocess/${i%.f*}_heading_${ref2%.f*}.sam ${projdir}/preprocess/${i%.f*}_del_${ref2%.f*}.sam
+				{
+					awk '/@HD/ || /@SQ/{print}' <(zcat ${projdir}/preprocess/${i%.f*}_redun.sam.gz) > ${projdir}/preprocess/${i%.f*}_heading_${ref1%.f*}.sam
+					grep -v '^@' ${projdir}/preprocess/${i%.f*}_del_${ref1%.f*}.sam | awk '($3 != "\*")' | awk '{gsub(/_se-/,"_se-\t",$1); gsub(/_pe-/,"_pe-\t",$1)}1' | \
+					awk '{print $2"\t"$0}' | awk '{$2=$3=""}1' | awk -v multilocus=$multilocus -F'\t' 'BEGIN{OFS="\t"} {if ($5==multilocus) {$5=$5+40}}1' > ${projdir}/preprocess/${i%.f*}_uniq_${ref1%.f*}.sam
+					for j in $(LC_ALL=C; sort -n -k1,1 ${projdir}/preprocess/${i%.f*}_uniq_${ref1%.f*}.sam | awk '{print $1}' | uniq); do
+					  awk -v n="^${j}" '$0~n{print $0}' ${projdir}/preprocess/${i%.f*}_uniq_${ref1%.f*}.sam | awk -v n="$j" '{for(i=0;i<n;i++) print}' >> ${projdir}/preprocess/${i%.f*}_exp_${ref1%.f*}.sam
+					done; wait
+					awk '{print "seq"NR"_"$0}' ${projdir}/preprocess/${i%.f*}_exp_${ref1%.f*}.sam | tr -s ' ' | awk '{gsub(/256/,"0",$2); gsub(/272/,"16",$2); print}' | \
+					awk '($3 != "\*")' | awk '($6 != "\*")'  | cat ${projdir}/preprocess/${i%.f*}_heading_${ref1%.f*}.sam - | tr ' ' '\t' > ${projdir}/preprocess/${i%.f*}_${ref1%.f*}.sam
+					rm ${projdir}/preprocess/${i%.f*}_exp_${ref1%.f*}.sam ${projdir}/preprocess/${i%.f*}_uniq_${ref1%.f*}.sam ${projdir}/preprocess/${i%.f*}_heading_${ref1%.f*}.sam ${projdir}/preprocess/${i%.f*}_del_${ref1%.f*}.sam
+				} & PIDexp12=$!
 
-        awk '/@HD/ || /@SQ/{print}' <(zcat ${projdir}/preprocess/${i%.f*}_redun.sam.gz) > ${projdir}/preprocess/${i%.f*}_heading_${ref3%.f*}.sam
-				grep -v '^@' ${projdir}/preprocess/${i%.f*}_del_${ref3%.f*}.sam | awk '($3 != "\*")' | awk '{gsub(/_se-/,"_se-\t",$1); gsub(/_pe-/,"_pe-\t",$1)}1' | \
-				awk '{print $2"\t"$0}' | awk '{$2=$3=""}1' | awk -v multilocus=$multilocus -F'\t' 'BEGIN{OFS="\t"} {if ($5==multilocus) {$5=$5+40}}1' > ${projdir}/preprocess/${i%.f*}_uniq_${ref3%.f*}.sam
-				for j in $(LC_ALL=C; sort -n -k1,1 ${projdir}/preprocess/${i%.f*}_uniq_${ref3%.f*}.sam | awk '{print $1}' | uniq); do
-				  awk -v n="^${j}" '$0~n{print $0}' ${projdir}/preprocess/${i%.f*}_uniq_${ref3%.f*}.sam | awk -v n="$j" '{for(i=0;i<n;i++) print}' >> ${projdir}/preprocess/${i%.f*}_exp_${ref3%.f*}.sam
-				done; wait
-				awk '{print "seq"NR"_"$0}' ${projdir}/preprocess/${i%.f*}_exp_${ref3%.f*}.sam | tr -s ' ' | awk '{gsub(/256/,"0",$2); gsub(/272/,"16",$2); print}' | \
-				awk '($3 != "\*")' | awk '($6 != "\*")'  | cat ${projdir}/preprocess/${i%.f*}_heading_${ref3%.f*}.sam - | tr ' ' '\t' > ${projdir}/preprocess/${i%.f*}_${ref3%.f*}.sam
-				rm ${projdir}/preprocess/${i%.f*}_exp_${ref3%.f*}.sam ${projdir}/preprocess/${i%.f*}_uniq_${ref3%.f*}.sam ${projdir}/preprocess/${i%.f*}_heading_${ref3%.f*}.sam ${projdir}/preprocess/${i%.f*}_del_${ref3%.f*}.sam
+				wait $PIDexp9
+				wait $PIDexp10
+				wait $PIDexp11
+				wait $PIDexp12
+				wait
 
-				awk '/@HD/ || /@SQ/{print}' <(zcat ${projdir}/preprocess/${i%.f*}_redun.sam.gz) > ${projdir}/preprocess/${i%.f*}_heading_${ref4%.f*}.sam
-				grep -v '^@' ${projdir}/preprocess/${i%.f*}_del_${ref4%.f*}.sam | awk '($3 != "\*")' | awk '{gsub(/_se-/,"_se-\t",$1); gsub(/_pe-/,"_pe-\t",$1)}1' | \
-				awk '{print $2"\t"$0}' | awk '{$2=$3=""}1' | awk -v multilocus=$multilocus -F'\t' 'BEGIN{OFS="\t"} {if ($5==multilocus) {$5=$5+40}}1' > ${projdir}/preprocess/${i%.f*}_uniq_${ref4%.f*}.sam
-				for j in $(LC_ALL=C; sort -n -k1,1 ${projdir}/preprocess/${i%.f*}_uniq_${ref4%.f*}.sam | awk '{print $1}' | uniq); do
-				  awk -v n="^${j}" '$0~n{print $0}' ${projdir}/preprocess/${i%.f*}_uniq_${ref4%.f*}.sam | awk -v n="$j" '{for(i=0;i<n;i++) print}' >> ${projdir}/preprocess/${i%.f*}_exp_${ref4%.f*}.sam
-				done; wait
-				awk '{print "seq"NR"_"$0}' ${projdir}/preprocess/${i%.f*}_exp_${ref4%.f*}.sam | tr -s ' ' | awk '{gsub(/256/,"0",$2); gsub(/272/,"16",$2); print}' | \
-				awk '($3 != "\*")' | awk '($6 != "\*")'  | cat ${projdir}/preprocess/${i%.f*}_heading_${ref4%.f*}.sam - | tr ' ' '\t' > ${projdir}/preprocess/${i%.f*}_${ref4%.f*}.sam
-				rm ${projdir}/preprocess/${i%.f*}_exp_${ref4%.f*}.sam ${projdir}/preprocess/${i%.f*}_uniq_${ref4%.f*}.sam ${projdir}/preprocess/${i%.f*}_heading_${ref4%.f*}.sam ${projdir}/preprocess/${i%.f*}_del_${ref4%.f*}.sam
+				{
+					awk '/@HD/ || /@SQ/{print}' <(zcat ${projdir}/preprocess/${i%.f*}_redun.sam.gz) > ${projdir}/preprocess/${i%.f*}_heading_${ref2%.f*}.sam
+					grep -v '^@' ${projdir}/preprocess/${i%.f*}_del_${ref2%.f*}.sam | awk '($3 != "\*")' | awk '{gsub(/_se-/,"_se-\t",$1); gsub(/_pe-/,"_pe-\t",$1)}1' | \
+					awk '{print $2"\t"$0}' | awk '{$2=$3=""}1' | awk -v multilocus=$multilocus -F'\t' 'BEGIN{OFS="\t"} {if ($5==multilocus) {$5=$5+40}}1' > ${projdir}/preprocess/${i%.f*}_uniq_${ref2%.f*}.sam
+					for j in $(LC_ALL=C; sort -n -k1,1 ${projdir}/preprocess/${i%.f*}_uniq_${ref2%.f*}.sam | awk '{print $1}' | uniq); do
+					  awk -v n="^${j}" '$0~n{print $0}' ${projdir}/preprocess/${i%.f*}_uniq_${ref2%.f*}.sam | awk -v n="$j" '{for(i=0;i<n;i++) print}' >> ${projdir}/preprocess/${i%.f*}_exp_${ref2%.f*}.sam
+					done; wait
+					awk '{print "seq"NR"_"$0}' ${projdir}/preprocess/${i%.f*}_exp_${ref2%.f*}.sam | tr -s ' ' | awk '{gsub(/256/,"0",$2); gsub(/272/,"16",$2); print}' | \
+					awk '($3 != "\*")' | awk '($6 != "\*")'  | cat ${projdir}/preprocess/${i%.f*}_heading_${ref2%.f*}.sam - | tr ' ' '\t' > ${projdir}/preprocess/${i%.f*}_${ref2%.f*}.sam
+					rm ${projdir}/preprocess/${i%.f*}_exp_${ref2%.f*}.sam ${projdir}/preprocess/${i%.f*}_uniq_${ref2%.f*}.sam ${projdir}/preprocess/${i%.f*}_heading_${ref2%.f*}.sam ${projdir}/preprocess/${i%.f*}_del_${ref2%.f*}.sam
+				} & PIDexp13=$!
+
+				{
+	        awk '/@HD/ || /@SQ/{print}' <(zcat ${projdir}/preprocess/${i%.f*}_redun.sam.gz) > ${projdir}/preprocess/${i%.f*}_heading_${ref3%.f*}.sam
+					grep -v '^@' ${projdir}/preprocess/${i%.f*}_del_${ref3%.f*}.sam | awk '($3 != "\*")' | awk '{gsub(/_se-/,"_se-\t",$1); gsub(/_pe-/,"_pe-\t",$1)}1' | \
+					awk '{print $2"\t"$0}' | awk '{$2=$3=""}1' | awk -v multilocus=$multilocus -F'\t' 'BEGIN{OFS="\t"} {if ($5==multilocus) {$5=$5+40}}1' > ${projdir}/preprocess/${i%.f*}_uniq_${ref3%.f*}.sam
+					for j in $(LC_ALL=C; sort -n -k1,1 ${projdir}/preprocess/${i%.f*}_uniq_${ref3%.f*}.sam | awk '{print $1}' | uniq); do
+					  awk -v n="^${j}" '$0~n{print $0}' ${projdir}/preprocess/${i%.f*}_uniq_${ref3%.f*}.sam | awk -v n="$j" '{for(i=0;i<n;i++) print}' >> ${projdir}/preprocess/${i%.f*}_exp_${ref3%.f*}.sam
+					done; wait
+					awk '{print "seq"NR"_"$0}' ${projdir}/preprocess/${i%.f*}_exp_${ref3%.f*}.sam | tr -s ' ' | awk '{gsub(/256/,"0",$2); gsub(/272/,"16",$2); print}' | \
+					awk '($3 != "\*")' | awk '($6 != "\*")'  | cat ${projdir}/preprocess/${i%.f*}_heading_${ref3%.f*}.sam - | tr ' ' '\t' > ${projdir}/preprocess/${i%.f*}_${ref3%.f*}.sam
+					rm ${projdir}/preprocess/${i%.f*}_exp_${ref3%.f*}.sam ${projdir}/preprocess/${i%.f*}_uniq_${ref3%.f*}.sam ${projdir}/preprocess/${i%.f*}_heading_${ref3%.f*}.sam ${projdir}/preprocess/${i%.f*}_del_${ref3%.f*}.sam
+				} & PIDexp14=$!
+
+				{
+					awk '/@HD/ || /@SQ/{print}' <(zcat ${projdir}/preprocess/${i%.f*}_redun.sam.gz) > ${projdir}/preprocess/${i%.f*}_heading_${ref4%.f*}.sam
+					grep -v '^@' ${projdir}/preprocess/${i%.f*}_del_${ref4%.f*}.sam | awk '($3 != "\*")' | awk '{gsub(/_se-/,"_se-\t",$1); gsub(/_pe-/,"_pe-\t",$1)}1' | \
+					awk '{print $2"\t"$0}' | awk '{$2=$3=""}1' | awk -v multilocus=$multilocus -F'\t' 'BEGIN{OFS="\t"} {if ($5==multilocus) {$5=$5+40}}1' > ${projdir}/preprocess/${i%.f*}_uniq_${ref4%.f*}.sam
+					for j in $(LC_ALL=C; sort -n -k1,1 ${projdir}/preprocess/${i%.f*}_uniq_${ref4%.f*}.sam | awk '{print $1}' | uniq); do
+					  awk -v n="^${j}" '$0~n{print $0}' ${projdir}/preprocess/${i%.f*}_uniq_${ref4%.f*}.sam | awk -v n="$j" '{for(i=0;i<n;i++) print}' >> ${projdir}/preprocess/${i%.f*}_exp_${ref4%.f*}.sam
+					done; wait
+					awk '{print "seq"NR"_"$0}' ${projdir}/preprocess/${i%.f*}_exp_${ref4%.f*}.sam | tr -s ' ' | awk '{gsub(/256/,"0",$2); gsub(/272/,"16",$2); print}' | \
+					awk '($3 != "\*")' | awk '($6 != "\*")'  | cat ${projdir}/preprocess/${i%.f*}_heading_${ref4%.f*}.sam - | tr ' ' '\t' > ${projdir}/preprocess/${i%.f*}_${ref4%.f*}.sam
+					rm ${projdir}/preprocess/${i%.f*}_exp_${ref4%.f*}.sam ${projdir}/preprocess/${i%.f*}_uniq_${ref4%.f*}.sam ${projdir}/preprocess/${i%.f*}_heading_${ref4%.f*}.sam ${projdir}/preprocess/${i%.f*}_del_${ref4%.f*}.sam
+				} & PIDexp15=$!
+
+				wait $PIDexp13
+				wait $PIDexp14
+				wait $PIDexp15
+				wait
 				rm ${projdir}/preprocess/${i%.f*}_redun.sam.gz
 
         declare -a arr=("${i%.f*}_${ref1%.f*}.sam" "${i%.f*}_${ref2%.f*}.sam" "${i%.f*}_${ref3%.f*}.sam" "${i%.f*}_${ref4%.f*}.sam" \
