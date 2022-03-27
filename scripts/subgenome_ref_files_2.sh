@@ -659,6 +659,7 @@ main () {
 					grep -v '^@' ${projdir}/preprocess/${i%.f*}_redun_R2.sam >> ${projdir}/preprocess/${i%.f*}_redun.hold.sam &&
 					if [[ -s ${projdir}/preprocess/${i%.f*}_redun_singleton.sam ]]; then grep -v '^@' ${projdir}/preprocess/${i%.f*}_redun_singleton.sam >> ${projdir}/preprocess/${i%.f*}_redun.hold.sam; fi &&
 					$gzip ${projdir}/preprocess/${i%.f*}_redun.hold.sam &&
+					mv ${projdir}/preprocess/${i%.f*}_redun.hold.sam.gz ${projdir}/preprocess/${i%.f*}_redun.sam.gz 2> /dev/null &&
 					rm ${projdir}/preprocess/${i%.f*}_redun_singleton.sam ${projdir}/preprocess/${i%.f*}_redun_R*.sam &&
 					wait
 				else
