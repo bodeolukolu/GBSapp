@@ -470,11 +470,11 @@ main () {
 	find . -size 0 -delete  2> /dev/null &&
 	touch ../report_fq_compress_index.txt
 	for i in $( cat ${projdir}/${samples_list} ); do
-		if [[ "$(zcat ${i%.f*}_uniq_R1.fasta.gz 2> /dev/null | head -n1 | wc -l)" -eq 0 ]] || [[ -z "${i%.f*}_uniq_R1.fasta.gz" ]]; then
+		if [[ "$(zcat ${i%.f*}_uniq_R1.fasta.gz 2> /dev/null | head | wc -l)" -eq 0 ]] || [[ -z "${i%.f*}_uniq_R1.fasta.gz" ]]; then
 			echo ${i%.f*}_uniq_R1.fasta.gz >> ../report_fq_compress_index.txt
 		fi
 	done
-	if [[ $(wc -l ../report_fq_compress_index.txt | awk '{print $1}' 2> /dev/null) -gt 0 ]]; then
+	if [[ -s ../report_fq_compress_index.txt ]]; then
 		echo -e "${magenta}- $(wc -l ../report_fq_compress_index.txt | awk '{print $1}') fastq files not properly processed ${white}\n"
 		END=10
 		while [[ $END -gt 0 ]]; do
@@ -1521,10 +1521,10 @@ echo -e "gmiss_smiss_thresholds\t#_of_SNPs\t#_of_eliminated_samples\n-----------
 awk 'FNR==NR{a[$1]=$2;next} ($1 in a) {print $1,"\t",a[$1],"\t",$2}' gmiss_smiss_titration.txt eliminated_samples.txt | cat summary_precall.txt - > gmiss_smiss_unique_mapped.txt
 rm gmiss_smiss_titration.txt eliminated_samples.txt summary_precall.txt
 
-ls ./*/*maf*.txt | grep -v 'maf0.txt' | grep -v 'dose' | xargs rm
-ls ./*/*_plusSD.txt | xargs rm 2> /dev/null
-ls ./*/*SD_1_G*G*.txt | xargs rm 2> /dev/null
-ls ./*/*binary*.txt | xargs rm 2> /dev/null
+ls ./*/*maf*.txt 2> /dev/null | grep -v 'maf0.txt' | grep -v 'dose' | xargs rm
+ls ./*/*_plusSD.txt 2> /dev/null | xargs rm
+ls ./*/*SD_1_G*G*.txt 2> /dev/null | xargs rm
+ls ./*/*binary*.txt 2> /dev/null | xargs rm
 
 
 cd "$projdir"/snpfilter
