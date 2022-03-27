@@ -661,7 +661,7 @@ main () {
 					$ngm -r $ref1 --qry ${projdir}/samples/${i%.f*}_uniq_singleton.fq.gz -o ${projdir}/preprocess/${i%.f*}_redun_singleton.sam -t $threads --min-identity 0 --topn 12 --strata 12 &&
 					mv ${projdir}/preprocess/${i%.f*}_redun_R1.sam ${projdir}/preprocess/${i%.f*}_redun.hold.sam &&
 					grep -v '^@' ${projdir}/preprocess/${i%.f*}_redun_R2.sam >> ${projdir}/preprocess/${i%.f*}_redun.hold.sam &&
-					grep -v '^@' ${projdir}/preprocess/${i%.f*}_redun_singleton.sam >> ${projdir}/preprocess/${i%.f*}_redun.hold.sam 2> /dev/null &&
+					if [[ ! -s ${projdir}/preprocess/${i%.f*}_redun_singleton.sam ]]; then grep -v '^@' ${projdir}/preprocess/${i%.f*}_redun_singleton.sam >> ${projdir}/preprocess/${i%.f*}_redun.hold.sam; fi &&
 					$gzip ${projdir}/preprocess/${i%.f*}_redun.hold.sam &&
 					rm ${projdir}/preprocess/${i%.f*}_redun_singleton.sam ${projdir}/preprocess/${i%.f*}_redun_R*.sam &&
 					wait
