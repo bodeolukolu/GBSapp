@@ -661,6 +661,7 @@ main () {
 					if [[ -s ${projdir}/preprocess/${i%.f*}_redun_singleton.sam ]]; then grep -v '^@' ${projdir}/preprocess/${i%.f*}_redun_singleton.sam >> ${projdir}/preprocess/${i%.f*}_redun.hold.sam; fi &&
 					$gzip ${projdir}/preprocess/${i%.f*}_redun.hold.sam &&
 					mv ${projdir}/preprocess/${i%.f*}_redun.hold.sam.gz ${projdir}/preprocess/${i%.f*}_redun.sam.gz 2> /dev/null &&
+					rm ${projdir}/samples/${i%.f*}_uniq_*.fq.gz 2> /dev/null &&
 					wait
 				else
 					$ngm -r panref.fasta -q ${projdir}/samples/${i%.f*}_uniq_R1.fq.gz -o ${projdir}/preprocess/${i%.f*}_redun.hold.sam -t $threads --min-identity 0 --topn 12 --strata 12 &&
@@ -696,6 +697,7 @@ main () {
 					wait
 				fi
 				mv ${projdir}/preprocess/${i%.f*}_redun.hold.sam.gz ${projdir}/preprocess/${i%.f*}_redun.sam.gz 2> /dev/null &&
+				rm ${projdir}/samples/${i%.f*}_uniq_*.fq.gz 2> /dev/null &&
 				wait
 			fi
 			wait
