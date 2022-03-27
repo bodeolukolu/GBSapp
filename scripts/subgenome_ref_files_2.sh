@@ -606,30 +606,30 @@ main () {
 	for i in $(cat ${projdir}/${samples_list} ); do
 		if [[ "$lib_type" == "RRS" ]] && test ! -f ${projdir}/hapfilter_done.txt && test ! -f ${projdir}/compress_done.txt && test ! -f "${projdir}/preprocess/${i%.f*}_redun.sam.gz" && test ! -f "${projdir}/preprocess/${i%.f*}_${ref1%.f*}_precall.bam.bai"; then
 				sleep $[ ( $RANDOM % 30 )  + 10 ]s
-				export nempty=$( ls ${projdir}/samples/${i%.f*}_uniq_R2.fasta.gz2> /dev/null | wc -l | awk '{print $1}' )
+				export nempty=$( ls ${projdir}/samples/${i%.f*}_uniq_R2.fasta.gz> /dev/null | wc -l | awk '{print $1}' )
 				 if [[ "$mhap_freq" -gt 0 ]]; then
 					 if [[ "$nempty" -gt 0 ]]; then
 					  awk '{print $2}' ${projdir}/alignment_summaries/background_mutation_test/pop_haps_freqFail.txt | \
-					  zcat ${projdir}/samples/${i%.f*}_uniq_R1.fasta.gz | grep -v -x -f - | $gzip > ${projdir}/samples/${i%.f*}_uniq_R1_singleton.txt.gz &&
-						zcat ${projdir}/samples/${i%.f*}_uniq_R1_singleton.txt.gz | grep '_se-' | awk '{gsub(/>/,"@"); print}' | awk '{print $1"\t"$2"\t"$2}' | awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$3); print}' | awk '{print $1"\n"$2"\n+\n"$3}' | $gzip > ${projdir}/samples/${i%.f*}_uniq_singleton.fq.gz &&
-						zcat ${projdir}/samples/${i%.f*}_uniq_R1_singleton.txt.gz | grep '_pe-' | awk '{gsub(/>/,"@"); print}' | awk '{print $1"\t"$2"\t"$2}' | awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$3); print}' | awk '{print $1"/1\n"$2"\n+\n"$3}' | $gzip > ${projdir}/samples/${i%.f*}_uniq_R1.fq.gz &&
+					  grep -v -x -f - <(zcat ${projdir}/samples/${i%.f*}_uniq_R1.fasta.gz) | $gzip > ${projdir}/samples/${i%.f*}_uniq_R1_singleton.txt.gz &&
+						zcat ${projdir}/samples/${i%.f*}_uniq_R1_singleton.txt.gz | awk -F '\t' '$1~/_se-/{print}' | awk '{gsub(/>/,"@"); print}' | awk '{print $1"\t"$2"\t"$2}' | awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$3); print}' | awk '{print $1"\n"$2"\n+\n"$3}' | $gzip > ${projdir}/samples/${i%.f*}_uniq_singleton.fq.gz &&
+						zcat ${projdir}/samples/${i%.f*}_uniq_R1_singleton.txt.gz | awk -F '\t' '$1~/_pe-/{print}' | awk '{gsub(/>/,"@"); print}' | awk '{print $1"\t"$2"\t"$2}' | awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$3); print}' | awk '{print $1"/1\n"$2"\n+\n"$3}' | $gzip > ${projdir}/samples/${i%.f*}_uniq_R1.fq.gz &&
 						rm ${projdir}/samples/${i%.f*}_uniq_R1_singleton.txt.gz &&
 						awk '{print $2}' ${projdir}/alignment_summaries/background_mutation_test/pop_haps_freqFail.txt | \
-						zcat ${projdir}/samples/${i%.f*}_uniq_R2.fasta.gz | grep -v -x -f - | awk '{gsub(/>/,"@"); print}' | \
+						grep -v -x -f - <(zcat ${projdir}/samples/${i%.f*}_uniq_R2.fasta.gz) | awk '{gsub(/>/,"@"); print}' | \
 						awk '{print $1"\t"$2"\t"$2}' | awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$3); print}' | awk '{print $1"/2\n"$2"\n+\n"$3}' | $gzip  > ${projdir}/samples/${i%.f*}_uniq_R2.fq.gz &&
 						rm ${projdir}/samples/${i%.f*}_uniq_R1.fasta.gz ${projdir}/samples/${i%.f*}_uniq_R2.fasta.gz
 						wait
 					else
 						awk '{print $2}' ${projdir}/alignment_summaries/background_mutation_test/pop_haps_freqFail.txt | \
-						zcat ${projdir}/samples/${i%.f*}_uniq_R1.fasta.gz | grep -v -x -f - | awk '{gsub(/>/,"@"); print}' | \
+						grep -v -x -f - <(zcat ${projdir}/samples/${i%.f*}_uniq_R1.fasta.gz) | awk '{gsub(/>/,"@"); print}' | \
 						awk '{print $1"\t"$2"\t"$2}' | awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$3); print}' | awk '{print $1"\n"$2"\n+\n"$3}' | $gzip  > ${projdir}/samples/${i%.f*}_uniq_R1.fq.gz &&
 						rm ${projdir}/samples/${i%.f*}_uniq_R1.fasta.gz
 						wait
 					fi
 				 else
 					 if [[ "$nempty" -gt 0 ]]; then
-						zcat ${projdir}/samples/${i%.f*}_uniq_R1.fasta.gz | grep '_se-' | awk '{gsub(/>/,"@"); print}' | awk '{print $1"\t"$2"\t"$2}' | awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$3); print}' | awk '{print $1"\n"$2"\n+\n"$3}' | $gzip > ${projdir}/samples/${i%.f*}_uniq_singleton.fq.gz &&
-						zcat ${projdir}/samples/${i%.f*}_uniq_R1.fasta.gz | grep '_pe-' | awk '{gsub(/>/,"@"); print}' | awk '{print $1"\t"$2"\t"$2}' | awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$3); print}' | awk '{print $1"/1\n"$2"\n+\n"$3}' | $gzip > ${projdir}/samples/${i%.f*}_uniq_R1.fq.gz &&
+						zcat ${projdir}/samples/${i%.f*}_uniq_R1.fasta.gz | awk -F '\t' '$1~/_se-/{print}' | awk '{gsub(/>/,"@"); print}' | awk '{print $1"\t"$2"\t"$2}' | awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$3); print}' | awk '{print $1"\n"$2"\n+\n"$3}' | $gzip > ${projdir}/samples/${i%.f*}_uniq_singleton.fq.gz &&
+						zcat ${projdir}/samples/${i%.f*}_uniq_R1.fasta.gz | awk -F '\t' '$1~/_pe-/{print}' | awk '{gsub(/>/,"@"); print}' | awk '{print $1"\t"$2"\t"$2}' | awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$3); print}' | awk '{print $1"/1\n"$2"\n+\n"$3}' | $gzip > ${projdir}/samples/${i%.f*}_uniq_R1.fq.gz &&
 						zcat ${projdir}/samples/${i%.f*}_uniq_R2.fasta.gz | awk '{gsub(/>/,"@"); print}' | awk '{print $1"\t"$2"\t"$2}' | \
 						awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$3); print}' | awk '{print $1"/2\n"$2"\n+\n"$3}' | $gzip > ${projdir}/samples/${i%.f*}_uniq_R2.fq.gz &&
 						rm ${projdir}/samples/${i%.f*}_uniq_R1.fasta.gz ${projdir}/samples/${i%.f*}_uniq_R2.fasta.gz
