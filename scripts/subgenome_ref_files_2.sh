@@ -611,7 +611,7 @@ main () {
 	for i in $(cat ${projdir}/${samples_list} ); do
 		if [[ "$lib_type" == "RRS" ]] && test ! -f ${projdir}/hapfilter_done.txt && test ! -f ${projdir}/compress_done.txt && test ! -f "${projdir}/preprocess/${i%.f*}_redun.sam" && test ! -f "${projdir}/preprocess/${i%.f*}_${ref1%.f*}_precall.bam.bai"; then
 				sleep $[ ( $RANDOM % 30 )  + 10 ]s
-				export nempty=$( ls ${projdir}/samples/${i%.f*}_uniq_R2.fasta 2> /dev/null | wc -l | awk '{print $1}' )
+				export nempty=$( ls ${projdir}/samples/${i%.f*}_uniq_R2.fasta.gz 2> /dev/null | wc -l | awk '{print $1}' )
 				 if [[ "$mhap_freq" -gt 0 ]]; then
 					 if [[ "$nempty" -gt 0 ]]; then
 					  awk '{print $2}' ${projdir}/alignment_summaries/background_mutation_test/pop_haps_freqFail.txt | \
