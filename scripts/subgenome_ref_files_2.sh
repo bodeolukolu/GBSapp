@@ -476,7 +476,7 @@ main () {
 			echo ${i%.f*}_uniq_R1.fasta.gz >> ../report_fq_compress_index.txt
 		fi
 	done
-	if [[ $(wc -l ../report_fq_compress_index.txt | awk '{print $1}' 2> /dev/null) -eq 0 ]]; then
+	if [[ $(wc -l ../report_fq_compress_index.txt | awk '{print $1}' 2> /dev/null) -gt 0 ]]; then
 		echo -e "${magenta}- $(wc -l ../report_fq_compress_index.txt | awk '{print $1}') fastq files not properly processed ${white}\n"
 		END=10
 		while [[ $END -gt 0 ]]; do
@@ -660,13 +660,13 @@ main () {
 					if [[ -s ${projdir}/preprocess/${i%.f*}_redun_singleton.sam ]]; then grep -v '^@' ${projdir}/preprocess/${i%.f*}_redun_singleton.sam >> ${projdir}/preprocess/${i%.f*}_redun.hold.sam; fi &&
 					$gzip ${projdir}/preprocess/${i%.f*}_redun.hold.sam &&
 					mv ${projdir}/preprocess/${i%.f*}_redun.hold.sam.gz ${projdir}/preprocess/${i%.f*}_redun.sam.gz 2> /dev/null &&
-					rm ${projdir}/samples/${i%.f*}_uniq_*.fq.gz 2> /dev/null &&
+					rm ${projdir}/samples/${i%.f*}_uniq*.fq.gz 2> /dev/null &&
 					wait
 				else
 					$ngm -r panref.fasta -q ${projdir}/samples/${i%.f*}_uniq_R1.fq.gz -o ${projdir}/preprocess/${i%.f*}_redun.hold.sam -t $threads --min-identity 0 --topn 12 --strata 12 &&
 					$gzip ${projdir}/preprocess/${i%.f*}_redun.hold.sam &&
 					mv ${projdir}/preprocess/${i%.f*}_redun.hold.sam.gz ${projdir}/preprocess/${i%.f*}_redun.sam.gz 2> /dev/null &&
-					rm ${projdir}/samples/${i%.f*}_uniq_*.fq.gz &&
+					rm ${projdir}/samples/${i%.f*}_uniq*.fq.gz &&
 					wait
 				fi
 				rm ${projdir}/preprocess/${i%.f*}_redun_singleton.sam ${projdir}/preprocess/${i%.f*}_redun_R*.sam 2> /dev/null &&
@@ -696,7 +696,7 @@ main () {
 					wait
 				fi
 				mv ${projdir}/preprocess/${i%.f*}_redun.hold.sam.gz ${projdir}/preprocess/${i%.f*}_redun.sam.gz 2> /dev/null &&
-				rm ${projdir}/samples/${i%.f*}_uniq_*.fq.gz 2> /dev/null &&
+				rm ${projdir}/samples/${i%.f*}_uniq*.fq.gz 2> /dev/null &&
 				wait
 			fi
 			wait
