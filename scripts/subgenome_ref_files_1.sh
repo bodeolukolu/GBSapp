@@ -473,8 +473,8 @@ main () {
 		if [[ "$(zcat ${i%.f*}_uniq_R1.fasta.gz 2> /dev/null | head -n1 | wc -l)" -eq 0 ]] || [[ -z "${i%.f*}_uniq_R1.fasta.gz" ]]; then
 			:
 		else
-			rm $i  2> /dev/null &&
-			echo $i >> ../report_fq_compress_index.txt
+			rm ${i%.f*}_uniq_R1.fasta.gz  2> /dev/null &&
+			echo ${i%.f*}_uniq_R1.fasta.gz >> ../report_fq_compress_index.txt
 		fi
 	done
 	if [[ $(wc -l ../report_fq_compress_index.txt | awk '{print $1}' 2> /dev/null) -eq 0 ]]; then
@@ -557,8 +557,8 @@ main () {
 				if [[ "$(zcat ${j%.f*}_uniq_R1.fasta.gz 2> /dev/null | head -n1 | wc -l)" -eq 0 ]] || [[ -z "${j%.f*}_uniq_R1.fasta.gz" ]]; then
 					:
 				else
-					rm $j  2> /dev/null &&
-					echo $j >> ../report_fq_compress_index.txt
+					rm ${j%.f*}_uniq_R1.fasta.gz  2> /dev/null &&
+					echo ${j%.f*}_uniq_R1.fasta.gz >> ../report_fq_compress_index.txt
 				fi
 			done
 		done
