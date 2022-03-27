@@ -470,7 +470,7 @@ main () {
 	find . -size 0 -delete  2> /dev/null &&
 	touch ../report_fq_compress_index.txt
 	for i in $( cat ${projdir}/${samples_list} ); do
-		if [[ "$(zcat ${i%.f*}_uniq_R1.fasta.gz | head -n1 | wc -l 2> /dev/null)" -gt 0 ]] || [[ -z $i ]]; then
+		if [[ "$(zcat ${i%.f*}_uniq_R1.fasta.gz | head -n1 | wc -l)" -gt 0 ]] || [[ -z $i ]]; then
 			:
 		else
 			rm $i  2> /dev/null &&
@@ -554,7 +554,7 @@ main () {
 			END=$(($END-1))
 			: > ../report_fq_compress_index.txt
 			for i in *_uniq_R1.fasta.gz; do
-				if [[ "$(zcat ${i%.f*}_uniq_R1.fasta.gz | head -n1 | wc -l 2> /dev/null)" -gt 0 ]] || [[ -z $i ]]; then
+				if [[ "$(zcat ${i%.f*}_uniq_R1.fasta.gz | head -n1 | wc -l)" -gt 0 ]] || [[ -z $i ]]; then
 					:
 				else
 					echo $i >> ../report_fq_compress_index.txt
