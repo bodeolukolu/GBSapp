@@ -20,6 +20,21 @@ cluster=${cluster//*=}
 ######################################################################################################################################################
 # Software defined parameters
 
+
+if [ "$cluster" == true ];then
+	pythonversion=$((python --version) 2>&1)
+	if [[ "$pythonversion" =~ "Python 2" ]]; then
+		echo -e "${white}\n- Using $pythonversion\n ${white}"
+	else
+		mkdir -p ~/bin
+		PATH=~/bin:$PATH
+		rm ~/bin/python
+		ln -s /usr/bin/python3 ~/bin/python
+	fi
+
+fi
+
+
 if [ "$cluster" == true ];then
 	module unload R
   module add R
