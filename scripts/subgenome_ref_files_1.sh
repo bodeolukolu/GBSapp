@@ -553,12 +553,12 @@ main () {
 			done
 			END=$(($END-1))
 			: > ../report_fq_compress_index.txt
-			for i in $( cat ${projdir}/${samples_list} ); do
-				if [[ "$(zcat ${i%.f*}_uniq_R1.fasta.gz 2> /dev/null | head -n1 | wc -l)" -gt 0 ]] || [[ -z $i ]]; then
+			for j in $( cat ${projdir}/${samples_list} ); do
+				if [[ "$(zcat ${j%.f*}_uniq_R1.fasta.gz 2> /dev/null | head -n1 | wc -l)" -gt 0 ]] || [[ -z $i ]]; then
 					:
 				else
-					rm $i  2> /dev/null &&
-					echo $i >> ../report_fq_compress_index.txt
+					rm $j  2> /dev/null &&
+					echo $j >> ../report_fq_compress_index.txt
 				fi
 			done
 		done
@@ -608,7 +608,7 @@ main () {
 	cd ${projdir}/samples
 
 	for i in $(cat ${projdir}/${samples_list} ); do
-		if [[ "$lib_type" == "RRS" ]] && test ! -f ${projdir}/hapfilter_done.txt && test ! -f ${projdir}/compress_done.txt && test ! -f "${projdir}/preprocess/${i%.f*}_redun.sam" && test ! -f "${projdir}/preprocess/${i%.f*}_${ref1%.f*}_precall.bam.bai"; then
+		if [[ "$lib_type" == "RRS" ]] && test ! -f ${projdir}/hapfilter_done.txt && test ! -f ${projdir}/compress_done.txt && test ! -f "${projdir}/preprocess/${i%.f*}_redun.sam.gz" && test ! -f "${projdir}/preprocess/${i%.f*}_${ref1%.f*}_precall.bam.bai"; then
 				sleep $[ ( $RANDOM % 30 )  + 10 ]s
 				export nempty=$( ls ${projdir}/samples/${i%.f*}_uniq_R2.fasta.gz2> /dev/null | wc -l | awk '{print $1}' )
 				 if [[ "$mhap_freq" -gt 0 ]]; then
@@ -654,21 +654,24 @@ main () {
 		cd ${projdir}/refgenomes
 		if [[ "$lib_type" == "RRS" ]] && test ! -f ${projdir}/precall_done.txt && test ! -f ${projdir}/preprocess/${i%.f*}_${ref1%.f*}_precall.bam.bai; then
 			export nempty=$( ls ${projdir}/samples/${i%.f*}_uniq_R2.fq.gz 2> /dev/null | wc -l | awk '{print $1}' )
-			if test ! -f ${projdir}/preprocess/${i%.f*}_redun.sam; then
+			if test ! -f ${projdir}/preprocess/${i%.f*}_redun.sam.gz; then
 				if [[ "$nempty" -gt 0 ]]; then
 					$ngm -r $ref1 --qry ${projdir}/samples/${i%.f*}_uniq_R1.fq.gz -o ${projdir}/preprocess/${i%.f*}_redun_R1.sam -t $threads --min-identity 0 --topn 12 -strata 12 &&
 					$ngm -r $ref1 --qry ${projdir}/samples/${i%.f*}_uniq_R2.fq.gz -o ${projdir}/preprocess/${i%.f*}_redun_R2.sam -t $threads --min-identity 0 --topn 12 --strata 12 &&
 					$ngm -r $ref1 --qry ${projdir}/samples/${i%.f*}_uniq_singleton.fq.gz -o ${projdir}/preprocess/${i%.f*}_redun_singleton.sam -t $threads --min-identity 0 --topn 12 --strata 12 &&
-					grep -v '^@' ${projdir}/preprocess/${i%.f*}_redun_R2.sam | cat ${projdir}/preprocess/${i%.f*}_redun_R1.sam -  | cat - <(grep -v '^@' ${projdir}/preprocess/${i%.f*}_redun_singleton.sam) | $gzip > ${projdir}/preprocess/${i%.f*}_redun.hold.sam.gz &&
+					mv ${projdir}/preprocess/${i%.f*}_redun_R1.sam ${projdir}/preprocess/${i%.f*}_redun.hold.sam &&
+					grep -v '^@' ${projdir}/preprocess/${i%.f*}_redun_R2.sam >> ${projdir}/preprocess/${i%.f*}_redun.hold.sam &&
+					grep -v '^@' ${projdir}/preprocess/${i%.f*}_redun_singleton.sam >> ${projdir}/preprocess/${i%.f*}_redun.hold.sam 2> /dev/null &&
+					$gzip ${projdir}/preprocess/${i%.f*}_redun.hold.sam &&
 					rm ${projdir}/preprocess/${i%.f*}_redun_singleton.sam ${projdir}/preprocess/${i%.f*}_redun_R*.sam &&
 					wait
 				else
 					$ngm -r $ref1 -q ${projdir}/samples/${i%.f*}_uniq_R1.fq.gz -o ${projdir}/preprocess/${i%.f*}_redun.hold.sam -t $threads --min-identity 0 --topn 12 --strata 12 &&
-					gzip ${projdir}/preprocess/${i%.f*}_redun.hold.sam &&
+					$gzip ${projdir}/preprocess/${i%.f*}_redun.hold.sam &&
+					mv ${projdir}/preprocess/${i%.f*}_redun.hold.sam.gz ${projdir}/preprocess/${i%.f*}_redun.sam.gz 2> /dev/null &&
+					rm ${projdir}/samples/${i%.f*}_uniq_*.fq.gz &&
 					wait
 				fi
-				mv ${projdir}/preprocess/${i%.f*}_redun.hold.sam.gz ${projdir}/preprocess/${i%.f*}_redun.sam.gz 2> /dev/null &&
-				rm ${projdir}/samples/${i%.f*}_uniq_*.fq.gz && wait
 			fi
 			wait
 		fi
@@ -679,15 +682,18 @@ main () {
 		cd ${projdir}/refgenomes
 		if [[ "$lib_type" == "WGS" ]] && test ! -f ${projdir}/precall_done.txt && test ! -f ${projdir}/preprocess/${i%.f*}_${ref1%.f*}_precall.bam.bai; then
 			export nempty=$( ls ${projdir}/samples/${i%.f*}_R2.f*.gz 2> /dev/null | wc -l | awk '{print $1}' )
-			if test ! -f ${projdir}/preprocess/${i%.f*}_redun.sam; then
+			if test ! -f ${projdir}/preprocess/${i%.f*}_redun.sam.gz; then
 				if [[ "$nempty" -gt 0 ]]; then
 					$ngm -r $ref1 --qry ${projdir}/samples/$i -o ${projdir}/preprocess/${i%.f*}_R1.sam -t $threads --min-identity 0 --topn 12 --strata 12 &&
 					$ngm -r $ref1 --qry ${projdir}/samples/${i%.f*}_R2.fastq.gz -o ${projdir}/preprocess/${i%.f*}_R2.sam -t $threads --min-identity 0 --topn 12 --strata 12 &&
-					grep -v '^@' ${projdir}/preprocess/${i%.f*}_R2.sam | cat ${projdir}/preprocess/${i%.f*}_R1.sam - | $gzip > ${projdir}/preprocess/${i%.f*}_redun.hold.sam.gz &&
+					mv ${projdir}/preprocess/${i%.f*}_redun_R1.sam ${projdir}/preprocess/${i%.f*}_redun.hold.sam &&
+					grep -v '^@' ${projdir}/preprocess/${i%.f*}_redun_R2.sam >> ${projdir}/preprocess/${i%.f*}_redun.hold.sam &&
+					$gzip ${projdir}/preprocess/${i%.f*}_redun.hold.sam &&
+					rm ${projdir}/preprocess/${i%.f*}_redun_R*.sam &&
 					wait
 				else
 					$ngm -r $ref1 --qry ${projdir}/samples/$i -o ${projdir}/preprocess/${i%.f*}_redun.hold.sam -t $threads --min-identity 0 --topn 12 --strata 12 &&
-					gzip ${projdir}/preprocess/${i%.f*}_redun.hold.sam &&
+					$gzip ${projdir}/preprocess/${i%.f*}_redun.hold.sam &&
 					wait
 				fi
 				mv ${projdir}/preprocess/${i%.f*}_redun.hold.sam.gz ${projdir}/preprocess/${i%.f*}_redun.sam.gz 2> /dev/null &&
