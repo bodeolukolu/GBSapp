@@ -642,6 +642,9 @@ main () {
 						wait
 					fi
 				 fi
+				 wait
+				 rm "${projdir}/samples/${i%.f*}_uniq_R*.fasta.gz" &&
+				 wait
 		fi
 	done
 	wait && touch ${projdir}/compress_done.txt

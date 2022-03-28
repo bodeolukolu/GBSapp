@@ -615,7 +615,7 @@ main () {
 						awk '{print $2}' ${projdir}/alignment_summaries/background_mutation_test/pop_haps_freqFail.txt | \
 						grep -v -x -f - <(zcat ${projdir}/samples/${i%.f*}_uniq_R2.fasta.gz  2> /dev/null) | awk '{gsub(/>/,"@"); print}' | \
 						awk '{print $1"\t"$2"\t"$2}' | awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$3); print}' | awk '{print $1"/2\n"$2"\n+\n"$3}' | $gzip  > ${projdir}/samples/${i%.f*}_uniq_R2.fq.gz &&
-						rm "${projdir}/samples/${i%.f*}_uniq_R*.fasta.gz"
+						rm "${projdir}/samples/${i%.f*}_uniq_R*.fasta.gz" &&
 						wait
 					else
 						awk '{print $2}' ${projdir}/alignment_summaries/background_mutation_test/pop_haps_freqFail.txt | \
@@ -639,6 +639,9 @@ main () {
 						wait
 					fi
 				 fi
+				 wait
+				 rm "${projdir}/samples/${i%.f*}_uniq_R*.fasta.gz" &&
+				 wait
 		fi
 	done
 	wait && touch ${projdir}/compress_done.txt
