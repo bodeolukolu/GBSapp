@@ -766,7 +766,7 @@ main () {
 					done
 					wait
 					awk '{print "seq"NR"_"$0}' ${projdir}/preprocess/${i%.f*}_exp_${ref1%.f*}_${ref2%.f*}.sam  | tr -s ' ' | \
-					awk '($3 != "\*")' | awk '($6 != "\*")'  | cat ${projdir}/preprocess/${i%.f*}_heading_${ref1%.f*}_${ref2%.f*}.sam - | tr ' ' '\t' > ${projdir}/preprocess/${i%.f*}_${ref1%.f*}_${ref2%.f*}.sam
+					awk '($3 != "\*")' | awk '($6 != "\*")'  | cat ${projdir}/preprocess/${i%.f*}_heading_${ref1%.f*}_${ref2%.f*}.sam - | tr ' ' '\t' | awk '$5 < 10 {$5 = 20}1' > ${projdir}/preprocess/${i%.f*}_${ref1%.f*}_${ref2%.f*}.sam
 					rm ${projdir}/preprocess/${i%.f*}_exp_${ref1%.f*}_${ref2%.f*}.sam ${projdir}/preprocess/${i%.f*}_uniq_${ref1%.f*}_${ref2%.f*}.sam ${projdir}/preprocess/${i%.f*}_heading_${ref1%.f*}_${ref2%.f*}.sam ${projdir}/preprocess/${i%.f*}_del_${ref1%.f*}_${ref2%.f*}.sam
 				} & PIDexp1=$!
 
@@ -778,7 +778,7 @@ main () {
 					  awk -v n="^${j}" '$0~n{print $0}' ${projdir}/preprocess/${i%.f*}_uniq_${ref1%.f*}.sam | awk -v n="$j" '{for(i=0;i<n;i++) print}' >> ${projdir}/preprocess/${i%.f*}_exp_${ref1%.f*}.sam
 					done; wait
 					awk '{print "seq"NR"_"$0}' ${projdir}/preprocess/${i%.f*}_exp_${ref1%.f*}.sam | tr -s ' ' | \
-					awk '($3 != "\*")' | awk '($6 != "\*")'  | cat ${projdir}/preprocess/${i%.f*}_heading_${ref1%.f*}.sam - | tr ' ' '\t' > ${projdir}/preprocess/${i%.f*}_${ref1%.f*}.sam
+					awk '($3 != "\*")' | awk '($6 != "\*")'  | cat ${projdir}/preprocess/${i%.f*}_heading_${ref1%.f*}.sam - | tr ' ' '\t' | awk '$5 < 10 {$5 = 20}1' > ${projdir}/preprocess/${i%.f*}_${ref1%.f*}.sam
 					rm ${projdir}/preprocess/${i%.f*}_exp_${ref1%.f*}.sam ${projdir}/preprocess/${i%.f*}_uniq_${ref1%.f*}.sam ${projdir}/preprocess/${i%.f*}_heading_${ref1%.f*}.sam ${projdir}/preprocess/${i%.f*}_del_${ref1%.f*}.sam
 				} & PIDexp2=$!
 
@@ -790,7 +790,7 @@ main () {
 					  awk -v n="^${j}" '$0~n{print $0}' ${projdir}/preprocess/${i%.f*}_uniq_${ref2%.f*}.sam | awk -v n="$j" '{for(i=0;i<n;i++) print}' >> ${projdir}/preprocess/${i%.f*}_exp_${ref2%.f*}.sam
 					done; wait
 					awk '{print "seq"NR"_"$0}' ${projdir}/preprocess/${i%.f*}_exp_${ref2%.f*}.sam | tr -s ' ' | \
-					awk '($3 != "\*")' | awk '($6 != "\*")'  | cat ${projdir}/preprocess/${i%.f*}_heading_${ref2%.f*}.sam - | tr ' ' '\t' > ${projdir}/preprocess/${i%.f*}_${ref2%.f*}.sam
+					awk '($3 != "\*")' | awk '($6 != "\*")'  | cat ${projdir}/preprocess/${i%.f*}_heading_${ref2%.f*}.sam - | tr ' ' '\t' | awk '$5 < 10 {$5 = 20}1' > ${projdir}/preprocess/${i%.f*}_${ref2%.f*}.sam
 					rm ${projdir}/preprocess/${i%.f*}_exp_${ref2%.f*}.sam ${projdir}/preprocess/${i%.f*}_uniq_${ref2%.f*}.sam ${projdir}/preprocess/${i%.f*}_heading_${ref2%.f*}.sam ${projdir}/preprocess/${i%.f*}_del_${ref2%.f*}.sam
 				} & PIDexp3=$!
 
@@ -959,7 +959,7 @@ main () {
 	  if [[ -z "$Get_Chromosome" ]]; then
 	    for selchr in $Get2_Chromosome; do (
 				if test ! -f ${projdir}/snpcall/${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_${selchr}_raw.vcf; then
-		      $GATK --java-options "$Xmxg -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ${projdir}/refgenomes/panref.fasta -L ${selchr} ${input} -ploidy $ploidy -O ${projdir}/snpcall/${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_${selchr}_raw.vcf.gz --dont-use-soft-clipped-bases $softclip --max-reads-per-alignment-start $downsample --minimum-mapping-quality 0 --max-num-haplotypes-in-population $((ploidy * maxHaplotype)) &&
+		      $GATK --java-options "$Xmxg -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ${projdir}/refgenomes/panref.fasta -L ${selchr} ${input} -ploidy $ploidy -O ${projdir}/snpcall/${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_${selchr}_raw.vcf.gz --dont-use-soft-clipped-bases $softclip --max-reads-per-alignment-start $downsample --minimum-mapping-quality 10 --max-num-haplotypes-in-population $((ploidy * maxHaplotype)) &&
 		      gunzip ${projdir}/snpcall/${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_${selchr}_raw.vcf.gz &&
 					wait
 				fi
@@ -976,7 +976,7 @@ main () {
 	    rm vcf_header.txt all.vcf *.vcf.gz.tbi ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_*_raw.vcf
 	  else
 	    echo $Get_Chromosome | tr ',' '\n' | awk '{print "SN:"$1}' | awk 'NR==FNR{a[$1];next}$2 in a{print $0}' - ${projdir}/refgenomes/panref.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $2}' > ${projdir}/refgenomes/panref.list
-	    $GATK --java-options "$Xmx2 -XX:+UseParallelGC -XX:ParallelGCThreads=$threads" HaplotypeCaller -R ${projdir}/refgenomes/panref.fasta -L ${projdir}/refgenomes/panref.list ${input}-ploidy $ploidy -O ${projdir}/snpcall/${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_raw.vcf.gz --dont-use-soft-clipped-bases $softclip --max-reads-per-alignment-start $downsample --minimum-mapping-quality 0 --max-num-haplotypes-in-population $((ploidy * maxHaplotype)) &&
+	    $GATK --java-options "$Xmx2 -XX:+UseParallelGC -XX:ParallelGCThreads=$threads" HaplotypeCaller -R ${projdir}/refgenomes/panref.fasta -L ${projdir}/refgenomes/panref.list ${input}-ploidy $ploidy -O ${projdir}/snpcall/${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_raw.vcf.gz --dont-use-soft-clipped-bases $softclip --max-reads-per-alignment-start $downsample --minimum-mapping-quality 10 --max-num-haplotypes-in-population $((ploidy * maxHaplotype)) &&
 	    cd ../snpcall
 	    gunzip ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_raw.vcf &&
 	    wait
@@ -1002,7 +1002,7 @@ main () {
 	  if [[ -z "$Get_Chromosome" ]]; then
 	    for selchr in $Get2_Chromosome; do (
 				if test ! -f ${projdir}/snpcall/${pop}_${ref1%.f*}_${ploidy_ref1}x_${selchr}_raw.vcf; then
-	      	$GATK --java-options "$Xmxg -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ${projdir}/refgenomes/panref.fasta -L ${selchr} ${input} -ploidy $ploidy_ref1 -O ${projdir}/snpcall/${pop}_${ref1%.f*}_${ploidy_ref1}x_${selchr}_raw.vcf.gz --dont-use-soft-clipped-bases $softclip --max-reads-per-alignment-start $downsample --minimum-mapping-quality 0 --max-num-haplotypes-in-population $((ploidy_ref1 * maxHaplotype)) &&
+	      	$GATK --java-options "$Xmxg -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ${projdir}/refgenomes/panref.fasta -L ${selchr} ${input} -ploidy $ploidy_ref1 -O ${projdir}/snpcall/${pop}_${ref1%.f*}_${ploidy_ref1}x_${selchr}_raw.vcf.gz --dont-use-soft-clipped-bases $softclip --max-reads-per-alignment-start $downsample --minimum-mapping-quality 10 --max-num-haplotypes-in-population $((ploidy_ref1 * maxHaplotype)) &&
 	      	gunzip ${projdir}/snpcall/${pop}_${ref1%.f*}_${ploidy_ref1}x_${selchr}_raw.vcf.gz &&
 					wait
 				fi
@@ -1019,7 +1019,7 @@ main () {
 	    rm vcf_header.txt all.vcf *.vcf.gz.tbi ${pop}_${ref1%.f*}_${ploidy_ref1}x_*_raw.vcf
 	  else
 	    echo $Get_Chromosome | tr ',' '\n' | awk -v pat=${ref1%.f*} '$0 ~ pat' | awk '{print "SN:"$1}' | awk 'NR==FNR{a[$1];next}$2 in a{print $0}' - ${projdir}/refgenomes/panref.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $2}' > ${projdir}/refgenomes/panref.list
-	    $GATK --java-options "$Xmx2 -XX:+UseParallelGC -XX:ParallelGCThreads=$threads" HaplotypeCaller -R ${projdir}/refgenomes/panref.fasta -L ${projdir}/refgenomes/panref.list ${input}-ploidy $ploidy -O ${projdir}/snpcall/${pop}_${ref1%.f*}_${ploidy_ref1}x_raw.vcf.gz --dont-use-soft-clipped-bases $softclip --max-reads-per-alignment-start $downsample --minimum-mapping-quality 0 --max-num-haplotypes-in-population $((ploidy_ref1 * maxHaplotype)) &&
+	    $GATK --java-options "$Xmx2 -XX:+UseParallelGC -XX:ParallelGCThreads=$threads" HaplotypeCaller -R ${projdir}/refgenomes/panref.fasta -L ${projdir}/refgenomes/panref.list ${input}-ploidy $ploidy -O ${projdir}/snpcall/${pop}_${ref1%.f*}_${ploidy_ref1}x_raw.vcf.gz --dont-use-soft-clipped-bases $softclip --max-reads-per-alignment-start $downsample --minimum-mapping-quality 10 --max-num-haplotypes-in-population $((ploidy_ref1 * maxHaplotype)) &&
 	    cd ../snpcall
 	    gunzip ${pop}_${ref1%.f*}_${ploidy_ref1}x_raw.vcf &&
 	    wait
@@ -1045,7 +1045,7 @@ main () {
 	  if [[ -z "$Get_Chromosome" ]]; then
 	    for selchr in $Get2_Chromosome; do (
 				if test ! -f ${projdir}/snpcall/${pop}_${ref2%.f*}_${ploidy_ref2}x_${selchr}_raw.vcf; then
-	      	$GATK --java-options "$Xmxg -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R "${projdir}/refgenomes/panref.fasta" -L ${selchr} ${input} -ploidy $ploidy_ref2 -O ${projdir}/snpcall/${pop}_${ref2%.f*}_${ploidy_ref2}x_${selchr}_raw.vcf.gz --dont-use-soft-clipped-bases $softclip --max-reads-per-alignment-start $downsample --minimum-mapping-quality 0 --max-num-haplotypes-in-population $((ploidy_ref2 * maxHaplotype)) &&
+	      	$GATK --java-options "$Xmxg -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R "${projdir}/refgenomes/panref.fasta" -L ${selchr} ${input} -ploidy $ploidy_ref2 -O ${projdir}/snpcall/${pop}_${ref2%.f*}_${ploidy_ref2}x_${selchr}_raw.vcf.gz --dont-use-soft-clipped-bases $softclip --max-reads-per-alignment-start $downsample --minimum-mapping-quality 10 --max-num-haplotypes-in-population $((ploidy_ref2 * maxHaplotype)) &&
 	      	gunzip ${projdir}/snpcall/${pop}_${ref2%.f*}_${ploidy_ref2}x_${selchr}_raw.vcf.gz &&
 					wait
 				fi
@@ -1062,7 +1062,7 @@ main () {
 	    rm vcf_header.txt all.vcf *.vcf.gz.tbi ${pop}_${ref2%.f*}_${ploidy_ref2}x_*_raw.vcf
 	  else
 	    echo $Get_Chromosome | tr ',' '\n' | awk -v pat=${ref2%.f*} '$0 ~ pat' | awk '{print "SN:"$1}' | awk 'NR==FNR{a[$1];next}$2 in a{print $0}' - ${projdir}/refgenomes/panref.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $2}' > ${projdir}/refgenomes/panref.list
-	    $GATK --java-options "$Xmx2 -XX:+UseParallelGC -XX:ParallelGCThreads=$threads" HaplotypeCaller -R ${projdir}/refgenomes/panref.fasta -L ${projdir}/refgenomes/panref.list ${input}-ploidy $ploidy -O ${projdir}/snpcall/${pop}_${ref2%.f*}_${ploidy_ref2}x_raw.vcf.gz --dont-use-soft-clipped-bases $softclip --max-reads-per-alignment-start $downsample --minimum-mapping-quality 0 --max-num-haplotypes-in-population $((ploidy_ref2 * maxHaplotype)) &&
+	    $GATK --java-options "$Xmx2 -XX:+UseParallelGC -XX:ParallelGCThreads=$threads" HaplotypeCaller -R ${projdir}/refgenomes/panref.fasta -L ${projdir}/refgenomes/panref.list ${input}-ploidy $ploidy -O ${projdir}/snpcall/${pop}_${ref2%.f*}_${ploidy_ref2}x_raw.vcf.gz --dont-use-soft-clipped-bases $softclip --max-reads-per-alignment-start $downsample --minimum-mapping-quality 10 --max-num-haplotypes-in-population $((ploidy_ref2 * maxHaplotype)) &&
 	    cd ../snpcall
 	    gunzip ${pop}_${ref2%.f*}_${ploidy_ref2}x_raw.vcf &&
 	    wait
@@ -1081,11 +1081,11 @@ main () {
 				if test ! -f "${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_raw.vcf" && test ! -f "${projdir}/GVCF_1_2_done.txt"; then
 					if test ! -f "${projdir}/snpcall/${i%.f*}_${ref1%.f*}_${ref2%.f*}.g.vcf.gz"; then
 						if [[ -z "$Get_Chromosome" ]]; then
-							$GATK --java-options "$Xmxg -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ${projdir}/refgenomes/panref.fasta -I ${i%.f*}_${ref1%.f*}_${ref2%.f*}_precall.bam -ploidy $ploidy -O ${projdir}/snpcall/${i%.f*}_${ref1%.f*}_${ref2%.f*}.hold.g.vcf.gz -ERC GVCF --dont-use-soft-clipped-bases $softclip --max-reads-per-alignment-start $downsample --minimum-mapping-quality 0 --max-num-haplotypes-in-population $((ploidy * maxHaplotype)) &&
+							$GATK --java-options "$Xmxg -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ${projdir}/refgenomes/panref.fasta -I ${i%.f*}_${ref1%.f*}_${ref2%.f*}_precall.bam -ploidy $ploidy -O ${projdir}/snpcall/${i%.f*}_${ref1%.f*}_${ref2%.f*}.hold.g.vcf.gz -ERC GVCF --dont-use-soft-clipped-bases $softclip --max-reads-per-alignment-start $downsample --minimum-mapping-quality 10 --max-num-haplotypes-in-population $((ploidy * maxHaplotype)) &&
 							wait
 						else
 						  echo $Get_Chromosome | tr ',' '\n' | awk '{print "SN:"$1}' | awk 'NR==FNR{a[$1];next}$2 in a{print $0}' - ${projdir}/refgenomes/panref.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $2}' > ${projdir}/refgenomes/panref.list
-							$GATK --java-options "$Xmxg -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R "${projdir}/refgenomes/panref.fasta" -L ${projdir}/refgenomes/panref.list -I ${i%.f*}_${ref1%.f*}_${ref2%.f*}_precall.bam -ploidy $ploidy -O ${projdir}/snpcall/${i%.f*}_${ref1%.f*}_${ref2%.f*}.hold.g.vcf.gz -ERC GVCF --dont-use-soft-clipped-bases $softclip --max-reads-per-alignment-start $downsample --minimum-mapping-quality 0 --max-num-haplotypes-in-population $((ploidy * maxHaplotype)) &&
+							$GATK --java-options "$Xmxg -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R "${projdir}/refgenomes/panref.fasta" -L ${projdir}/refgenomes/panref.list -I ${i%.f*}_${ref1%.f*}_${ref2%.f*}_precall.bam -ploidy $ploidy -O ${projdir}/snpcall/${i%.f*}_${ref1%.f*}_${ref2%.f*}.hold.g.vcf.gz -ERC GVCF --dont-use-soft-clipped-bases $softclip --max-reads-per-alignment-start $downsample --minimum-mapping-quality 10 --max-num-haplotypes-in-population $((ploidy * maxHaplotype)) &&
 							wait
 						fi
 						mv "${projdir}/snpcall/${i%.f*}_${ref1%.f*}_${ref2%.f*}.hold.g.vcf.gz" "${projdir}/snpcall/${i%.f*}_${ref1%.f*}_${ref2%.f*}.g.vcf.gz" && \
@@ -1208,11 +1208,11 @@ main () {
 				if test ! -f "${pop}_${ref1%.f*}_${ploidy_ref1}x_raw.vcf" && test ! -f "${projdir}/GVCF_1_done.txt"; then
 					if test ! -f ${projdir}/snpcall/${i%.f*}_${ref1%.f*}.g.vcf.gz; then
 						if [[ -z "$Get_Chromosome" ]]; then
-							$GATK --java-options "$Xmxg -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads"  HaplotypeCaller -R ${projdir}/refgenomes/panref.fasta -I ${i%.f*}_${ref1%.f*}_precall.bam -ploidy $ploidy_ref1 -O ${projdir}/snpcall/${i%.f*}_${ref1%.f*}.hold.g.vcf.gz -ERC GVCF --dont-use-soft-clipped-bases $softclip --max-reads-per-alignment-start $downsample --minimum-mapping-quality 0 --max-num-haplotypes-in-population $((ploidy_ref1 * maxHaplotype)) &&
+							$GATK --java-options "$Xmxg -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads"  HaplotypeCaller -R ${projdir}/refgenomes/panref.fasta -I ${i%.f*}_${ref1%.f*}_precall.bam -ploidy $ploidy_ref1 -O ${projdir}/snpcall/${i%.f*}_${ref1%.f*}.hold.g.vcf.gz -ERC GVCF --dont-use-soft-clipped-bases $softclip --max-reads-per-alignment-start $downsample --minimum-mapping-quality 10 --max-num-haplotypes-in-population $((ploidy_ref1 * maxHaplotype)) &&
 							wait
 						else
 						  echo $Get_Chromosome | tr ',' '\n' | awk -v pat=${ref1%.f*} '$0 ~ pat' | awk '{print "SN:"$1}' | awk 'NR==FNR{a[$1];next}$2 in a{print $0}' - ${projdir}/refgenomes/panref.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $2}' > ${projdir}/refgenomes/panref.list
-							$GATK --java-options "$Xmxg -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads"  HaplotypeCaller -R ${projdir}/refgenomes/panref.fasta -L ${projdir}/refgenomes/panref.list -I ${i%.f*}_${ref1%.f*}_precall.bam -ploidy $ploidy_ref1 -O ${projdir}/snpcall/${i%.f*}_${ref1%.f*}.hold.g.vcf.gz -ERC GVCF --dont-use-soft-clipped-bases $softclip --max-reads-per-alignment-start $downsample --minimum-mapping-quality 0 --max-num-haplotypes-in-population $((ploidy_ref1 * maxHaplotype)) &&
+							$GATK --java-options "$Xmxg -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads"  HaplotypeCaller -R ${projdir}/refgenomes/panref.fasta -L ${projdir}/refgenomes/panref.list -I ${i%.f*}_${ref1%.f*}_precall.bam -ploidy $ploidy_ref1 -O ${projdir}/snpcall/${i%.f*}_${ref1%.f*}.hold.g.vcf.gz -ERC GVCF --dont-use-soft-clipped-bases $softclip --max-reads-per-alignment-start $downsample --minimum-mapping-quality 10 --max-num-haplotypes-in-population $((ploidy_ref1 * maxHaplotype)) &&
 							wait
 						fi
 						mv "${projdir}/snpcall/${i%.f*}_${ref1%.f*}.hold.g.vcf.gz" "${projdir}/snpcall/${i%.f*}_${ref1%.f*}.g.vcf.gz" && \
@@ -1336,11 +1336,11 @@ main () {
 				if test ! -f "${pop}_${ref2%.f*}_${ploidy_ref2}x_raw.vcf" && test ! -f "${projdir}/GVCF_2_done.txt"; then
 					if test ! -f "${projdir}/snpcall/${i%.f*}_${ref2%.f*}.g.vcf.gz"; then
 						if [[ -z "$Get_Chromosome" ]]; then
-							$GATK --java-options "$Xmxg -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ${projdir}/refgenomes/panref.fasta -I ${i%.f*}_${ref2%.f*}_precall.bam -ploidy $ploidy_ref2 -O ${projdir}/snpcall/${i%.f*}_${ref2%.f*}.hold.g.vcf.gz -ERC GVCF --dont-use-soft-clipped-bases $softclip --max-reads-per-alignment-start $downsample --minimum-mapping-quality 0 --max-num-haplotypes-in-population $((ploidy_ref2 * maxHaplotype)) &&
+							$GATK --java-options "$Xmxg -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ${projdir}/refgenomes/panref.fasta -I ${i%.f*}_${ref2%.f*}_precall.bam -ploidy $ploidy_ref2 -O ${projdir}/snpcall/${i%.f*}_${ref2%.f*}.hold.g.vcf.gz -ERC GVCF --dont-use-soft-clipped-bases $softclip --max-reads-per-alignment-start $downsample --minimum-mapping-quality 10 --max-num-haplotypes-in-population $((ploidy_ref2 * maxHaplotype)) &&
 							wait
 						else
 						  echo $Get_Chromosome | tr ',' '\n' | awk '{print "SN:"$1}' | awk 'NR==FNR{a[$1];next}$2 in a{print $0}' - ${projdir}/refgenomes/panref.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $2}' > ${projdir}/refgenomes/panref.list
-							$GATK --java-options "$Xmxg -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ${projdir}/refgenomes/panref.fasta -L ${projdir}/refgenomes/panref.list -I ${i%.f*}_${ref2%.f*}_precall.bam -ploidy $ploidy_ref2 -O ${projdir}/snpcall/${i%.f*}_${ref2%.f*}.hold.g.vcf.gz -ERC GVCF --dont-use-soft-clipped-bases $softclip --max-reads-per-alignment-start $downsample --minimum-mapping-quality 0 --max-num-haplotypes-in-population $((ploidy_ref2 * maxHaplotype)) &&
+							$GATK --java-options "$Xmxg -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ${projdir}/refgenomes/panref.fasta -L ${projdir}/refgenomes/panref.list -I ${i%.f*}_${ref2%.f*}_precall.bam -ploidy $ploidy_ref2 -O ${projdir}/snpcall/${i%.f*}_${ref2%.f*}.hold.g.vcf.gz -ERC GVCF --dont-use-soft-clipped-bases $softclip --max-reads-per-alignment-start $downsample --minimum-mapping-quality 10 --max-num-haplotypes-in-population $((ploidy_ref2 * maxHaplotype)) &&
 							wait
 						fi
 						mv "${projdir}/snpcall/${i%.f*}_${ref2%.f*}.hold.g.vcf.gz" "${projdir}/snpcall/${i%.f*}_${ref2%.f*}.g.vcf.gz" && \
