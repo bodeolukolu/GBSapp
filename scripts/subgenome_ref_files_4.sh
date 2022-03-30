@@ -618,7 +618,7 @@ main () {
 						awk '{print $2}' ${projdir}/alignment_summaries/background_mutation_test/pop_haps_freqFail.txt | \
 						grep -v -x -f - <(zcat ${projdir}/samples/${i%.f*}_uniq_R2.fasta.gz 2> /dev/null) | awk '{gsub(/>/,"@"); print}' | \
 						awk '{print $1"\t"$2"\t"$2}' | awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$3); print}' | awk '{print $1"/2\n"$2"\n+\n"$3}' | $gzip  > ${projdir}/samples/${i%.f*}_uniq_R2.fq.gz &&
-						rm "${projdir}/samples/${i%.f*}_uniq_R*.fasta.gz" &&
+						rm "${projdir}/samples/${i%.f*}_uniq_R*.fasta.gz" 2> /dev/null &&
 						wait
 					else
 						awk '{print $2}' ${projdir}/alignment_summaries/background_mutation_test/pop_haps_freqFail.txt | \
@@ -633,7 +633,7 @@ main () {
 						zcat ${projdir}/samples/${i%.f*}_uniq_R1.fasta.gz 2> /dev/null | awk -F '\t' '$1~/_pe-/{print}' | awk '{gsub(/>/,"@"); print}' | awk '{print $1"\t"$2"\t"$2}' | awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$3); print}' | awk '{print $1"/1\n"$2"\n+\n"$3}' | $gzip > ${projdir}/samples/${i%.f*}_uniq_R1.fq.gz &&
 						zcat ${projdir}/samples/${i%.f*}_uniq_R2.fasta.gz 2> /dev/null | awk '{gsub(/>/,"@"); print}' | awk '{print $1"\t"$2"\t"$2}' | \
 						awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$3); print}' | awk '{print $1"/2\n"$2"\n+\n"$3}' | $gzip > ${projdir}/samples/${i%.f*}_uniq_R2.fq.gz &&
-						rm "${projdir}/samples/${i%.f*}_uniq_R*.fasta.gz" &&
+						rm "${projdir}/samples/${i%.f*}_uniq_R*.fasta.gz" 2> /dev/null &&
 						wait
 					else
 						zcat ${projdir}/samples/${i%.f*}_uniq_R1.fasta.gz 2> /dev/null | awk '{gsub(/>/,"@"); print}' | awk '{print $1"\t"$2"\t"$2}' | \
@@ -643,7 +643,7 @@ main () {
 					fi
 				 fi
 				 wait
-				 rm "${projdir}/samples/${i%.f*}_uniq_R*.fasta.gz" &&
+				 rm "${projdir}/samples/${i%.f*}_uniq_R*.fasta.gz" 2> /dev/null &&
 				 wait
 		fi
 	done
@@ -894,7 +894,7 @@ main () {
 					  awk -v n="^${j}" '$0~n{print $0}' ${projdir}/preprocess/${i%.f*}_uniq_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.sam | awk -v n="$j" '{for(i=0;i<n;i++) print}' >> ${projdir}/preprocess/${i%.f*}_exp_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.sam
 					done; wait
 					awk '{print "seq"NR"_"$0}' ${projdir}/preprocess/${i%.f*}_exp_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.sam | tr -s ' ' | \
-					awk '($3 != "\*")' | awk '($6 != "\*")'  | cat ${projdir}/preprocess/${i%.f*}_heading_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.sam - | tr ' ' '\t' | awk '$5 < 10 {$5 = 20}1' > ${projdir}/preprocess/${i%.f*}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.sam
+					awk '($3 != "\*")' | awk '($6 != "\*")'  | awk '$5 < 10 {$5 = 20}1' | cat ${projdir}/preprocess/${i%.f*}_heading_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.sam - | tr ' ' '\t' > ${projdir}/preprocess/${i%.f*}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.sam
 					rm ${projdir}/preprocess/${i%.f*}_exp_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.sam ${projdir}/preprocess/${i%.f*}_uniq_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.sam ${projdir}/preprocess/${i%.f*}_heading_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.sam ${projdir}/preprocess/${i%.f*}_del_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.sam
 				} & PIDexp1=$!
 
@@ -906,7 +906,7 @@ main () {
 					  awk -v n="^${j}" '$0~n{print $0}' ${projdir}/preprocess/${i%.f*}_uniq_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}.sam | awk -v n="$j" '{for(i=0;i<n;i++) print}' >> ${projdir}/preprocess/${i%.f*}_exp_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}.sam
 					done; wait
 					awk '{print "seq"NR"_"$0}' ${projdir}/preprocess/${i%.f*}_exp_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}.sam | tr -s ' ' | \
-					awk '($3 != "\*")' | awk '($6 != "\*")'  | cat ${projdir}/preprocess/${i%.f*}_heading_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}.sam - | tr ' ' '\t' | awk '$5 < 10 {$5 = 20}1' > ${projdir}/preprocess/${i%.f*}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}.sam
+					awk '($3 != "\*")' | awk '($6 != "\*")'  | awk '$5 < 10 {$5 = 20}1' | cat ${projdir}/preprocess/${i%.f*}_heading_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}.sam - | tr ' ' '\t' > ${projdir}/preprocess/${i%.f*}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}.sam
 					rm ${projdir}/preprocess/${i%.f*}_exp_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}.sam ${projdir}/preprocess/${i%.f*}_uniq_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}.sam ${projdir}/preprocess/${i%.f*}_heading_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}.sam ${projdir}/preprocess/${i%.f*}_del_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}.sam
 				} & PIDexp2=$!
 
@@ -918,7 +918,7 @@ main () {
 					  awk -v n="^${j}" '$0~n{print $0}' ${projdir}/preprocess/${i%.f*}_uniq_${ref1%.f*}_${ref2%.f*}_${ref4%.f*}.sam | awk -v n="$j" '{for(i=0;i<n;i++) print}' >> ${projdir}/preprocess/${i%.f*}_exp_${ref1%.f*}_${ref2%.f*}_${ref4%.f*}.sam
 					done; wait
 					awk '{print "seq"NR"_"$0}' ${projdir}/preprocess/${i%.f*}_exp_${ref1%.f*}_${ref2%.f*}_${ref4%.f*}.sam | tr -s ' ' | \
-					awk '($3 != "\*")' | awk '($6 != "\*")'  | cat ${projdir}/preprocess/${i%.f*}_heading_${ref1%.f*}_${ref2%.f*}_${ref4%.f*}.sam - | tr ' ' '\t' | awk '$5 < 10 {$5 = 20}1' > ${projdir}/preprocess/${i%.f*}_${ref1%.f*}_${ref2%.f*}_${ref4%.f*}.sam
+					awk '($3 != "\*")' | awk '($6 != "\*")'  | awk '$5 < 10 {$5 = 20}1' | cat ${projdir}/preprocess/${i%.f*}_heading_${ref1%.f*}_${ref2%.f*}_${ref4%.f*}.sam - | tr ' ' '\t' > ${projdir}/preprocess/${i%.f*}_${ref1%.f*}_${ref2%.f*}_${ref4%.f*}.sam
 					rm ${projdir}/preprocess/${i%.f*}_exp_${ref1%.f*}_${ref2%.f*}_${ref4%.f*}.sam ${projdir}/preprocess/${i%.f*}_uniq_${ref1%.f*}_${ref2%.f*}_${ref4%.f*}.sam ${projdir}/preprocess/${i%.f*}_heading_${ref1%.f*}_${ref2%.f*}_${ref4%.f*}.sam ${projdir}/preprocess/${i%.f*}_del_${ref1%.f*}_${ref2%.f*}_${ref4%.f*}.sam
 				} & PIDexp3=$!
 
@@ -930,7 +930,7 @@ main () {
 					  awk -v n="^${j}" '$0~n{print $0}' ${projdir}/preprocess/${i%.f*}_uniq_${ref1%.f*}_${ref3%.f*}_${ref4%.f*}.sam | awk -v n="$j" '{for(i=0;i<n;i++) print}' >> ${projdir}/preprocess/${i%.f*}_exp_${ref1%.f*}_${ref3%.f*}_${ref4%.f*}.sam
 					done; wait
 					awk '{print "seq"NR"_"$0}' ${projdir}/preprocess/${i%.f*}_exp_${ref1%.f*}_${ref3%.f*}_${ref4%.f*}.sam | tr -s ' ' | \
-					awk '($3 != "\*")' | awk '($6 != "\*")'  | cat ${projdir}/preprocess/${i%.f*}_heading_${ref1%.f*}_${ref3%.f*}_${ref4%.f*}.sam - | tr ' ' '\t' | awk '$5 < 10 {$5 = 20}1' > ${projdir}/preprocess/${i%.f*}_${ref1%.f*}_${ref3%.f*}_${ref4%.f*}.sam
+					awk '($3 != "\*")' | awk '($6 != "\*")'  | awk '$5 < 10 {$5 = 20}1' | cat ${projdir}/preprocess/${i%.f*}_heading_${ref1%.f*}_${ref3%.f*}_${ref4%.f*}.sam - | tr ' ' '\t' > ${projdir}/preprocess/${i%.f*}_${ref1%.f*}_${ref3%.f*}_${ref4%.f*}.sam
 					rm ${projdir}/preprocess/${i%.f*}_exp_${ref1%.f*}_${ref3%.f*}_${ref4%.f*}.sam ${projdir}/preprocess/${i%.f*}_uniq_${ref1%.f*}_${ref3%.f*}_${ref4%.f*}.sam ${projdir}/preprocess/${i%.f*}_heading_${ref1%.f*}_${ref3%.f*}_${ref4%.f*}.sam ${projdir}/preprocess/${i%.f*}_del_${ref1%.f*}_${ref3%.f*}_${ref4%.f*}.sam
 				} & PIDexp4=$!
 
@@ -948,7 +948,7 @@ main () {
 					  awk -v n="^${j}" '$0~n{print $0}' ${projdir}/preprocess/${i%.f*}_uniq_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.sam | awk -v n="$j" '{for(i=0;i<n;i++) print}' >> ${projdir}/preprocess/${i%.f*}_exp_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.sam
 					done; wait
 					awk '{print "seq"NR"_"$0}' ${projdir}/preprocess/${i%.f*}_exp_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.sam | tr -s ' ' | \
-					awk '($3 != "\*")' | awk '($6 != "\*")'  | cat ${projdir}/preprocess/${i%.f*}_heading_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.sam - | tr ' ' '\t' | awk '$5 < 10 {$5 = 20}1' > ${projdir}/preprocess/${i%.f*}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.sam
+					awk '($3 != "\*")' | awk '($6 != "\*")'  | awk '$5 < 10 {$5 = 20}1' | cat ${projdir}/preprocess/${i%.f*}_heading_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.sam - | tr ' ' '\t' > ${projdir}/preprocess/${i%.f*}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.sam
 					rm ${projdir}/preprocess/${i%.f*}_exp_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.sam ${projdir}/preprocess/${i%.f*}_uniq_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.sam ${projdir}/preprocess/${i%.f*}_heading_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.sam ${projdir}/preprocess/${i%.f*}_del_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.sam
 				} & PIDexp5=$!
 
@@ -960,7 +960,7 @@ main () {
 	        	awk -v n="^${j}" '$0~n{print $0}' ${projdir}/preprocess/${i%.f*}_uniq_${ref1%.f*}_${ref2%.f*}.sam | awk -v n="$j" '{for(i=0;i<n;i++) print}' >> ${projdir}/preprocess/${i%.f*}_exp_${ref1%.f*}_${ref2%.f*}.sam
 	        done; wait
 	        awk '{print "seq"NR"_"$0}' ${projdir}/preprocess/${i%.f*}_exp_${ref1%.f*}_${ref2%.f*}.sam | tr -s ' ' | \
-	        awk '($3 != "\*")' | awk '($6 != "\*")'  | cat ${projdir}/preprocess/${i%.f*}_heading_${ref1%.f*}_${ref2%.f*}.sam - | tr ' ' '\t' | awk '$5 < 10 {$5 = 20}1' > ${projdir}/preprocess/${i%.f*}_${ref1%.f*}_${ref2%.f*}.sam
+	        awk '($3 != "\*")' | awk '($6 != "\*")'  | awk '$5 < 10 {$5 = 20}1' | cat ${projdir}/preprocess/${i%.f*}_heading_${ref1%.f*}_${ref2%.f*}.sam - | tr ' ' '\t' > ${projdir}/preprocess/${i%.f*}_${ref1%.f*}_${ref2%.f*}.sam
 	        rm ${projdir}/preprocess/${i%.f*}_exp_${ref1%.f*}_${ref2%.f*}.sam ${projdir}/preprocess/${i%.f*}_uniq_${ref1%.f*}_${ref2%.f*}.sam ${projdir}/preprocess/${i%.f*}_heading_${ref1%.f*}_${ref2%.f*}.sam ${projdir}/preprocess/${i%.f*}_del_${ref1%.f*}_${ref2%.f*}.sam
 				} & PIDexp6=$!
 
@@ -972,7 +972,7 @@ main () {
 	        	awk -v n="^${j}" '$0~n{print $0}' ${projdir}/preprocess/${i%.f*}_uniq_${ref1%.f*}_${ref3%.f*}.sam | awk -v n="$j" '{for(i=0;i<n;i++) print}' >> ${projdir}/preprocess/${i%.f*}_exp_${ref1%.f*}_${ref3%.f*}.sam
 	        done; wait
 	        awk '{print "seq"NR"_"$0}' ${projdir}/preprocess/${i%.f*}_exp_${ref1%.f*}_${ref3%.f*}.sam | tr -s ' ' | \
-	        awk '($3 != "\*")' | awk '($6 != "\*")'  | cat ${projdir}/preprocess/${i%.f*}_heading_${ref1%.f*}_${ref3%.f*}.sam - | tr ' ' '\t' | awk '$5 < 10 {$5 = 20}1' > ${projdir}/preprocess/${i%.f*}_${ref1%.f*}_${ref3%.f*}.sam
+	        awk '($3 != "\*")' | awk '($6 != "\*")'  | awk '$5 < 10 {$5 = 20}1' | cat ${projdir}/preprocess/${i%.f*}_heading_${ref1%.f*}_${ref3%.f*}.sam - | tr ' ' '\t' > ${projdir}/preprocess/${i%.f*}_${ref1%.f*}_${ref3%.f*}.sam
 	        rm ${projdir}/preprocess/${i%.f*}_exp_${ref1%.f*}_${ref3%.f*}.sam ${projdir}/preprocess/${i%.f*}_uniq_${ref1%.f*}_${ref3%.f*}.sam ${projdir}/preprocess/${i%.f*}_heading_${ref1%.f*}_${ref3%.f*}.sam ${projdir}/preprocess/${i%.f*}_del_${ref1%.f*}_${ref3%.f*}.sam
 				} & PIDexp7=$!
 
@@ -984,7 +984,7 @@ main () {
 	        	awk -v n="^${j}" '$0~n{print $0}' ${projdir}/preprocess/${i%.f*}_uniq_${ref1%.f*}_${ref4%.f*}.sam | awk -v n="$j" '{for(i=0;i<n;i++) print}' >> ${projdir}/preprocess/${i%.f*}_exp_${ref1%.f*}_${ref4%.f*}.sam
 	        done; wait
 	        awk '{print "seq"NR"_"$0}' ${projdir}/preprocess/${i%.f*}_exp_${ref1%.f*}_${ref4%.f*}.sam | tr -s ' ' | \
-	        awk '($3 != "\*")' | awk '($6 != "\*")'  | cat ${projdir}/preprocess/${i%.f*}_heading_${ref1%.f*}_${ref4%.f*}.sam - | tr ' ' '\t' | awk '$5 < 10 {$5 = 20}1' > ${projdir}/preprocess/${i%.f*}_${ref1%.f*}_${ref4%.f*}.sam
+	        awk '($3 != "\*")' | awk '($6 != "\*")'  | awk '$5 < 10 {$5 = 20}1' | cat ${projdir}/preprocess/${i%.f*}_heading_${ref1%.f*}_${ref4%.f*}.sam - | tr ' ' '\t' > ${projdir}/preprocess/${i%.f*}_${ref1%.f*}_${ref4%.f*}.sam
 	        rm ${projdir}/preprocess/${i%.f*}_exp_${ref1%.f*}_${ref4%.f*}.sam ${projdir}/preprocess/${i%.f*}_uniq_${ref1%.f*}_${ref4%.f*}.sam ${projdir}/preprocess/${i%.f*}_heading_${ref1%.f*}_${ref4%.f*}.sam ${projdir}/preprocess/${i%.f*}_del_${ref1%.f*}_${ref4%.f*}.sam
 				} & PIDexp8=$!
 
@@ -1002,7 +1002,7 @@ main () {
 	        	awk -v n="^${j}" '$0~n{print $0}' ${projdir}/preprocess/${i%.f*}_uniq_${ref2%.f*}_${ref3%.f*}.sam | awk -v n="$j" '{for(i=0;i<n;i++) print}' >> ${projdir}/preprocess/${i%.f*}_exp_${ref2%.f*}_${ref3%.f*}.sam
 	        done; wait
 	        awk '{print "seq"NR"_"$0}' ${projdir}/preprocess/${i%.f*}_exp_${ref2%.f*}_${ref3%.f*}.sam | tr -s ' ' | \
-	        awk '($3 != "\*")' | awk '($6 != "\*")'  | cat ${projdir}/preprocess/${i%.f*}_heading_${ref2%.f*}_${ref3%.f*}.sam - | tr ' ' '\t' | awk '$5 < 10 {$5 = 20}1' > ${projdir}/preprocess/${i%.f*}_${ref2%.f*}_${ref3%.f*}.sam
+	        awk '($3 != "\*")' | awk '($6 != "\*")'  | awk '$5 < 10 {$5 = 20}1' | cat ${projdir}/preprocess/${i%.f*}_heading_${ref2%.f*}_${ref3%.f*}.sam - | tr ' ' '\t' > ${projdir}/preprocess/${i%.f*}_${ref2%.f*}_${ref3%.f*}.sam
 	        rm ${projdir}/preprocess/${i%.f*}_exp_${ref2%.f*}_${ref3%.f*}.sam ${projdir}/preprocess/${i%.f*}_uniq_${ref2%.f*}_${ref3%.f*}.sam ${projdir}/preprocess/${i%.f*}_heading_${ref2%.f*}_${ref3%.f*}.sam ${projdir}/preprocess/${i%.f*}_del_${ref2%.f*}_${ref3%.f*}.sam
 				} & PIDexp9=$!
 
@@ -1014,7 +1014,7 @@ main () {
 	        	awk -v n="^${j}" '$0~n{print $0}' ${projdir}/preprocess/${i%.f*}_uniq_${ref2%.f*}_${ref4%.f*}.sam | awk -v n="$j" '{for(i=0;i<n;i++) print}' >> ${projdir}/preprocess/${i%.f*}_exp_${ref2%.f*}_${ref4%.f*}.sam
 	        done; wait
 	        awk '{print "seq"NR"_"$0}' ${projdir}/preprocess/${i%.f*}_exp_${ref2%.f*}_${ref4%.f*}.sam | tr -s ' ' | \
-	        awk '($3 != "\*")' | awk '($6 != "\*")'  | cat ${projdir}/preprocess/${i%.f*}_heading_${ref2%.f*}_${ref4%.f*}.sam - | tr ' ' '\t' | awk '$5 < 10 {$5 = 20}1' > ${projdir}/preprocess/${i%.f*}_${ref2%.f*}_${ref4%.f*}.sam
+	        awk '($3 != "\*")' | awk '($6 != "\*")'  | awk '$5 < 10 {$5 = 20}1' | cat ${projdir}/preprocess/${i%.f*}_heading_${ref2%.f*}_${ref4%.f*}.sam - | tr ' ' '\t' > ${projdir}/preprocess/${i%.f*}_${ref2%.f*}_${ref4%.f*}.sam
 	        rm ${projdir}/preprocess/${i%.f*}_exp_${ref2%.f*}_${ref4%.f*}.sam ${projdir}/preprocess/${i%.f*}_uniq_${ref2%.f*}_${ref4%.f*}.sam ${projdir}/preprocess/${i%.f*}_heading_${ref2%.f*}_${ref4%.f*}.sam ${projdir}/preprocess/${i%.f*}_del_${ref2%.f*}_${ref4%.f*}.sam
 				} & PIDexp10=$!
 
@@ -1026,7 +1026,7 @@ main () {
 	        	awk -v n="^${j}" '$0~n{print $0}' ${projdir}/preprocess/${i%.f*}_uniq_${ref3%.f*}_${ref4%.f*}.sam | awk -v n="$j" '{for(i=0;i<n;i++) print}' >> ${projdir}/preprocess/${i%.f*}_exp_${ref3%.f*}_${ref4%.f*}.sam
 	        done; wait
 	        awk '{print "seq"NR"_"$0}' ${projdir}/preprocess/${i%.f*}_exp_${ref3%.f*}_${ref4%.f*}.sam | tr -s ' ' | \
-	        awk '($3 != "\*")' | awk '($6 != "\*")'  | cat ${projdir}/preprocess/${i%.f*}_heading_${ref3%.f*}_${ref4%.f*}.sam - | tr ' ' '\t' | awk '$5 < 10 {$5 = 20}1' > ${projdir}/preprocess/${i%.f*}_${ref3%.f*}_${ref4%.f*}.sam
+	        awk '($3 != "\*")' | awk '($6 != "\*")'  | awk '$5 < 10 {$5 = 20}1' | cat ${projdir}/preprocess/${i%.f*}_heading_${ref3%.f*}_${ref4%.f*}.sam - | tr ' ' '\t' > ${projdir}/preprocess/${i%.f*}_${ref3%.f*}_${ref4%.f*}.sam
 	        rm ${projdir}/preprocess/${i%.f*}_exp_${ref3%.f*}_${ref4%.f*}.sam ${projdir}/preprocess/${i%.f*}_uniq_${ref3%.f*}_${ref4%.f*}.sam ${projdir}/preprocess/${i%.f*}_heading_${ref3%.f*}_${ref4%.f*}.sam ${projdir}/preprocess/${i%.f*}_del_${ref3%.f*}_${ref4%.f*}.sam
 				} & PIDexp11=$!
 
@@ -1038,7 +1038,7 @@ main () {
 					  awk -v n="^${j}" '$0~n{print $0}' ${projdir}/preprocess/${i%.f*}_uniq_${ref1%.f*}.sam | awk -v n="$j" '{for(i=0;i<n;i++) print}' >> ${projdir}/preprocess/${i%.f*}_exp_${ref1%.f*}.sam
 					done; wait
 					awk '{print "seq"NR"_"$0}' ${projdir}/preprocess/${i%.f*}_exp_${ref1%.f*}.sam | tr -s ' ' | \
-					awk '($3 != "\*")' | awk '($6 != "\*")'  | cat ${projdir}/preprocess/${i%.f*}_heading_${ref1%.f*}.sam - | tr ' ' '\t' | awk '$5 < 10 {$5 = 20}1' > ${projdir}/preprocess/${i%.f*}_${ref1%.f*}.sam
+					awk '($3 != "\*")' | awk '($6 != "\*")'  | awk '$5 < 10 {$5 = 20}1' | cat ${projdir}/preprocess/${i%.f*}_heading_${ref1%.f*}.sam - | tr ' ' '\t' > ${projdir}/preprocess/${i%.f*}_${ref1%.f*}.sam
 					rm ${projdir}/preprocess/${i%.f*}_exp_${ref1%.f*}.sam ${projdir}/preprocess/${i%.f*}_uniq_${ref1%.f*}.sam ${projdir}/preprocess/${i%.f*}_heading_${ref1%.f*}.sam ${projdir}/preprocess/${i%.f*}_del_${ref1%.f*}.sam
 				} & PIDexp12=$!
 
@@ -1056,7 +1056,7 @@ main () {
 					  awk -v n="^${j}" '$0~n{print $0}' ${projdir}/preprocess/${i%.f*}_uniq_${ref2%.f*}.sam | awk -v n="$j" '{for(i=0;i<n;i++) print}' >> ${projdir}/preprocess/${i%.f*}_exp_${ref2%.f*}.sam
 					done; wait
 					awk '{print "seq"NR"_"$0}' ${projdir}/preprocess/${i%.f*}_exp_${ref2%.f*}.sam | tr -s ' ' | \
-					awk '($3 != "\*")' | awk '($6 != "\*")'  | cat ${projdir}/preprocess/${i%.f*}_heading_${ref2%.f*}.sam - | tr ' ' '\t' | awk '$5 < 10 {$5 = 20}1' > ${projdir}/preprocess/${i%.f*}_${ref2%.f*}.sam
+					awk '($3 != "\*")' | awk '($6 != "\*")'  | awk '$5 < 10 {$5 = 20}1' | cat ${projdir}/preprocess/${i%.f*}_heading_${ref2%.f*}.sam - | tr ' ' '\t' > ${projdir}/preprocess/${i%.f*}_${ref2%.f*}.sam
 					rm ${projdir}/preprocess/${i%.f*}_exp_${ref2%.f*}.sam ${projdir}/preprocess/${i%.f*}_uniq_${ref2%.f*}.sam ${projdir}/preprocess/${i%.f*}_heading_${ref2%.f*}.sam ${projdir}/preprocess/${i%.f*}_del_${ref2%.f*}.sam
 				} & PIDexp13=$!
 
@@ -1068,7 +1068,7 @@ main () {
 					  awk -v n="^${j}" '$0~n{print $0}' ${projdir}/preprocess/${i%.f*}_uniq_${ref3%.f*}.sam | awk -v n="$j" '{for(i=0;i<n;i++) print}' >> ${projdir}/preprocess/${i%.f*}_exp_${ref3%.f*}.sam
 					done; wait
 					awk '{print "seq"NR"_"$0}' ${projdir}/preprocess/${i%.f*}_exp_${ref3%.f*}.sam | tr -s ' ' | \
-					awk '($3 != "\*")' | awk '($6 != "\*")'  | cat ${projdir}/preprocess/${i%.f*}_heading_${ref3%.f*}.sam - | tr ' ' '\t' | awk '$5 < 10 {$5 = 20}1' > ${projdir}/preprocess/${i%.f*}_${ref3%.f*}.sam
+					awk '($3 != "\*")' | awk '($6 != "\*")'  | awk '$5 < 10 {$5 = 20}1' | cat ${projdir}/preprocess/${i%.f*}_heading_${ref3%.f*}.sam - | tr ' ' '\t' > ${projdir}/preprocess/${i%.f*}_${ref3%.f*}.sam
 					rm ${projdir}/preprocess/${i%.f*}_exp_${ref3%.f*}.sam ${projdir}/preprocess/${i%.f*}_uniq_${ref3%.f*}.sam ${projdir}/preprocess/${i%.f*}_heading_${ref3%.f*}.sam ${projdir}/preprocess/${i%.f*}_del_${ref3%.f*}.sam
 				} & PIDexp14=$!
 
@@ -1080,7 +1080,7 @@ main () {
 					  awk -v n="^${j}" '$0~n{print $0}' ${projdir}/preprocess/${i%.f*}_uniq_${ref4%.f*}.sam | awk -v n="$j" '{for(i=0;i<n;i++) print}' >> ${projdir}/preprocess/${i%.f*}_exp_${ref4%.f*}.sam
 					done; wait
 					awk '{print "seq"NR"_"$0}' ${projdir}/preprocess/${i%.f*}_exp_${ref4%.f*}.sam | tr -s ' ' | \
-					awk '($3 != "\*")' | awk '($6 != "\*")'  | cat ${projdir}/preprocess/${i%.f*}_heading_${ref4%.f*}.sam - | tr ' ' '\t' | awk '$5 < 10 {$5 = 20}1' > ${projdir}/preprocess/${i%.f*}_${ref4%.f*}.sam
+					awk '($3 != "\*")' | awk '($6 != "\*")'  | awk '$5 < 10 {$5 = 20}1' | cat ${projdir}/preprocess/${i%.f*}_heading_${ref4%.f*}.sam - | tr ' ' '\t' > ${projdir}/preprocess/${i%.f*}_${ref4%.f*}.sam
 					rm ${projdir}/preprocess/${i%.f*}_exp_${ref4%.f*}.sam ${projdir}/preprocess/${i%.f*}_uniq_${ref4%.f*}.sam ${projdir}/preprocess/${i%.f*}_heading_${ref4%.f*}.sam ${projdir}/preprocess/${i%.f*}_del_${ref4%.f*}.sam
 				} & PIDexp15=$!
 
