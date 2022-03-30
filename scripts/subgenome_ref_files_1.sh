@@ -604,7 +604,7 @@ main () {
 	for i in $(cat ${projdir}/${samples_list} ); do
 		if [[ "$lib_type" == "RRS" ]] && test ! -f ${projdir}/hapfilter_done.txt && test ! -f ${projdir}/compress_done.txt && test ! -f "${projdir}/preprocess/${i%.f*}_redun.sam.gz" && test ! -f "${projdir}/preprocess/${i%.f*}_${ref1%.f*}_precall.bam.bai"; then
 				sleep $[ ( $RANDOM % 30 )  + 10 ]s
-				export nempty=$( ls ${projdir}/samples/${i%.f*}_uniq_R2.fasta.gz> /dev/null | wc -l | awk '{print $1}' )
+				export nempty=$( ls ${projdir}/samples/${i%.f*}_uniq_R2.fasta.gz 2> /dev/null | wc -l | awk '{print $1}' )
 				 if [[ "$mhap_freq" -gt 0 ]]; then
 					 if [[ "$nempty" -gt 0 ]]; then
 					  awk '{print $2}' ${projdir}/alignment_summaries/background_mutation_test/pop_haps_freqFail.txt | \
@@ -739,7 +739,7 @@ main () {
 					awk -v n="^${j}" '$0~n{print $0}' ${projdir}/preprocess/${i%.f*}_uniq.sam | awk -v n="$j" '{for(i=0;i<n;i++) print}' >> ${projdir}/preprocess/${i%.f*}_exp.sam &&
 					wait
 				done
-				awk '{print "seq"NR"_"$0}' ${projdir}/preprocess/${i%.f*}_exp.sam | tr -s ' ' | awk '{gsub(/256/,"0",$2);gsub(/272/,"16",$2); print}' | \
+				awk '{print "seq"NR"_"$0}' ${projdir}/preprocess/${i%.f*}_exp.sam | tr -s ' ' | \
 				awk '!($3 ~ "\*")' | awk '!($6 ~ "\*")' | cat ${projdir}/preprocess/${i%.f*}_heading.sam - | tr ' ' '\t' > ${projdir}/preprocess/${i%.f*}_${ref1%.f*}.sam &&
 				rm ${projdir}/preprocess/${i%.f*}_exp.sam ${projdir}/preprocess/${i%.f*}_uniq.sam ${projdir}/preprocess/${i%.f*}_heading.sam
 				rm ${projdir}/preprocess/${i%.f*}_redun.sam.gz
@@ -758,7 +758,7 @@ main () {
 	done
 
 	wait && touch ${projdir}/precall_done.txt
-	ls ${projdir}/preprocess/* | grep -v precall | xargs rm &&
+	ls ${projdir}/preprocess/* | grep -v precall | xargs rm 2> /dev/null &&
 	cd ${projdir}/samples
 
 	if [[ ! -f "${projdir}/align3_${samples_list}" ]]; then touch "${projdir}/align3_${samples_list}"; fi
