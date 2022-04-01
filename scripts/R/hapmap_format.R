@@ -11,7 +11,7 @@ geno$CHROM <- sub("Chr","",geno$CHROM)
 geno$CHROM <- as.numeric(as.character(geno$CHROM))
 
 # convert genotype file to hapmap file
-if("pvalue" %in% colnames(geno_2x)) {geno_2x <- subset(geno_2x, select=-c(pvalue))}
+if("pvalue" %in% colnames(geno)) {geno <- subset(geno, select=-c(pvalue))}
 
 geno[,6:ncol(geno)][is.na(geno[,6:ncol(geno)])] <- "NN"
 geno_indel <- subset(geno, nchar(geno$REF) > 1 | nchar(geno$ALT) > 1 )
