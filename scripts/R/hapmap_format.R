@@ -4,7 +4,7 @@
 ####################################################################################################################
 args <- commandArgs(trailingOnly = TRUE)
 args
-geno_2x <- read.table(args[1], header=T, sep="\t", check.names=FALSE,stringsAsFactors=FALSE)
+geno <- read.table(args[1], header=T, sep="\t", check.names=FALSE,stringsAsFactors=FALSE)
 geno$CHROM <- sub(".*\\_","",geno$CHROM)
 geno$SNP <- sub(".*?_","",geno$SNP)
 geno$CHROM <- sub("Chr","",geno$CHROM)
