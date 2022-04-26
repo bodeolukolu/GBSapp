@@ -4,21 +4,22 @@
 </p>
 
 # Introduction
-GBSapp (v. 1.0) is an automated pipeline for variant calling and filtering. The pipeline intuitively integrates existing/novel best practices, some of which can be controlled by user-defined parameters. It optimizes memory and speed at various steps of the pipeline, for example, a novel approach performs compression and decompression of unique reads before and after read alignment, respectively. Summary reports and visualizations allow for QC at each step of the pipeline.
+GBSapp is an automated pipeline for variant calling and filtering. The pipeline intuitively integrates existing/novel best practices, some of which can be controlled by user-defined parameters. It optimizes memory and speed at various steps of the pipeline, for example, a novel approach performs compression and decompression of unique reads before and after read alignment, respectively. Summary reports and visualizations allow for QC at each step of the pipeline.
 
 For questions, bugs, and suggestions, please contact bolukolu@utk.edu.
 
 ## Features
 - Easy to learn, and use.
-- Fully-automated: “walk-away” and “walk-through” mode.
 - Dosage-based variant calling and filtering.
+- Fully-automated: “walk-away” and “walk-through” mode.
 - Allows for use of haplotype-resolved reference genomes.
 - Variant calling implemented from 1x (haploid) to 8x (octoploid).
+- Annonate SNPs based on if reads map to single and multiple loci.
+- Parallelization of job on multiple compute cluster nodes (spark cluster infrastructure not required)
 - Splice-aware aligner allows for RNAseq data as input (recommended only for haploid or diploid genomes)
 - Can exclude reads that are rare haplotypes at population level (due to sequencing error and somaclonal variation).
-- Annonate SNPs based on if reads map to single and multiple loci.
 - Functions under-development:
-  - calling microhaplotypes markers
+  - calling microhaplotypes
   - generating sequence context for variants
   - estimating ploidy level and aneuploidy.
 
@@ -147,8 +148,6 @@ Using a text editor, save a file containing any of the following variables as 'c
 |downsample|0|maximum number of reads to use|integer|Optional|
 |joint_calling|false| cohort calling will be performed if set to false|string|Optional|
 |keep_gVCF|false|keep sample gVCF files, if additional samples will be included for future joint calling)|string|Optional|
-|maxindel|100|maximum insertion-deletion|integer|Optional|
-|PEdist|250|Initial average distance between paired reads|integer|Optional|
 
 **Note: na indicates that variable is user-defined or hard-coded/computed intuitively, as well as a function of ploidy.*
 
@@ -199,8 +198,6 @@ softclip=false
 downsample=0
 joint_calling=false
 keep_gVCF=false
-maxindel=100
-PEdist=250
 ```
 
 Alternatively, a configuration file (outlined below) specifying only the ploidy level is sufficient to run GBSapp.

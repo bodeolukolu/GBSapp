@@ -23,7 +23,7 @@ if [[ "$1" == "" ]]; then
 fi
 if [[ "$1" == "-v" || "$1" == "--version" ]]; then
   echo -e "${white}\n\tProgram:	GBSapp"
-  echo -e "${white}\tVersion:	1.0"
+  echo -e "${white}\tVersion:	1.1"
   echo -e "${white}\tDescription:	Automated Pipeline for Variant/Haplotype Calling and Filtering"
   echo -e "${white}\tContact:	Bode Olukolu <bolukolu@utk.edu>\n"
   exit 0
@@ -117,7 +117,7 @@ fi
 cd $projdir
 echo -e "${white}\n##################################################################################\n"
 echo -e "${yellow}\t- Program:	GBSapp"
-echo -e "${yellow}\t- Version:	1.0"
+echo -e "${yellow}\t- Version:	1.1"
 echo -e "${yellow}\t- Description:	Automated Pipeline for Variant/Haplotype Calling and Filtering"
 echo -e "${yellow}\t- Contact:	Bode Olukolu <bolukolu@utk.edu> ${white}"
 echo -e "${white}\n##################################################################################\n"
@@ -301,7 +301,7 @@ if test ! -f ${projdir}/Analysis_Complete; then
     read -p "- y(YES) or n(NO)? " -n 1 -r
     if [[ ! $REPLY =~ ^[Yy]$ ]]; then
       echo -e "${magenta}- GBSapp will delete all compressed/indexed, and will redo analysis if read alignments and alignment post-processing is performed ${white}"
-      rm ${projdir}/samples/*_uniq_R1.fasta ${projdir}/samples/*_uniq_R2.fasta 2> /dev/null
+      rm ${projdir}/samples/*_uniq_*.fasta.gz 2> /dev/null
     else
       echo -e "${magenta}- GBSapp will continue analysis, while removing interrupted files ${white}"
     fi
@@ -317,7 +317,7 @@ if test ! -f ${projdir}/Analysis_Complete; then
         read -p "- y(YES) or n(NO)? " -n 1 -r
         if [[ ! $REPLY =~ ^[Yy]$ ]]; then
           echo -e "${magenta}- GBSapp will delete all .bam files and redo analysis if if read alignments and alignment post-processing is performed ${white}"
-          rm ${projdir}/preprocess/*_redun.sam 2> /dev/null
+          rm ${projdir}/preprocess/*_redun.sam.gz 2> /dev/null
         else
           echo -e "${magenta}- GBSapp will continue analysis, while removing interrupted files ${white}"
         fi
@@ -334,7 +334,7 @@ if test ! -f ${projdir}/Analysis_Complete; then
       read -p "- y(YES) or n(NO)? " -n 1 -r
       if [[ ! $REPLY =~ ^[Yy]$ ]]; then
         echo -e "${magenta}- GBSapp will delete all .sam files and redo analysis if read alignments and alignment post-processing is performed ${white}"
-        rm ${projdir}/preprocess/*_redun.sam 2> /dev/null
+        rm ${projdir}/preprocess/*_redun.sam.gz 2> /dev/null
       else
         echo -e "${magenta}- GBSapp will continue analysis, while removing interrupted files ${white}"
       fi
@@ -417,7 +417,8 @@ if [[ "$string" == false ]]; then
     sleep 5
   fi
 
-  echo $samples_list | awk -F' ' '{ for (i=1;i<=NF;i+=1) print $i }' | awk '{gsub(/\.R2.f/,"_R2.f");}1' | grep -v _R2.f | grep -v _uniq_R1.fasta | grep -v _uniq_R2.fasta | grep -v _uniq_R1.hold.fasta | grep -v fq.gz | \
+  echo $samples_list | awk -F' ' '{ for (i=1;i<=NF;i+=1) print $i }' | awk '{gsub(/\.R2.f/,"_R2.f");}1' | grep -v _R2.f | grep -v _uniq.fasta | grep -v _uniq_R1.fasta | grep -v _uniq_R2.fasta | \
+  grep -v _uniq.hold.fasta | grep -v _uniq_R1.hold.fasta | grep -v _uniq_R2.hold.fasta | grep -v fq.gz | \
   awk '{gsub(/_R1.fastq/,".fastq"); gsub(/\.R1.fastq/,".fastq"); gsub(/_R1.fq/,".fq"); gsub(/\.R1.fq/,".fq"); print}' > samples_list_node_1.txt
   printf "samples_list=samples_list_node_1.txt\n" >> config.sh
   cat header.txt config.sh fetchdir.txt $string2 $string3 | awk '{ sub("\r$",""); print}' > GBSapp_run.sh
@@ -652,8 +653,11 @@ if [[ "$cluster" == true ]]; then
       else
         echo -e "${magenta}\n ${white}\n"
         sbatch ${projdir}GBSapp_run_node_1.sh
-        for nn in $(seq 2 "$n_nodes"); do
-          sbatch ${projdir}GBSapp_run_node_${nn}.sh
+        for nn in $(seq 2 "$n_nodes"); do (
+          while [[ ! -f "${projdir}/compress_done.txt" ]]; do
+            sleep 300
+          done
+          sbatch ${projdir}GBSapp_run_node_${nn}.sh ) &
         done
       fi
     else

@@ -39,5 +39,3 @@ softclip=false
 downsample=0
 joint_calling=false
 keep_gVCF=false
-maxindel=100
-PEdist=250

@@ -383,7 +383,7 @@ rd_boxplot <- function() {
 
     subgenome_1_boxplot$DP <- as.numeric(as.character(subgenome_1_boxplot$DP))
     subgenome_1_boxplot <- na.omit(subgenome_1_boxplot)
-    quantile999 <- quantile(subgenome_1_boxplot$DP, probs = c(0.999), na.rm= TRUE)
+    quantile999 <- quantile(subgenome_1_boxplot$DP, probs = c(0.95), na.rm= TRUE)
     nsamples <- length(unique(subgenome_1_boxplot$samples))
     if (nsamples <= 20) { nsamples <- 36 } else { nsamples <- sqrt(22500/nsamples) }
     boxplot <- ggplot(subgenome_1_boxplot, aes(x = reorder(samples,DP, na.rm = TRUE), y=DP), stat='identity')+
@@ -401,12 +401,16 @@ rd_boxplot <- function() {
     meanDP <- mean(subgenome_1_boxplot$DP, na.rm=T)
     medianDP <- median(subgenome_1_boxplot$DP, na.rm=T)
     maxDP <- max(table(subgenome_1_boxplot$DP))
-    quantile999 <- quantile(subgenome_1_boxplot$DP, probs = c(0.999), na.rm= TRUE)
     subgenome_1_dist <- as.data.frame(table(subgenome_1_boxplot$DP))
     subgenome_1_dist$Var1 <- as.numeric(as.character(subgenome_1_dist$Var1))
-    subgenome_1_distm <- subset(subgenome_1_dist, Freq > quantile999)
-    if (nrow(subgenome_1_distm) == 0) {maxX <- max(subgenome_1_dist[,1])} else {maxX <- max(subgenome_1_distm[,1])}
-    if (maxX >= 100) { intervalm <- round(maxX/10,-1) } else { intervalm <- round(maxX/10,0) } 
+    maxX <- subset(subgenome_1_dist, Freq > 1)
+    maxX <- subset(maxX, Freq == min(maxX$Freq))
+    maxX <- min(maxX$Var1)
+    if (maxX <= 100) {intervalm <- 10}
+    if (maxX > 100) {intervalm <- 100}
+    if (maxX > 1000) {intervalm <- 250}
+    if (maxX > 10000) {intervalm <- 1000}
+    
     histogram <- ggplot(subgenome_1_dist, aes(x=Var1, y=Freq)) +
       geom_bar(stat="identity", position=position_dodge(0.95), width=0.9, colour="cornflowerblue", fill="white")+
       geom_vline(aes(xintercept=meanDP), color="cornflowerblue", linetype="dashed", size=3, alpha=0.5)+
@@ -414,7 +418,7 @@ rd_boxplot <- function() {
       geom_text(aes(x=meanDP, label=paste("mean = ",round(meanDP),sep=""), y=(maxDP*0.25)), colour="cornflowerblue", angle=90, vjust = 1.2, size=7.5) +
       geom_text(aes(x=medianDP, label=paste("median = ",round(medianDP),sep=""), y=(maxDP*0.5)), colour="tomato", angle=90, vjust = 1.2, size=7.5) +
       scale_y_continuous(expand = c(0, 0), labels = function(x) format(x, big.mark = ",",scientific = T)) +
-      scale_x_continuous(breaks=seq(0,maxX,intervalm)) +
+      scale_x_continuous(breaks=seq(0,maxX,intervalm), limits=c(-20,maxX)) +
       theme(axis.text.x=element_text(colour="cornflowerblue", size=24),
             axis.text.y=element_text(colour="cornflowerblue", size=24),
             axis.title=element_text(size=30)) +
@@ -451,7 +455,7 @@ rd_boxplot <- function() {
 
   subgenome_1_boxplot$DP <- as.numeric(as.character(subgenome_1_boxplot$DP))
   subgenome_1_boxplot <- na.omit(subgenome_1_boxplot)
-  quantile999 <- quantile(subgenome_1_boxplot$DP, probs = c(0.999), na.rm= TRUE)
+  quantile999 <- quantile(subgenome_1_boxplot$DP, probs = c(0.95), na.rm= TRUE)
   nsamples <- length(unique(subgenome_1_boxplot$samples))
   if (nsamples <= 20) { nsamples <- 36 } else { nsamples <- sqrt(22500/nsamples) }
   boxplot <- ggplot(subgenome_1_boxplot, aes(x = reorder(samples,DP, na.rm = TRUE), y=DP), stat='identity')+
@@ -469,12 +473,16 @@ rd_boxplot <- function() {
   meanDP <- mean(subgenome_1_boxplot$DP, na.rm=T)
   medianDP <- median(subgenome_1_boxplot$DP, na.rm=T)
   maxDP <- max(table(subgenome_1_boxplot$DP))
-  quantile999 <- quantile(subgenome_1_boxplot$DP, probs = c(0.999), na.rm= TRUE)
   subgenome_1_dist <- as.data.frame(table(subgenome_1_boxplot$DP))
   subgenome_1_dist$Var1 <- as.numeric(as.character(subgenome_1_dist$Var1))
-  subgenome_1_distm <- subset(subgenome_1_dist, Freq > quantile999)
-  if (nrow(subgenome_1_distm) == 0) {maxX <- max(subgenome_1_dist[,1])} else {maxX <- max(subgenome_1_distm[,1])}
-  if (maxX >= 100) { intervalm <- round(maxX/10,-1) } else { intervalm <- round(maxX/10,0) } 
+  maxX <- subset(subgenome_1_dist, Freq > 1)
+  maxX <- subset(maxX, Freq == min(maxX$Freq))
+  maxX <- min(maxX$Var1)
+  if (maxX <= 100) {intervalm <- 10}
+  if (maxX > 100) {intervalm <- 100}
+  if (maxX > 1000) {intervalm <- 250}
+  if (maxX > 10000) {intervalm <- 1000}
+  
   histogram <- ggplot(subgenome_1_dist, aes(x=Var1, y=Freq)) +
     geom_bar(stat="identity", position=position_dodge(0.95), width=0.9, colour="cornflowerblue", fill="white")+
     geom_vline(aes(xintercept=meanDP), color="cornflowerblue", linetype="dashed", size=3, alpha=0.5)+
@@ -482,7 +490,7 @@ rd_boxplot <- function() {
     geom_text(aes(x=meanDP, label=paste("mean = ",round(meanDP),sep=""), y=(maxDP*0.25)), colour="cornflowerblue", angle=90, vjust = 1.2, size=7.5) +
     geom_text(aes(x=medianDP, label=paste("median = ",round(medianDP),sep=""), y=(maxDP*0.5)), colour="tomato", angle=90, vjust = 1.2, size=7.5) +
     scale_y_continuous(expand = c(0, 0), labels = function(x) format(x, big.mark = ",",scientific = T)) +
-    scale_x_continuous(breaks=seq(0,maxX,intervalm)) +
+    scale_x_continuous(breaks=seq(0,maxX,intervalm), limits=c(-20,maxX)) +
     theme(axis.text.x=element_text(colour="cornflowerblue", size=24),
           axis.text.y=element_text(colour="cornflowerblue", size=24),
           axis.title=element_text(size=30)) +
@@ -506,10 +514,7 @@ raw_alleles <- function() {
   names(Multiallelic)[names(Multiallelic) == "Var1"] <- "Genotype"
   Multiallelic <- subset(Multiallelic, Genotype != "./././././.")
   Multiallelic[][Multiallelic[]=="NA"] <- "0"
-  Multiallelic$Freq <- round((Multiallelic$Freq)/((ncol(subgenome_1)-4)/2),0)
   sum <- sum(Multiallelic$Freq)
-  max <- max(Multiallelic$Freq)
-  max <- max*1.3
   Multiallelic$percentage <- ((Multiallelic$Freq)/sum)*100
   Multiallelic <- subset(Multiallelic, percentage >= 0.01)
   Multiallelic[,3] <- round(Multiallelic[,3], 2)
@@ -517,10 +522,12 @@ raw_alleles <- function() {
   Multiallelic$length1 <- lengths(regmatches(Multiallelic$Genotype, gregexpr("1", Multiallelic$Genotype)))
   Multiallelic <- Multiallelic[order(Multiallelic$length0, Multiallelic$length1, Multiallelic$Genotype),]
   Multiallelic$Genotype <- factor(Multiallelic$Genotype, levels = Multiallelic$Genotype)
-  plot <- ggplot(Multiallelic, aes(x = Genotype, y=Freq, fill=Genotype, group=Genotype)) +
+  max <- max(Multiallelic$percentage)
+  max <- max*1.3
+  plot <- ggplot(Multiallelic, aes(x = Genotype, y=percentage, fill=Genotype, group=Genotype)) +
     geom_bar(stat="identity", position=position_dodge(0.95), width=0.9,
              colour="black")+
-    geom_text(aes(x=Genotype, y=Freq, label = paste(percentage, "%"), group=Genotype),
+    geom_text(aes(x=Genotype, y=percentage, label = paste(percentage, "%"), group=Genotype),
               position=position_dodge(0.95), hjust = -0.1, size=4, color="black", fontface="italic")+
     theme(axis.text.x=element_text(colour="cornflowerblue", size=12),
           axis.text.y=element_text(colour="cornflowerblue", size=12),
@@ -529,12 +536,48 @@ raw_alleles <- function() {
     theme(legend.text=element_text(size=12)) +
     theme(legend.key=element_rect(fill=NA)) +
     theme(legend.key.size = unit(0.4, "cm")) +
-    guides(fill=guide_legend(ncol=1))+
+    guides(fill=guide_legend(ncol=1, reverse = TRUE))+
     scale_y_continuous(expand = c(0, 0), labels = function(x) format(x, big.mark = ",",
                                                                      scientific = FALSE)) +
     expand_limits(y = c(0, max))+
     xlab("Genotypes") +
-    ylab(paste("Proportion of Genotypes (",sum,")", sep=""))
+    ylab(paste("Proportion of Genotypes (",nrow(subgenome_1_plots)," variants)", sep=""))
+  ggsave(filename=paste(pop,"_6x_rawRD",rd+1,"_Variants.tiff",sep=""), plot=plot, width=7.5, height= 5, dpi=300, compression = "lzw")
+  
+  subgenome_1_plots <- read.table (file=paste(pop,"_6x_","RD",rd+1,"_maf",MinorAlleleFreq,"_binary.txt",sep=""), header=T, sep="\t", check.names = FALSE)
+  subgenome_1_plots <- subset(subgenome_1_plots, select=c(6:ncol(subgenome_1_plots)))
+  Multiallelic <- as.data.frame(table(as.matrix(subgenome_1_plots)))
+  names(Multiallelic)[names(Multiallelic) == "Var1"] <- "Genotype"
+  Multiallelic <- subset(Multiallelic, Genotype != "./././././.")
+  Multiallelic[][Multiallelic[]=="NA"] <- "0"
+  sum <- sum(Multiallelic$Freq)
+  Multiallelic$percentage <- ((Multiallelic$Freq)/sum)*100
+  Multiallelic <- subset(Multiallelic, percentage >= 0.01)
+  Multiallelic[,3] <- round(Multiallelic[,3], 2)
+  Multiallelic$length0 <- lengths(regmatches(Multiallelic$Genotype, gregexpr("0", Multiallelic$Genotype)))
+  Multiallelic$length1 <- lengths(regmatches(Multiallelic$Genotype, gregexpr("1", Multiallelic$Genotype)))
+  Multiallelic <- Multiallelic[order(Multiallelic$length0, Multiallelic$length1, Multiallelic$Genotype),]
+  Multiallelic$Genotype <- factor(Multiallelic$Genotype, levels = Multiallelic$Genotype)
+  max <- max(Multiallelic$percentage)
+  max <- max*1.3
+  plot <- ggplot(Multiallelic, aes(x = Genotype, y=percentage, fill=Genotype, group=Genotype)) +
+    geom_bar(stat="identity", position=position_dodge(0.95), width=0.9,
+             colour="black")+
+    geom_text(aes(x=Genotype, y=percentage, label = paste(percentage, "%"), group=Genotype),
+              position=position_dodge(0.95), hjust = -0.1, size=4, color="black", fontface="italic")+
+    theme(axis.text.x=element_text(colour="cornflowerblue", size=12),
+          axis.text.y=element_text(colour="cornflowerblue", size=12),
+          axis.title=element_text(size=14)) +
+    coord_flip()+
+    theme(legend.text=element_text(size=12)) +
+    theme(legend.key=element_rect(fill=NA)) +
+    theme(legend.key.size = unit(0.4, "cm")) +
+    guides(fill=guide_legend(ncol=1, reverse = TRUE))+
+    scale_y_continuous(expand = c(0, 0), labels = function(x) format(x, big.mark = ",",
+                                                                     scientific = FALSE)) +
+    expand_limits(y = c(0, max))+
+    xlab("Genotypes") +
+    ylab(paste("Proportion of Genotypes (",nrow(subgenome_1_plots)," variants)", sep=""))
   ggsave(filename=paste(pop,"_6x_rawRD",rd+1,"_Variants.tiff",sep=""), plot=plot, width=7.5, height= 5, dpi=300, compression = "lzw")
 }
 raw_alleles()

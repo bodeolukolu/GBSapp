@@ -29,17 +29,20 @@ if (ploidy == "1x"){
       vcffile[][vcffile[]=="."] <- NA
       names(vcffile) <- gsub(names(vcffile), pattern = "\\.x", replacement = "_DP")
       names(vcffile) <- gsub(names(vcffile), pattern = "\\.y", replacement = "_GT")
+      vcffile$no_missing <- rowSums(is.na(vcffile))
+      vcffile <- subset(vcffile, no_missing <= ((ncol(vcffile)-5)/2)*0.8)
+      vcffile <- subset(vcffile, select=-c(no_missing))
+      vcffile[, 5:(((ncol(vcffile)-4)/2)+4)] <- lapply(vcffile[,5:(((ncol(vcffile)-4)/2)+4)], gsub, pattern = "0,0", replacement = "0", fixed = TRUE)
+      vcffile[, 5:(((ncol(vcffile)-4)/2)+4)] <- lapply(5:(((ncol(vcffile)-4)/2)+4), function(x) as.numeric(vcffile[[x]]))
+      vcffile <- vcffile[rowSums(vcffile[, 5:(((ncol(vcffile)-4)/2)+4)] == 0, na.rm = TRUE) <= ((ncol(vcffile)-5)/2)*0.8, ]
+      vcffile$maf0 <- rowSums(vcffile == "0", na.rm = TRUE) / (rowSums(!is.na(vcffile))-4)
+      vcffile$maf1 <- rowSums(vcffile == "1", na.rm = TRUE) / (rowSums(!is.na(vcffile))-5)
+      vcffile <- subset(vcffile, maf0 < 0.99)
+      vcffile <- subset(vcffile, maf1 < 0.99)
+      vcffile <- subset(vcffile, select=-c(maf0,maf1))
       subgenome_1 <- rbind(subgenome_1,vcffile)
       gc()
     }
-    subgenome_1$no_missing <- rowSums(is.na(subgenome_1))
-    subgenome_1 <- subset(subgenome_1, no_missing <= ((ncol(subgenome_1)-5)/2)*0.8)
-    subgenome_1 <- subset(subgenome_1, select=-c(no_missing))
-    subgenome_1$maf0 <- rowSums(subgenome_1 == "0", na.rm = TRUE) / (rowSums(!is.na(subgenome_1))-4)
-    subgenome_1$maf1 <- rowSums(subgenome_1 == "1", na.rm = TRUE) / (rowSums(!is.na(subgenome_1))-5)
-    subgenome_1 <- subset(subgenome_1, maf0 < 0.99)
-    subgenome_1 <- subset(subgenome_1, maf1 < 0.99)
-    subgenome_1 <- subset(subgenome_1, select=-c(maf0,maf1))
     write.table (subgenome_1, file=paste(pop,"_1x","_DP_GT.txt",sep=""), row.names=F, quote = FALSE, sep = "\t")
     vcffile <- NULL
     vcffile_DP <- NULL
@@ -73,18 +76,21 @@ if (ploidy == "2x"){
       vcffile[][vcffile[]=="./."] <- NA
       names(vcffile) <- gsub(names(vcffile), pattern = "\\.x", replacement = "_DP")
       names(vcffile) <- gsub(names(vcffile), pattern = "\\.y", replacement = "_GT")
+      vcffile$no_missing <- rowSums(is.na(vcffile))
+      vcffile <- subset(vcffile, no_missing <= ((ncol(vcffile)-5)/2)*0.8)
+      vcffile <- subset(vcffile, select=-c(no_missing))
+      vcffile[, 5:(((ncol(vcffile)-4)/2)+4)] <- lapply(vcffile[,5:(((ncol(vcffile)-4)/2)+4)], gsub, pattern = "0,0", replacement = "0", fixed = TRUE)
+      vcffile[, 5:(((ncol(vcffile)-4)/2)+4)] <- lapply(5:(((ncol(vcffile)-4)/2)+4), function(x) as.numeric(vcffile[[x]]))
+      vcffile <- vcffile[rowSums(vcffile[, 5:(((ncol(vcffile)-4)/2)+4)] == 0, na.rm = TRUE) <= ((ncol(vcffile)-5)/2)*0.8, ]
+      vcffile$maf0 <- rowSums(vcffile == "0/0", na.rm = TRUE) / (rowSums(!is.na(vcffile))-4)
+      vcffile$maf1 <- rowSums(vcffile == "1/1", na.rm = TRUE) / (rowSums(!is.na(vcffile))-5)
+      vcffile <- subset(vcffile, maf0 < 0.99)
+      vcffile <- subset(vcffile, maf1 < 0.99)
+      vcffile <- subset(vcffile, select=-c(maf0,maf1))
+      vcffile[vcffile=="1/0"] <- "0/1"
       subgenome_1 <- rbind(subgenome_1,vcffile)
       gc()
     }
-    subgenome_1$no_missing <- rowSums(is.na(subgenome_1))
-    subgenome_1 <- subset(subgenome_1, no_missing <= ((ncol(subgenome_1)-5)/2)*0.8)
-    subgenome_1 <- subset(subgenome_1, select=-c(no_missing))
-    subgenome_1$maf0 <- rowSums(subgenome_1 == "0/0", na.rm = TRUE) / (rowSums(!is.na(subgenome_1))-4)
-    subgenome_1$maf1 <- rowSums(subgenome_1 == "1/1", na.rm = TRUE) / (rowSums(!is.na(subgenome_1))-5)
-    subgenome_1 <- subset(subgenome_1, maf0 < 0.99)
-    subgenome_1 <- subset(subgenome_1, maf1 < 0.99)
-    subgenome_1 <- subset(subgenome_1, select=-c(maf0,maf1))
-    subgenome_1[subgenome_1=="1/0"] <- "0/1"
     write.table (subgenome_1, file=paste(pop,"_2x","_DP_GT.txt",sep=""), row.names=F, quote = FALSE, sep = "\t")
     vcffile <- NULL
     vcffile_DP <- NULL
@@ -118,22 +124,23 @@ if (ploidy == "4x"){
       vcffile[][vcffile[]=="./././."] <- NA
       names(vcffile) <- gsub(names(vcffile), pattern = "\\.x", replacement = "_DP")
       names(vcffile) <- gsub(names(vcffile), pattern = "\\.y", replacement = "_GT")
+      vcffile$no_missing <- rowSums(is.na(vcffile))
+      vcffile <- subset(vcffile, no_missing <= ((ncol(vcffile)-5)/2)*0.8)
+      vcffile <- subset(vcffile, select=-c(no_missing))
+      vcffile[, 5:(((ncol(vcffile)-4)/2)+4)] <- lapply(vcffile[,5:(((ncol(vcffile)-4)/2)+4)], gsub, pattern = "0,0", replacement = "0", fixed = TRUE)
+      vcffile[, 5:(((ncol(vcffile)-4)/2)+4)] <- lapply(5:(((ncol(vcffile)-4)/2)+4), function(x) as.numeric(vcffile[[x]]))
+      vcffile <- vcffile[rowSums(vcffile[, 5:(((ncol(vcffile)-4)/2)+4)] == 0, na.rm = TRUE) <= ((ncol(vcffile)-5)/2)*0.8, ]
+      vcffile$maf0 <- rowSums(vcffile == "0/0/0/0", na.rm = TRUE) / (rowSums(!is.na(vcffile))-4)
+      vcffile$maf1 <- rowSums(vcffile == "1/1/1/1", na.rm = TRUE) / (rowSums(!is.na(vcffile))-5)
+      vcffile <- subset(vcffile, maf0 < 0.99)
+      vcffile <- subset(vcffile, maf1 < 0.99)
+      vcffile <- subset(vcffile, select=-c(maf0,maf1))
+      vcffile[vcffile=="1/0/0/0" | vcffile=="0/1/0/0" | vcffile=="0/0/1/0" ] <- "0/0/0/1"
+      vcffile[vcffile=="1/1/0/0" | vcffile=="0/1/1/0"] <- "0/0/1/1"
+      vcffile[vcffile=="1/1/1/0"] <- "0/1/1/1"
       subgenome_1 <- rbind(subgenome_1,vcffile)
       gc()
     }
-    subgenome_1$no_missing <- rowSums(is.na(subgenome_1))
-    subgenome_1 <- subset(subgenome_1, no_missing <= ((ncol(subgenome_1)-5)/2)*0.8)
-    subgenome_1 <- subset(subgenome_1, select=-c(no_missing))
-    subgenome_1$maf0 <- rowSums(subgenome_1 == "0/0/0/0", na.rm = TRUE) / (rowSums(!is.na(subgenome_1))-4)
-    subgenome_1$maf1 <- rowSums(subgenome_1 == "1/1/1/1", na.rm = TRUE) / (rowSums(!is.na(subgenome_1))-5)
-    subgenome_1 <- subset(subgenome_1, maf0 < 0.99)
-    subgenome_1 <- subset(subgenome_1, maf1 < 0.99)
-    subgenome_1 <- subset(subgenome_1, select=-c(maf0,maf1))
-    
-    subgenome_1[subgenome_1=="1/0/0/0" | subgenome_1=="0/1/0/0" | subgenome_1=="0/0/1/0" ] <- "0/0/0/1"
-    subgenome_1[subgenome_1=="1/1/0/0" | subgenome_1=="0/1/1/0"] <- "0/0/1/1"
-    subgenome_1[subgenome_1=="1/1/1/0"] <- "0/1/1/1"
-    
     write.table (subgenome_1, file=paste(pop,"_4x","_DP_GT.txt",sep=""), row.names=F, quote = FALSE, sep = "\t")
     vcffile <- NULL
     vcffile_DP <- NULL
@@ -167,27 +174,28 @@ if (ploidy == "6x"){
       vcffile[][vcffile[]=="./././././."] <- NA
       names(vcffile) <- gsub(names(vcffile), pattern = "\\.x", replacement = "_DP")
       names(vcffile) <- gsub(names(vcffile), pattern = "\\.y", replacement = "_GT")
+      vcffile$no_missing <- rowSums(is.na(vcffile))
+      vcffile <- subset(vcffile, no_missing <= ((ncol(vcffile)-5)/2)*0.8)
+      vcffile <- subset(vcffile, select=-c(no_missing))
+      vcffile[, 5:(((ncol(vcffile)-4)/2)+4)] <- lapply(vcffile[,5:(((ncol(vcffile)-4)/2)+4)], gsub, pattern = "0,0", replacement = "0", fixed = TRUE)
+      vcffile[, 5:(((ncol(vcffile)-4)/2)+4)] <- lapply(5:(((ncol(vcffile)-4)/2)+4), function(x) as.numeric(vcffile[[x]]))
+      vcffile <- vcffile[rowSums(vcffile[, 5:(((ncol(vcffile)-4)/2)+4)] == 0, na.rm = TRUE) <= ((ncol(vcffile)-5)/2)*0.8, ]
+      vcffile$maf0 <- rowSums(vcffile == "0/0/0/0/0/0", na.rm = TRUE) / (rowSums(!is.na(vcffile))-4)
+      vcffile$maf1 <- rowSums(vcffile == "1/1/1/1/1/1", na.rm = TRUE) / (rowSums(!is.na(vcffile))-5)
+      vcffile <- subset(vcffile, maf0 < 0.99)
+      vcffile <- subset(vcffile, maf1 < 0.99)
+      vcffile <- subset(vcffile, select=-c(maf0,maf1))
+      vcffile[vcffile=="1/0/0/0/0/0" | vcffile=="0/1/0/0/0/0" | 
+                    vcffile=="0/0/1/0/0/0" | vcffile=="0/0/0/1/0/0" | vcffile=="0/0/0/0/1/0" ] <- "0/0/0/0/0/1"
+      vcffile[vcffile=="1/1/0/0/0/0" | vcffile=="0/1/1/0/0/0" | 
+                    vcffile=="0/0/1/1/0/0" | vcffile=="0/0/0/1/1/0"] <- "0/0/0/0/1/1"
+      vcffile[vcffile=="1/1/1/0/0/0" | vcffile=="0/1/1/1/0/0" | 
+                    vcffile=="0/0/1/1/1/0"] <- "0/0/0/1/1/1"
+      vcffile[vcffile=="1/1/1/1/0/0" | vcffile=="0/1/1/1/1/0"] <- "0/0/1/1/1/1"
+      vcffile[vcffile=="1/1/1/1/1/0"] <- "0/1/1/1/1/1"
       subgenome_1 <- rbind(subgenome_1,vcffile)
       gc()
     }
-    subgenome_1$no_missing <- rowSums(is.na(subgenome_1))
-    subgenome_1 <- subset(subgenome_1, no_missing <= ((ncol(subgenome_1)-5)/2)*0.8)
-    subgenome_1 <- subset(subgenome_1, select=-c(no_missing))
-    subgenome_1$maf0 <- rowSums(subgenome_1 == "0/0/0/0/0/0", na.rm = TRUE) / (rowSums(!is.na(subgenome_1))-4)
-    subgenome_1$maf1 <- rowSums(subgenome_1 == "1/1/1/1/1/1", na.rm = TRUE) / (rowSums(!is.na(subgenome_1))-5)
-    subgenome_1 <- subset(subgenome_1, maf0 < 0.99)
-    subgenome_1 <- subset(subgenome_1, maf1 < 0.99)
-    subgenome_1 <- subset(subgenome_1, select=-c(maf0,maf1))
-    
-    subgenome_1[subgenome_1=="1/0/0/0/0/0" | subgenome_1=="0/1/0/0/0/0" | 
-                  subgenome_1=="0/0/1/0/0/0" | subgenome_1=="0/0/0/1/0/0" | subgenome_1=="0/0/0/0/1/0" ] <- "0/0/0/0/0/1"
-    subgenome_1[subgenome_1=="1/1/0/0/0/0" | subgenome_1=="0/1/1/0/0/0" | 
-                  subgenome_1=="0/0/1/1/0/0" | subgenome_1=="0/0/0/1/1/0"] <- "0/0/0/0/1/1"
-    subgenome_1[subgenome_1=="1/1/1/0/0/0" | subgenome_1=="0/1/1/1/0/0" | 
-                  subgenome_1=="0/0/1/1/1/0"] <- "0/0/0/1/1/1"
-    subgenome_1[subgenome_1=="1/1/1/1/0/0" | subgenome_1=="0/1/1/1/1/0"] <- "0/0/1/1/1/1"
-    subgenome_1[subgenome_1=="1/1/1/1/1/0"] <- "0/1/1/1/1/1"
-    
     write.table (subgenome_1, file=paste(pop,"_6x","_DP_GT.txt",sep=""), row.names=F, quote = FALSE, sep = "\t")
     vcffile <- NULL
     vcffile_DP <- NULL
@@ -221,33 +229,34 @@ if (ploidy == "8x"){
       vcffile[][vcffile[]=="./././././././."] <- NA
       names(vcffile) <- gsub(names(vcffile), pattern = "\\.x", replacement = "_DP")
       names(vcffile) <- gsub(names(vcffile), pattern = "\\.y", replacement = "_GT")
+      vcffile$no_missing <- rowSums(is.na(vcffile))
+      vcffile <- subset(vcffile, no_missing <= ((ncol(vcffile)-5)/2)*0.8)
+      vcffile <- subset(vcffile, select=-c(no_missing))
+      vcffile[, 5:(((ncol(vcffile)-4)/2)+4)] <- lapply(vcffile[,5:(((ncol(vcffile)-4)/2)+4)], gsub, pattern = "0,0", replacement = "0", fixed = TRUE)
+      vcffile[, 5:(((ncol(vcffile)-4)/2)+4)] <- lapply(5:(((ncol(vcffile)-4)/2)+4), function(x) as.numeric(vcffile[[x]]))
+      vcffile <- vcffile[rowSums(vcffile[, 5:(((ncol(vcffile)-4)/2)+4)] == 0, na.rm = TRUE) <= ((ncol(vcffile)-5)/2)*0.8, ]
+      vcffile$maf0 <- rowSums(vcffile == "0/0/0/0/0/0/0/0", na.rm = TRUE) / (rowSums(!is.na(vcffile))-4)
+      vcffile$maf1 <- rowSums(vcffile == "1/1/1/1/1/1/1/1", na.rm = TRUE) / (rowSums(!is.na(vcffile))-5)
+      vcffile <- subset(vcffile, maf0 < 0.99)
+      vcffile <- subset(vcffile, maf1 < 0.99)
+      vcffile <- subset(vcffile, select=-c(maf0,maf1))
+      vcffile[vcffile=="1/0/0/0/0/0/0/0" | vcffile=="0/1/0/0/0/0/0/0" | 
+                    vcffile=="0/0/1/0/0/0/0/0" | vcffile=="0/0/0/1/0/0/0/0" | vcffile=="0/0/0/0/1/0/0/0" |
+                    vcffile=="0/0/0/0/0/1/0/0" | vcffile=="0/0/0/0/0/0/1/0"] <- "0/0/0/0/0/0/0/1"
+      vcffile[vcffile=="1/1/0/0/0/0/0/0" | vcffile=="0/1/1/0/0/0/0/0" | 
+                    vcffile=="0/0/1/1/0/0/0/0" | vcffile=="0/0/0/1/1/0/0/0" | vcffile=="0/0/0/0/1/1/0/0" |
+                    vcffile=="0/0/0/0/0/1/1/0"] <- "0/0/0/0/0/0/1/1"
+      vcffile[vcffile=="1/1/1/0/0/0/0/0" | vcffile=="0/1/1/1/0/0/0/0" | 
+                    vcffile=="0/0/1/1/1/0/0/0" | vcffile=="0/0/0/1/1/1/0/0" | vcffile=="0/0/0/0/1/1/1/0"] <- "0/0/0/0/0/1/1/1"
+      vcffile[vcffile=="1/1/1/1/0/0/0/0" | vcffile=="0/1/1/1/1/0/0/0" | 
+                    vcffile=="0/0/1/1/1/1/0/0" | vcffile=="0/0/0/1/1/1/1/0"] <- "0/0/0/0/1/1/1/1"
+      vcffile[vcffile=="1/1/1/1/1/0/0/0" | vcffile=="0/1/1/1/1/1/0/0" | 
+                    vcffile=="0/0/1/1/1/1/1/0"] <- "0/0/0/1/1/1/1/1"
+      vcffile[vcffile=="1/1/1/1/1/1/0/0" | vcffile=="0/1/1/1/1/1/1/0"] <- "0/0/1/1/1/1/1/1"
+      vcffile[vcffile=="1/1/1/1/1/1/1/0"] <- "0/1/1/1/1/1/1/1"
       subgenome_1 <- rbind(subgenome_1,vcffile)
       gc()
     }
-    subgenome_1$no_missing <- rowSums(is.na(subgenome_1))
-    subgenome_1 <- subset(subgenome_1, no_missing <= ((ncol(subgenome_1)-5)/2)*0.8)
-    subgenome_1 <- subset(subgenome_1, select=-c(no_missing))
-    subgenome_1$maf0 <- rowSums(subgenome_1 == "0/0/0/0/0/0/0/0", na.rm = TRUE) / (rowSums(!is.na(subgenome_1))-4)
-    subgenome_1$maf1 <- rowSums(subgenome_1 == "1/1/1/1/1/1/1/1", na.rm = TRUE) / (rowSums(!is.na(subgenome_1))-5)
-    subgenome_1 <- subset(subgenome_1, maf0 < 0.99)
-    subgenome_1 <- subset(subgenome_1, maf1 < 0.99)
-    subgenome_1 <- subset(subgenome_1, select=-c(maf0,maf1))
-    
-    subgenome_1[subgenome_1=="1/0/0/0/0/0/0/0" | subgenome_1=="0/1/0/0/0/0/0/0" | 
-                  subgenome_1=="0/0/1/0/0/0/0/0" | subgenome_1=="0/0/0/1/0/0/0/0" | subgenome_1=="0/0/0/0/1/0/0/0" |
-                  subgenome_1=="0/0/0/0/0/1/0/0" | subgenome_1=="0/0/0/0/0/0/1/0"] <- "0/0/0/0/0/0/0/1"
-    subgenome_1[subgenome_1=="1/1/0/0/0/0/0/0" | subgenome_1=="0/1/1/0/0/0/0/0" | 
-                  subgenome_1=="0/0/1/1/0/0/0/0" | subgenome_1=="0/0/0/1/1/0/0/0" | subgenome_1=="0/0/0/0/1/1/0/0" |
-                  subgenome_1=="0/0/0/0/0/1/1/0"] <- "0/0/0/0/0/0/1/1"
-    subgenome_1[subgenome_1=="1/1/1/0/0/0/0/0" | subgenome_1=="0/1/1/1/0/0/0/0" | 
-                  subgenome_1=="0/0/1/1/1/0/0/0" | subgenome_1=="0/0/0/1/1/1/0/0" | subgenome_1=="0/0/0/0/1/1/1/0"] <- "0/0/0/0/0/1/1/1"
-    subgenome_1[subgenome_1=="1/1/1/1/0/0/0/0" | subgenome_1=="0/1/1/1/1/0/0/0" | 
-                  subgenome_1=="0/0/1/1/1/1/0/0" | subgenome_1=="0/0/0/1/1/1/1/0"] <- "0/0/0/0/1/1/1/1"
-    subgenome_1[subgenome_1=="1/1/1/1/1/0/0/0" | subgenome_1=="0/1/1/1/1/1/0/0" | 
-                  subgenome_1=="0/0/1/1/1/1/1/0"] <- "0/0/0/1/1/1/1/1"
-    subgenome_1[subgenome_1=="1/1/1/1/1/1/0/0" | subgenome_1=="0/1/1/1/1/1/1/0"] <- "0/0/1/1/1/1/1/1"
-    subgenome_1[subgenome_1=="1/1/1/1/1/1/1/0"] <- "0/1/1/1/1/1/1/1"
-    
     write.table (subgenome_1, file=paste(pop,"_8x","_DP_GT.txt",sep=""), row.names=F, quote = FALSE, sep = "\t")
     vcffile <- NULL
     vcffile_DP <- NULL

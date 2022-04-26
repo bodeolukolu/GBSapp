@@ -58,7 +58,7 @@ geno$rs <- geno$SNP
 geno$alleles <- paste(geno$REF,"/",geno$ALT,sep="")
 geno$chrom <- geno$CHROM
 geno$pos <- geno$POS
-geno <- geno[,-c(1:6)]
+geno <- geno[,-c(1:5)]
 geno$strand <- "+"
 geno$assembly <- "NA"
 geno$center <- "NA"
