@@ -1229,7 +1229,7 @@ if [[ "${file1xG}" -lt 1 ]]; then
 		  wait $PID
 			rm ${i%.vcf}0.vcf* ${i%.vcf}trim.vcf*
 		done
-		Rscript "${GBSapp_dir}"/scripts/R/VCF_2_DP_GT.R "${pop}" 2x
+		Rscript "${GBSapp_dir}"/scripts/R/VCF_2_DP_GT.R "${pop}" 1x
 	fi
 fi
 wait
