@@ -1567,7 +1567,7 @@ rm gmiss_smiss_titration.txt eliminated_samples.txt summary_precall.txt
 ls ./*/*maf*.txt 2> /dev/null | grep -v 'maf0.txt' | grep -v 'dose' | xargs rm
 ls ./*/*_plusSD.txt 2> /dev/null | xargs rm
 ls ./*/*SD_1_G*G*.txt 2> /dev/null | xargs rm
-ls ./*/*binary*.txt 2> /dev/null | xargs rm
+
 
 
 cd "$projdir"/snpfilter
