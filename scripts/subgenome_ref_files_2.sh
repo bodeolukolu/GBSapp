@@ -287,6 +287,67 @@ main () {
 		exit 1
 	fi
 	find . -type d -empty -delete
+
+	if [[ "$lib_type" =~ "RRS" ]] || [[ "$lib_type" =~ "rrs" ]]; then
+		:> length_distribution.txt
+		for i in $(ls -S *.f* | grep -v _uniq.fasta | grep -v _uniq_R1.fasta | grep -v _uniq_R2.fasta | grep -v _uniq.hold.fasta | grep -v _uniq_R1.hold.fasta | grep -v _uniq_R2.hold.fasta | grep -v fq.gz); do
+			if [[ $(file $i 2> /dev/null) =~ gzip ]]; then
+				fa_fq=$(zcat $projdir/samples/$i 2> /dev/null | head -n1 | cut -c1-1)
+			else
+				fa_fq=$(cat $projdir/samples/$i | head -n1 | cut -c1-1)
+			fi
+
+			if [[ $(file $i 2> /dev/null) =~ gzip ]]; then
+				if [[ "${fa_fq}" == "@" ]]; then
+					awk 'NR%2==0' <(zcat $i) | awk 'NR%2==1' | awk 'BEGIN{srand();} {a[NR]=$0} END{for(i=1; i<=10000; i++){x=int(rand()*NR) + 1; print a[x];}}' >> length_distribution.txt
+				fi
+				if [[ "${fa_fq}" == ">" ]]; then
+					awk '/^>/ { if(i>0) printf("\n"); i++; printf("%s\t",$0); next;} {printf("%s",$0);} END { printf("\n");}' <(zcat $i) | \
+					awk 'NR%2==0' | awk 'BEGIN{srand();} {a[NR]=$0} END{for(i=1; i<=10000; i++){x=int(rand()*NR) + 1; print a[x];}}' >> length_distribution.txt
+				fi
+			else
+				if [[ "${fa_fq}" == "@" ]]; then
+					awk 'NR%2==0' $i | awk 'NR%2==1' | awk 'BEGIN{srand();} {a[NR]=$0} END{for(i=1; i<=10000; i++){x=int(rand()*NR) + 1; print a[x];}}' >> length_distribution.txt
+				fi
+				if [[ "${fa_fq}" == ">" ]]; then
+					awk '/^>/ { if(i>0) printf("\n"); i++; printf("%s\t",$0); next;} {printf("%s",$0);} END { printf("\n");}' $i | \
+					awk 'NR%2==0' | awk 'BEGIN{srand();} {a[NR]=$0} END{for(i=1; i<=10000; i++){x=int(rand()*NR) + 1; print a[x];}}' >> length_distribution.txt
+				fi
+			fi
+		done
+
+		awk '{print length($0)}' length_distribution.txt | sort -n > tmp.txt; mv tmp.txt length_distribution.txt
+		min_seqread_len=$(awk '{all[NR] = $0} END{print all[int(NR*0.05 - 0.5)]}' length_distribution.txt)
+		max_seqread_len=$(awk '{all[NR] = $0} END{print all[int(NR*0.95 - 0.5)]}' length_distribution.txt)
+		rm length_distribution.txt
+
+		for i in $(ls -S *.f* | grep -v _uniq.fasta | grep -v _uniq_R1.fasta | grep -v _uniq_R2.fasta | grep -v _uniq.hold.fasta | grep -v _uniq_R1.hold.fasta | grep -v _uniq_R2.hold.fasta | grep -v fq.gz); do
+			if [[ $(file $i 2> /dev/null) =~ gzip ]]; then
+				fa_fq=$(zcat $projdir/samples/$i 2> /dev/null | head -n1 | cut -c1-1)
+			else
+				fa_fq=$(cat $projdir/samples/$i | head -n1 | cut -c1-1)
+			fi
+
+			if [[ $(file $i 2> /dev/null) =~ gzip ]]; then
+				if [[ "${fa_fq}" == "@" ]]; then
+					awk -v min=$min_seqread_len -v max=$max_seqread_len 'length >= min && length <= max' <(zcat $i) | $gzip > temp.fa.gz && mv temp.fa.gz $i
+				fi
+				if [[ "${fa_fq}" == ">" ]]; then
+					awk '{if(NR==1) {print $0} else {if($0 ~ /^>/) {print "\n"$0} else {printf $0}}}' <(zcat $i) | \
+					awk -v min=$min_seqread_len -v max=$max_seqread_len 'length >= min && length <= max' | $gzip > temp.fa.gz && mv temp.fa.gz $i
+				fi
+			else
+				if [[ "${fa_fq}" == "@" ]]; then
+					awk -v min=$min_seqread_len -v max=$max_seqread_len 'length >= min && length <= max' $i | $gzip > temp.fa.gz && mv temp.fa.gz ${i}.gz
+				fi
+				if [[ "${fa_fq}" == ">" ]]; then
+					awk '{if(NR==1) {print $0} else {if($0 ~ /^>/) {print "\n"$0} else {printf $0}}}' $i | \
+					awk -v min=$min_seqread_len -v max=$max_seqread_len 'length >= min && length <= max' | $gzip > temp.fa.gz && mv temp.fa.gz ${i}.gz
+				fi
+			fi
+		done
+	fi
+
 }
 cd $projdir
 cd samples
@@ -389,7 +450,7 @@ main () {
 
 	if [[ "$samples_list" == "samples_list_node_1.txt" ]]; then
 		for i in $( cat ${projdir}/samples_list_node_* ); do
-			if [[ "$lib_type" == "RRS" ]] && test ! -f ${projdir}/compress_done.txt && test ! -f ${projdir}/organize_files_done.txt && test ! -f ${projdir}/preprocess/${i%.f*}_redun.sam && test ! -f ${projdir}/preprocess/${i%.f*}_${ref1%.f*}_precall.bam.bai; then
+			if [[ "$lib_type" =~ "RRS" || "$lib_type" =~ "rrs" ]] && test ! -f ${projdir}/compress_done.txt && test ! -f ${projdir}/organize_files_done.txt && test ! -f ${projdir}/preprocess/${i%.f*}_redun.sam && test ! -f ${projdir}/preprocess/${i%.f*}_${ref1%.f*}_precall.bam.bai; then
 				if test ! -f ${i%.f*}_uniq_R1.fasta.gz; then
 					if [[ $(file $i | awk -F' ' '{print $2}') == gzip ]]; then
 						zcat $i 2> /dev/null | awk 'NR%2==0' | awk 'NR%2' | $gzip > ${i%.f*}_uniq.txt.gz 2> /dev/null &&
@@ -472,7 +533,7 @@ main () {
 			END=10
 			while [[ $END -gt 0 ]]; do
 				for i in $( cat ${projdir}/${samples_list} ); do
-					if [[ "$lib_type" == "RRS" ]] && test ! -f ${projdir}/compress_done.txt && test ! -f ${projdir}/organize_files_done.txt && test ! -f ${projdir}/preprocess/${i%.f*}_redun.sam && test ! -f ${projdir}/preprocess/${i%.f*}_${ref1%.f*}_precall.bam.bai; then
+					if [[ "$lib_type" =~ "RRS" || "$lib_type" =~ "rrs" ]] && test ! -f ${projdir}/compress_done.txt && test ! -f ${projdir}/organize_files_done.txt && test ! -f ${projdir}/preprocess/${i%.f*}_redun.sam && test ! -f ${projdir}/preprocess/${i%.f*}_${ref1%.f*}_precall.bam.bai; then
 						if test ! -f ${i%.f*}_uniq_R1.fasta.gz; then
 							if [[ $(file $i | awk -F' ' '{print $2}') == gzip ]]; then
 								zcat $i 2> /dev/null | awk 'NR%2==0' | awk 'NR%2' | $gzip > ${i%.f*}_uniq.txt.gz 2> /dev/null &&
@@ -554,7 +615,7 @@ main () {
 		wait
 	fi
 
-	if [[ "$lib_type" == "RRS" ]] && [[ "$(wc -l ${projdir}/alignment_summaries/total_read_count.txt | awk '{print $1}')" -le 1 ]] && [[ "$samples_list" == "samples_list_node_1.txt" ]];then
+	if [[ "$lib_type" =~ "RRS" || "$lib_type" =~ "rrs" ]] && [[ "$(wc -l ${projdir}/alignment_summaries/total_read_count.txt | awk '{print $1}')" -le 1 ]] && [[ "$samples_list" == "samples_list_node_1.txt" ]];then
 		cd ${projdir}/alignment_summaries/
 		find -type f -name "*_total_read_count.txt" | xargs cat > total_read_count.hold.txt &&
 		cat total_read_count.txt total_read_count.hold.txt > total_read_count.hold2.txt &&
@@ -595,7 +656,7 @@ main () {
 	cd ${projdir}/samples
 
 	for i in $(cat ${projdir}/samples_list_node_* ); do
-		if [[ "$lib_type" == "RRS" ]] && test -f ${projdir}/hapfilter_done && test ! -f ${projdir}/compress_done.txt && test ! -f "${projdir}/preprocess/${i%.f*}_redun.sam.gz" && test ! -f "${projdir}/preprocess/${i%.f*}_${ref1%.f*}_precall.bam.bai"; then
+		if [[ "$lib_type" =~ "RRS" || "$lib_type" =~ "rrs" ]] && test -f ${projdir}/hapfilter_done && test ! -f ${projdir}/compress_done.txt && test ! -f "${projdir}/preprocess/${i%.f*}_redun.sam.gz" && test ! -f "${projdir}/preprocess/${i%.f*}_${ref1%.f*}_precall.bam.bai"; then
 			if [[ "$samples_list" == "samples_list_node_1.txt" ]]; then
 				export nempty=$( ls ${projdir}/samples/${i%.f*}_uniq_R2.fasta.gz 2> /dev/null | wc -l | awk '{print $1}' )
 				if [[ "$mhap_freq" -gt 0 ]]; then
@@ -650,7 +711,7 @@ main () {
 			queue_move=$(ls ${projdir}/queue_move_samples_list_node_* | wc -l)
 		done
 		cp -r ${projdir}/refgenomes/* /tmp/${samples_list%.txt}/refgenomes/
-		if [[ "$lib_type" == "RRS" ]]; then
+		if [[ "$lib_type" =~ "RRS" || "$lib_type" =~ "rrs" ]]; then
 			for i in $(cat ${projdir}/${samples_list} ); do
 				mv ${i%.f*}_uniq_*.fq.gz /tmp/${samples_list%.txt}/samples/ &&
 				cp ${projdir}/preprocess/${i%.f*}_redun.sam.gz /tmp/${samples_list%.txt}/preprocess/ 2> /dev/null &&
@@ -674,7 +735,7 @@ main () {
 		if [[ $nodes -eq 1 ]]; then cd ${projdir}/samples/; fi
 		if [[ $nodes -gt 1 ]]; then cd /tmp/${samples_list%.txt}/samples/; fi
 
-		if [[ "$lib_type" == "RRS" ]] && test -f ${projdir}/compress_done && test ! -f ${projdir}/precall_done.txt && test ! -f ${projdir}/preprocess/${i%.f*}_${ref1%.f*}_precall.bam.bai; then
+		if [[ "$lib_type" =~ "RRS" || "$lib_type" =~ "rrs" ]] && test -f ${projdir}/compress_done && test ! -f ${projdir}/precall_done.txt && test ! -f ${projdir}/preprocess/${i%.f*}_${ref1%.f*}_precall.bam.bai; then
 			export nempty=$( ls ${i%.f*}_uniq_R2.fq.gz 2> /dev/null | wc -l | awk '{print $1}' )
 			if test ! -f ../preprocess/${i%.f*}_redun.sam.gz; then
 				if [[ "$nempty" -gt 0 ]]; then
