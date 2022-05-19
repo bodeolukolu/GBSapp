@@ -13,6 +13,7 @@ For questions, bugs, and suggestions, please contact bolukolu@utk.edu.
 - Dosage-based variant calling and filtering.
 - Fully-automated: “walk-away” and “walk-through” mode.
 - Allows for use of haplotype-resolved reference genomes.
+- Minimizes excess heterozygosity
 - Variant calling implemented from 1x (haploid) to 8x (octoploid).
 - Annonate SNPs based on if reads map to single and multiple loci.
 - Parallelization of job on multiple compute cluster nodes (spark cluster infrastructure not required)
