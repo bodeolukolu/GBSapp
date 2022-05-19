@@ -122,6 +122,9 @@ echo -e "${yellow}\t- Description:	Automated Pipeline for Variant/Haplotype Call
 echo -e "${yellow}\t- Contact:	Bode Olukolu <bolukolu@utk.edu> ${white}"
 echo -e "${white}\n##################################################################################\n"
 
+
+for i in *.txt; do tr -d '\15\32' < $i > temp; mv temp $i; done
+tr -d '\15\32' < config.sh > temp; mv temp config.sh
 d=($(find . -maxdepth 1 -type d | wc -l))
 if [[ $d -le 3 && -d refgenomes ]]; then
   echo ""
@@ -363,7 +366,7 @@ fi
 main() {
 cd $projdir
 cd samples
-export samples_list=$(ls -RS *.f* ./*/*.f* 2> /dev/null | awk '{gsub(/\n/," "); print}' | awk -F"/" '{print $NF}' | awk '!a[$0]++' )
+export samples_list=$(ls -R *.f* ./*/*.f* 2> /dev/null | shuf | awk '{gsub(/\n/," "); print}' | awk -F"/" '{print $NF}' | awk '!a[$0]++' )
 cd ../
 
 string="${GBSapp_dir}/scripts/GBSapp_internal_parameters.sh"
@@ -653,11 +656,12 @@ if [[ "$cluster" == true ]]; then
       else
         echo -e "${magenta}\n ${white}\n"
         sbatch ${projdir}GBSapp_run_node_1.sh
-        for nn in $(seq 2 "$n_nodes"); do (
+        for nn in $(seq 2 "$n_nodes"); do
           while [[ ! -f "${projdir}/compress_done.txt" ]]; do
             sleep 300
           done
-          sbatch ${projdir}GBSapp_run_node_${nn}.sh ) &
+          sbatch ${projdir}GBSapp_run_node_${nn}.sh
+          wait
         done
       fi
     else

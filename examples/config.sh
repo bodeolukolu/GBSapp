@@ -34,8 +34,6 @@ maf=0.05
 ###################################################
 maxHaplotype=128
 haplome_number=1
-mhap_freq=0
 softclip=false
-downsample=0
 joint_calling=false
 keep_gVCF=false

@@ -39,7 +39,7 @@ For questions, bugs, and suggestions, please contact bolukolu@utk.edu.
 - [License](#License)
 
 ## Installation
-- Currently, GBSapp is only available for unix-based systems (i.e. macOS and Linux/UNIX).
+- Currently, GBSapp is only available for unix-based systems.
 - Clone or download the Git repository to your desired folder.
 ```bash
 git clone https://github.com/bodeolukolu/GBSapp.git
@@ -75,7 +75,7 @@ The project directory should contain the following files and directories:
 - **(4) for help: --help or -h
 - **(5) for version: --version or -v
 
-![alt text](https://github.com/bodeolukolu/GBSapp/blob/master/misc/project_dir_setup.PNG?raw=true)
+<img src="https://github.com/bodeolukolu/GBSapp/blob/master/misc/project_dir_setup.PNG" width="7812" height="308">
 
 From command line, run GBSapp with options shown below (absolute or relative path)
 ```
@@ -143,9 +143,8 @@ Using a text editor, save a file containing any of the following variables as 'c
 |Variable      |Default       |Usage         |Input         |required/Optional|
 |:-------------|:-------------|:-------------|:-------------|:----------------|
 |maxHaplotype|128|maximum number of haplotypes per haploid genome across population(increase for polyploids/high heterozygosity/high background mutational load)|integer|Optional|
-|mhap_freq|0|exclude rare haplotypes (e.g. background mutation typical of clonally propagated species or base calling error)|integer|Optional|
+|haplome_number|1|number of haplomes resolved in reference genome assembly|integer|Optional|
 |softclip|false|do not use soft Clipped bases (recommended)|string|Optional|
-|downsample|0|maximum number of reads to use|integer|Optional|
 |joint_calling|false| cohort calling will be performed if set to false|string|Optional|
 |keep_gVCF|false|keep sample gVCF files, if additional samples will be included for future joint calling)|string|Optional|
 
@@ -190,12 +189,9 @@ maf=0.05
 
 # Advanced parameters
 ###################################################
-multilocus=true
 maxHaplotype=128
 haplome_number=1
-mhap_freq=0
 softclip=false
-downsample=0
 joint_calling=false
 keep_gVCF=false
 ```
