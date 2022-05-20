@@ -2999,7 +2999,7 @@ for snpfilter_dir in $(ls -d */); do
 			gzip ${v%.txt}.vcf
 		done
 		wait
-		for i in $(ls *dose* | grep -v .vcf | grep -v .hmp.txt); do
+		for i in $(ls *dose.txt); do
 			ARfile=$(ls ../../snpcall/*_AR.txt 2> /dev/null)
 			Rscript "${GBSapp_dir}"/scripts/R/heterozygote_vs_allele_ratio.R "$i" "$AR" "ploidy" "3" "${GBSapp_dir}/tools/R"
 		done
@@ -3013,12 +3013,12 @@ for snpfilter_dir in $(ls -d */); do
 			gzip ${v%.txt}.vcf
 		done
 		wait
-		for i in $(ls *dose_unique* | grep -v .vcf | grep -v .hmp.txt); do
+		for i in $(ls *dose_unique_mapped.txt); do
 			ARfile=$(ls ../../../snpcall/*_AR.txt 2> /dev/null)
 			Rscript "${GBSapp_dir}"/scripts/R/heterozygote_vs_allele_ratio_uniqfiltered.R "$i" "$AR" "ploidy" "3" "${GBSapp_dir}/tools/R"
 		done
 		wait
-		for i in $(ls *dose_multi* | grep -v .vcf | grep -v .hmp.txt); do
+		for i in $(ls *dose_multi_mapped.txt); do
 			ARfile=$(ls ../../../snpcall/*_AR.txt 2> /dev/null)
 			Rscript "${GBSapp_dir}"/scripts/R/heterozygote_vs_allele_ratio_multifiltered.R "$i" "$AR" "ploidy" "3" "${GBSapp_dir}/tools/R"
 		done
