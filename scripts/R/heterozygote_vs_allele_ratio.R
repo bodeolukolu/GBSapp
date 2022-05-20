@@ -4,6 +4,11 @@
 args <- commandArgs(trailingOnly = TRUE)
 ploidy <- args[3]
 subgenome <- args[4]
+libdir <- args[5]
+.libPaths( c( .libPaths(), libdir) )
+library(ggplot2)
+
+
 GT <- read.table(args[1], header=T, sep="\t", check.names=FALSE,stringsAsFactors=FALSE)
 GT <- subset(GT, select=-c(SNP))
 if (colnames(GT[ncol(GT)]) == "pvalue"){GT <- subset(GT, select=-c(pvalue))}

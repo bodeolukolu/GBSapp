@@ -4454,7 +4454,7 @@ if [[ "${file2xG}" -lt 1 ]]; then
 			wait $PID
 			rm ${i%.vcf}0.vcf* ${i%.vcf}trim.vcf*
 		done
-		Rscript "${GBSapp_dir}"/scripts/R/VCF_2_DP_GT.R "${pop}" 2x
+		Rscript "${GBSapp_dir}"/scripts/R/VCF_2_DP_GT.R "${pop}" 2x "${GBSapp_dir}/tools/R"
 	fi
 fi
 wait
@@ -4472,7 +4472,7 @@ if [[ "${file4xG}" -lt 1 ]]; then
 			wait $PID
 			rm ${i%.vcf}0.vcf* ${i%.vcf}trim.vcf*
 		done
-		Rscript "${GBSapp_dir}"/scripts/R/VCF_2_DP_GT.R "${pop}" 4x
+		Rscript "${GBSapp_dir}"/scripts/R/VCF_2_DP_GT.R "${pop}" 4x "${GBSapp_dir}/tools/R"
 	fi
 fi
 wait
@@ -4490,7 +4490,7 @@ if [[ "${file6xG}" -lt 1 ]]; then
 			wait $PID
 			rm ${i%.vcf}0.vcf* ${i%.vcf}trim.vcf*
 		done
-		Rscript "${GBSapp_dir}"/scripts/R/VCF_2_DP_GT.R "${pop}" 6x
+		Rscript "${GBSapp_dir}"/scripts/R/VCF_2_DP_GT.R "${pop}" 6x "${GBSapp_dir}/tools/R"
 	fi
 fi
 wait
@@ -4508,7 +4508,7 @@ if [[ "${file8xG}" -lt 1 ]]; then
 			wait $PID
 			rm ${i%.vcf}0.vcf* ${i%.vcf}trim.vcf*
 		done
-		Rscript "${GBSapp_dir}"/scripts/R/VCF_2_DP_GT.R "${pop}" 8x
+		Rscript "${GBSapp_dir}"/scripts/R/VCF_2_DP_GT.R "${pop}" 8x "${GBSapp_dir}/tools/R"
 	fi
 fi
 wait
@@ -4773,7 +4773,7 @@ for snpfilter_dir in $(ls -d */); do
 			awk 'FNR==NR{a[$1,$2]=$0;next}{if(b=a[$2,$3]){print b}}' <(gzip -dc ../../snpcall/*${vcfdose}.vcf.gz) $v >> ${v%.txt}.vcf
 			gzip ${v%.txt}.vcf
 			ARfile=$(ls ../../snpcall/*_AR.txt 2> /dev/null)
-			Rscript "${GBSapp_dir}"/scripts/R/heterozygote_vs_allele_ratio.R "$i" "$AR" "ploidy" "4"
+			Rscript "${GBSapp_dir}"/scripts/R/heterozygote_vs_allele_ratio.R "$i" "$AR" "ploidy" "4" "${GBSapp_dir}/tools/R"
 		done
 		wait
 
@@ -4784,7 +4784,7 @@ for snpfilter_dir in $(ls -d */); do
 			awk 'FNR==NR{a[$1,$2]=$0;next}{if(b=a[$2,$3]){print b}}' <(gzip -dc ../../../snpcall/*${vcfdose}.vcf.gz) $v >> ${v%.txt}.vcf
 			gzip ${v%.txt}.vcf
 			ARfile=$(ls ../../snpcall/*_AR.txt 2> /dev/null)
-			Rscript "${GBSapp_dir}"/scripts/R/heterozygote_vs_allele_ratio.R "$i" "$AR" "ploidy" "4"
+			Rscript "${GBSapp_dir}"/scripts/R/heterozygote_vs_allele_ratio.R "$i" "$AR" "ploidy" "4" "${GBSapp_dir}/tools/R"
 		done
 		wait
 

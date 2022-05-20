@@ -4,6 +4,10 @@
 args <- commandArgs(trailingOnly = TRUE)
 pop <- args[1]
 ploidy <- args[2]
+libdir <- args[3]
+.libPaths( c( .libPaths(), libdir) )
+library(ggplot2)
+
 
 if (ploidy == "1x"){
   vcf_to_DP_GT_1x <- function() {

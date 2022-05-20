@@ -1274,7 +1274,7 @@ if [[ "${file1xG}" -lt 1 ]]; then
 		  wait $PID
 			rm ${i%.vcf}0.vcf* ${i%.vcf}trim.vcf*
 		done
-		Rscript "${GBSapp_dir}"/scripts/R/VCF_2_DP_GT.R "${pop}" 1x
+		Rscript "${GBSapp_dir}"/scripts/R/VCF_2_DP_GT.R "${pop}" 1x "${GBSapp_dir}/tools/R"
 	fi
 fi
 wait
@@ -1292,7 +1292,7 @@ if [[ "${file2xG}" -lt 1 ]]; then
 			wait $PID
 			rm ${i%.vcf}0.vcf* ${i%.vcf}trim.vcf*
 		done
-		Rscript "${GBSapp_dir}"/scripts/R/VCF_2_DP_GT.R "${pop}" 2x
+		Rscript "${GBSapp_dir}"/scripts/R/VCF_2_DP_GT.R "${pop}" 2x "${GBSapp_dir}/tools/R"
 	fi
 fi
 wait
@@ -1311,7 +1311,7 @@ if [[ "${file4xG}" -lt 1 ]]; then
 			wait
 			rm ${i%.vcf}0.vcf* ${i%.vcf}trim.vcf*
 		done
-		Rscript "${GBSapp_dir}"/scripts/R/VCF_2_DP_GT.R "${pop}" 4x
+		Rscript "${GBSapp_dir}"/scripts/R/VCF_2_DP_GT.R "${pop}" 4x "${GBSapp_dir}/tools/R"
 	fi
 fi
 wait
@@ -1329,7 +1329,7 @@ if [[ "${file6xG}" -lt 1 ]]; then
 			wait $PID
 			rm ${i%.vcf}0.vcf* ${i%.vcf}trim.vcf*
 		done
-		Rscript "${GBSapp_dir}"/scripts/R/VCF_2_DP_GT.R "${pop}" 6x
+		Rscript "${GBSapp_dir}"/scripts/R/VCF_2_DP_GT.R "${pop}" 6x "${GBSapp_dir}/tools/R"
 	fi
 fi
 wait
@@ -1348,7 +1348,7 @@ if [[ "${file8xG}" -lt 1 ]]; then
 			wait
 			rm ${i%.vcf}0.vcf*
 		done
-		Rscript "${GBSapp_dir}"/scripts/R/VCF_2_DP_GT.R "${pop}" 8x
+		Rscript "${GBSapp_dir}"/scripts/R/VCF_2_DP_GT.R "${pop}" 8x "${GBSapp_dir}/tools/R"
 	fi
 fi
 wait
@@ -1633,7 +1633,7 @@ for snpfilter_dir in $(ls -d */); do
 		wait
 		for i in $(ls *dose* | grep -v .vcf); do
 			ARfile=$(ls ../../snpcall/*_AR.txt 2> /dev/null)
-			Rscript "${GBSapp_dir}"/scripts/R/heterozygote_vs_allele_ratio.R "$i" "$AR" "ploidy" "1"
+			Rscript "${GBSapp_dir}"/scripts/R/heterozygote_vs_allele_ratio.R "$i" "$AR" "ploidy" "1" "${GBSapp_dir}/tools/R"
 			Rscript "${GBSapp_dir}"/scripts/R/hapmap_format.R "$i" "${i%.txt}.hmp.txt"
 		done
 		wait
@@ -1652,7 +1652,7 @@ for snpfilter_dir in $(ls -d */); do
 		done
 		for i in $(ls *dose* | grep -v .vcf); do
 			ARfile=$(ls ../../snpcall/*_AR.txt 2> /dev/null)
-			Rscript "${GBSapp_dir}"/scripts/R/heterozygote_vs_allele_ratio.R "$i" "$AR" "ploidy" "1"
+			Rscript "${GBSapp_dir}"/scripts/R/heterozygote_vs_allele_ratio.R "$i" "$AR" "ploidy" "1" "${GBSapp_dir}/tools/R"
 			Rscript "${GBSapp_dir}"/scripts/R/hapmap_format.R "$i" "${i%.txt}.hmp.txt"
 		done
 
