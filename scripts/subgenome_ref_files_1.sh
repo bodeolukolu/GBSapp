@@ -1651,8 +1651,8 @@ for snpfilter_dir in $(ls -d */); do
 			mv ${i%.txt}_hold.txt $i
 		done
 		for i in $(ls *dose* | grep -v .vcf); do
-			ARfile=$(ls ../../snpcall/*_AR.txt 2> /dev/null)
-			Rscript "${GBSapp_dir}"/scripts/R/heterozygote_vs_allele_ratio.R "$i" "$AR" "ploidy" "1" "${GBSapp_dir}/tools/R"
+			ARfile=$(ls ../../../snpcall/*_AR.txt 2> /dev/null)
+			Rscript "${GBSapp_dir}"/scripts/R/heterozygote_vs_allele_ratio_uniqfiltered.R "$i" "$AR" "ploidy" "1" "${GBSapp_dir}/tools/R"
 			Rscript "${GBSapp_dir}"/scripts/R/hapmap_format.R "$i" "${i%.txt}.hmp.txt"
 		done
 

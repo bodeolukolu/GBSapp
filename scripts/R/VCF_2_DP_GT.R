@@ -272,7 +272,7 @@ if (ploidy == "4x"){
     AR1 <- NULL
     
     AR$propHet <- (rowSums(AR == "0/0/0/1" | AR == "0/0/1/1" | AR == "0/1/1/1" | 
-                           AR == "0|0|0|1" | AR == "0|0|1|1" | AR == "0|1|1|1" | na.rm = TRUE)) / (GTincre - (rowSums(AR == "./././.", na.rm = TRUE)))
+                           AR == "0|0|0|1" | AR == "0|0|1|1" | AR == "0|1|1|1", na.rm = TRUE)) / (GTincre - (rowSums(AR == "./././.", na.rm = TRUE)))
     AR <- AR[,c(ARstart:ARend,ncol(AR))]
     AR <- subset(AR, AR$propHet != 0)
     AR[,1:(ncol(AR)-1)][AR[,1:(ncol(AR)-1)] == 0] <- NA

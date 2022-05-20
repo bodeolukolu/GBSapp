@@ -2996,8 +2996,8 @@ for snpfilter_dir in $(ls -d */); do
 			zcat ../../../snpcall/*${vcfdose}.vcf.gz | grep '^#' > ${v%.txt}.vcf
 			awk 'FNR==NR{a[$1,$2]=$0;next}{if(b=a[$2,$3]){print b}}' <(gzip -dc ../../../snpcall/*${vcfdose}.vcf.gz) $v >> ${v%.txt}.vcf
 			gzip ${v%.txt}.vcf
-			ARfile=$(ls ../../snpcall/*_AR.txt 2> /dev/null)
-			Rscript "${GBSapp_dir}"/scripts/R/heterozygote_vs_allele_ratio.R "$i" "$AR" "ploidy" "3" "${GBSapp_dir}/tools/R"
+			ARfile=$(ls ../../../snpcall/*_AR.txt 2> /dev/null)
+			Rscript "${GBSapp_dir}"/scripts/R/heterozygote_vs_allele_ratio_uniqfiltered.R "$i" "$AR" "ploidy" "3" "${GBSapp_dir}/tools/R"
 		done
 		wait
 
