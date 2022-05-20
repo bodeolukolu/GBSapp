@@ -508,7 +508,7 @@ raw_alleles <- function() {
     ylab(paste("Proportion of Genotypes (",nrow(subgenome_1_plots)," variants)", sep=""))
   ggsave(filename=paste(pop,"_2x_rawRD",rd+1,"_Variants.tiff",sep=""), plot=plot, width=7.5, height= 5, dpi=300, compression = "lzw")
   
-  subgenome_1_plots <- read.table(file=paste(pop,"_2x_","RD",rd+1,"_maf",MinorAlleleFreq,"_binary.txt",sep=""), header=T, sep="\t", check.names = FALSE)
+  subgenome_1_plots <- read.table(file=paste(pop,"_2x_","rd",rd+1,"_maf",MinorAlleleFreq,"_binary.txt",sep=""), header=T, sep="\t", check.names = FALSE)
   subgenome_1_plots <- subset(subgenome_1_plots, select=c(6:ncol(subgenome_1_plots)))
   Multiallelic <- as.data.frame(table(as.matrix(subgenome_1_plots)))
   names(Multiallelic)[names(Multiallelic) == "Var1"] <- "Genotype"

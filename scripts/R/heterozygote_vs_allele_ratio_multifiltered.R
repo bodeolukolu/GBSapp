@@ -50,7 +50,7 @@ if (ploidy == "2x"){
     annotate("text", x=0.88, y=-0.2, label="Allele Ratio threshold (< -0.2): 0/0", vjust=1.2, fontface="italic")+
     xlab("Proportion of Heterozygote per SNP (diploid)") +
     ylab("Allele Read Depth Ratio per Genotype")
-  ggsave(file=paste("../visualizations/","uniq2x_Allele_Ratio_Heterozygosity_plot",".tiff",sep=""), plot=ARplot, width=12, height=4, units=("in"), dpi=300, compression = "lzw")
+  ggsave(file=paste("../visualizations/","multi2x_Allele_Ratio_Heterozygosity_plot",".tiff",sep=""), plot=ARplot, width=12, height=4, units=("in"), dpi=300, compression = "lzw")
 }
 
 if (ploidy == "4x"){
@@ -85,7 +85,7 @@ if (ploidy == "4x"){
     annotate("text", x=0.87, y=-0.17, label="Allele Ratio threshold (< -0.17): 0/0/0/0", vjust=1.2, fontface="italic")+
     xlab("Proportion of Heterozygote per SNP (tetraploid)") +
     ylab("Allele Read Depth Ratio per Genotype")
-  ggsave(file=paste("../visualizations/","uniq4x_Allele_Ratio_Heterozygosity_plot",".tiff",sep=""), plot=ARplot, width=12, height=4, units=("in"), dpi=300, compression = "lzw")
+  ggsave(file=paste("../visualizations/","multi4x_Allele_Ratio_Heterozygosity_plot",".tiff",sep=""), plot=ARplot, width=12, height=4, units=("in"), dpi=300, compression = "lzw")
 }
 
 if (ploidy == "6x"){
@@ -124,7 +124,7 @@ if (ploidy == "6x"){
     annotate("text", x=0.86, y=-0.14, label="Allele Ratio threshold (< -0.14): 0/0/0/0/0/0", vjust=1.2, fontface="italic")+
     xlab("Proportion of Heterozygote per SNP (hexaploid)") +
     ylab("Allele Read Depth Ratio per Genotype")
-  ggsave(file=paste("../visualizations/","uniq6x_Allele_Ratio_Heterozygosity_plot",".tiff",sep=""), plot=ARplot, width=12, height=4, units=("in"), dpi=300, compression = "lzw")
+  ggsave(file=paste("../visualizations/","multi6x_Allele_Ratio_Heterozygosity_plot",".tiff",sep=""), plot=ARplot, width=12, height=4, units=("in"), dpi=300, compression = "lzw")
 }
 
 if (ploidy == "8x"){  
@@ -166,5 +166,5 @@ if (ploidy == "8x"){
     annotate("text", x=0.85, y=-0.09, label="Allele Ratio threshold (0.09): 0/0/0/0/0/0/0/0", vjust=1.2, fontface="italic")+
     xlab("Proportion of Heterozygote per SNP (octaploid)") +
     ylab("Allele Read Depth Ratio per Genotype")
-  ggsave(file=paste("../visualizations/","uniq8x_Allele_Ratio_Heterozygosity_plot",".tiff",sep=""), plot=ARplot, width=12, height=4, units=("in"), dpi=300, compression = "lzw")
+  ggsave(file=paste("../visualizations/","multi8x_Allele_Ratio_Heterozygosity_plot",".tiff",sep=""), plot=ARplot, width=12, height=4, units=("in"), dpi=300, compression = "lzw")
 }

@@ -712,7 +712,10 @@ main () {
 	fi
 
 
-	wait && touch ${projdir}/compress_done.txt
+	wait
+	if [[ "$samples_list" == "samples_list_node_1.txt" ]]; then
+		touch ${projdir}/compress_done.txt
+	fi
 
 	cd ${projdir}/samples
 
@@ -769,11 +772,15 @@ main () {
 	wait && touch ${projdir}/alignment_done_${samples_list}
 	zcat ../preprocess/combined_all_sample_reads_redun.sam.gz | $samtools flagstat - > ${projdir}/alignment_summaries/Alignment_merged_summary.txt
 
+	if [[ "$samples_list" == "samples_list_node_1.txt" ]]; then
+		touch ${projdir}/compress_done.txt
+	fi
+
 
 	if [[ $nodes -eq 1 ]]; then cd ${projdir}/preprocess/; fi
 	if [[ $nodes -gt 1 ]] && test -f ${projdir}/GBSapp_run_node_1.sh; then cd /tmp/${samples_list%.txt}/preprocess/; fi
 
-	for i in $(cat ${projdir}/${samples_list} ); do (
+	for i in $(cat ${projdir}/${samples_list}); do (
 		if [[ "$lib_type" =~ "RRS" || "$lib_type" =~ "rrs" ]] && test ! -f ${i%.f*}_redun.sam.gz && test ! -f ${projdir}/preprocess/${i%.f*}_${ref1%.f*}_precall.bam.bai; then
 			zcat ../samples/${i%.f*}_uniq*.fasta.gz | awk '{gsub(/^>/,"");}1' | awk 'NR==FNR{a[$2]=$1; next} ($1 in a){print a[$1],$0}' - <(zcat ../samples/merged_index.txt.gz) | \
 			awk '{print $1"\t"$3}' | awk 'NR==FNR{a[$2]=$1; next} ($1 in a){print a[$1],$0}' - <(zcat combined_all_sample_reads_redun.sam.gz | grep -v '^@') | awk '{$2=""}1' | \
@@ -1115,7 +1122,7 @@ main () {
 				awk '/@HD/ || /@SQ/{print}' <(zcat ${i%.f*}_redun.sam.gz 2> /dev/null) > ${i%.f*}_heading_${ref2%.f*}.sam
 				grep -v '^@' ${i%.f*}_del_${ref2%.f*}.sam | awk '($3 != "\*")' 2> /dev/null  | awk '{gsub(/_se-/,"_se-\t",$1); gsub(/_pe-/,"_pe-\t",$1)}1' | \
 				awk '{print $2"\t"$0}' | awk '{$2=$3=""}1' | awk -v multilocus=$multilocus -F '\t' 'BEGIN{OFS="\t"} {if ($5==multilocus) {$5=$5+40}}1' > ${i%.f*}_uniq_${ref2%.f*}.sam
-				for k in $(awk '{A[$1]++}END{for(i in A)print i}' ${i%.f*}_uniq_${ref2%.f*}.sam; do
+				for k in $(awk '{A[$1]++}END{for(i in A)print i}' ${i%.f*}_uniq_${ref2%.f*}.sam); do
 				  awk -v n="^${k}" '$0~n{print $0}' ${i%.f*}_uniq_${ref2%.f*}.sam | awk -v n="$k" '{for(i=0;i<n;i++) print}' >> ${i%.f*}_exp_${ref2%.f*}.sam
 				done; wait
 				awk '{print "seq"NR"_"$0}' ${i%.f*}_exp_${ref2%.f*}.sam | tr -s ' ' | \
@@ -1414,6 +1421,11 @@ fi
 ######################################################################################################################################################
 echo -e "${blue}\n############################################################################## ${yellow}\n- Performing Variant Calling with GATK HaplotypeCaller\n${blue}##############################################################################${white}\n"
 main () {
+
+	if [[ "$samples_list" == "samples_list_node_1.txt" ]]; then
+		touch ${projdir}/compress_done.txt
+	fi
+
 	cd $projdir
 	cd preprocess
 	mkdir -p processed
@@ -4772,6 +4784,9 @@ for snpfilter_dir in $(ls -d */); do
 			zcat ../../snpcall/*${vcfdose}.vcf.gz | grep '^#' > ${v%.txt}.vcf
 			awk 'FNR==NR{a[$1,$2]=$0;next}{if(b=a[$2,$3]){print b}}' <(gzip -dc ../../snpcall/*${vcfdose}.vcf.gz) $v >> ${v%.txt}.vcf
 			gzip ${v%.txt}.vcf
+		done
+		wait
+		for i in $(ls *dose* | grep -v .vcf | grep -v .hmp.txt); do
 			ARfile=$(ls ../../snpcall/*_AR.txt 2> /dev/null)
 			Rscript "${GBSapp_dir}"/scripts/R/heterozygote_vs_allele_ratio.R "$i" "$AR" "ploidy" "4" "${GBSapp_dir}/tools/R"
 		done
@@ -4783,8 +4798,16 @@ for snpfilter_dir in $(ls -d */); do
 			zcat ../../../snpcall/*${vcfdose}.vcf.gz | grep '^#' > ${v%.txt}.vcf
 			awk 'FNR==NR{a[$1,$2]=$0;next}{if(b=a[$2,$3]){print b}}' <(gzip -dc ../../../snpcall/*${vcfdose}.vcf.gz) $v >> ${v%.txt}.vcf
 			gzip ${v%.txt}.vcf
+		done
+		wait
+		for i in $(ls *dose_unique* | grep -v .vcf | grep -v .hmp.txt); do
 			ARfile=$(ls ../../../snpcall/*_AR.txt 2> /dev/null)
 			Rscript "${GBSapp_dir}"/scripts/R/heterozygote_vs_allele_ratio_uniqfiltered.R "$i" "$AR" "ploidy" "4" "${GBSapp_dir}/tools/R"
+		done
+		wait
+		for i in $(ls *dose_multi* | grep -v .vcf | grep -v .hmp.txt); do
+			ARfile=$(ls ../../../snpcall/*_AR.txt 2> /dev/null)
+			Rscript "${GBSapp_dir}"/scripts/R/heterozygote_vs_allele_ratio_multifiltered.R "$i" "$AR" "ploidy" "4" "${GBSapp_dir}/tools/R"
 		done
 		wait
 

@@ -709,7 +709,10 @@ main () {
 	fi
 
 
-	wait && touch ${projdir}/compress_done.txt
+	wait
+	if [[ "$samples_list" == "samples_list_node_1.txt" ]]; then
+		touch ${projdir}/compress_done.txt
+	fi
 
 	cd ${projdir}/samples
 
@@ -769,6 +772,10 @@ main () {
 
 	if [[ $nodes -eq 1 ]]; then cd ${projdir}/preprocess/; fi
 	if [[ $nodes -gt 1 ]] && test -f ${projdir}/GBSapp_run_node_1.sh; then cd /tmp/${samples_list%.txt}/preprocess/; fi
+
+	if [[ "$samples_list" == "samples_list_node_1.txt" ]]; then
+		touch ${projdir}/compress_done.txt
+	fi
 
 	for i in $(cat ${projdir}/${samples_list} ); do (
 		if [[ "$lib_type" =~ "RRS" || "$lib_type" =~ "rrs" ]] && test ! -f ${i%.f*}_redun.sam.gz && test ! -f ${projdir}/preprocess/${i%.f*}_${ref1%.f*}_precall.bam.bai; then
@@ -908,6 +915,11 @@ fi
 ######################################################################################################################################################
 echo -e "${blue}\n############################################################################## ${yellow}\n- Performing Variant Calling with GATK HaplotypeCaller\n${blue}##############################################################################${white}\n"
 main () {
+
+if [[ "$samples_list" == "samples_list_node_1.txt" ]]; then
+	touch ${projdir}/compress_done.txt
+fi
+
 cd $projdir
 echo -e "${magenta}- performing SNP calling ${white}\n"
 cd $projdir
@@ -1632,9 +1644,12 @@ for snpfilter_dir in $(ls -d */); do
 		done
 		wait
 		for i in $(ls *dose* | grep -v .vcf); do
+			Rscript "${GBSapp_dir}"/scripts/R/hapmap_format.R "$i" "${i%.txt}.hmp.txt"
+		done
+		wait
+		for i in $(ls *dose* | grep -v .vcf | grep -v .hmp.txt); do
 			ARfile=$(ls ../../snpcall/*_AR.txt 2> /dev/null)
 			Rscript "${GBSapp_dir}"/scripts/R/heterozygote_vs_allele_ratio.R "$i" "$AR" "ploidy" "1" "${GBSapp_dir}/tools/R"
-			Rscript "${GBSapp_dir}"/scripts/R/hapmap_format.R "$i" "${i%.txt}.hmp.txt"
 		done
 		wait
 
@@ -1651,10 +1666,19 @@ for snpfilter_dir in $(ls -d */); do
 			mv ${i%.txt}_hold.txt $i
 		done
 		for i in $(ls *dose* | grep -v .vcf); do
-			ARfile=$(ls ../../../snpcall/*_AR.txt 2> /dev/null)
-			Rscript "${GBSapp_dir}"/scripts/R/heterozygote_vs_allele_ratio_uniqfiltered.R "$i" "$AR" "ploidy" "1" "${GBSapp_dir}/tools/R"
 			Rscript "${GBSapp_dir}"/scripts/R/hapmap_format.R "$i" "${i%.txt}.hmp.txt"
 		done
+		wait
+		for i in $(ls *dose_unique* | grep -v .vcf | grep -v .hmp.txt); do
+			ARfile=$(ls ../../../snpcall/*_AR.txt 2> /dev/null)
+			Rscript "${GBSapp_dir}"/scripts/R/heterozygote_vs_allele_ratio_uniqfiltered.R "$i" "$AR" "ploidy" "1" "${GBSapp_dir}/tools/R"
+		done
+		wait
+		for i in $(ls *dose_multi* | grep -v .vcf | grep -v .hmp.txt); do
+			ARfile=$(ls ../../../snpcall/*_AR.txt 2> /dev/null)
+			Rscript "${GBSapp_dir}"/scripts/R/heterozygote_vs_allele_ratio_multifiltered.R "$i" "$AR" "ploidy" "1" "${GBSapp_dir}/tools/R"
+		done
+		wait
 
 		cd ../../
 	fi

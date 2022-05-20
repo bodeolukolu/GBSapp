@@ -712,7 +712,10 @@ main () {
 	fi
 
 
-	wait && touch ${projdir}/compress_done.txt
+	wait
+	if [[ "$samples_list" == "samples_list_node_1.txt" ]]; then
+		touch ${projdir}/compress_done.txt
+	fi
 
 	cd ${projdir}/samples
 
@@ -768,6 +771,10 @@ main () {
 	wait
 	wait && touch ${projdir}/alignment_done_${samples_list}
 	zcat ../preprocess/combined_all_sample_reads_redun.sam.gz | $samtools flagstat - > ${projdir}/alignment_summaries/Alignment_merged_summary.txt
+
+	if [[ "$samples_list" == "samples_list_node_1.txt" ]]; then
+		touch ${projdir}/compress_done.txt
+	fi
 
 
 	if [[ $nodes -eq 1 ]]; then cd ${projdir}/preprocess/; fi
@@ -1131,6 +1138,11 @@ fi
 ######################################################################################################################################################
 echo -e "${blue}\n############################################################################## ${yellow}\n- Performing Variant Calling with GATK HaplotypeCaller\n${blue}##############################################################################${white}\n"
 main () {
+
+	if [[ "$samples_list" == "samples_list_node_1.txt" ]]; then
+		touch ${projdir}/compress_done.txt
+	fi
+
 	cd $projdir
 	cd preprocess
 	mkdir -p processed
@@ -2985,6 +2997,9 @@ for snpfilter_dir in $(ls -d */); do
 			zcat ../../snpcall/*${vcfdose}.vcf.gz | grep '^#' > ${v%.txt}.vcf
 			awk 'FNR==NR{a[$1,$2]=$0;next}{if(b=a[$2,$3]){print b}}' <(gzip -dc ../../snpcall/*${vcfdose}.vcf.gz) $v >> ${v%.txt}.vcf
 			gzip ${v%.txt}.vcf
+		done
+		wait
+		for i in $(ls *dose* | grep -v .vcf | grep -v .hmp.txt); do
 			ARfile=$(ls ../../snpcall/*_AR.txt 2> /dev/null)
 			Rscript "${GBSapp_dir}"/scripts/R/heterozygote_vs_allele_ratio.R "$i" "$AR" "ploidy" "3" "${GBSapp_dir}/tools/R"
 		done
@@ -2996,8 +3011,16 @@ for snpfilter_dir in $(ls -d */); do
 			zcat ../../../snpcall/*${vcfdose}.vcf.gz | grep '^#' > ${v%.txt}.vcf
 			awk 'FNR==NR{a[$1,$2]=$0;next}{if(b=a[$2,$3]){print b}}' <(gzip -dc ../../../snpcall/*${vcfdose}.vcf.gz) $v >> ${v%.txt}.vcf
 			gzip ${v%.txt}.vcf
+		done
+		wait
+		for i in $(ls *dose_unique* | grep -v .vcf | grep -v .hmp.txt); do
 			ARfile=$(ls ../../../snpcall/*_AR.txt 2> /dev/null)
 			Rscript "${GBSapp_dir}"/scripts/R/heterozygote_vs_allele_ratio_uniqfiltered.R "$i" "$AR" "ploidy" "3" "${GBSapp_dir}/tools/R"
+		done
+		wait
+		for i in $(ls *dose_multi* | grep -v .vcf | grep -v .hmp.txt); do
+			ARfile=$(ls ../../../snpcall/*_AR.txt 2> /dev/null)
+			Rscript "${GBSapp_dir}"/scripts/R/heterozygote_vs_allele_ratio_multifiltered.R "$i" "$AR" "ploidy" "3" "${GBSapp_dir}/tools/R"
 		done
 		wait
 
