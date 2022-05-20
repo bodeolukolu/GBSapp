@@ -39,16 +39,17 @@ if [ -z "$keep_gVCF" ]; then
 	keep_gVCF=false
 fi
 
-
-for i in samples_list_node_*.txt; do
-	:> ${i%.txt}_hold.txt
-	while read line; do
-		ls -l samples/$line >> ${i%.txt}_hold.txt
-	done < $i
-	sort -nr -k5,5 ${i%.txt}_hold.txt | awk '{gsub(/samples\//,""); print $9}' > $i
-	rm ${i%.txt}_hold.txt
-done
-
+cd $projdir
+if [[ "$samples_list" == "samples_list_node_1.txt" ]]; then
+	for i in samples_list_node_*.txt; do
+		:> ${i%.txt}_hold.txt
+		while read line; do
+			ls -l samples/$line | awk '{print $5"\t"$9}' >> ${i%.txt}_hold.txt
+		done < $i
+		sort -nr -k1 ${i%.txt}_hold.txt | awk '{gsub(/samples\//,""); print $2}' > $i
+		rm ${i%.txt}_hold.txt
+	done
+fi
 
 
 echo -e "${blue}\n############################################################################## ${yellow}\n- Index Reference Genome \n${blue}##############################################################################${white}\n"
