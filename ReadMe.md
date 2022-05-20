@@ -76,7 +76,7 @@ The project directory should contain the following files and directories:
 - **(4) for help: --help or -h
 - **(5) for version: --version or -v
 
-<img src="https://github.com/bodeolukolu/GBSapp/blob/master/misc/project_dir_setup.PNG" width="7812" height="308">
+<img src="https://github.com/bodeolukolu/GBSapp/blob/master/misc/project_dir_setup.PNG" width="782" height="308">
 
 From command line, run GBSapp with options shown below (absolute or relative path)
 ```
