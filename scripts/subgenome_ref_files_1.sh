@@ -476,7 +476,7 @@ main () {
 	cd $projdir
 	cd samples
 
-	if [[ "$samples_list" == "samples_list_node_1.txt" ]]; then
+	if [[ "$samples_list" == "samples_list_node_1.txt" ]] && test ! -f ${projdir}/organize_files_done.txt; then
 		for i in $( cat ${projdir}/samples_list_node_* ); do
 			if [[ "$lib_type" =~ "RRS" || "$lib_type" =~ "rrs" ]] && test ! -f ${projdir}/compress_done.txt && test ! -f ${projdir}/organize_files_done.txt && test ! -f ${projdir}/preprocess/${i%.f*}_redun.sam && test ! -f ${projdir}/preprocess/${i%.f*}_${ref1%.f*}_precall.bam.bai; then
 				if test ! -f ${i%.f*}_uniq_R1.fasta.gz; then
@@ -767,7 +767,6 @@ main () {
 	done
 	wait
 	wait && touch ${projdir}/alignment_done_${samples_list}
-	zcat ../preprocess/combined_all_sample_reads_redun.sam.gz | $samtools flagstat - > ${projdir}/alignment_summaries/Alignment_merged_summary.txt
 
 
 	if [[ $nodes -eq 1 ]]; then cd ${projdir}/preprocess/; fi
@@ -775,6 +774,7 @@ main () {
 
 	if [[ "$samples_list" == "samples_list_node_1.txt" ]]; then
 		touch ${projdir}/compress_done.txt
+		zcat ../preprocess/combined_all_sample_reads_redun.sam.gz | $samtools flagstat - > ${projdir}/alignment_summaries/Alignment_merged_summary.txt
 	fi
 
 	for i in $(cat ${projdir}/${samples_list} ); do (
