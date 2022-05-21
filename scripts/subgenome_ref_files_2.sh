@@ -2104,6 +2104,7 @@ cd "$projdir"/snpfilter
 for snpfilter_dir in $(ls -d */); do
 	if [ -d "$snpfilter_dir" ]; then
 		cd $snpfilter_dir
+
 		for v in *dose.txt; do
 			vcfdose=${v%_rd*}; vcfdose=${vcfdose#*_}
 			zcat ../../snpcall/*${vcfdose}.vcf.gz | grep '^#' > ${v%.txt}.vcf
@@ -2111,20 +2112,9 @@ for snpfilter_dir in $(ls -d */); do
 			gzip ${v%.txt}.vcf
 		done
 		wait
-		for i in $(ls *dose.txt); do
-			ARfile=$(ls ../../snpcall/*_AR.txt 2> /dev/null)
-			Rscript "${GBSapp_dir}"/scripts/R/heterozygote_vs_allele_ratio.R "$i" "$AR" "ploidy" "2" "${GBSapp_dir}/tools/R"
-		done
-		wait
+
 
 		cd unique_mapped
-		for v in *dose*; do
-			vcfdose=${v%_rd*}; vcfdose=${vcfdose#*_}
-			zcat ../../../snpcall/*${vcfdose}.vcf.gz | grep '^#' > ${v%.txt}.vcf
-			awk 'FNR==NR{a[$1,$2]=$0;next}{if(b=a[$2,$3]){print b}}' <(gzip -dc ../../../snpcall/*${vcfdose}.vcf.gz) $v >> ${v%.txt}.vcf
-			gzip ${v%.txt}.vcf
-		done
-		wait
 		for i in $(ls *dose_unique_mapped.txt); do
 			ARfile=$(ls ../../../snpcall/*_AR.txt 2> /dev/null)
 			Rscript "${GBSapp_dir}"/scripts/R/heterozygote_vs_allele_ratio_uniqfiltered.R "$i" "$AR" "ploidy" "2" "${GBSapp_dir}/tools/R"
@@ -2135,6 +2125,14 @@ for snpfilter_dir in $(ls -d */); do
 			Rscript "${GBSapp_dir}"/scripts/R/heterozygote_vs_allele_ratio_multifiltered.R "$i" "$AR" "ploidy" "2" "${GBSapp_dir}/tools/R"
 		done
 		wait
+		for v in *dose*; do
+			vcfdose=${v%_rd*}; vcfdose=${vcfdose#*_}
+			zcat ../../../snpcall/*${vcfdose}.vcf.gz | grep '^#' > ${v%.txt}.vcf
+			awk 'FNR==NR{a[$1,$2]=$0;next}{if(b=a[$2,$3]){print b}}' <(gzip -dc ../../../snpcall/*${vcfdose}.vcf.gz) $v >> ${v%.txt}.vcf
+			gzip ${v%.txt}.vcf
+		done
+		wait
+
 
 		cd ../../
 	fi
