@@ -1384,7 +1384,7 @@ main () {
 		fi
 	fi
 
-	wait && touch ${projdir}/alignment_done.txt
+	wait && touch ${projdir}/alignment_done_${samples_list}
 }
 cd $projdir
 if [ "$walkaway" == false ]; then
@@ -1395,7 +1395,7 @@ if [ "$walkaway" == false ]; then
 		echo -e "${magenta}- skipping read alignments and alignment post-processing ${white}\n"
 	else
 		printf '\n'
-		if test -f ${projdir}/alignment_done.txt; then
+		if test -f ${projdir}/alignment_done_${samples_list}; then
 			echo -e "${magenta}- read alignments and alignment post-processinga already performed ${white}\n"
 		else
 			echo -e "${magenta}- performing read alignments and alignment post-processing ${white}\n"
@@ -1405,7 +1405,7 @@ if [ "$walkaway" == false ]; then
 fi
 if [ "$walkaway" == true ]; then
 	if [ "$alignments" == 1 ]; then
-		if test -f ${projdir}/alignment_done.txt; then
+		if test -f ${projdir}/alignment_done_${samples_list}; then
 			echo -e "${magenta}- read alignments and alignment post-processinga already performed ${white}\n"
 		else
 			echo -e "${magenta}- performing read alignments and alignment post-processing ${white}\n"

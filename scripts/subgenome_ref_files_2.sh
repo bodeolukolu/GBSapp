@@ -962,7 +962,7 @@ main () {
 		fi
 	fi
 
-	wait && touch ${projdir}/alignment_done.txt
+	wait && touch ${projdir}/alignment_done_${samples_list}
 }
 cd $projdir
 if [ "$walkaway" == false ]; then
