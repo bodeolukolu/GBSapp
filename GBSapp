@@ -315,7 +315,7 @@ if test ! -f ${projdir}/Analysis_Complete; then
     :
   else
     if test ! -f ${projdir}/precall_done.txt && test ! -f ${projdir}/Analysis_Complete; then
-      echo -e "${magenta}- Job was interrupted creating sample bam files ${white}"
+      echo -e "${magenta}- Job was interrupted while creating sample bam files ${white}"
       echo -e "${magenta}- Do you want to continue from where this analytical step was interrupted? ${white}"
       read -p "- y(YES) or n(NO)? " -n 1 -r
       if [[ ! $REPLY =~ ^[Yy]$ ]]; then
@@ -349,7 +349,7 @@ fi
 main() {
 cd $projdir
 cd samples
-export samples_list=$(ls -R *.f* ./*/*.f* 2> /dev/null | grep -v *.txt | grep -v *.txt.gz | shuf | awk '{gsub(/\n/," "); print}' | awk -F"/" '{print $NF}' | awk '!a[$0]++' )
+export samples_list=$(ls -R *.f* ./*/*.f* 2> /dev/null | grep -v .txt | grep -v .txt.gz | shuf | awk '{gsub(/\n/," "); print}' | awk -F"/" '{print $NF}' | awk '!a[$0]++' )
 cd ../
 
 string="${GBSapp_dir}/scripts/GBSapp_internal_parameters.sh"
@@ -640,7 +640,7 @@ if [[ "$cluster" == true ]]; then
         echo -e "${magenta}\n ${white}\n"
         sbatch ${projdir}GBSapp_run_node_1.sh
         for nn in $(seq 2 "$n_nodes"); do
-          while [[ ! -f "${projdir}/compress_done.txt" ]] && [[ ! -f ${projdir}/organize_files_done.txt ]] ; do
+          while [[ ! -f "${projdir}/compress_done.txt" ]] || [[ ! -f "${projdir}/organize_files_done.txt" ]] ; do
             sleep 300
           done
           sbatch ${projdir}GBSapp_run_node_${nn}.sh
