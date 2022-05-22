@@ -449,6 +449,7 @@ echo -e "${blue}\n##############################################################
 
 cd $projdir
 if [[ $nodes -gt 1 ]] && [[ "$samples_list" == "samples_list_node_1.txt" ]]; then
+	rm -rf /tmp/${samples_list%.txt}
 	mkdir -p /tmp/${samples_list%.txt}/refgenomes /tmp/${samples_list%.txt}/samples /tmp/${samples_list%.txt}/preprocess /tmp/${samples_list%.txt}/snpcall
 	cp -r ${projdir}/refgenomes/* /tmp/${samples_list%.txt}/refgenomes/
 	if [[ "$lib_type" =~ "RRS" || "$lib_type" =~ "rrs" ]]; then
@@ -717,6 +718,9 @@ main () {
 	cd ${projdir}/samples
 
 	if [[ $nodes -gt 1 ]]; then
+		if [[ "$samples_list" != "samples_list_node_1.txt" ]]; then
+			rm -rf /tmp/${samples_list%.txt}
+		fi
 		mkdir -p /tmp/${samples_list%.txt}/refgenomes /tmp/${samples_list%.txt}/samples /tmp/${samples_list%.txt}/preprocess /tmp/${samples_list%.txt}/snpcall
 		touch ${projdir}/queue_move_${samples_list%.txt}
 		queue_move=$(ls ${projdir}/queue_move_samples_list_node_* | wc -l)
@@ -782,7 +786,6 @@ main () {
 			zcat ../samples/${i%.f*}_uniq*.fasta.gz | awk '{gsub(/^>/,"");}1' | awk 'NR==FNR{a[$2]=$1; next} ($1 in a){print a[$1],$0}' - <(zcat ../samples/merged_index.txt.gz) | \
 			awk '{print $1"\t"$3}' | awk 'NR==FNR{a[$2]=$1; next} ($1 in a){print a[$1],$0}' - <(zcat combined_all_sample_reads_redun.sam.gz | grep -v '^@') | awk '{$2=""}1' | \
 			tr -s ' ' | cat <(zcat combined_all_sample_reads_redun.sam.gz | grep '^@') - | $gzip > ${i%.f*}_redun.sam.gz
-			rm ../samples/${i%.f*}_uniq*.fasta.gz
 		fi
 
 		printf '\n###---'${i%.f*}'---###\n' > ${projdir}/alignment_summaries/${i%.f*}_summ.txt && \
@@ -918,6 +921,7 @@ main () {
 
 if [[ "$samples_list" == "samples_list_node_1.txt" ]]; then
 	touch ${projdir}/compress_done.txt
+	rm ${projdir}/samples/*_uniq*.fasta.gz
 fi
 
 cd $projdir
