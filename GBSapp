@@ -298,7 +298,7 @@ fi
 
 
 if test ! -f ${projdir}/Analysis_Complete; then
-  if test ! -f ${projdir}/compress_done.txt && test -f ${projdir}/alignment_summaries/total_read_count.txt; then
+  if test ! -f ${projdir}/compress_done.txt && test !-f ${projdir}/organize_files_done.txt && test ! -f ${projdir}/alignment_summaries/total_read_count.txt && [[ ! -z "$(ls ${projdir}/samples/*uniq_R1.fasta.gz 2> /dev/null)" ]]; then
     echo -e "${magenta}- Job was interrupted during sample fastq file compression/indexing ${white}"
     echo -e "${magenta}- Do you want to continue from where this analytical step was interrupted? ${white}"
     read -p "- y(YES) or n(NO)? " -n 1 -r
@@ -310,33 +310,16 @@ if test ! -f ${projdir}/Analysis_Complete; then
     fi
   fi
 
-  if test ! -f ${projdir}/compress_done.txt; then
-    :
-  else
-    if test ! -f ${projdir}/alignment_done.txt; then
-      if [[ -d "${projdir}/preprocess" ]]; then
-        echo -e "${magenta}- Job was interrupted during alignment post-processing ${white}"
-        echo -e "${magenta}- Do you want to continue from where this analytical step was interrupted? ${white}"
-        read -p "- y(YES) or n(NO)? " -n 1 -r
-        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-          echo -e "${magenta}- GBSapp will delete all .bam files and redo analysis if if read alignments and alignment post-processing is performed ${white}"
-          rm ${projdir}/preprocess/*_redun.sam.gz 2> /dev/null
-        else
-          echo -e "${magenta}- GBSapp will continue analysis, while removing interrupted files ${white}"
-        fi
-      fi
-    fi
-  fi
 
-  if test ! -f ${projdir}/alignment_done.txt || test ! -f ${projdir}/compress_done.txt ; then
+  if test ! -f ${projdir}/compress_done.txt ; then
     :
   else
     if test ! -f ${projdir}/precall_done.txt && test ! -f ${projdir}/Analysis_Complete; then
-      echo -e "${magenta}- Job was interrupted during sequence alignment ${white}"
+      echo -e "${magenta}- Job was interrupted creating sample bam files ${white}"
       echo -e "${magenta}- Do you want to continue from where this analytical step was interrupted? ${white}"
       read -p "- y(YES) or n(NO)? " -n 1 -r
       if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-        echo -e "${magenta}- GBSapp will delete all .sam files and redo analysis if read alignments and alignment post-processing is performed ${white}"
+        echo -e "${magenta}- GBSapp will delete all .sam/.bam files and redo analysis ${white}"
         rm ${projdir}/preprocess/*_redun.sam.gz 2> /dev/null
       else
         echo -e "${magenta}- GBSapp will continue analysis, while removing interrupted files ${white}"
@@ -657,7 +640,7 @@ if [[ "$cluster" == true ]]; then
         echo -e "${magenta}\n ${white}\n"
         sbatch ${projdir}GBSapp_run_node_1.sh
         for nn in $(seq 2 "$n_nodes"); do
-          while [[ ! -f "${projdir}/compress_done.txt" ]]; do
+          while [[ ! -f "${projdir}/compress_done.txt" ]] && [[ ! -f ${projdir}/organize_files_done.txt ]] ; do
             sleep 300
           done
           sbatch ${projdir}GBSapp_run_node_${nn}.sh
