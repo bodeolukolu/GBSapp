@@ -145,6 +145,11 @@ if (ploidy == "2x"){
     write.table (subgenome_1, file=paste(pop,"_2x","_DP_GT.txt",sep=""), row.names=F, quote = FALSE, sep = "\t")
     write.table (AR1, file=paste(pop,"_2x","_AR.txt",sep=""), row.names=F, quote = FALSE, sep = "\t")
     AR1 <- NULL
+    vcffile <- NULL
+    vcffile_DP <- NULL
+    vcffile_GT <- NULL
+    unlink(paste("*2x_rawSPLIT*",sep=""))
+    
     
     AR$propHet <- (rowSums(AR == "0/1" | AR == "0|1", na.rm = TRUE)) / (GTincre - (rowSums(AR == "./.", na.rm = TRUE)))
     AR <- AR[,c(ARstart:ARend,ncol(AR))]
@@ -175,11 +180,6 @@ if (ploidy == "2x"){
       xlab("Proportion of Heterozygote per SNP (diploid)") +
       ylab("Allele Read Depth Ratio per Genotype")
     ggsave(file=paste("raw2x_Allele_Ratio_Heterozygosity_plot",".tiff",sep=""), plot=ARplot, width=12, height=4, units=("in"), dpi=300, compression = "lzw")
-    
-    vcffile <- NULL
-    vcffile_DP <- NULL
-    vcffile_GT <- NULL
-    unlink(paste("*2x_rawSPLIT*",sep=""))
   }
   vcf_to_DP_GT_2x()
 }
@@ -270,6 +270,11 @@ if (ploidy == "4x"){
     write.table (subgenome_1, file=paste(pop,"_4x","_DP_GT.txt",sep=""), row.names=F, quote = FALSE, sep = "\t")
     write.table (AR1, file=paste(pop,"_4x","_AR.txt",sep=""), row.names=F, quote = FALSE, sep = "\t")
     AR1 <- NULL
+    vcffile <- NULL
+    vcffile_DP <- NULL
+    vcffile_GT <- NULL
+    unlink(paste("*4x_rawSPLIT*",sep=""))
+    
     
     AR$propHet <- (rowSums(AR == "0/0/0/1" | AR == "0/0/1/1" | AR == "0/1/1/1" | 
                            AR == "0|0|0|1" | AR == "0|0|1|1" | AR == "0|1|1|1", na.rm = TRUE)) / (GTincre - (rowSums(AR == "./././.", na.rm = TRUE)))
@@ -306,10 +311,6 @@ if (ploidy == "4x"){
       ylab("Allele Read Depth Ratio per Genotype")
     ggsave(file=paste("raw4x_Allele_Ratio_Heterozygosity_plot",".tiff",sep=""), plot=ARplot, width=12, height=4, units=("in"), dpi=300, compression = "lzw")
     
-    vcffile <- NULL
-    vcffile_DP <- NULL
-    vcffile_GT <- NULL
-    unlink(paste("*4x_rawSPLIT*",sep=""))
   }
   vcf_to_DP_GT_4x()
 }
@@ -405,6 +406,10 @@ if (ploidy == "6x"){
     write.table (subgenome_1, file=paste(pop,"_6x","_DP_GT.txt",sep=""), row.names=F, quote = FALSE, sep = "\t")
     write.table (AR1, file=paste(pop,"_6x","_AR.txt",sep=""), row.names=F, quote = FALSE, sep = "\t")
     AR1 <- NULL
+    vcffile <- NULL
+    vcffile_DP <- NULL
+    vcffile_GT <- NULL
+    unlink(paste("*6x_rawSPLIT*",sep=""))
     
     AR$propHet <- (rowSums(AR == "0/0/0/0/0/1" | AR == "0/0/0/0/1/1" | AR == "0/0/0/1/1/1" | AR == "0/0/0/1/1/1" | AR == "0/0/1/1/1/1" | AR == "0/1/1/1/1/1" | 
                              AR == "0|0|0|0|0|1" | AR == "0|0|0|0|1|1" | AR == "0|0|0|1|1|1" | AR == "0|0|0|0|0|1" | AR == "0|0|0|0|1|1" | AR == "0|0|0|1|1|1", na.rm = TRUE)) / (GTincre - (rowSums(AR == "./././././.", na.rm = TRUE)))
@@ -445,10 +450,6 @@ if (ploidy == "6x"){
       ylab("Allele Read Depth Ratio per Genotype")
     ggsave(file=paste("raw6x_Allele_Ratio_Heterozygosity_plot",".tiff",sep=""), plot=ARplot, width=12, height=4, units=("in"), dpi=300, compression = "lzw")
 
-    vcffile <- NULL
-    vcffile_DP <- NULL
-    vcffile_GT <- NULL
-    unlink(paste("*6x_rawSPLIT*",sep=""))
   }
   vcf_to_DP_GT_6x()
 }
@@ -543,6 +544,11 @@ if (ploidy == "8x"){
     write.table (subgenome_1, file=paste(pop,"_8x","_DP_GT.txt",sep=""), row.names=F, quote = FALSE, sep = "\t")
     write.table (AR1, file=paste(pop,"_8x","_AR.txt",sep=""), row.names=F, quote = FALSE, sep = "\t")
     AR1 <- NULL
+    vcffile <- NULL
+    vcffile_DP <- NULL
+    vcffile_GT <- NULL
+    unlink(paste("*8x_rawSPLIT*",sep=""))
+    
     
     AR$propHet <- (rowSums(AR == "0/0/0/0/0/0/0/1" | AR == "0/0/0/0/0/0/1/1" | AR == "0/0/0/0/0/1/1/1" | AR == "0/0/0/0/1/1/1/1" | AR == "0/0/0/1/1/1/1/1" | AR == "0/0/1/1/1/1/1/1" | AR == "0/1/1/1/1/1/1/1" | 
                              AR == "0|0|0|0|0|0|0|1" | AR == "0|0|0|0|0|0|1|1" | AR == "0|0|0|0|0|1|1|1" | AR == "0|0|0|0|1|1|1|1" | AR == "0|0|0|1|1|1|1|1" | AR == "0|0|1|1|1|1|1|1" | AR == "0|1|1|1|1|1|1|1", na.rm = TRUE)) / (GTincre - (rowSums(AR == "./././././.", na.rm = TRUE)))
@@ -587,10 +593,6 @@ if (ploidy == "8x"){
       ylab("Allele Read Depth Ratio per Genotype")
     ggsave(file=paste("raw8x_Allele_Ratio_Heterozygosity_plot",".tiff",sep=""), plot=ARplot, width=12, height=4, units=("in"), dpi=300, compression = "lzw")
     
-    vcffile <- NULL
-    vcffile_DP <- NULL
-    vcffile_GT <- NULL
-    unlink(paste("*8x_rawSPLIT*",sep=""))
   }
   vcf_to_DP_GT_8x()
 }
