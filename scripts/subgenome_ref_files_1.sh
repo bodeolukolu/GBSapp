@@ -449,7 +449,7 @@ echo -e "${blue}\n##############################################################
 
 cd $projdir
 if [[ $nodes -gt 1 ]] && [[ "$samples_list" == "samples_list_node_1.txt" ]]; then
-	rm -rf /tmp/${samples_list%.txt}
+	rm -rf /tmp/${samples_list%.txt} 2> /dev/null
 	mkdir -p /tmp/${samples_list%.txt}/refgenomes /tmp/${samples_list%.txt}/samples /tmp/${samples_list%.txt}/preprocess /tmp/${samples_list%.txt}/snpcall
 	cp -r ${projdir}/refgenomes/* /tmp/${samples_list%.txt}/refgenomes/
 	if [[ "$lib_type" =~ "RRS" || "$lib_type" =~ "rrs" ]]; then
@@ -719,7 +719,7 @@ main () {
 
 	if [[ $nodes -gt 1 ]]; then
 		if [[ "$samples_list" != "samples_list_node_1.txt" ]]; then
-			rm -rf /tmp/${samples_list%.txt}
+			rm -rf /tmp/${samples_list%.txt} 2> /dev/null
 		fi
 		mkdir -p /tmp/${samples_list%.txt}/refgenomes /tmp/${samples_list%.txt}/samples /tmp/${samples_list%.txt}/preprocess /tmp/${samples_list%.txt}/snpcall
 		touch ${projdir}/queue_move_${samples_list%.txt}
@@ -1105,7 +1105,7 @@ if [[ "$joint_calling" == false ]]; then
 		done
 		cd /tmp/${samples_list%.txt}/preprocess/
 		mv * ${projdir}/preprocess/ && cd ${projdir}
-		rm -rf /tmp/${samples_list%.txt}
+		rm -rf /tmp/${samples_list%.txt} 2> /dev/null
 		rm ${projdir}/queue_move_${samples_list%.txt}
 	fi
 fi
