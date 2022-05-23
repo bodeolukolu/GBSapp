@@ -454,7 +454,7 @@ if [[ $nodes -gt 1 ]] && [[ "$samples_list" == "samples_list_node_1.txt" ]]; the
 	cp -r ${projdir}/refgenomes/* /tmp/${samples_list%.txt}/refgenomes/
 	if [[ "$lib_type" =~ "RRS" || "$lib_type" =~ "rrs" ]]; then
 		for i in $(cat ${projdir}/${samples_list} ); do
-			mv ${i%.f*}_uniq_R1.fasta.gz /tmp/${samples_list%.txt}/samples/ 2> /dev/null &&
+			cp ${i%.f*}_uniq_R1.fasta.gz /tmp/${samples_list%.txt}/samples/ 2> /dev/null &&
 			cp ${projdir}/preprocess/${i%.f*}_redun.sam.gz /tmp/${samples_list%.txt}/preprocess/ 2> /dev/null &&
 			cp ${projdir}/preprocess/${i%.f*}_*_precall.bam* /tmp/${samples_list%.txt}/preprocess/ 2> /dev/null &&
 			wait
@@ -679,7 +679,7 @@ main () {
 
 
 	if [[ "$samples_list" == "samples_list_node_1.txt" ]]; then
-		if [[ "$lib_type" =~ "RRS" || "$lib_type" =~ "rrs" ]] && test ! -f ${projdir}/precall_done.txt; then
+		if [[ "$lib_type" =~ "RRS" || "$lib_type" =~ "rrs" ]] && test ! -f ${projdir}/precall_done.txt && test ! -f ${projdir}/compress_done.txt ; then
 			export nempty=$( ls combined_all_sample_reads_R2.fq.gz 2> /dev/null | wc -l | awk '{print $1}' )
 			if test ! -f ../preprocess/combined_all_sample_reads_redun.sam.gz; then
 				if [[ "$nempty" -gt 0 ]]; then

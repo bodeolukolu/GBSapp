@@ -457,7 +457,7 @@ if [[ $nodes -gt 1 ]] && [[ "$samples_list" == "samples_list_node_1.txt" ]]; the
 	cp -r ${projdir}/refgenomes/* /tmp/${samples_list%.txt}/refgenomes/
 	if [[ "$lib_type" =~ "RRS" || "$lib_type" =~ "rrs" ]]; then
 		for i in $(cat ${projdir}/${samples_list} ); do
-			mv ${i%.f*}_uniq_R1.fasta.gz /tmp/${samples_list%.txt}/samples/ 2> /dev/null &&
+			cp ${i%.f*}_uniq_R1.fasta.gz /tmp/${samples_list%.txt}/samples/ 2> /dev/null &&
 			cp ${projdir}/preprocess/${i%.f*}_redun.sam.gz /tmp/${samples_list%.txt}/preprocess/ 2> /dev/null &&
 			cp ${projdir}/preprocess/${i%.f*}_*_precall.bam* /tmp/${samples_list%.txt}/preprocess/ 2> /dev/null &&
 			wait
