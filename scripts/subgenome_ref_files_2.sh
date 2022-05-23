@@ -45,7 +45,7 @@ if [[ "$samples_list" == "samples_list_node_1.txt" ]]; then
 	for i in samples_list_node_*.txt; do
 		:> ${i%.txt}_hold.txt
 		while read line; do
-			ls -l samples/$line | awk '{print $5"\t"$9}' >> ${i%.txt}_hold.txt
+			ls -l ./samples/$line | awk '{print $5"\t"$9}' >> ${i%.txt}_hold.txt
 		done < $i
 		sort -nr -k1 ${i%.txt}_hold.txt | awk '{gsub(/samples\//,""); print $2}' > $i
 		rm ${i%.txt}_hold.txt
@@ -1006,7 +1006,6 @@ main () {
 
 	if [[ "$samples_list" == "samples_list_node_1.txt" ]]; then
 		touch ${projdir}/compress_done.txt
-		rm ${projdir}/samples/*_uniq*.fasta.gz
 	fi
 
 	cd $projdir

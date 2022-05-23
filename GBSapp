@@ -412,11 +412,11 @@ if [[ "$string" == false ]]; then
   echo -e "${magenta}- Do you want to continue? ${white}"
   read -p "- y(YES) or n(NO)? " -n 1 -r
   if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-    echo -e "${magenta}\n- shell script will be saved to ${projdir}GBSapp_run.sh ${white}\n"
+    echo -e "${magenta}\n- shell script will be saved to ${projdir}GBSapp_run_node_1.sh ${white}\n"
     exit 1
   else
     echo -e "${magenta}\n ${white}\n"
-    bash ${projdir}GBSapp_run.sh
+    bash ${projdir}GBSapp_run_node_1.sh
   fi
 fi
 
@@ -508,18 +508,18 @@ if [ -z $cluster ]; then
   echo $samples_list | awk -F' ' '{ for (i=1;i<=NF;i+=1) print $i }' | awk '{gsub(/\.R2.f/,"_R2.f");}1' | grep -v _R2.f | grep -v _uniq_R1.fasta | grep -v _uniq_R2.fasta | grep -v _uniq_R1.hold.fasta | grep -v fq.gz | \
   awk '{gsub(/_R1.fastq/,".fastq"); gsub(/\.R1.fastq/,".fastq"); gsub(/_R1.fq/,".fq"); gsub(/\.R1.fq/,".fq"); print}' > samples_list_node_1.txt
   printf "samples_list=samples_list_node_1.txt\n" >> config.sh
-  cat header.txt steps.txt config.sh walkaway.txt fetchdir.txt $string2 $string3 | awk '{ sub("\r$",""); print}' > GBSapp_run.sh
+  cat header.txt steps.txt config.sh walkaway.txt fetchdir.txt $string2 $string3 | awk '{ sub("\r$",""); print}' > GBSapp_run_node_1.sh
   rm header.txt walkaway.txt fetchdir.txt steps.txt
 
   echo -e "${magenta}- GBSapp is ready to submit job ${white}"
   echo -e "${magenta}- Do you want to continue? ${white}"
   read -p "- y(YES) or n(NO)? " -n 1 -r
   if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-    echo -e "${magenta}\n- shell script will be saved to ${projdir}GBSapp_run.sh ${white}\n"
+    echo -e "${magenta}\n- shell script will be saved to ${projdir}GBSapp_run_node_1.sh ${white}\n"
     exit 1
   else
     echo -e "${magenta}\n ${white}\n"
-    nohup bash ${projdir}GBSapp_run.sh > terminal.out 2>&1 &
+    nohup bash ${projdir}GBSapp_run_node_1.sh > terminal.out 2>&1 &
   fi
 fi
 fi
@@ -529,155 +529,155 @@ fi
 
 
 if [[ "$string" == true ]]; then
-if [[ "$cluster" == true ]]; then
-  if [ -z "$thread_node" ]; then
-    echo -e "${magenta}- Please provide number of threads in config.sh (for cluster node) ${white}"
-    echo -e "${magenta}- GBSapp will quit ${white}"
-    sleep 2
-    exit 1
-  fi
-  echo -e "${magenta}- GBSapp will run in walkaway mode\n ${white}"
-  echo -e "${white}##############################################################################\n ${white}"
+  if [[ "$cluster" == true ]]; then
+    if [ -z "$thread_node" ]; then
+      echo -e "${magenta}- Please provide number of threads in config.sh (for cluster node) ${white}"
+      echo -e "${magenta}- GBSapp will quit ${white}"
+      sleep 2
+      exit 1
+    fi
+    echo -e "${magenta}- GBSapp will run in walkaway mode\n ${white}"
+    echo -e "${white}##############################################################################\n ${white}"
 
-  echo -e "${magenta}- Do you want to perform read alignments and alignment post-processing? ${white}"
-  read -p "- y(YES) or n(NO) " -n 1 -r
-  if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-  	printf '\n'
-	printf "alignments=0 \n" > steps.txt
-  	echo -e "${magenta}- skipping read_alignments and alignment post-processing ${white}"
-    echo -e "${white}\n##############################################################################\n"
-  else
-    printf '\n'
-    printf "alignments=1 \n" > steps.txt
-    echo -e "${white}\n##############################################################################\n"
-  fi
+    echo -e "${magenta}- Do you want to perform read alignments and alignment post-processing? ${white}"
+    read -p "- y(YES) or n(NO) " -n 1 -r
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+    	printf '\n'
+  	printf "alignments=0 \n" > steps.txt
+    	echo -e "${magenta}- skipping read_alignments and alignment post-processing ${white}"
+      echo -e "${white}\n##############################################################################\n"
+    else
+      printf '\n'
+      printf "alignments=1 \n" > steps.txt
+      echo -e "${white}\n##############################################################################\n"
+    fi
 
-  echo -e "${magenta}- Do you want to perform SNP/variant calling? ${white}"
-  read -p "- y(YES) or n(NO) " -n 1 -r
-  if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-  	printf '\n'
-	printf "snp_calling=0 \n" >> steps.txt
-  	echo -e "${magenta}- skipping SNP/variant calling ${white}"
-    echo -e "${white}\n##############################################################################\n"
-  else
-    printf '\n'
-    printf "snp_calling=1 \n" >> steps.txt
-    echo -e "${white}\n##############################################################################\n"
-  fi
+    echo -e "${magenta}- Do you want to perform SNP/variant calling? ${white}"
+    read -p "- y(YES) or n(NO) " -n 1 -r
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+    	printf '\n'
+  	printf "snp_calling=0 \n" >> steps.txt
+    	echo -e "${magenta}- skipping SNP/variant calling ${white}"
+      echo -e "${white}\n##############################################################################\n"
+    else
+      printf '\n'
+      printf "snp_calling=1 \n" >> steps.txt
+      echo -e "${white}\n##############################################################################\n"
+    fi
 
-  echo -e "${magenta}- Do you want to perform SNP/variant filtering? ${white}"
-  read -p "- y(YES) or n(NO) " -n 1 -r
-  if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-  	printf '\n'
-	printf "snp_filtering=0 \n" >> steps.txt
-  	echo -e "${magenta}- skipping SNP/variant filtering ${white}"
-    echo -e "${white}\n##############################################################################\n"
-  else
-    printf '\n'
-    printf "snp_filtering=1 \n" >> steps.txt
-    echo -e "${white}\n##############################################################################\n"
-  fi
+    echo -e "${magenta}- Do you want to perform SNP/variant filtering? ${white}"
+    read -p "- y(YES) or n(NO) " -n 1 -r
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+    	printf '\n'
+  	printf "snp_filtering=0 \n" >> steps.txt
+    	echo -e "${magenta}- skipping SNP/variant filtering ${white}"
+      echo -e "${white}\n##############################################################################\n"
+    else
+      printf '\n'
+      printf "snp_filtering=1 \n" >> steps.txt
+      echo -e "${white}\n##############################################################################\n"
+    fi
 
-  printf "SNPaccuracy_ReadDepth=0 \n" >> steps.txt
-  printf "paralogfiltering_haplotyping=0 \n" >> steps.txt
-  # echo -e "${magenta}- Do you want to generate visualizations for genotype accuracy and ploidy estimation? ${white}"
-  # read -p "- y(YES) or n(NO) " -n 1 -r
-  # if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-  # 	printf '\n'
-	# printf "SNPaccuracy_ReadDepth=0 \n" >> steps.txt
-  # 	echo -e "${magenta}- skipping visualizations for genotype accuracy and ploidy estimation ${white}"
-  #   echo -e "${white}\n##############################################################################\n"
-  # else
-  #   printf '\n'
-  #   printf "SNPaccuracy_ReadDepth=1 \n" >> steps.txt
-  #   echo -e "${white}\n##############################################################################\n"
-  # fi
-  #
-  # echo -e "${magenta}- Do you want to perform sequence-based haplotyping and filtering? ${white}"
-  # read -p "- y(YES) or n(NO) " -n 1 -r
-  # if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-  # 	printf '\n'
-	# printf "paralogfiltering_haplotyping=0 \n" >> steps.txt
-  # 	echo -e "${magenta}- skipping sequence-based haplotyping and filtering ${white}"
-  #   echo -e "${white}\n##############################################################################\n"
-  # else
-  #   printf '\n'
-  #   printf "paralogfiltering_haplotyping=1 \n" >> steps.txt
-  #   echo -e "${white}\n##############################################################################\n"
-  # fi
+    printf "SNPaccuracy_ReadDepth=0 \n" >> steps.txt
+    printf "paralogfiltering_haplotyping=0 \n" >> steps.txt
+    # echo -e "${magenta}- Do you want to generate visualizations for genotype accuracy and ploidy estimation? ${white}"
+    # read -p "- y(YES) or n(NO) " -n 1 -r
+    # if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+    # 	printf '\n'
+  	# printf "SNPaccuracy_ReadDepth=0 \n" >> steps.txt
+    # 	echo -e "${magenta}- skipping visualizations for genotype accuracy and ploidy estimation ${white}"
+    #   echo -e "${white}\n##############################################################################\n"
+    # else
+    #   printf '\n'
+    #   printf "SNPaccuracy_ReadDepth=1 \n" >> steps.txt
+    #   echo -e "${white}\n##############################################################################\n"
+    # fi
+    #
+    # echo -e "${magenta}- Do you want to perform sequence-based haplotyping and filtering? ${white}"
+    # read -p "- y(YES) or n(NO) " -n 1 -r
+    # if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+    # 	printf '\n'
+  	# printf "paralogfiltering_haplotyping=0 \n" >> steps.txt
+    # 	echo -e "${magenta}- skipping sequence-based haplotyping and filtering ${white}"
+    #   echo -e "${white}\n##############################################################################\n"
+    # else
+    #   printf '\n'
+    #   printf "paralogfiltering_haplotyping=1 \n" >> steps.txt
+    #   echo -e "${white}\n##############################################################################\n"
+    # fi
 
-  printf "#""!""/bin/bash \n#SBATCH -c ${thread_node} \n\n" > cluster_header.sh
-  printf "walkaway=true \n\n" > walkaway.txt
-  if [[ $n_nodes -gt 1 ]]; then
-    for i in $(seq 1 "$n_nodes"); do
-      echo $samples_list | awk -F' ' -v pos=$i -v skip=$n_nodes '{ for (i=pos;i<=NF;i+=skip) print $i }' | awk '{gsub(/\.R2.f/,"_R2.f");}1' | grep -v _R2.f | grep -v _uniq_R1.fasta | grep -v _uniq_R2.fasta | \
-      grep -v _uniq_R1.hold.fasta | grep -v fq.gz | awk '{gsub(/_R1.fastq/,".fastq"); gsub(/\.R1.fastq/,".fastq"); gsub(/_R1.fq/,".fq"); gsub(/\.R1.fq/,".f"); gsub(/_R1.fq/,".fq"); print}'> samples_list_node_${i}.txt
-    done
-    wait
-    for i in $(seq 1 "$n_nodes"); do
-      grep -v '^samples_list=' config.sh > config_node.sh
-      printf "samples_list=samples_list_node_${i}.txt\n" >> config_node.sh
-      if [[ "$i" -gt 1 ]]; then
-        awk '{gsub(/snp_filtering=1/,"snp_filtering=0"); gsub(/SNPaccuracy_ReadDepth=1/,"SNPaccuracy_ReadDepth=0"); gsub(/paralogfiltering_haplotyping=1/,"paralogfiltering_haplotyping=0"); print}' steps.txt > steps_node.txt
-      else
-        cp steps.txt steps_node.txt
-      fi
-      cat cluster_header.sh steps_node.txt config_node.sh walkaway.txt fetchdir.txt $string2 $string3 | awk '{ sub("\r$",""); print}' | \
-      awk -v i=$i '{gsub(/log.out/,"log_node_"i".out"); print}' > GBSapp_run_node_${i}.sh
-      rm config_node.sh steps_node.txt
-    done
-    rm fetchdir.txt cluster_header.sh header.txt steps.txt walkaway.txt
-    slurm_check=$(sbatch --version)
-    if [[ $slurm_check == slurm* ]]; then
-      echo -e "${magenta}- GBSapp is ready to submit jobs to $n_nodes nodes ${white}"
-      echo -e "${magenta}- Do you want to continue? ${white}"
-      read -p "- y(YES) or n(NO)? " -n 1 -r
-      if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-        echo -e "${magenta}\n- shell script will be saved to ${projdir}GBSapp_run_node_*.sh ${white}\n"
-        exit 1
-      else
-        echo -e "${magenta}\n ${white}\n"
-        sbatch ${projdir}GBSapp_run_node_1.sh
-        for nn in $(seq 2 "$n_nodes"); do
-          while [[ ! -f "${projdir}/compress_done.txt" ]] || [[ ! -f "${projdir}/organize_files_done.txt" ]] ; do
-            sleep 300
+    printf "#""!""/bin/bash \n#SBATCH -c ${thread_node} \n\n" > cluster_header.sh
+    printf "walkaway=true \n\n" > walkaway.txt
+    if [[ $n_nodes -gt 1 ]]; then
+      for i in $(seq 1 "$n_nodes"); do
+        echo $samples_list | awk -F' ' -v pos=$i -v skip=$n_nodes '{ for (i=pos;i<=NF;i+=skip) print $i }' | awk '{gsub(/\.R2.f/,"_R2.f");}1' | grep -v _R2.f | grep -v _uniq_R1.fasta | grep -v _uniq_R2.fasta | \
+        grep -v _uniq_R1.hold.fasta | grep -v fq.gz | awk '{gsub(/_R1.fastq/,".fastq"); gsub(/\.R1.fastq/,".fastq"); gsub(/_R1.fq/,".fq"); gsub(/\.R1.fq/,".f"); gsub(/_R1.fq/,".fq"); print}'> samples_list_node_${i}.txt
+      done
+      wait
+      for i in $(seq 1 "$n_nodes"); do
+        grep -v '^samples_list=' config.sh > config_node.sh
+        printf "samples_list=samples_list_node_${i}.txt\n" >> config_node.sh
+        if [[ "$i" -gt 1 ]]; then
+          awk '{gsub(/snp_filtering=1/,"snp_filtering=0"); gsub(/SNPaccuracy_ReadDepth=1/,"SNPaccuracy_ReadDepth=0"); gsub(/paralogfiltering_haplotyping=1/,"paralogfiltering_haplotyping=0"); print}' steps.txt > steps_node.txt
+        else
+          cp steps.txt steps_node.txt
+        fi
+        cat cluster_header.sh steps_node.txt config_node.sh walkaway.txt fetchdir.txt $string2 $string3 | awk '{ sub("\r$",""); print}' | \
+        awk -v i=$i '{gsub(/log.out/,"log_node_"i".out"); print}' > GBSapp_run_node_${i}.sh
+        rm config_node.sh steps_node.txt
+      done
+      rm fetchdir.txt cluster_header.sh header.txt steps.txt walkaway.txt
+      slurm_check=$(sbatch --version)
+      if [[ $slurm_check == slurm* ]]; then
+        echo -e "${magenta}- GBSapp is ready to submit jobs to $n_nodes nodes ${white}"
+        echo -e "${magenta}- Do you want to continue? ${white}"
+        read -p "- y(YES) or n(NO)? " -n 1 -r
+        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+          echo -e "${magenta}\n- shell script will be saved to ${projdir}GBSapp_run_node_*.sh ${white}\n"
+          exit 1
+        else
+          echo -e "${magenta}\n ${white}\n"
+          sbatch ${projdir}GBSapp_run_node_1.sh
+          for nn in $(seq 2 "$n_nodes"); do
+            while [[ ! -f "${projdir}/compress_done.txt" ]] || [[ ! -f "${projdir}/organize_files_done.txt" ]]; do
+              sleep 300
+            done
+            sbatch ${projdir}GBSapp_run_node_${nn}.sh
+            wait
           done
-          sbatch ${projdir}GBSapp_run_node_${nn}.sh
-          wait
-        done
-      fi
-    else
-      echo -e "${magenta}- Cluster manager not SLURM, revise batch file header in ${projdir}GBSapp_run.sh to for cluster manager syntax ${white}"
-      echo -e "${magenta}- Revise batch file header in ${projdir}GBSapp_run.sh for your cluster manager ${white}"
-    fi
-  else
-    echo $samples_list | awk -F' ' '{ for (i=1;i<=NF;i+=1) print $i }' | awk '{gsub(/\.R2.f/,"_R2.f");}1' | grep -v _R2.f | grep -v _uniq_R1.fasta | grep -v _uniq_R2.fasta | grep -v _uniq_R1.hold.fasta | grep -v fq.gz | \
-    awk '{gsub(/_R1.fastq/,".fastq"); gsub(/.R1.fastq/,".fastq"); gsub(/_R1.fq/,".fq"); gsub(/.R1.fq/,".fq"); print}' > samples_list_node_1.txt
-    printf "samples_list=samples_list_node_1.txt\n" >> config.sh
-    cat cluster_header.sh steps.txt config.sh walkaway.txt fetchdir.txt $string2 $string3 | awk '{ sub("\r$",""); print}' > GBSapp_run.sh
-    rm fetchdir.txt cluster_header.sh header.txt steps.txt walkaway.txt
-    slurm_check=$(sbatch --version)
-    if [[ $slurm_check == slurm* ]]; then
-      echo -e "${magenta}- GBSapp is ready to submit job ${white}"
-      echo -e "${magenta}- Do you want to continue? ${white}"
-      read -p "- y(YES) or n(NO)? " -n 1 -r
-      if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-        echo -e "${magenta}\n- shell script will be saved to ${projdir}GBSapp_run.sh ${white}\n"
-        exit 1
+        fi
       else
-        echo -e "${magenta}\n ${white}\n"
-        sbatch ${projdir}GBSapp_run.sh
+        echo -e "${magenta}- Cluster manager not SLURM, revise batch file header in ${projdir}GBSapp_run_node_x.sh for different cluster manager syntax ${white}"
+        echo -e "${magenta}- Revise batch file header in ${projdir}GBSapp_run_node_1.sh for your cluster manager ${white}"
       fi
     else
-      echo -e "${magenta}- Cluster manager not SLURM, revise batch file header in ${projdir}GBSapp_run.sh to for cluster manager syntax ${white}"
-      echo -e "${magenta}- Revise batch file header in ${projdir}GBSapp_run.sh for your cluster manager ${white}"
+      echo $samples_list | awk -F' ' '{ for (i=1;i<=NF;i+=1) print $i }' | awk '{gsub(/\.R2.f/,"_R2.f");}1' | grep -v _R2.f | grep -v _uniq_R1.fasta | grep -v _uniq_R2.fasta | grep -v _uniq_R1.hold.fasta | grep -v fq.gz | \
+      awk '{gsub(/_R1.fastq/,".fastq"); gsub(/.R1.fastq/,".fastq"); gsub(/_R1.fq/,".fq"); gsub(/.R1.fq/,".fq"); print}' > samples_list_node_1.txt
+      printf "samples_list=samples_list_node_1.txt\n" >> config.sh
+      cat cluster_header.sh steps.txt config.sh walkaway.txt fetchdir.txt $string2 $string3 | awk '{ sub("\r$",""); print}' > GBSapp_run_node_1.sh
+      rm fetchdir.txt cluster_header.sh header.txt steps.txt walkaway.txt
+      slurm_check=$(sbatch --version)
+      if [[ $slurm_check == slurm* ]]; then
+        echo -e "${magenta}- GBSapp is ready to submit job ${white}"
+        echo -e "${magenta}- Do you want to continue? ${white}"
+        read -p "- y(YES) or n(NO)? " -n 1 -r
+        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+          echo -e "${magenta}\n- shell script will be saved to ${projdir}GBSapp_run_node_1.sh ${white}\n"
+          exit 1
+        else
+          echo -e "${magenta}\n ${white}\n"
+          sbatch ${projdir}GBSapp_run_node_1.sh
+        fi
+      else
+        echo -e "${magenta}- Cluster manager not SLURM, revise batch file header in ${projdir}GBSapp_run_node_x.sh for different cluster manager syntax ${white}"
+        echo -e "${magenta}- Revise batch file header in ${projdir}GBSapp_run_node_x.sh for your cluster manager ${white}"
+      fi
     fi
   fi
-fi
 fi
 }
-cd $projdir
-time main
+cd ${projdir}
+time main 2>> ${projdir}/log_master.out
 
 echo -e "${magenta}- For jobs running in background, monitor progress in terminal.out or slurm-xxxxxx.out (slurm cluster manager) ${white}"
 echo -e "${magenta}- The log.out file can help with troubleshooting and when reporting a bug ${white}"
