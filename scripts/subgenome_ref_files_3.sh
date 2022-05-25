@@ -47,7 +47,7 @@ if [[ "$samples_list" == "samples_list_node_1.txt" ]]; then
 		while read line; do
 			ls -l ./samples/$line | awk '{print $5"\t"$9}' >> ${i%.txt}_hold.txt
 		done < $i
-		sort -nr -k1 ${i%.txt}_hold.txt | awk '{gsub(/samples\//,""); print $2}' > $i
+		sort -nr -k1 ${i%.txt}_hold.txt | awk '{gsub(/.\/samples\//,""); print $2}' > $i
 		rm ${i%.txt}_hold.txt
 	done
 fi
@@ -472,7 +472,6 @@ if [[ $nodes -gt 1 ]] && [[ "$samples_list" == "samples_list_node_1.txt" ]]; the
 			wait
 		done
 	fi
-	rm ${projdir}/queue_move_${samples_list%.txt} 2> /dev/null
 fi
 
 main () {
