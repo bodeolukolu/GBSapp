@@ -677,7 +677,7 @@ if [[ "$string" == true ]]; then
 fi
 }
 cd ${projdir}
-time main 2>> ${projdir}/log_master.out
+time main 2>> ${projdir}
 
 echo -e "${magenta}- For jobs running in background, monitor progress in terminal.out or slurm-xxxxxx.out (slurm cluster manager) ${white}"
 echo -e "${magenta}- The log.out file can help with troubleshooting and when reporting a bug ${white}"
