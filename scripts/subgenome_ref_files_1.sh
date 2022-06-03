@@ -975,7 +975,7 @@ if [[ "$joint_calling" == false ]]; then
 	if [[ $nodes -eq 1 ]]; then cd ${projdir}/preprocess/; fi
 	if [[ $nodes -gt 1 ]] && test -f ${projdir}/GBSapp_run_node_1.sh; then cd /tmp/${samples_list%.txt}/preprocess/; fi
 
-		if [[ -z "$(ls ${pop}_${ploidy}x_raw.vcf* 2> /dev/null)" ]]; then
+		if [[ -z "$(ls ${projdir}/snpcall/${pop}_${ploidy}x_raw.vcf* 2> /dev/null)" ]]; then
 			if test ! -f "${projdir}/snpcall/${i%.f*}_${ref1%.f*}.g.vcf.gz"; then
 					if [[ -z "$Get_Chromosome" ]]; then
 						$GATK --java-options "$Xmxg -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ../refgenomes/$ref1 -I ${i%.f*}_${ref1%.f*}_precall.bam -ploidy $ploidy -O ${projdir}/snpcall/${i%.f*}_${ref1%.f*}.hold.g.vcf.gz -ERC GVCF --dont-use-soft-clipped-bases $softclip --max-reads-per-alignment-start $downsample --minimum-mapping-quality 10 --max-num-haplotypes-in-population $((ploidy * maxHaplotype)) &&
@@ -997,7 +997,7 @@ if [[ "$joint_calling" == false ]]; then
 	wait
 	printf "variant calling completed on on ${samples_list}" > ${projdir}/call1_${samples_list}
 
-	if [[ "$samples_list" == "samples_list_node_1.txt" ]] && test ! -f ${projdir}/snpcall/${pop}_${ploidy}x_raw.vcf*; then
+	if [[ "$samples_list" == "samples_list_node_1.txt" ]] && [[ -z "$(ls ${projdir}/snpcall/${pop}_${ploidy}x_raw.vcf* 2> /dev/null)" ]]; then
 		call1=$(ls ${projdir}/call1_samples_list_node_* | wc -l)
 		while [[ "$call1" -lt $nodes ]]; do sleep 300; call1=$(ls ${projdir}/call1_samples_list_node_* | wc -l); done
 		if [[ $call1 == $nodes ]]; then
