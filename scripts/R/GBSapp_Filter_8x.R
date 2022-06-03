@@ -1547,7 +1547,7 @@ SD_snpfiltering <- function() {
                                          GT00111111=as.numeric(GT00111111), GT01111111=as.numeric(GT01111111))
     subgenome_1_SD_1a_count$pvalue <- NA
     for (i in 1:nrow(subgenome_1_SD_1a_count)) {
-      X <- chisq.test(subgenome_1_SD_1a_count[i,3:10],p=c( pseg020408163,0.022448979592,0.140816326531,0.335714285714,0.335714285714,0.140816326531,0.022448979592, pseg020408163), simulate.p.value = TRUE)
+      X <- chisq.test(subgenome_1_SD_1a_count[i,3:10],p=c( 0.001020408163,0.022448979592,0.140816326531,0.335714285714,0.335714285714,0.140816326531,0.022448979592, 0.001020408163), simulate.p.value = TRUE)
       subgenome_1_SD_1a_count[i,11] <- X$p.value
     }
     subgenome_1_SD_1_G00000111G00001111 <- merge(subgenome_1_SD_1a, subgenome_1_SD_1a_count, by=c("CHROM", "POS"), all=TRUE)
@@ -2063,7 +2063,7 @@ SD_snpfiltering <- function() {
                                          GT00111111=as.numeric(GT00111111), GT01111111=as.numeric(GT01111111), GT11111111=as.numeric(GT11111111))
     subgenome_1_SD_1a_count$pvalue <- NA
     for (i in 1:nrow(subgenome_1_SD_1a_count)) {
-      X <- chisq.test(subgenome_1_SD_1a_count[i,3:10],p=c( pseg020408163,0.022448979592,0.140816326531,0.335714285714,0.335714285714,0.140816326531,0.022448979592, pseg020408163), simulate.p.value = TRUE)
+      X <- chisq.test(subgenome_1_SD_1a_count[i,3:10],p=c( 0.001020408163,0.022448979592,0.140816326531,0.335714285714,0.335714285714,0.140816326531,0.022448979592, 0.001020408163), simulate.p.value = TRUE)
       subgenome_1_SD_1a_count[i,11] <- X$p.value
     }
     subgenome_1_SD_1_G00001111G00011111 <- merge(subgenome_1_SD_1a, subgenome_1_SD_1a_count, by=c("CHROM", "POS"), all=TRUE)
