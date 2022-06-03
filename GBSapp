@@ -391,9 +391,6 @@ if [ -z "$n_nodes" ]; then
 fi
 
 
-
-
-
 if [[ "$string" == false ]]; then
   echo -e "${magenta}- GBSapp will run in walk-through mode\n\n############################################################################## ${white}"
   if [ -z "$thread_node" ]; then
@@ -419,9 +416,6 @@ if [[ "$string" == false ]]; then
     bash ${projdir}GBSapp_run_node_1.sh
   fi
 fi
-
-
-
 
 
 if [[ "$string" == true ]]; then
@@ -523,9 +517,6 @@ if [ -z $cluster ]; then
   fi
 fi
 fi
-
-
-
 
 
 if [[ "$string" == true ]]; then
@@ -677,7 +668,7 @@ if [[ "$string" == true ]]; then
 fi
 }
 cd ${projdir}
-time main 2>> ${projdir}
+time main 2>> ${projdir}/log.out
 
 echo -e "${magenta}- For jobs running in background, monitor progress in terminal.out or slurm-xxxxxx.out (slurm cluster manager) ${white}"
 echo -e "${magenta}- The log.out file can help with troubleshooting and when reporting a bug ${white}"
