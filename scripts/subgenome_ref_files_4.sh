@@ -1174,6 +1174,7 @@ main () {
 		        $java $Xmxp -XX:ParallelGCThreads=$prepthreads -jar $picard AddOrReplaceReadGroups I=${j%.sam*}.bam O=${j%.sam*}_precall.bam RGLB=${i%.f*} RGPL=illumina RGPU=run RGSM=${i%.f*} VALIDATION_STRINGENCY=LENIENT && \
 		        $samtools index ${j%.sam*}_precall.bam &&
 						rm $j ${j%.sam*}.bam ${j%.sam*}.bai &&
+						if [[ $nodes -gt 1 ]]; then mv /tmp/${samples_list%.txt}/preprocess/${j%.sam*}_precall.bam* ${projdir}/preprocess/; fi
 						wait
 		  done
 			wait
@@ -2356,7 +2357,7 @@ main () {
     			done
     			wait
     			for g in $(ls ${pop}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${calcploidy}x_*_raw.vcf.gz); do (
-    				$gunzip $g ) &
+    				gunzip $g ) &
     				if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
     					wait
     				fi
@@ -2380,7 +2381,7 @@ main () {
     			$bcftools merge *cohorts*.vcf.gz --force-samples -m all > ${pop}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${calcploidy}x_raw.vcf
     		else
     			cp *cohorts*.vcf.gz ${pop}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${calcploidy}x_raw.vcf.gz
-    			$gunzip ${pop}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${calcploidy}x_raw.vcf.gz
+    			gunzip ${pop}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${calcploidy}x_raw.vcf.gz
     		fi
 
     		if [[ "$keep_gVCF" == true ]]; then
@@ -2500,7 +2501,7 @@ main () {
     			done
     			wait
     			for g in $(ls ${pop}_${ref1%.f*}_${ref2%.f*}_${ref4%.f*}_${calcploidy}x_*_raw.vcf.gz); do (
-    				$gunzip $g ) &
+    				gunzip $g ) &
     				if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
     					wait
     				fi
@@ -2524,7 +2525,7 @@ main () {
     			$bcftools merge *cohorts*.vcf.gz --force-samples -m all > ${pop}_${ref1%.f*}_${ref2%.f*}_${ref4%.f*}_${calcploidy}x_raw.vcf
     		else
     			cp *cohorts*.vcf.gz ${pop}_${ref1%.f*}_${ref2%.f*}_${ref4%.f*}_${calcploidy}x_raw.vcf.gz
-    			$gunzip ${pop}_${ref1%.f*}_${ref2%.f*}_${ref4%.f*}_${calcploidy}x_raw.vcf.gz
+    			gunzip ${pop}_${ref1%.f*}_${ref2%.f*}_${ref4%.f*}_${calcploidy}x_raw.vcf.gz
     		fi
 
     		if [[ "$keep_gVCF" == true ]]; then
@@ -2644,7 +2645,7 @@ main () {
     			done
     			wait
     			for g in $(ls ${pop}_${ref1%.f*}_${ref3%.f*}_${ref4%.f*}_${calcploidy}x_*_raw.vcf.gz); do (
-    				$gunzip $g ) &
+    				gunzip $g ) &
     				if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
     					wait
     				fi
@@ -2668,7 +2669,7 @@ main () {
     			$bcftools merge *cohorts*.vcf.gz --force-samples -m all > ${pop}_${ref1%.f*}_${ref3%.f*}_${ref4%.f*}_${calcploidy}x_raw.vcf
     		else
     			cp *cohorts*.vcf.gz ${pop}_${ref1%.f*}_${ref3%.f*}_${ref4%.f*}_${calcploidy}x_raw.vcf.gz
-    			$gunzip ${pop}_${ref1%.f*}_${ref3%.f*}_${ref4%.f*}_${calcploidy}x_raw.vcf.gz
+    			gunzip ${pop}_${ref1%.f*}_${ref3%.f*}_${ref4%.f*}_${calcploidy}x_raw.vcf.gz
     		fi
 
     		if [[ "$keep_gVCF" == true ]]; then
@@ -2788,7 +2789,7 @@ main () {
     			done
     			wait
     			for g in $(ls ${pop}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}_${calcploidy}x_*_raw.vcf.gz); do (
-    				$gunzip $g ) &
+    				gunzip $g ) &
     				if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
     					wait
     				fi
@@ -2812,7 +2813,7 @@ main () {
     			$bcftools merge *cohorts*.vcf.gz --force-samples -m all > ${pop}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}_${calcploidy}x_raw.vcf
     		else
     			cp *cohorts*.vcf.gz ${pop}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}_${calcploidy}x_raw.vcf.gz
-    			$gunzip ${pop}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}_${calcploidy}x_raw.vcf.gz
+    			gunzip ${pop}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}_${calcploidy}x_raw.vcf.gz
     		fi
 
     		if [[ "$keep_gVCF" == true ]]; then
@@ -2932,7 +2933,7 @@ main () {
     			done
     			wait
     			for g in $(ls ${pop}_${ref1%.f*}_${ref2%.f*}_${calcploidy}x_*_raw.vcf.gz); do (
-    				$gunzip $g ) &
+    				gunzip $g ) &
     				if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
     					wait
     				fi
@@ -2956,7 +2957,7 @@ main () {
     			$bcftools merge *cohorts*.vcf.gz --force-samples -m all > ${pop}_${ref1%.f*}_${ref2%.f*}_${calcploidy}x_raw.vcf
     		else
     			cp *cohorts*.vcf.gz ${pop}_${ref1%.f*}_${ref2%.f*}_${calcploidy}x_raw.vcf.gz
-    			$gunzip ${pop}_${ref1%.f*}_${ref2%.f*}_${calcploidy}x_raw.vcf.gz
+    			gunzip ${pop}_${ref1%.f*}_${ref2%.f*}_${calcploidy}x_raw.vcf.gz
     		fi
 
     		if [[ "$keep_gVCF" == true ]]; then
@@ -3077,7 +3078,7 @@ main () {
     			done
     			wait
     			for g in $(ls ${pop}_${ref1%.f*}_${ref3%.f*}_${calcploidy}x_*_raw.vcf.gz); do (
-    				$gunzip $g ) &
+    				gunzip $g ) &
     				if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
     					wait
     				fi
@@ -3101,7 +3102,7 @@ main () {
     			$bcftools merge *cohorts*.vcf.gz --force-samples -m all > ${pop}_${ref1%.f*}_${ref3%.f*}_${calcploidy}x_raw.vcf
     		else
     			cp *cohorts*.vcf.gz ${pop}_${ref1%.f*}_${ref3%.f*}_${calcploidy}x_raw.vcf.gz
-    			$gunzip ${pop}_${ref1%.f*}_${ref3%.f*}_${calcploidy}x_raw.vcf.gz
+    			gunzip ${pop}_${ref1%.f*}_${ref3%.f*}_${calcploidy}x_raw.vcf.gz
     		fi
 
     		if [[ "$keep_gVCF" == true ]]; then
@@ -3221,7 +3222,7 @@ main () {
     			done
     			wait
     			for g in $(ls ${pop}_${ref1%.f*}_${ref4%.f*}_${calcploidy}x_*_raw.vcf.gz); do (
-    				$gunzip $g ) &
+    				gunzip $g ) &
     				if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
     					wait
     				fi
@@ -3245,7 +3246,7 @@ main () {
     			$bcftools merge *cohorts*.vcf.gz --force-samples -m all > ${pop}_${ref1%.f*}_${ref4%.f*}_${calcploidy}x_raw.vcf
     		else
     			cp *cohorts*.vcf.gz ${pop}_${ref1%.f*}_${ref4%.f*}_${calcploidy}x_raw.vcf.gz
-    			$gunzip ${pop}_${ref1%.f*}_${ref4%.f*}_${calcploidy}x_raw.vcf.gz
+    			gunzip ${pop}_${ref1%.f*}_${ref4%.f*}_${calcploidy}x_raw.vcf.gz
     		fi
 
     		if [[ "$keep_gVCF" == true ]]; then
@@ -3365,7 +3366,7 @@ main () {
     			done
     			wait
     			for g in $(ls ${pop}_${ref2%.f*}_${ref3%.f*}_${calcploidy}x_*_raw.vcf.gz); do (
-    				$gunzip $g ) &
+    				gunzip $g ) &
     				if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
     					wait
     				fi
@@ -3389,7 +3390,7 @@ main () {
     			$bcftools merge *cohorts*.vcf.gz --force-samples -m all > ${pop}_${ref2%.f*}_${ref3%.f*}_${calcploidy}x_raw.vcf
     		else
     			cp *cohorts*.vcf.gz ${pop}_${ref2%.f*}_${ref3%.f*}_${calcploidy}x_raw.vcf.gz
-    			$gunzip ${pop}_${ref2%.f*}_${ref3%.f*}_${calcploidy}x_raw.vcf.gz
+    			gunzip ${pop}_${ref2%.f*}_${ref3%.f*}_${calcploidy}x_raw.vcf.gz
     		fi
 
     		if [[ "$keep_gVCF" == true ]]; then
@@ -3509,7 +3510,7 @@ main () {
     			done
     			wait
     			for g in $(ls ${pop}_${ref2%.f*}_${ref4%.f*}_${calcploidy}x_*_raw.vcf.gz); do (
-    				$gunzip $g ) &
+    				gunzip $g ) &
     				if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
     					wait
     				fi
@@ -3533,7 +3534,7 @@ main () {
     			$bcftools merge *cohorts*.vcf.gz --force-samples -m all > ${pop}_${ref2%.f*}_${ref4%.f*}_${calcploidy}x_raw.vcf
     		else
     			cp *cohorts*.vcf.gz ${pop}_${ref2%.f*}_${ref4%.f*}_${calcploidy}x_raw.vcf.gz
-    			$gunzip ${pop}_${ref2%.f*}_${ref4%.f*}_${calcploidy}x_raw.vcf.gz
+    			gunzip ${pop}_${ref2%.f*}_${ref4%.f*}_${calcploidy}x_raw.vcf.gz
     		fi
 
     		if [[ "$keep_gVCF" == true ]]; then
@@ -3653,7 +3654,7 @@ main () {
     			done
     			wait
     			for g in $(ls ${pop}_${ref3%.f*}_${ref4%.f*}_${calcploidy}x_*_raw.vcf.gz); do (
-    				$gunzip $g ) &
+    				gunzip $g ) &
     				if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
     					wait
     				fi
@@ -3677,7 +3678,7 @@ main () {
     			$bcftools merge *cohorts*.vcf.gz --force-samples -m all > ${pop}_${ref3%.f*}_${ref4%.f*}_${calcploidy}x_raw.vcf
     		else
     			cp *cohorts*.vcf.gz ${pop}_${ref3%.f*}_${ref4%.f*}_${calcploidy}x_raw.vcf.gz
-    			$gunzip ${pop}_${ref3%.f*}_${ref4%.f*}_${calcploidy}x_raw.vcf.gz
+    			gunzip ${pop}_${ref3%.f*}_${ref4%.f*}_${calcploidy}x_raw.vcf.gz
     		fi
 
     		if [[ "$keep_gVCF" == true ]]; then
