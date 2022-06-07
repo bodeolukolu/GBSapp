@@ -431,7 +431,7 @@ main () {
 	fi
 
 	if [[ "$threads" -le 4 ]]; then
-		gthreads=threads
+		gthreads=$threads
 		Xmxg=$Xmx2
 		gN=1
 	else
