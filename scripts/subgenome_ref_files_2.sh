@@ -964,9 +964,9 @@ main () {
 			awk 'FNR==1 && NR!=1 { while (/^CHROM/) getline; }1 {print}' refgenome_paralogs_*.txt > refgenome_paralogs.txt &&
 			rm refgenome_paralogs_* temp.txt
 		fi
+		wait && touch ${projdir}/alignment_done.txt
 	fi
 
-	wait && touch ${projdir}/alignment_done_${samples_list}
 }
 cd $projdir
 if [ "$walkaway" == false ]; then

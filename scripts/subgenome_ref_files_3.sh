@@ -1101,9 +1101,9 @@ main () {
 			awk 'FNR==1 && NR!=1 { while (/^CHROM/) getline; }1 {print}' refgenome_paralogs_*.txt > refgenome_paralogs.txt &&
 			rm refgenome_paralogs_* temp.txt
 		fi
+		wait && touch ${projdir}/alignment_done.txt
 	fi
 
-	wait && touch ${projdir}/alignment_done_${samples_list}
 }
 cd $projdir
 if [ "$walkaway" == false ]; then
@@ -1145,7 +1145,7 @@ main () {
 		touch ${projdir}/compress_done.txt
 	fi
 
-	
+
 	if [ "$alignments" == 0 ]; then
 		if [[ $nodes -gt 1 ]]; then
 			if [[ "$samples_list" != "samples_list_node_1.txt" ]]; then

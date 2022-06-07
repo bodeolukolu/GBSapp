@@ -880,9 +880,9 @@ main () {
 			awk '{print $4"\t"$2"\t"$1}' temp.txt | awk '!/CHROM|nloci|POS|mapQ/' | cat <(printf "CHROM\tPOS\tnloci\n") - > refgenome_paralogs.txt &&
 			rm temp.txt
 		fi
+		wait && touch ${projdir}/alignment_done.txt
 	fi
 
-	wait && touch ${projdir}/alignment_done_${samples_list}
 }
 cd $projdir
 if [ "$walkaway" == false ]; then
