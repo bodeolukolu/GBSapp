@@ -1160,12 +1160,8 @@ main () {
 				queue_move=$(ls ${projdir}/queue_move_samples_list_node_* | wc -l)
 			done
 			cp -r ${projdir}/refgenomes/* /tmp/${samples_list%.txt}/refgenomes/ &&
-			cp ${projdir}/preprocess/combined_all_sample_reads_redun.sam.gz /tmp/${samples_list%.txt}/preprocess/ 2> /dev/null &&
 			if [[ "$lib_type" == "RRS" ]]; then
 				for i in $(cat ${projdir}/${samples_list} ); do
-					cp ${i%.f*}_uniq_R*.fasta.gz /tmp/${samples_list%.txt}/samples/ 2> /dev/null &&
-					cp merged_index.txt.gz /tmp/${samples_list%.txt}/samples/ 2> /dev/null &&
-					cp ${projdir}/preprocess/${i%.f*}_redun.sam.gz /tmp/${samples_list%.txt}/preprocess/ 2> /dev/null &&
 					cp ${projdir}/preprocess/${i%.f*}_*_precall.bam* /tmp/${samples_list%.txt}/preprocess/ 2> /dev/null &&
 					wait
 				done
