@@ -224,8 +224,11 @@ if [ -d "single" ]; then
 fi
 
 
+cd $projdir
 if [ -d "./samples/pe" ]; then
-  if test ! -f filename_reformatted.txt || test ! -f flushed_reads.txt; then
+  if test -f "./samples/filename_reformatted.txt" || test -f "./samples/flushed_reads.txt"; then
+    :
+  else
     echo -e "${magenta}- GBSapp will modify your sample fastq files by concatenating <pe-R1-reads> and <se-reads> ${white}"
     echo -e "${magenta}- Do you want to create a copy/backup of your sample fastq file? ${white}"
     read -p "- y(YES) or n(NO)? " -n 1 -r
@@ -244,7 +247,9 @@ if [ -d "./samples/pe" ]; then
     fi
   fi
 else
-  if test ! -f filename_reformatted.txt || test ! -f flushed_reads.txt; then
+  if test -f "./samples/filename_reformatted.txt" || test -f "./samples/flushed_reads.txt"; then
+    :
+  else
     echo -e "${magenta}- GBSapp will modify your sample fastq files ${white}"
     echo -e "${magenta}- Do you want to create a copy/backup of your sample fastq file? ${white}"
     read -p "- y(YES) or n(NO)? " -n 1 -r
