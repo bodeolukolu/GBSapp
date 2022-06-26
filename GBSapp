@@ -654,7 +654,7 @@ if [[ "$string" == true ]]; then
           echo -e "${magenta}\n ${white}\n"
           sbatch ${projdir}GBSapp_run_node_1.sh
           for nn in $(seq 2 "$n_nodes"); do
-            while [[ ! -f "${projdir}/compress_done.txt" ]] || [[ ! -f "${projdir}/organize_files_done.txt" ]]; do
+            while [[ ! -f "${projdir}/compress_done.txt" ]]; do
               sleep 300
             done
             sbatch ${projdir}GBSapp_run_node_${nn}.sh
