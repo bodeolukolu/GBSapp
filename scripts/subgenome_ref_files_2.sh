@@ -313,19 +313,19 @@ main () {
 
 				if [[ $(file $i 2> /dev/null) =~ gzip ]]; then
 					if [[ "${fa_fq}" == "@" ]]; then
-						awk 'NR%2==0' <(zcat $i) | awk 'NR%2==1' | awk 'BEGIN{srand();} {a[NR]=$0} END{for(i=1; i<=10000; i++){x=int(rand()*NR) + 1; print a[x];}}' >> length_distribution.txt
+						awk 'NR%2==0' <(zcat $i) | awk 'NR%2==1' | awk 'BEGIN{srand();} {a[NR]=$0} END{for(i=1; i<=1000; i++){x=int(rand()*NR) + 1; print a[x];}}' >> length_distribution.txt
 					fi
 					if [[ "${fa_fq}" == ">" ]]; then
 						awk '/^>/ { if(i>0) printf("\n"); i++; printf("%s\t",$0); next;} {printf("%s",$0);} END { printf("\n");}' <(zcat $i) | \
-						awk 'NR%2==0' | awk 'BEGIN{srand();} {a[NR]=$0} END{for(i=1; i<=10000; i++){x=int(rand()*NR) + 1; print a[x];}}' >> length_distribution.txt
+						awk 'NR%2==0' | awk 'BEGIN{srand();} {a[NR]=$0} END{for(i=1; i<=1000; i++){x=int(rand()*NR) + 1; print a[x];}}' >> length_distribution.txt
 					fi
 				else
 					if [[ "${fa_fq}" == "@" ]]; then
-						awk 'NR%2==0' $i | awk 'NR%2==1' | awk 'BEGIN{srand();} {a[NR]=$0} END{for(i=1; i<=10000; i++){x=int(rand()*NR) + 1; print a[x];}}' >> length_distribution.txt
+						awk 'NR%2==0' $i | awk 'NR%2==1' | awk 'BEGIN{srand();} {a[NR]=$0} END{for(i=1; i<=1000; i++){x=int(rand()*NR) + 1; print a[x];}}' >> length_distribution.txt
 					fi
 					if [[ "${fa_fq}" == ">" ]]; then
 						awk '/^>/ { if(i>0) printf("\n"); i++; printf("%s\t",$0); next;} {printf("%s",$0);} END { printf("\n");}' $i | \
-						awk 'NR%2==0' | awk 'BEGIN{srand();} {a[NR]=$0} END{for(i=1; i<=10000; i++){x=int(rand()*NR) + 1; print a[x];}}' >> length_distribution.txt
+						awk 'NR%2==0' | awk 'BEGIN{srand();} {a[NR]=$0} END{for(i=1; i<=1000; i++){x=int(rand()*NR) + 1; print a[x];}}' >> length_distribution.txt
 					fi
 				fi
 			done
@@ -649,28 +649,28 @@ main () {
 			if [[ "$nempty" -gt 0 ]]; then
 				zcat *_uniq_R1.fasta.gz | awk '{print $2}' | awk '{A[$1]++}END{for(i in A)print i}' | $gzip > combined_all_sample_reads_R1_hold1.fq.gz
 				zcat *_uniq_R1.fasta.gz | awk '{!seen[$0]++}END{for (i in seen) print seen[i], i}' | \
-				awk -v min=$rdfreq_threshold '$1>min{print $2}' | grep -Ff - <(zcat combined_all_sample_reads_R1_hold1.fq.gz) | awk '{print $1"\t@merged_R1_seq"NR"\t"$1"\t"$1}' | $gzip > combined_all_sample_reads_R1_hold2.fq.gz
+				awk -v min=$rdfreq_threshold '$1>min{print $(NF)}' | grep -Ff - <(zcat combined_all_sample_reads_R1_hold1.fq.gz) | awk '{print $1"\t@merged_R1_seq"NR"\t"$1"\t"$1}' | $gzip > combined_all_sample_reads_R1_hold2.fq.gz
 				awk '{print $1"\t"$2}' <(zcat combined_all_sample_reads_R1_hold2.fq.gz) | awk '{gsub(/@/,"");}1' | $gzip >> merged_index.txt.gz
 				awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$4); print}'  <(zcat combined_all_sample_reads_R1_hold2.fq.gz) | awk '{print $2"\n"$3"\n+\n"$4}' | $gzip > combined_all_sample_reads_R1.fq.gz
 				rm combined_all_sample_reads_R1_hold*.fq.gz
 
 				zcat *_uniq_R2.fasta.gz | awk '{print $2}' | awk '{A[$1]++}END{for(i in A)print i}' | $gzip > combined_all_sample_reads_R2_hold1.fq.gz
 				zcat *_uniq_R2.fasta.gz | awk '{!seen[$0]++}END{for (i in seen) print seen[i], i}' | \
-				awk -v min=$rdfreq_threshold '$1>min{print $2}' | grep -Ff - <(zcat combined_all_sample_reads_R2_hold1.fq.gz) | awk '{print $1"\t@merged_R2_seq"NR"\t"$1"\t"$1}' | $gzip > combined_all_sample_reads_R2_hold2.fq.gz
+				awk -v min=$rdfreq_threshold '$1>min{print $(NF)}' | grep -Ff - <(zcat combined_all_sample_reads_R2_hold1.fq.gz) | awk '{print $1"\t@merged_R2_seq"NR"\t"$1"\t"$1}' | $gzip > combined_all_sample_reads_R2_hold2.fq.gz
 				awk '{print $1"\t"$2}' <(zcat combined_all_sample_reads_R2_hold2.fq.gz) | awk '{gsub(/@/,"");}1' | $gzip >> merged_index.txt.gz
 				awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$4); print}'  <(zcat combined_all_sample_reads_R2_hold2.fq.gz) | awk '{print $2"\n"$3"\n+\n"$4}' | $gzip > combined_all_sample_reads_R2.fq.gz
 				rm combined_all_sample_reads_R2_hold*.fq.gz
 
-				zcat *_uniq_singleton.fasta.gz | awk '{print $2}' | awk '{A[$1]++}END{for(i in A)print i}' | $gzip > combined_all_sample_reads_singleton_hold1.fq.gz
-				zcat *_uniq_singleton.fasta.gz | awk '{!seen[$0]++}END{for (i in seen) print seen[i], i}' | \
-				awk -v min=$rdfreq_threshold '$1>min{print $2}' | grep -Ff - <(zcat combined_all_sample_reads_singleton_hold1.fq.gz) | awk '{print $1"\t@merged_singleton_seq"NR"\t"$1"\t"$1}' | $gzip > combined_all_sample_reads_singleton_hold2.fq.gz
-				awk '{print $1"\t"$2}' <(zcat combined_all_sample_reads_singleton_hold2.fq.gz) | awk '{gsub(/@/,"");}1' | $gzip >> merged_index.txt.gz
-				awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$4); print}'  <(zcat combined_all_sample_reads_singleton_hold2.fq.gz) | awk '{print $2"\n"$3"\n+\n"$4}' | $gzip > combined_all_sample_reads_singleton.fq.gz
-				rm combined_all_sample_reads_singleton_hold*.fq.gz
+				# zcat *_uniq_singleton.fasta.gz | awk '{print $2}' | awk '{A[$1]++}END{for(i in A)print i}' | $gzip > combined_all_sample_reads_singleton_hold1.fq.gz
+				# zcat *_uniq_singleton.fasta.gz | awk '{!seen[$0]++}END{for (i in seen) print seen[i], i}' | \
+				# awk -v min=$rdfreq_threshold '$1>min{print $(NF)}' | grep -Ff - <(zcat combined_all_sample_reads_singleton_hold1.fq.gz) | awk '{print $1"\t@merged_singleton_seq"NR"\t"$1"\t"$1}' | $gzip > combined_all_sample_reads_singleton_hold2.fq.gz
+				# awk '{print $1"\t"$2}' <(zcat combined_all_sample_reads_singleton_hold2.fq.gz) | awk '{gsub(/@/,"");}1' | $gzip >> merged_index.txt.gz
+				# awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$4); print}'  <(zcat combined_all_sample_reads_singleton_hold2.fq.gz) | awk '{print $2"\n"$3"\n+\n"$4}' | $gzip > combined_all_sample_reads_singleton.fq.gz
+				# rm combined_all_sample_reads_singleton_hold*.fq.gz
 			else
 				zcat *_uniq_R1.fasta.gz | awk '{print $2}' | awk '{A[$1]++}END{for(i in A)print i}' | $gzip > combined_all_sample_reads_R1_hold1.fq.gz
 				zcat *_uniq_R1.fasta.gz | awk '{!seen[$0]++}END{for (i in seen) print seen[i], i}' | \
-				awk -v min=$rdfreq_threshold '$1>min{print $2}' | grep -Ff - <(zcat combined_all_sample_reads_R1_hold1.fq.gz) | awk '{print $1"\t@merged_seq"NR"\t"$1"\t"$1}' | $gzip > combined_all_sample_reads_R1_hold2.fq.gz
+				awk -v min=$rdfreq_threshold '$1>min{print $(NF)}' | grep -Ff - <(zcat combined_all_sample_reads_R1_hold1.fq.gz) | awk '{print $1"\t@merged_seq"NR"\t"$1"\t"$1}' | $gzip > combined_all_sample_reads_R1_hold2.fq.gz
 				awk '{print $1"\t"$2}' <(zcat combined_all_sample_reads_R1_hold2.fq.gz) | awk '{gsub(/@/,"");}1' | $gzip > merged_index.txt.gz
 				awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$4); print}'  <(zcat combined_all_sample_reads_R1_hold2.fq.gz) | awk '{print $2"\n"$3"\n+\n"$4}' | $gzip > combined_all_sample_reads_R1.fq.gz
 				rm combined_all_sample_reads_R1_hold*.fq.gz
@@ -702,7 +702,7 @@ main () {
 					mv ../preprocess/combined_all_sample_reads_redun.hold.sam.gz ../preprocess/combined_all_sample_reads_redun.sam.gz 2> /dev/null &&
 					wait
 				fi
-				rm combined_all_sample_reads_R1.fq.gz
+				rm combined_all_sample_reads_R1.fq.gz 2> /dev/null &&
 				rm ../preprocess/combined_all_sample_reads_redun_R*.sam 2> /dev/null &&
 				wait
 			fi
