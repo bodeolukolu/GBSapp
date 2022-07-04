@@ -704,6 +704,7 @@ main () {
 				fi
 				rm combined_all_sample_reads_R1.fq.gz 2> /dev/null &&
 				rm ../preprocess/combined_all_sample_reads_redun_R*.sam 2> /dev/null &&
+				rm *_uniq*.fasta.gz &&
 				wait
 			fi
 			wait
@@ -757,6 +758,7 @@ main () {
 					grep -v '^@' ../preprocess/${i%.f*}_redun_R2.sam >> ../preprocess/${i%.f*}_redun.hold.sam &&
 					$gzip ../preprocess/${i%.f*}_redun.hold.sam &&
 					rm ../preprocess/${i%.f*}_redun_R*.sam &&
+					rm *_uniq*.fasta.gz &&
 					wait
 				else
 					$ngm -r ../refgenomes/panref.fasta--qry $i -o ../preprocess/${i%.f*}_redun.hold.sam -t $threads --min-identity 0 --topn 12 --strata 12 &&

@@ -703,6 +703,7 @@ main () {
 				fi
 				rm combined_all_sample_reads_R1.fq.gz 2> /dev/null &&
 				rm ../preprocess/combined_all_sample_reads_redun_R*.sam 2> /dev/null &&
+				rm *_uniq*.fasta.gz &&
 				wait
 			fi
 			wait
@@ -764,6 +765,7 @@ main () {
 				fi
 				mv ../preprocess/${i%.f*}_redun.hold.sam.gz ../preprocess/${i%.f*}_redun.sam.gz 2> /dev/null &&
 				rm ${i%.f*}_uniq*.fq.gz 2> /dev/null &&
+				rm *_uniq*.fasta.gz &&
 				wait
 			fi
 			wait
