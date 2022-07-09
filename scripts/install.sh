@@ -96,9 +96,9 @@ fi
 
 main () {
   echo -e "${green}\n############################################## \n- downloading GATK \n##############################################${white}"
-  wget -O GATK4.2.5.0.zip "https://github.com/broadinstitute/gatk/releases/download/4.2.5.0/gatk-4.2.5.0.zip"
-  unzip GATK4.2.5.0.zip
-  rm GATK4.2.5.0.zip
+  wget -O GATK4.2.6.0.zip "https://github.com/broadinstitute/gatk/releases/download/4.2.6.0/gatk-4.2.6.0.zip"
+  unzip GATK4.2.6.0.zip
+  rm GATK4.2.6.0.zip
 }
 dirtool=gatk*
 if [ -d $dirtool ]; then

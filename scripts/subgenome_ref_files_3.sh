@@ -477,32 +477,32 @@ main () {
 	cd samples
 
 	if [[ "$samples_list" == "samples_list_node_1.txt" ]] && test ! -f ${projdir}/organize_files_done.txt; then
-		for i in $( cat ${projdir}/samples_list_node_* ); do ( 
+		for i in $( cat ${projdir}/samples_list_node_* ); do (
 			if [[ "$lib_type" =~ "RRS" || "$lib_type" =~ "rrs" ]] && test ! -f ${projdir}/preprocess/${i%.f*}_redun.sam && test ! -f ${projdir}/preprocess/${i%.f*}_${ref1%.f*}_precall.bam.bai; then
 				if test ! -f ${i%.f*}_uniq_R1.fasta.gz; then
 					if [[ $(file $i | awk -F' ' '{print $2}') == gzip ]]; then
-						zcat $i 2> /dev/null | awk 'NR%2==0' | awk 'NR%2' | $gzip > ${i%.f*}_uniq.txt.gz 2> /dev/null &&
+						zcat $i 2> /dev/null | awk 'NR%2==0' | awk 'NR%2' | gzip > ${i%.f*}_uniq.txt.gz 2> /dev/null &&
 						wait
 						if test -f ${i%.f*}_R2*; then
-							zcat ${i%.f*}_R2* 2> /dev/null | awk 'NR%2==0' | awk 'NR%2' | $gzip > ${i%.f*}_R2_uniq.txt.gz 2> /dev/null &&
+							zcat ${i%.f*}_R2* 2> /dev/null | awk 'NR%2==0' | awk 'NR%2' | gzip > ${i%.f*}_R2_uniq.txt.gz 2> /dev/null &&
 							wait
 						fi
 						wait
 						if test -f ${i%.f*}.R2*; then
-							zcat ${i%.f*}.R2* 2> /dev/null | awk 'NR%2==0' | awk 'NR%2' | $gzip > ${i%.f*}_R2_uniq.txt.gz 2> /dev/null &&
+							zcat ${i%.f*}.R2* 2> /dev/null | awk 'NR%2==0' | awk 'NR%2' | gzip > ${i%.f*}_R2_uniq.txt.gz 2> /dev/null &&
 							wait
 						fi
 						wait
 					else
-						awk 'NR%2==0' $i | awk 'NR%2' | $gzip > ${i%.f*}_uniq.txt.gz 2> /dev/null &&
+						awk 'NR%2==0' $i | awk 'NR%2' | gzip > ${i%.f*}_uniq.txt.gz 2> /dev/null &&
 						wait
 						if test -f ${i%.f*}_R2*; then
-							awk 'NR%2==0' ${i%.f*}_R2* | awk 'NR%2' | $gzip > ${i%.f*}_R2_uniq.txt.gz 2> /dev/null &&
+							awk 'NR%2==0' ${i%.f*}_R2* | awk 'NR%2' | gzip > ${i%.f*}_R2_uniq.txt.gz 2> /dev/null &&
 							wait
 						fi
 						wait
 						if test -f ${i%.f*}.R2*; then
-							awk 'NR%2==0' ${i%.f*}.R2* | awk 'NR%2' | $gzip > ${i%.f*}_R2_uniq.txt.gz 2> /dev/null &&
+							awk 'NR%2==0' ${i%.f*}.R2* | awk 'NR%2' | gzip > ${i%.f*}_R2_uniq.txt.gz 2> /dev/null &&
 							wait
 						fi
 						wait
@@ -510,13 +510,13 @@ main () {
 					wait
 					if test -f "${i%.f*}_R2_uniq.txt.gz"; then
 						export LC_ALL=C; paste -d ~ <(zcat ${i%.f*}_uniq.txt.gz 2> /dev/null) <(zcat ${i%.f*}_R2_uniq.txt.gz 2> /dev/null) | expand -t $(( $(wc -L < $i ) + 2 )) | awk '{!seen[$0]++}END{for (i in seen) print seen[i], i}' | awk '{$1=$1};1' | \
-						awk '{gsub(" /"," "); print}' | awk '{gsub("/\n","\n"); print}' | awk '{gsub("/"," "); print}' | awk '{gsub(" ","\t"); print}' | $gzip > ${i%.f*}_rdrefseq.txt.gz 2> /dev/null &&
+						awk '{gsub(" /"," "); print}' | awk '{gsub("/\n","\n"); print}' | awk '{gsub("/"," "); print}' | awk '{gsub(" ","\t"); print}' | gzip > ${i%.f*}_rdrefseq.txt.gz 2> /dev/null &&
 						wait
-						awk 'NF==2 {print ">seq"NR"_se-"$1"\t"$2}' <(zcat ${i%.f*}_rdrefseq.txt.gz 2> /dev/null) | $gzip > ${i%.f*}_rdrefseq_se.txt.gz 2> /dev/null &&
+						awk 'NF==2 {print ">seq"NR"_se-"$1"\t"$2}' <(zcat ${i%.f*}_rdrefseq.txt.gz 2> /dev/null) | gzip > ${i%.f*}_rdrefseq_se.txt.gz 2> /dev/null &&
 						wait
-						awk 'NF==3 {print ">seq"NR"_pe-"$0}' <(zcat ${i%.f*}_rdrefseq.txt.gz 2> /dev/null) | awk '{print $1"\t"$3}' | $gzip > ${i%.f*}_uniq_R2.fasta.gz 2> /dev/null &&
+						awk 'NF==3 {print ">seq"NR"_pe-"$0}' <(zcat ${i%.f*}_rdrefseq.txt.gz 2> /dev/null) | awk '{print $1"\t"$3}' | gzip > ${i%.f*}_uniq_R2.fasta.gz 2> /dev/null &&
 						wait
-						awk 'NF==3 {print ">seq"NR"_pe-"$0}' <(zcat ${i%.f*}_rdrefseq.txt.gz 2> /dev/null) | awk '{print $1"\t"$2}' | cat - <(zcat ${i%.f*}_rdrefseq_se.txt.gz 2> /dev/null) | $gzip > ${i%.f*}_uniq_R1.hold.fasta.gz 2> /dev/null &&
+						awk 'NF==3 {print ">seq"NR"_pe-"$0}' <(zcat ${i%.f*}_rdrefseq.txt.gz 2> /dev/null) | awk '{print $1"\t"$2}' | cat - <(zcat ${i%.f*}_rdrefseq_se.txt.gz 2> /dev/null) | gzip > ${i%.f*}_uniq_R1.hold.fasta.gz 2> /dev/null &&
 						wait
 						rm ${i%.f*}*.txt* 2> /dev/null &&
 						wait
@@ -528,9 +528,9 @@ main () {
 						touch ${i%.f*}_R2_uniq.txt &&
 						wait
 						export LC_ALL=C; paste -d ~ <(zcat ${i%.f*}_uniq.txt.gz 2> /dev/null) ${i%.f*}_R2_uniq.txt | expand -t $(( $(wc -L < $i ) + 2 )) | awk '{!seen[$0]++}END{for (i in seen) print seen[i], i}' | awk '{$1=$1};1' | \
-						awk '{gsub(" /"," "); print}' | awk '{gsub("/\n","\n"); print}' | awk '{gsub("/"," "); print}' | awk '{gsub(" ","\t"); print}' | $gzip > ${i%.f*}_rdrefseq.txt.gz 2> /dev/null &&
+						awk '{gsub(" /"," "); print}' | awk '{gsub("/\n","\n"); print}' | awk '{gsub("/"," "); print}' | awk '{gsub(" ","\t"); print}' | gzip > ${i%.f*}_rdrefseq.txt.gz 2> /dev/null &&
 						wait
-						awk 'NF==2 {print ">seq"NR"_pe-"$0}' <(zcat ${i%.f*}_rdrefseq.txt.gz 2> /dev/null) | awk '{print $1"\t"$2}' | $gzip > ${i%.f*}_uniq_R1.hold.fasta.gz 2> /dev/null &&
+						awk 'NF==2 {print ">seq"NR"_pe-"$0}' <(zcat ${i%.f*}_rdrefseq.txt.gz 2> /dev/null) | awk '{print $1"\t"$2}' | gzip > ${i%.f*}_uniq_R1.hold.fasta.gz 2> /dev/null &&
 						wait
 						rm ${i%.f*}*.txt* 2> /dev/null &&
 						wait
@@ -1580,7 +1580,7 @@ main () {
     			done
     			for selchr in $Get2_Chromosome; do (
     				if test ! -f "${pop}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${ploidy}x_${selchr}_raw.vcf.gz"; then
-    					$GATK --java-options "$Xmx2 -XX:+UseParallelGC -XX:ParallelGCThreads=$loopthreads"  GenotypeGVCFs -R ${projdir}/refgenomes/panref.fasta -L ${selchr} -V gendb://${pop}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${ploidy}x_${selchr}_raw -O ${pop}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${ploidy}x_${selchr}_raw.hold.vcf.gz && \
+    					$GATK --java-options "$Xmx1 -XX:+UseParallelGC -XX:ParallelGCThreads=$loopthreads"  GenotypeGVCFs -R ${projdir}/refgenomes/panref.fasta -L ${selchr} -V gendb://${pop}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${ploidy}x_${selchr}_raw -O ${pop}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${ploidy}x_${selchr}_raw.hold.vcf.gz && \
     					rm -r ${pop}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${ploidy}x_${selchr}_raw && \
     					mv "${pop}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${ploidy}x_${selchr}_raw.hold.vcf.gz" "${pop}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${ploidy}x_${selchr}_raw.vcf.gz"
     					mv "${pop}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${ploidy}x_${selchr}_raw.hold.vcf.gz.tbi" "${pop}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${ploidy}x_${selchr}_raw.vcf.gz.tbi" &&
@@ -1724,7 +1724,7 @@ main () {
     			done
     			for selchr in $Get2_Chromosome; do (
     				if test ! -f "${pop}_${ref1%.f*}_${ref2%.f*}_${calcploidy}x_${selchr}_raw.vcf.gz"; then
-    					$GATK --java-options "$Xmx2 -XX:+UseParallelGC -XX:ParallelGCThreads=$loopthreads"  GenotypeGVCFs -R ${projdir}/refgenomes/panref.fasta -L ${selchr} -V gendb://${pop}_${ref1%.f*}_${ref2%.f*}_${calcploidy}x_${selchr}_raw -O ${pop}_${ref1%.f*}_${ref2%.f*}_${calcploidy}x_${selchr}_raw.hold.vcf.gz && \
+    					$GATK --java-options "$Xmx1 -XX:+UseParallelGC -XX:ParallelGCThreads=$loopthreads"  GenotypeGVCFs -R ${projdir}/refgenomes/panref.fasta -L ${selchr} -V gendb://${pop}_${ref1%.f*}_${ref2%.f*}_${calcploidy}x_${selchr}_raw -O ${pop}_${ref1%.f*}_${ref2%.f*}_${calcploidy}x_${selchr}_raw.hold.vcf.gz && \
     					rm -r ${pop}_${ref1%.f*}_${ref2%.f*}_${calcploidy}x_${selchr}_raw && \
     					mv "${pop}_${ref1%.f*}_${ref2%.f*}_${calcploidy}x_${selchr}_raw.hold.vcf.gz" "${pop}_${ref1%.f*}_${ref2%.f*}_${calcploidy}x_${selchr}_raw.vcf.gz"
     					mv "${pop}_${ref1%.f*}_${ref2%.f*}_${calcploidy}x_${selchr}_raw.hold.vcf.gz.tbi" "${pop}_${ref1%.f*}_${ref2%.f*}_${calcploidy}x_${selchr}_raw.vcf.gz.tbi" &&
@@ -1868,7 +1868,7 @@ main () {
     			done
     			for selchr in $Get2_Chromosome; do (
     				if test ! -f "${pop}_${ref1%.f*}_${ref3%.f*}_${calcploidy}x_${selchr}_raw.vcf.gz"; then
-    					$GATK --java-options "$Xmx2 -XX:+UseParallelGC -XX:ParallelGCThreads=$loopthreads"  GenotypeGVCFs -R ${projdir}/refgenomes/panref.fasta -L ${selchr} -V gendb://${pop}_${ref1%.f*}_${ref3%.f*}_${calcploidy}x_${selchr}_raw -O ${pop}_${ref1%.f*}_${ref3%.f*}_${calcploidy}x_${selchr}_raw.hold.vcf.gz && \
+    					$GATK --java-options "$Xmx1 -XX:+UseParallelGC -XX:ParallelGCThreads=$loopthreads"  GenotypeGVCFs -R ${projdir}/refgenomes/panref.fasta -L ${selchr} -V gendb://${pop}_${ref1%.f*}_${ref3%.f*}_${calcploidy}x_${selchr}_raw -O ${pop}_${ref1%.f*}_${ref3%.f*}_${calcploidy}x_${selchr}_raw.hold.vcf.gz && \
     					rm -r ${pop}_${ref1%.f*}_${ref3%.f*}_${calcploidy}x_${selchr}_raw && \
     					mv "${pop}_${ref1%.f*}_${ref3%.f*}_${calcploidy}x_${selchr}_raw.hold.vcf.gz" "${pop}_${ref1%.f*}_${ref3%.f*}_${calcploidy}x_${selchr}_raw.vcf.gz"
     					mv "${pop}_${ref1%.f*}_${ref3%.f*}_${calcploidy}x_${selchr}_raw.hold.vcf.gz.tbi" "${pop}_${ref1%.f*}_${ref3%.f*}_${calcploidy}x_${selchr}_raw.vcf.gz.tbi" &&
@@ -2012,7 +2012,7 @@ main () {
     			done
     			for selchr in $Get2_Chromosome; do (
     				if test ! -f "${pop}_${ref2%.f*}_${ref3%.f*}_${calcploidy}x_${selchr}_raw.vcf.gz"; then
-    					$GATK --java-options "$Xmx2 -XX:+UseParallelGC -XX:ParallelGCThreads=$loopthreads"  GenotypeGVCFs -R ${projdir}/refgenomes/panref.fasta -L ${selchr} -V gendb://${pop}_${ref2%.f*}_${ref3%.f*}_${calcploidy}x_${selchr}_raw -O ${pop}_${ref2%.f*}_${ref3%.f*}_${calcploidy}x_${selchr}_raw.hold.vcf.gz && \
+    					$GATK --java-options "$Xmx1 -XX:+UseParallelGC -XX:ParallelGCThreads=$loopthreads"  GenotypeGVCFs -R ${projdir}/refgenomes/panref.fasta -L ${selchr} -V gendb://${pop}_${ref2%.f*}_${ref3%.f*}_${calcploidy}x_${selchr}_raw -O ${pop}_${ref2%.f*}_${ref3%.f*}_${calcploidy}x_${selchr}_raw.hold.vcf.gz && \
     					rm -r ${pop}_${ref2%.f*}_${ref3%.f*}_${calcploidy}x_${selchr}_raw && \
     					mv "${pop}_${ref2%.f*}_${ref3%.f*}_${calcploidy}x_${selchr}_raw.hold.vcf.gz" "${pop}_${ref2%.f*}_${ref3%.f*}_${calcploidy}x_${selchr}_raw.vcf.gz"
     					mv "${pop}_${ref2%.f*}_${ref3%.f*}_${calcploidy}x_${selchr}_raw.hold.vcf.gz.tbi" "${pop}_${ref2%.f*}_${ref3%.f*}_${calcploidy}x_${selchr}_raw.vcf.gz.tbi" &&
@@ -2155,7 +2155,7 @@ main () {
 						done
 						for selchr in $Get2_Chromosome; do (
 							if test ! -f "${pop}_${ref1%.f*}_${ploidy_ref1}x_${selchr}_raw.vcf.gz"; then
-								$GATK --java-options "$Xmx2 -XX:+UseParallelGC -XX:ParallelGCThreads=$loopthreads"  GenotypeGVCFs -R ${projdir}/refgenomes/panref.fasta -L ${selchr} -V gendb://${pop}_${ref1%.f*}_${ploidy_ref1}x_${selchr}_raw -O ${pop}_${ref1%.f*}_${ploidy_ref1}x_${selchr}_raw.hold.vcf.gz && \
+								$GATK --java-options "$Xmx1 -XX:+UseParallelGC -XX:ParallelGCThreads=$loopthreads"  GenotypeGVCFs -R ${projdir}/refgenomes/panref.fasta -L ${selchr} -V gendb://${pop}_${ref1%.f*}_${ploidy_ref1}x_${selchr}_raw -O ${pop}_${ref1%.f*}_${ploidy_ref1}x_${selchr}_raw.hold.vcf.gz && \
 								rm -r ${pop}_${ref1%.f*}_${ploidy_ref1}x_${selchr}_raw && \
 								mv "${pop}_${ref1%.f*}_${ploidy_ref1}x_${selchr}_raw.hold.vcf.gz" "${pop}_${ref1%.f*}_${ploidy_ref1}x_${selchr}_raw.vcf.gz"
 								mv "${pop}_${ref1%.f*}_${ploidy_ref1}x_${selchr}_raw.hold.vcf.gz.tbi" "${pop}_${ref1%.f*}_${ploidy_ref1}x_${selchr}_raw.vcf.gz.tbi" &&
@@ -2299,7 +2299,7 @@ main () {
 						done
 						for selchr in $Get2_Chromosome; do (
 							if test ! -f "${pop}_${ref2%.f*}_${ploidy_ref2}x_${selchr}_raw.vcf.gz"; then
-								$GATK --java-options "$Xmx2 -XX:+UseParallelGC -XX:ParallelGCThreads=$loopthreads"  GenotypeGVCFs -R ${projdir}/refgenomes/panref.fasta -L ${selchr} -V gendb://${pop}_${ref2%.f*}_${ploidy_ref2}x_${selchr}_raw -O ${pop}_${ref2%.f*}_${ploidy_ref2}x_${selchr}_raw.hold.vcf.gz && \
+								$GATK --java-options "$Xmx1 -XX:+UseParallelGC -XX:ParallelGCThreads=$loopthreads"  GenotypeGVCFs -R ${projdir}/refgenomes/panref.fasta -L ${selchr} -V gendb://${pop}_${ref2%.f*}_${ploidy_ref2}x_${selchr}_raw -O ${pop}_${ref2%.f*}_${ploidy_ref2}x_${selchr}_raw.hold.vcf.gz && \
 								rm -r ${pop}_${ref2%.f*}_${ploidy_ref2}x_${selchr}_raw && \
 								mv "${pop}_${ref2%.f*}_${ploidy_ref2}x_${selchr}_raw.hold.vcf.gz" "${pop}_${ref2%.f*}_${ploidy_ref2}x_${selchr}_raw.vcf.gz" &&
 								wait
@@ -2442,7 +2442,7 @@ main () {
 						done
 						for selchr in $Get2_Chromosome; do (
 							if test ! -f "${pop}_${ref3%.f*}_${ploidy_ref3}x_${selchr}_raw.vcf.gz"; then
-								$GATK --java-options "$Xmx2 -XX:+UseParallelGC -XX:ParallelGCThreads=$loopthreads"  GenotypeGVCFs -R ${projdir}/refgenomes/panref.fasta -L ${selchr} -V gendb://${pop}_${ref3%.f*}_${ploidy_ref3}x_${selchr}_raw -O ${pop}_${ref3%.f*}_${ploidy_ref3}x_${selchr}_raw.hold.vcf.gz && \
+								$GATK --java-options "$Xmx1 -XX:+UseParallelGC -XX:ParallelGCThreads=$loopthreads"  GenotypeGVCFs -R ${projdir}/refgenomes/panref.fasta -L ${selchr} -V gendb://${pop}_${ref3%.f*}_${ploidy_ref3}x_${selchr}_raw -O ${pop}_${ref3%.f*}_${ploidy_ref3}x_${selchr}_raw.hold.vcf.gz && \
 								rm -r ${pop}_${ref3%.f*}_${ploidy_ref3}x_${selchr}_raw && \
 								mv "${pop}_${ref3%.f*}_${ploidy_ref3}x_${selchr}_raw.hold.vcf.gz" "${pop}_${ref3%.f*}_${ploidy_ref3}x_${selchr}_raw.vcf.gz" &&
 								wait
