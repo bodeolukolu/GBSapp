@@ -1,44 +1,43 @@
 
 if [ -z "$threads" ]; then
-	threads=$(nproc --all)
+	export threads=$(nproc --all)
 	if [[ "$threads" -ge 4 ]]; then
-		threads=$((threads-2))
+		export threads=$((threads-2))
 	fi
 fi
 if [ -z "$lib_type" ]; then
- lib_type=RRS
+ export lib_type=RRS
 fi
 if [ -z "$nodes" ]; then
- nodes=1
+ export nodes=1
 fi
 if [ -z "$multilocus" ]; then
-	multilocus=true
+	export multilocus=true
 fi
 if [ "$multilocus" == "true" ]; then
-	multilocus=0
+	export multilocus=0
 fi
 if [ -z "$maxHaplotype" ]; then
-	maxHaplotype=128
+	export maxHaplotype=128
 fi
 if [ -z "$haplome_number" ]; then
-	haplome_number=1
+	export haplome_number=1
 fi
 if [ -z "$p2" ]; then
-	p2=$p1
+	export p2=$p1
 fi
 if [ -z "$softclip" ]; then
-	softclip=false
+	export softclip=false
 fi
 if [ -z "$downsample" ]; then
-	downsample=0
+	export downsample=0
 fi
 if [ -z "$joint_calling" ]; then
-	joint_calling=false
+	export joint_calling=false
 fi
 if [ -z "$keep_gVCF" ]; then
-	keep_gVCF=false
+	export keep_gVCF=false
 fi
-
 
 cd $projdir
 if [[ "$samples_list" == "samples_list_node_1.txt" ]]; then
@@ -401,45 +400,44 @@ fi
 main () {
 	cd $projdir
 	cd samples
-
-	nfiles=$(ls -1 -p | grep -v R2.f | grep -v / |  wc -l)
-	totalk=$(awk '/^MemTotal:/{print $2}' /proc/meminfo)
-	loopthreads=2
+	export nfiles=$(ls -1 -p | grep -v R2.f | grep -v / |  wc -l)
+	export totalk=$(awk '/^MemTotal:/{print $2}' /proc/meminfo)
+	export loopthreads=2
 	if [[ "$threads" -gt 1 ]]; then
-	  N=$((threads/2))
-	  ram1=$(($totalk/$N))
+	  export N=$((threads/2))
+	  export ram1=$(($totalk/$N))
 	else
-	  N=1 && loopthreads=threads
+	  export N=1 && export loopthreads=threads
 	fi
-	ram1=$((ram1/1000000))
-	Xmx1=-Xmx${ram1}G
-	ram2=$(echo "$totalk*0.0000009" | bc)
-	ram2=${ram2%.*}
-	Xmx2=-Xmx${ram2}G
+	export ram1=$((ram1/1000000))
+	export Xmx1=-Xmx${ram1}G
+	export ram2=$(echo "$totalk*0.0000009" | bc)
+	export ram2=${ram2%.*}
+	export Xmx2=-Xmx${ram2}G
 	if [[ "$nfiles" -lt "$N" ]]; then
-	  N=$nfiles && loopthreads=$threads
+	  export N=$nfiles && export loopthreads=$threads
 	fi
 
 	if [[ "$threads" -le 6 ]]; then
-		prepthreads=threads
-		Xmxp=$Xmx2
-		prepN=1
+		export prepthreads=threads
+		export Xmxp=$Xmx2
+		export prepN=1
 	else
-		prepthreads=6
-		prepN=$(( threads / prepthreads ))
-		ramprep=$(( ram2 / prepN ))
-		Xmxp=-Xmx${ramprep}G
+		export prepthreads=6
+		export prepN=$(( threads / prepthreads ))
+		export ramprep=$(( ram2 / prepN ))
+		export Xmxp=-Xmx${ramprep}G
 	fi
 
 	if [[ "$threads" -le 4 ]]; then
-		gthreads=$threads
-		Xmxg=$Xmx2
-		gN=1
+		export gthreads=$threads
+		export Xmxg=$Xmx2
+		export gN=1
 	else
-		gthreads=4
-		gN=$(( threads / gthreads ))
-		ramg=$(( ram2 / gN ))
-		Xmxg=-Xmx${ramg}G
+		export gthreads=4
+		export gN=$(( threads / gthreads ))
+		export ramg=$(( ram2 / gN ))
+		export Xmxg=-Xmx${ramg}G
 	fi
 }
 cd $projdir
@@ -479,7 +477,7 @@ main () {
 	cd samples
 
 	if [[ "$samples_list" == "samples_list_node_1.txt" ]] && test ! -f ${projdir}/organize_files_done.txt; then
-		for i in $( cat ${projdir}/samples_list_node_* ); do
+		for i in $( cat ${projdir}/samples_list_node_* ); do (
 			if [[ "$lib_type" =~ "RRS" || "$lib_type" =~ "rrs" ]] && test ! -f ${projdir}/preprocess/${i%.f*}_redun.sam && test ! -f ${projdir}/preprocess/${i%.f*}_${ref1%.f*}_precall.bam.bai; then
 				if test ! -f ${i%.f*}_uniq_R1.fasta.gz; then
 					if [[ $(file $i | awk -F' ' '{print $2}') == gzip ]]; then
@@ -543,6 +541,9 @@ main () {
 					fi
 					wait
 				fi
+			fi )&
+			if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
+				wait
 			fi
 		done
 

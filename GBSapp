@@ -225,26 +225,22 @@ fi
 
 
 cd $projdir
-if [ -d "./samples/pe" ]; then
-  if test -f "./samples/filename_reformatted.txt" || test -f "./samples/flushed_reads.txt"; then
-    :
-  else
-    echo -e "${magenta}- GBSapp will modify your sample fastq files by concatenating <pe-R1-reads> and <se-reads> ${white}"
-    echo -e "${magenta}- Do you want to create a copy/backup of your sample fastq file? ${white}"
-    read -p "- y(YES) or n(NO)? " -n 1 -r
-    if [[ $REPLY = ^[Yy]$ ]]; then
-      printf "\n"
-      echo -e "${magenta}- A copy of your sample fastq files will be stored in user-defined directory or in ${projdir}/samples_backup/ ${white}"
-      echo -e "${magenta}- Specify alternate directory (Absolute/Full path) or Press Enter? ${white}"
-      read alt_dir
-      if [[ -z $alt_dir ]]; then
-      	cp -r samples samples_backup
-      else
-  	cp -r samples $alt_dir
-      fi
+if [[ -d "./samples/pe" ]] || [[ -d "./samples/se" ]]; then
+  echo -e "${magenta}- GBSapp will modify your sample fastq files by concatenating <pe-R1-reads> and <se-reads> ${white}"
+  echo -e "${magenta}- Do you want to create a copy/backup of your sample fastq file? ${white}"
+  read -p "- y(YES) or n(NO)? " -n 1 -r
+  if [[ $REPLY = ^[Yy]$ ]]; then
+    printf "\n"
+    echo -e "${magenta}- A copy of your sample fastq files will be stored in user-defined directory or in ${projdir}/samples_backup/ ${white}"
+    echo -e "${magenta}- Specify alternate directory (Absolute/Full path) or Press Enter? ${white}"
+    read alt_dir
+    if [[ -z $alt_dir ]]; then
+    	cp -r samples samples_backup
     else
-      echo -e "${white}\n##############################################################################"
+	cp -r samples $alt_dir
     fi
+  else
+    echo -e "${white}\n##############################################################################"
   fi
 else
   if test -f "./samples/filename_reformatted.txt" || test -f "./samples/flushed_reads.txt"; then
@@ -372,7 +368,11 @@ fi
 main() {
 cd $projdir
 cd samples
-export samples_list=$(ls -R *.f* ./*/*.f* 2> /dev/null | grep -v .txt | grep -v .txt.gz | grep -v uniq | shuf | awk '{gsub(/\n/," "); print}' | awk -F"/" '{print $NF}' | awk '!a[$0]++' )
+if [[ -d pe ]] || [[ -d se ]]; then
+  export samples_list=$(ls -R ./*/*.f* 2> /dev/null | awk '{gsub(/.\/se\//,"");gsub(/.\/pe\//,"");}1' | sort | uniq | grep -v .txt | grep -v .txt.gz | grep -v uniq | shuf | awk '{gsub(/\n/," "); print}' | awk -F"/" '{print $NF}' | awk '!a[$0]++' )
+else
+  export samples_list=$(ls -R *.f* 2> /dev/null | grep -v .txt | grep -v .txt.gz | grep -v uniq | shuf | awk '{gsub(/\n/," "); print}' | awk -F"/" '{print $NF}' | awk '!a[$0]++' )
+fi
 cd ../
 
 string="${GBSapp_dir}/scripts/GBSapp_internal_parameters.sh"
@@ -427,7 +427,7 @@ if [[ "$string" == false ]]; then
   grep -v _uniq.hold.fasta | grep -v _uniq_R1.hold.fasta | grep -v _uniq_R2.hold.fasta | grep -v fq.gz | \
   awk '{gsub(/_R1.fastq/,".fastq"); gsub(/\.R1.fastq/,".fastq"); gsub(/_R1.fq/,".fq"); gsub(/\.R1.fq/,".fq"); print}' > samples_list_node_1.txt
   printf "samples_list=samples_list_node_1.txt\n" >> config.sh
-  cat header.txt config.sh fetchdir.txt $string2 $string3 | awk '{ sub("\r$",""); print}' > GBSapp_run.sh
+  cat header.txt <(grep -v '^[[:space:]]*$' config.sh | awk '{gsub(/^/,"export "); gsub(/export #/,"#");}1') fetchdir.txt $string2 $string3 | awk '{ sub("\r$",""); print}' > GBSapp_run.sh
   rm header.txt fetchdir.txt
   echo -e "${magenta}- GBSapp is ready to submit job ${white}"
   echo -e "${magenta}- Do you want to continue? ${white}"
@@ -526,7 +526,7 @@ if [ -z $cluster ]; then
   echo $samples_list | awk -F' ' '{ for (i=1;i<=NF;i+=1) print $i }' | awk '{gsub(/\.R2.f/,"_R2.f");}1' | grep -v _R2.f | grep -v _uniq_R1.fasta | grep -v _uniq_R2.fasta | grep -v _uniq_R1.hold.fasta | grep -v fq.gz | \
   awk '{gsub(/_R1.fastq/,".fastq"); gsub(/\.R1.fastq/,".fastq"); gsub(/_R1.fq/,".fq"); gsub(/\.R1.fq/,".fq"); print}' > samples_list_node_1.txt
   printf "samples_list=samples_list_node_1.txt\n" >> config.sh
-  cat header.txt steps.txt config.sh walkaway.txt fetchdir.txt $string2 $string3 | awk '{ sub("\r$",""); print}' > GBSapp_run_node_1.sh
+  cat header.txt steps.txt <(grep -v '^[[:space:]]*$' config.sh | awk '{gsub(/^/,"export "); gsub(/export #/,"#");}1') walkaway.txt fetchdir.txt $string2 $string3 | awk '{ sub("\r$",""); print}' > GBSapp_run_node_1.sh
   rm header.txt walkaway.txt fetchdir.txt steps.txt
 
   echo -e "${magenta}- GBSapp is ready to submit job ${white}"
@@ -637,7 +637,7 @@ if [[ "$string" == true ]]; then
         else
           cp steps.txt steps_node.txt
         fi
-        cat cluster_header.sh steps_node.txt config_node.sh walkaway.txt fetchdir.txt $string2 $string3 | awk '{ sub("\r$",""); print}' | \
+        cat cluster_header.sh steps_node.txt <(grep -v '^[[:space:]]*$' config_node.sh | awk '{gsub(/^/,"export "); gsub(/export #/,"#");}1') walkaway.txt fetchdir.txt $string2 $string3 | awk '{ sub("\r$",""); print}' | \
         awk -v i=$i '{gsub(/log.out/,"log_node_"i".out"); print}' > GBSapp_run_node_${i}.sh
         rm config_node.sh steps_node.txt
       done
@@ -669,7 +669,7 @@ if [[ "$string" == true ]]; then
       echo $samples_list | awk -F' ' '{ for (i=1;i<=NF;i+=1) print $i }' | awk '{gsub(/\.R2.f/,"_R2.f");}1' | grep -v _R2.f | grep -v _uniq_R1.fasta | grep -v _uniq_R2.fasta | grep -v _uniq_R1.hold.fasta | grep -v fq.gz | \
       awk '{gsub(/_R1.fastq/,".fastq"); gsub(/.R1.fastq/,".fastq"); gsub(/_R1.fq/,".fq"); gsub(/.R1.fq/,".fq"); print}' > samples_list_node_1.txt
       printf "samples_list=samples_list_node_1.txt\n" >> config.sh
-      cat cluster_header.sh steps.txt config.sh walkaway.txt fetchdir.txt $string2 $string3 | awk '{ sub("\r$",""); print}' > GBSapp_run_node_1.sh
+      cat cluster_header.sh steps.txt <(grep -v '^[[:space:]]*$' config.sh | awk '{gsub(/^/,"export "); gsub(/export #/,"#");}1') walkaway.txt fetchdir.txt $string2 $string3 | awk '{ sub("\r$",""); print}' > GBSapp_run_node_1.sh
       rm fetchdir.txt cluster_header.sh header.txt steps.txt walkaway.txt
       slurm_check=$(sbatch --version)
       if [[ $slurm_check == slurm* ]]; then

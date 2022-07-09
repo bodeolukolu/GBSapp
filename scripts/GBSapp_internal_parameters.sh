@@ -12,10 +12,10 @@ export GBSapp_dir=${GBSapp_dir%/*}
 export projdir=${projdir%/*}
 
 pop=${projdir%/}
-pop=${pop##*/}
+export pop=${pop##*/}
 
 cluster="$(grep cluster config.sh)"
-cluster=${cluster//*=}
+export cluster=${cluster//*=}
 
 ######################################################################################################################################################
 # Software defined parameters
