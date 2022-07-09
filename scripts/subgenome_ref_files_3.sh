@@ -1143,9 +1143,9 @@ fi
 echo -e "${blue}\n############################################################################## ${yellow}\n- Performing Variant Calling with GATK HaplotypeCaller\n${blue}##############################################################################${white}\n"
 main () {
 
-	if [[ "$samples_list" == "samples_list_node_1.txt" ]]; then
-		touch ${projdir}/compress_done.txt
-	fi
+
+	touch ${projdir}/compress_done.txt
+
 
 
 	if [ "$alignments" == 0 ]; then
