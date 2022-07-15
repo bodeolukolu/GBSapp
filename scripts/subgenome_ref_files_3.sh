@@ -828,14 +828,8 @@ main () {
 	wait
 
 	cd ${projdir}/preprocess
-	find . -name '*.bam' | {
-	    read firstbam
-	    $samtools view -h "$firstbam"
-	    while read bam; do
-	        $samtools view "$bam"
-	    done
-	} | $samtools view -ubS - | $samtools sort - merged
-	$samtools view -h merged.bam > combined_all_sample_reads_redun.sam
+	$samtools view -H combined_all_sample_reads_R1_chunk1.bam > combined_all_sample_reads_redun.sam
+	find ./ -name \*.bam -exec $samtools view {} \; >> combined_all_sample_reads_redun.sam
 	$gzip combined_all_sample_reads_redun.sam
 
 	wait && touch ${projdir}/alignment_done_${samples_list}
