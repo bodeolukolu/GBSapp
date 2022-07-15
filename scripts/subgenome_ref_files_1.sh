@@ -725,7 +725,6 @@ main () {
 				done
 			fi
 		fi
-
 	fi
 
 
@@ -748,20 +747,20 @@ main () {
 			touch ${projdir}/queue_move_${samples_list%.txt}
 			queue_move=$(ls ${projdir}/queue_move_samples_list_node_* | wc -l)
 		done
-		cp -r ${projdir}/refgenomes/* /tmp/${samples_list%.txt}/refgenomes/ &&
-		cp ${projdir}/preprocess/combined_all_sample_reads_redun.sam.gz /tmp/${samples_list%.txt}/preprocess/ 2> /dev/null &&
+		cp -rn ${projdir}/refgenomes/* /tmp/${samples_list%.txt}/refgenomes/ &&
+		cp -rn ${projdir}/preprocess/combined_all_sample_reads_redun.sam.gz /tmp/${samples_list%.txt}/preprocess/ 2> /dev/null &&
+		cp -rn merged_index.txt.gz /tmp/${samples_list%.txt}/samples/ 2> /dev/null &&
+		nn=${samples_list%.txt}; nn=${nn#samples_list_node_}
+		mv ${projdir}/samples/alignsplit_node${nn}/* /tmp/${samples_list%.txt}/samples/
+		rmdir ${projdir}/samples/alignsplit_node${nn}
 		if [[ "$lib_type" == "RRS" ]]; then
 			for i in $(cat ${projdir}/${samples_list} ); do
-				cp ${i%.f*}_uniq_R*.fasta.gz /tmp/${samples_list%.txt}/samples/ 2> /dev/null &&
-				cp merged_index.txt.gz /tmp/${samples_list%.txt}/samples/ 2> /dev/null &&
-				cp ${projdir}/preprocess/${i%.f*}_redun.sam.gz /tmp/${samples_list%.txt}/preprocess/ 2> /dev/null &&
-				cp ${projdir}/preprocess/${i%.f*}_*_precall.bam* /tmp/${samples_list%.txt}/preprocess/ 2> /dev/null &&
-				samples_list=samples_list_node_1.txt
-				nn=${samples_list%.txt}; nn=${nn#samples_list_node_}
-				mv ${projdir}/samples/alignsplit_node${nn}/* /tmp/${samples_list%.txt}/samples/
-				rmdir ${projdir}/samples/alignsplit_node${nn}
+				cp -rn ${i%.f*}_uniq_R*.fasta.gz /tmp/${samples_list%.txt}/samples/ 2> /dev/null &&
+				cp -rn ${projdir}/preprocess/${i%.f*}_redun.sam.gz /tmp/${samples_list%.txt}/preprocess/ 2> /dev/null &&
+				cp -rn ${projdir}/preprocess/${i%.f*}_*_precall.bam* /tmp/${samples_list%.txt}/preprocess/ 2> /dev/null &&
 				wait
 			done
+			wait
 		fi
 		rm ${projdir}/queue_move_${samples_list%.txt}
 	fi
