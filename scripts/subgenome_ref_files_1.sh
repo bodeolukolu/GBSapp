@@ -510,6 +510,8 @@ main () {
 					if test -f "${i%.f*}_R2_uniq.txt.gz"; then
 						export LC_ALL=C; paste -d ~ <(zcat ${i%.f*}_uniq.txt.gz 2> /dev/null) <(zcat ${i%.f*}_R2_uniq.txt.gz 2> /dev/null) | expand -t $(( $(wc -L < $i ) + 2 )) | awk '{!seen[$0]++}END{for (i in seen) print seen[i], i}' | awk '{$1=$1};1' | \
 						awk '{gsub(" /"," "); print}' | awk '{gsub("/\n","\n"); print}' | awk '{gsub("/"," "); print}' | awk '{gsub(" ","\t"); print}' | gzip > ${i%.f*}_rdrefseq.txt.gz 2> /dev/null &&
+						repseqs=$(awk '{all[NR] = $0} END{print all[int(NR*0.999 - 0.5)]}' <(zcat ${i%.f*}_rdrefseq.txt.gz | awk '{print $1}' | sort -n))
+						awk -v repseqs=$repseqs '$1<=repseqs{print $0}' <(zcat ${i%.f*}_rdrefseq.txt.gz) > ${i%.f*}_rdrefseq.tmp.gz; mv ${i%.f*}_rdrefseq.tmp.gz ${i%.f*}_rdrefseq.txt.gz
 						wait
 						awk 'NF==2 {print ">seq"NR"_se-"$1"\t"$2}' <(zcat ${i%.f*}_rdrefseq.txt.gz 2> /dev/null) | gzip > ${i%.f*}_rdrefseq_se.txt.gz 2> /dev/null &&
 						wait
@@ -528,6 +530,8 @@ main () {
 						wait
 						export LC_ALL=C; paste -d ~ <(zcat ${i%.f*}_uniq.txt.gz 2> /dev/null) ${i%.f*}_R2_uniq.txt | expand -t $(( $(wc -L < $i ) + 2 )) | awk '{!seen[$0]++}END{for (i in seen) print seen[i], i}' | awk '{$1=$1};1' | \
 						awk '{gsub(" /"," "); print}' | awk '{gsub("/\n","\n"); print}' | awk '{gsub("/"," "); print}' | awk '{gsub(" ","\t"); print}' | gzip > ${i%.f*}_rdrefseq.txt.gz 2> /dev/null &&
+						repseqs=$(awk '{all[NR] = $0} END{print all[int(NR*0.999 - 0.5)]}' <(zcat ${i%.f*}_rdrefseq.txt.gz | awk '{print $1}' | sort -n))
+						awk -v repseqs=$repseqs '$1<=repseqs{print $0}' <(zcat ${i%.f*}_rdrefseq.txt.gz) > ${i%.f*}_rdrefseq.tmp.gz; mv ${i%.f*}_rdrefseq.tmp.gz ${i%.f*}_rdrefseq.txt.gz
 						wait
 						awk 'NF==2 {print ">seq"NR"_pe-"$0}' <(zcat ${i%.f*}_rdrefseq.txt.gz 2> /dev/null) | awk '{print $1"\t"$2}' | gzip > ${i%.f*}_uniq_R1.hold.fasta.gz 2> /dev/null &&
 						wait
@@ -592,6 +596,8 @@ main () {
 							if test -f "${i%.f*}_R2_uniq.txt.gz"; then
 								export LC_ALL=C; paste -d ~ <(zcat ${i%.f*}_uniq.txt.gz 2> /dev/null) <(zcat ${i%.f*}_R2_uniq.txt.gz 2> /dev/null) | expand -t $(( $(wc -L < $i ) + 2 )) | awk '{!seen[$0]++}END{for (i in seen) print seen[i], i}' | awk '{$1=$1};1' | \
 								awk '{gsub(" /"," "); print}' | awk '{gsub("/\n","\n"); print}' | awk '{gsub("/"," "); print}' | awk '{gsub(" ","\t"); print}' | $gzip > ${i%.f*}_rdrefseq.txt.gz 2> /dev/null &&
+								repseqs=$(awk '{all[NR] = $0} END{print all[int(NR*0.999 - 0.5)]}' <(zcat ${i%.f*}_rdrefseq.txt.gz | awk '{print $1}' | sort -n))
+								awk -v repseqs=$repseqs '$1<=repseqs{print $0}' <(zcat ${i%.f*}_rdrefseq.txt.gz) > ${i%.f*}_rdrefseq.tmp.gz; mv ${i%.f*}_rdrefseq.tmp.gz ${i%.f*}_rdrefseq.txt.gz
 								wait
 								awk 'NF==2 {print ">seq"NR"_se-"$1"\t"$2}' <(zcat ${i%.f*}_rdrefseq.txt.gz 2> /dev/null) | $gzip > ${i%.f*}_rdrefseq_se.txt.gz 2> /dev/null &&
 								wait
@@ -610,6 +616,8 @@ main () {
 								wait
 								export LC_ALL=C; paste -d ~ <(zcat ${i%.f*}_uniq.txt.gz 2> /dev/null) ${i%.f*}_R2_uniq.txt | expand -t $(( $(wc -L < $i ) + 2 )) | awk '{!seen[$0]++}END{for (i in seen) print seen[i], i}' | awk '{$1=$1};1' | \
 								awk '{gsub(" /"," "); print}' | awk '{gsub("/\n","\n"); print}' | awk '{gsub("/"," "); print}' | awk '{gsub(" ","\t"); print}' | $gzip > ${i%.f*}_rdrefseq.txt.gz 2> /dev/null &&
+								repseqs=$(awk '{all[NR] = $0} END{print all[int(NR*0.999 - 0.5)]}' <(zcat ${i%.f*}_rdrefseq.txt.gz | awk '{print $1}' | sort -n))
+								awk -v repseqs=$repseqs '$1<=repseqs{print $0}' <(zcat ${i%.f*}_rdrefseq.txt.gz) > ${i%.f*}_rdrefseq.tmp.gz; mv ${i%.f*}_rdrefseq.tmp.gz ${i%.f*}_rdrefseq.txt.gz
 								wait
 								awk 'NF==2 {print ">seq"NR"_pe-"$0}' <(zcat ${i%.f*}_rdrefseq.txt.gz 2> /dev/null) | awk '{print $1"\t"$2}' | $gzip > ${i%.f*}_uniq_R1.hold.fasta.gz 2> /dev/null &&
 								wait
@@ -644,23 +652,37 @@ main () {
 		if [[ "$lib_type" =~ "RRS" || "$lib_type" =~ "rrs" ]] && test -f ${projdir}/organize_files_done.txt && test ! -f ${projdir}/compress_done.txt && test ! -f "${projdir}/preprocess/${i%.f*}_redun.sam.gz" && test ! -f "${projdir}/preprocess/${i%.f*}_${ref1%.f*}_precall.bam.bai"; then
 
 			export nempty=$( ls ${projdir}/samples/${i%.f*}_uniq_R2.fasta.gz 2> /dev/null | wc -l | awk '{print $1}' )
-			rdfreq_threshold=$(( $(ls *_uniq_R1.fasta.gz | wc -l) / 100))
-
 			if [[ "$nempty" -gt 0 ]]; then
-				zcat *_uniq_R1.fasta.gz | awk '{print $2}' | awk '{A[$1]++}END{for(i in A)print i}' | $gzip > combined_all_sample_reads_R1_hold1.fq.gz
-				zcat *_uniq_R1.fasta.gz | awk '{!seen[$0]++}END{for (i in seen) print seen[i], i}' | \
-				awk -v min=$rdfreq_threshold '$1>min{print $(NF)}' | grep -Ff - <(zcat combined_all_sample_reads_R1_hold1.fq.gz) | awk '{print $1"\t@merged_R1_seq"NR"\t"$1"\t"$1}' | $gzip > combined_all_sample_reads_R1_hold2.fq.gz
-				awk '{print $1"\t"$2}' <(zcat combined_all_sample_reads_R1_hold2.fq.gz) | awk '{gsub(/@/,"");}1' | $gzip >> merged_index.txt.gz
-				awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$4); print}'  <(zcat combined_all_sample_reads_R1_hold2.fq.gz) | awk '{print $2"\n"$3"\n+\n"$4}' | $gzip > combined_all_sample_reads_R1.fq.gz
-				rm combined_all_sample_reads_R1_hold*.fq.gz
+				sample100=1
+				for samplechunk in $(ls -S *_uniq_R1.fasta.gz | awk '{ORS=NR%100?",":"\n"}1'); do
+					cat $(echo $samplechunk | awk '{gsub(/,/," ");}1') | zcat | awk '{print $2}' | awk '{!seen[$0]++}END{for (i in seen) print seen[i], i}' | \
+					awk -v mhf=$(( $( echo $samplechunk | awk '{gsub(/,/,"\n");}1' | wc -l ) / 100 )) '$1>mhf{print $(NF)}' | \
+					awk -v chk=$sample100'{print $1"\t@merged_R1_seq"NR"_chunk"chk"\t"$1"\t"$1}' | $gzip > combined_all_sample_reads_R1_hold_chunk${sample100}.fq.gz
+					awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$4); print}'  combined_all_sample_reads_R1_hold_chunk${sample100}.fq.gz | \
+					awk '{print $2"\n"$3"\n+\n"$4}' | $gzip > combined_all_sample_reads_R1_chunk${sample100}.fq.gz
+					rm combined_all_sample_reads_R1_hold*.fq
+					sample100=$(sample100 + 1)
+				done
+				wait
+				for mergechunk in combined_all_sample_reads_R1_hold_chunk*; do
+					awk '{print $1"\t"$2}' <(zcat $mergechunk) | awk '{gsub(/@/,"");}1' | $gzip >> merged_index.txt.gz
+				done
+				wait
 
-				zcat *_uniq_R2.fasta.gz | awk '{print $2}' | awk '{A[$1]++}END{for(i in A)print i}' | $gzip > combined_all_sample_reads_R2_hold1.fq.gz
-				zcat *_uniq_R2.fasta.gz | awk '{!seen[$0]++}END{for (i in seen) print seen[i], i}' | \
-				awk -v min=$rdfreq_threshold '$1>min{print $(NF)}' | grep -Ff - <(zcat combined_all_sample_reads_R2_hold1.fq.gz) | awk '{print $1"\t@merged_R2_seq"NR"\t"$1"\t"$1}' | $gzip > combined_all_sample_reads_R2_hold2.fq.gz
-				awk '{print $1"\t"$2}' <(zcat combined_all_sample_reads_R2_hold2.fq.gz) | awk '{gsub(/@/,"");}1' | $gzip >> merged_index.txt.gz
-				awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$4); print}'  <(zcat combined_all_sample_reads_R2_hold2.fq.gz) | awk '{print $2"\n"$3"\n+\n"$4}' | $gzip > combined_all_sample_reads_R2.fq.gz
-				rm combined_all_sample_reads_R2_hold*.fq.gz
-
+				sample100=1
+				for samplechunk in $(ls -S *_uniq_R2.fasta.gz | awk '{ORS=NR%100?",":"\n"}1'); do
+					cat $(echo $samplechunk | awk '{gsub(/,/," ");}1') | zcat | awk '{print $2}' | awk '{!seen[$0]++}END{for (i in seen) print seen[i], i}' | \
+					awk -v mhf=$(( $( echo $samplechunk | awk '{gsub(/,/,"\n");}1' | wc -l ) / 100 )) '$1>mhf{print $(NF)}' | \
+					awk -v chk=$sample100'{print $1"\t@merged_R2_seq"NR"_chunk"chk"\t"$1"\t"$1}' | $gzip > combined_all_sample_reads_R2_hold_chunk${sample100}.fq.gz
+					awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$4); print}'  combined_all_sample_reads_R2_hold_chunk${sample100}.fq.gz | \
+					awk '{print $2"\n"$3"\n+\n"$4}' | $gzip > combined_all_sample_reads_R2_chunk${sample100}.fq.gz
+					rm combined_all_sample_reads_R2_hold*.fq
+					sample100=$(sample100 + 1)
+				done
+				wait
+				for mergechunk in combined_all_sample_reads_R2_hold_chunk*; do
+					awk '{print $1"\t"$2}' <(zcat $mergechunk) | awk '{gsub(/@/,"");}1' | $gzip >> merged_index.txt.gz
+				done
 				# zcat *_uniq_singleton.fasta.gz | awk '{print $2}' | awk '{A[$1]++}END{for(i in A)print i}' | $gzip > combined_all_sample_reads_singleton_hold1.fq.gz
 				# zcat *_uniq_singleton.fasta.gz | awk '{!seen[$0]++}END{for (i in seen) print seen[i], i}' | \
 				# awk -v min=$rdfreq_threshold '$1>min{print $(NF)}' | grep -Ff - <(zcat combined_all_sample_reads_singleton_hold1.fq.gz) | awk '{print $1"\t@merged_singleton_seq"NR"\t"$1"\t"$1}' | $gzip > combined_all_sample_reads_singleton_hold2.fq.gz
@@ -668,47 +690,44 @@ main () {
 				# awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$4); print}'  <(zcat combined_all_sample_reads_singleton_hold2.fq.gz) | awk '{print $2"\n"$3"\n+\n"$4}' | $gzip > combined_all_sample_reads_singleton.fq.gz
 				# rm combined_all_sample_reads_singleton_hold*.fq.gz
 			else
-				zcat *_uniq_R1.fasta.gz | awk '{print $2}' | awk '{A[$1]++}END{for(i in A)print i}' | $gzip > combined_all_sample_reads_R1_hold1.fq.gz
-				zcat *_uniq_R1.fasta.gz | awk '{!seen[$0]++}END{for (i in seen) print seen[i], i}' | \
-				awk -v min=$rdfreq_threshold '$1>min{print $(NF)}' | grep -Ff - <(zcat combined_all_sample_reads_R1_hold1.fq.gz) | awk '{print $1"\t@merged_seq"NR"\t"$1"\t"$1}' | $gzip > combined_all_sample_reads_R1_hold2.fq.gz
-				awk '{print $1"\t"$2}' <(zcat combined_all_sample_reads_R1_hold2.fq.gz) | awk '{gsub(/@/,"");}1' | $gzip > merged_index.txt.gz
-				awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$4); print}'  <(zcat combined_all_sample_reads_R1_hold2.fq.gz) | awk '{print $2"\n"$3"\n+\n"$4}' | $gzip > combined_all_sample_reads_R1.fq.gz
-				rm combined_all_sample_reads_R1_hold*.fq.gz
-			fi
-		fi
-	fi
-
-
-	if [[ "$samples_list" == "samples_list_node_1.txt" ]]; then
-		if [[ "$lib_type" =~ "RRS" || "$lib_type" =~ "rrs" ]] && test ! -f ${projdir}/precall_done.txt && test ! -f ${projdir}/compress_done.txt ; then
-			export nempty=$( ls combined_all_sample_reads_R2.fq.gz 2> /dev/null | wc -l | awk '{print $1}' )
-			if test ! -f ../preprocess/combined_all_sample_reads_redun.sam.gz; then
-				if [[ "$nempty" -gt 0 ]]; then
-					$ngm -r ../refgenomes/$ref1 --qry combined_all_sample_reads_R1.fq.gz -o ../preprocess/combined_all_sample_reads_redun_R1.sam -t $threads --min-identity 0 --topn 12 -strata 12 &&
-					$ngm -r ../refgenomes/$ref1 --qry combined_all_sample_reads_R2.fq.gz -o ../preprocess/combined_all_sample_reads_redun_R2.sam -t $threads --min-identity 0 --topn 12 --strata 12 &&
-					if [[ -s ../preprocess/combined_all_sample_reads_singleton.fq.gz ]]; then $ngm -r ../refgenomes/$ref1 --qry combined_all_sample_reads_singleton.fq.gz -o ../preprocess/combined_all_sample_reads_redun_singleton.sam -t $threads --min-identity 0 --topn 12 --strata 12; fi &&
-					mv ../preprocess/combined_all_sample_reads_redun_R1.sam ../preprocess/combined_all_sample_reads_redun.hold.sam &&
-					grep -v '^@' ../preprocess/combined_all_sample_reads_redun_R2.sam >> ../preprocess/combined_all_sample_reads_redun.hold.sam &&
-					if [[ -s ../preprocess/combined_all_sample_reads_redun_singleton.sam ]]; then grep -v '^@' ../preprocess/combined_all_sample_reads_redun_singleton.sam >> ../preprocess/combined_all_sample_reads_redun.hold.sam; fi &&
-					$gzip ../preprocess/combined_all_sample_reads_redun.hold.sam &&
-					mv ../preprocess/combined_all_sample_reads_redun.hold.sam.gz ../preprocess/combined_all_sample_reads_redun.sam.gz 2> /dev/null &&
-					wait
-					rm combined_all_sample_reads_singleton.fq.gz combined_all_sample_reads_R1.fq.gz combined_all_sample_reads_R2.fq.gz
-					rm ../preprocess/combined_all_sample_reads_redun_singleton.sam ../preprocess/combined_all_sample_reads_redun_R*.sam 2> /dev/null &&
-					wait
-				else
-					$ngm -r ../refgenomes/$ref1 --qry ../samples/combined_all_sample_reads_R1.fq.gz -o ../preprocess/combined_all_sample_reads_redun.hold.sam -t $threads --min-identity 0 --topn 12 --strata 12 &&
-					$gzip ../preprocess/combined_all_sample_reads_redun.hold.sam &&
-					mv ../preprocess/combined_all_sample_reads_redun.hold.sam.gz ../preprocess/combined_all_sample_reads_redun.sam.gz 2> /dev/null &&
-					wait
-				fi
-				rm combined_all_sample_reads_R1.fq.gz 2> /dev/null &&
-				rm ../preprocess/combined_all_sample_reads_redun_R*.sam 2> /dev/null &&
-				rm *_uniq*.fasta.gz &&
+				sample100=1
+				for samplechunk in $(ls -S *_uniq_R1.fasta.gz | awk '{ORS=NR%100?",":"\n"}1'); do
+					cat $(echo $samplechunk | awk '{gsub(/,/," ");}1') | zcat | awk '{print $2}' | awk '{!seen[$0]++}END{for (i in seen) print seen[i], i}' | \
+					awk -v mhf=$(( $( echo $samplechunk | awk '{gsub(/,/,"\n");}1' | wc -l ) / 100 )) '$1>mhf{print $(NF)}' | \
+					awk -v chk=$sample100'{print $1"\t@merged_R1_seq"NR"_chunk"chk"\t"$1"\t"$1}' | $gzip > combined_all_sample_reads_R1_hold_chunk${sample100}.fq.gz
+					awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$4); print}'  combined_all_sample_reads_R1_hold_chunk${sample100}.fq.gz | \
+					awk '{print $2"\n"$3"\n+\n"$4}' | $gzip > combined_all_sample_reads_R1_chunk${sample100}.fq.gz
+					rm combined_all_sample_reads_R1_hold*.fq
+					sample100=$(sample100 + 1)
+				done
+				wait
+				for mergechunk in combined_all_sample_reads_R1_hold_chunk*; do
+					awk '{print $1"\t"$2}' <(zcat $mergechunk) | awk '{gsub(/@/,"");}1' | $gzip >> merged_index.txt.gz
+				done
 				wait
 			fi
-			wait
+
+			if [[ "$nodes" -gt 1 ]]; then
+				splitnumt=$(ls combined_all_sample_reads_R1_chunk*.fq.gz | wc -l) && splitnum=$(($splitnumt / $nodes))
+				start_split=0
+				for nn in $(seq 1 "$nodes"); do
+					mkdir -p alignsplit_node${nn}
+					end_split=$(($start_split + $splitnum))
+					start_split=$(($start_split + 1))
+					for snode in $(seq $start_split $end_split); do
+						mv combined_all_sample_reads_R1_chunk${snode}.fq.gz ./alignsplit_node${nn}/
+						mv combined_all_sample_reads_R2_chunk${snode}.fq.gz ./alignsplit_node${nn}/ 2> /dev/null
+					done
+					start_split=$end_split
+				done
+				for nn in $(seq 1 "$nodes"); do
+					start_split=$(($start_split + 1))
+					combined_all_sample_reads_R1_chunk${snode}.fq.gz ./alignsplit_node${nn}/ 2> /dev/null
+					mv combined_all_sample_reads_R2_chunk${snode}.fq.gz ./alignsplit_node${nn}/ 2> /dev/null
+				done
+			fi
 		fi
+
 	fi
 
 
@@ -739,16 +758,48 @@ main () {
 				cp merged_index.txt.gz /tmp/${samples_list%.txt}/samples/ 2> /dev/null &&
 				cp ${projdir}/preprocess/${i%.f*}_redun.sam.gz /tmp/${samples_list%.txt}/preprocess/ 2> /dev/null &&
 				cp ${projdir}/preprocess/${i%.f*}_*_precall.bam* /tmp/${samples_list%.txt}/preprocess/ 2> /dev/null &&
+				samples_list=samples_list_node_1.txt
+				nn=${samples_list%.txt}; nn=${nn#samples_list_node_}
+				mv ${projdir}/samples/alignsplit_node${nn}/* /tmp/${samples_list%.txt}/samples/
+				rmdir ${projdir}/samples/alignsplit_node${nn}
 				wait
 			done
 		fi
 		rm ${projdir}/queue_move_${samples_list%.txt}
 	fi
 
+
+	cd ${projdir}/samples
+	if [[ "$nodes" -eq 1 ]]; then
+		if [[ "$lib_type" =~ "RRS" || "$lib_type" =~ "rrs" ]] && test ! -f ${projdir}/precall_done.txt && test ! -f ${projdir}/compress_done.txt && test ! -f ${projdir}/alignment_done_${samples_list}; then
+			for alignfq in combined_all_sample_reads_R*_chunk*.fq.gz; do
+				if test ! -f ../preprocess/${alignfq%.fq.gz}.sam; then
+					$ngm -r ../refgenomes/$ref1 --qry ../samples/${alignfq} -o ../preprocess/${alignfq%.fq.gz}.sam -t $threads --min-identity 0 --topn 12 --strata 12 &&
+					$java $Xmx2 -XX:ParallelGCThreads=$threads -jar $picard SortSam I=../preprocess/${alignfq%.fq.gz}.sam O=../preprocess/${alignfq%.fq.gz}.bam  SORT_ORDER=coordinate  VALIDATION_STRINGENCY=LENIENT &&
+					rm ${alignfq} 2> /dev/null
+					wait
+				fi
+			done
+		fi
+	fi
+	if [[ "$nodes" -gt 1 ]]; then
+		if [[ "$lib_type" =~ "RRS" || "$lib_type" =~ "rrs" ]] && test ! -f ${projdir}/precall_done.txt && test ! -f ${projdir}/compress_done.txt && test ! -f ${projdir}/alignment_done_${samples_list}; then
+			for alignfq in /tmp/${samples_list%.txt}/samples/combined_all_sample_reads_R*_chunk*.fq.gz; do
+				if test ! -f ../preprocess/${alignfq%.fq.gz}.sam; then
+					$ngm -r /tmp/${samples_list%.txt}/refgenomes/$ref1 --qry /tmp/${samples_list%.txt}/samples/${alignfq} -o ../preprocess/${alignfq%.fq.gz}.sam -t $threads --min-identity 0 --topn 12 --strata 12 &&
+					$java $Xmx2 -XX:ParallelGCThreads=$threads -jar $picard SortSam I=../preprocess/${alignfq%.fq.gz}.sam O=../preprocess/${alignfq%.fq.gz}.bam  SORT_ORDER=coordinate  VALIDATION_STRINGENCY=LENIENT &&
+					rm /tmp/${samples_list%.txt}/samples/${alignfq} 2> /dev/null
+					wait
+				fi
+			done
+		fi
+	fi
+
+
 	for i in $(cat ${projdir}/${samples_list} ); do
 		if [[ $nodes -eq 1 ]]; then cd ${projdir}/samples/ ; fi
 		if [[ $nodes -gt 1 ]] && test -f ${projdir}/GBSapp_run_node_1.sh; then cd /tmp/${samples_list%.txt}/samples/ ; fi
-		if [[ "$lib_type" == "WGS" ]] && test ${projdir}/compress_done.txt  && test ! -f ${projdir}/precall_done.txt && test ! -f ${projdir}/preprocess/${i%.f*}_${ref1%.f*}_precall.bam.bai; then
+		if [[ "$lib_type" == "WGS" ]] && test ${projdir}/compress_done.txt  && test ! -f ${projdir}/precall_done.txt && test ! -f ${projdir}/alignment_done_${samples_list}; then
 			export nempty=$( ls ${i%.f*}_R2.f*.gz 2> /dev/null | wc -l | awk '{print $1}' )
 			if test ! -f ../preprocess/${i%.f*}_redun.sam.gz; then
 				if [[ "$nempty" -gt 0 ]]; then
@@ -773,6 +824,18 @@ main () {
 		fi
 	done
 	wait
+
+	cd ${projdir}/samples/preprocess
+	find . -name '*.bam' | {
+	    read firstbam
+	    samtools view -h "$firstbam"
+	    while read bam; do
+	        samtools view "$bam"
+	    done
+	} | samtools view -ubS - | samtools sort - merged
+	samtools view -h merged.bam > combined_all_sample_reads_redun.sam
+	$gzip combined_all_sample_reads_redun.sam
+
 	wait && touch ${projdir}/alignment_done_${samples_list}
 
 
