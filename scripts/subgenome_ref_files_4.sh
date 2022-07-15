@@ -661,7 +661,6 @@ main () {
 					awk -v chk=$sample100 '{print $1"\t@merged_R1_seq"NR"_chunk"chk"\t"$1"\t"$1}' | $gzip > combined_all_sample_reads_R1_hold_chunk${sample100}.fq.gz
 					awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$4); print}'  combined_all_sample_reads_R1_hold_chunk${sample100}.fq.gz | \
 					awk '{print $2"\n"$3"\n+\n"$4}' | $gzip > combined_all_sample_reads_R1_chunk${sample100}.fq.gz
-					rm combined_all_sample_reads_R1_hold*.fq
 					sample100=$((sample100 + 1))
 				done
 				wait
@@ -677,7 +676,6 @@ main () {
 					awk -v chk=$sample100 '{print $1"\t@merged_R2_seq"NR"_chunk"chk"\t"$1"\t"$1}' | $gzip > combined_all_sample_reads_R2_hold_chunk${sample100}.fq.gz
 					awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$4); print}'  combined_all_sample_reads_R2_hold_chunk${sample100}.fq.gz | \
 					awk '{print $2"\n"$3"\n+\n"$4}' | $gzip > combined_all_sample_reads_R2_chunk${sample100}.fq.gz
-					rm combined_all_sample_reads_R2_hold*.fq
 					sample100=$((sample100 + 1))
 				done
 				wait
@@ -698,7 +696,6 @@ main () {
 					awk -v chk=$sample100 '{print $1"\t@merged_R1_seq"NR"_chunk"chk"\t"$1"\t"$1}' | $gzip > combined_all_sample_reads_R1_hold_chunk${sample100}.fq.gz
 					awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$4); print}'  combined_all_sample_reads_R1_hold_chunk${sample100}.fq.gz | \
 					awk '{print $2"\n"$3"\n+\n"$4}' | $gzip > combined_all_sample_reads_R1_chunk${sample100}.fq.gz
-					rm combined_all_sample_reads_R1_hold*.fq
 					sample100=$((sample100 + 1))
 				done
 				wait
@@ -706,6 +703,7 @@ main () {
 					awk '{print $1"\t"$2}' <(zcat $mergechunk) | awk '{gsub(/@/,"");}1' | $gzip >> merged_index.txt.gz
 				done
 				wait
+				rm combined_all_sample_reads_R*_hold*.fq.gz
 			fi
 
 			if [[ "$nodes" -gt 1 ]]; then
@@ -825,15 +823,15 @@ main () {
 	done
 	wait
 
-	cd ${projdir}/samples/preprocess
+	cd ${projdir}/preprocess
 	find . -name '*.bam' | {
-			read firstbam
-			samtools view -h "$firstbam"
-			while read bam; do
-					samtools view "$bam"
-			done
-	} | samtools view -ubS - | samtools sort - merged
-	samtools view -h merged.bam > combined_all_sample_reads_redun.sam
+	    read firstbam
+	    $samtools view -h "$firstbam"
+	    while read bam; do
+	        $samtools view "$bam"
+	    done
+	} | $samtools view -ubS - | $samtools sort - merged
+	$samtools view -h merged.bam > combined_all_sample_reads_redun.sam
 	$gzip combined_all_sample_reads_redun.sam
 
 	wait && touch ${projdir}/alignment_done_${samples_list}
