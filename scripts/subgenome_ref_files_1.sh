@@ -657,7 +657,7 @@ main () {
 				for samplechunk in $(ls -S *_uniq_R1.fasta.gz | awk '{ORS=NR%100?",":"\n"}1'); do
 					cat $(echo $samplechunk | awk '{gsub(/,/," ");}1') | zcat | awk '{print $2}' | awk '{!seen[$0]++}END{for (i in seen) print seen[i], i}' | \
 					awk -v mhf=$(( $( echo $samplechunk | awk '{gsub(/,/,"\n");}1' | wc -l ) / 100 )) '$1>mhf{print $(NF)}' | \
-					awk -v chk=$sample100'{print $1"\t@merged_R1_seq"NR"_chunk"chk"\t"$1"\t"$1}' | $gzip > combined_all_sample_reads_R1_hold_chunk${sample100}.fq.gz
+					awk -v chk=$sample100 '{print $1"\t@merged_R1_seq"NR"_chunk"chk"\t"$1"\t"$1}' | $gzip > combined_all_sample_reads_R1_hold_chunk${sample100}.fq.gz
 					awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$4); print}'  combined_all_sample_reads_R1_hold_chunk${sample100}.fq.gz | \
 					awk '{print $2"\n"$3"\n+\n"$4}' | $gzip > combined_all_sample_reads_R1_chunk${sample100}.fq.gz
 					rm combined_all_sample_reads_R1_hold*.fq
@@ -673,7 +673,7 @@ main () {
 				for samplechunk in $(ls -S *_uniq_R2.fasta.gz | awk '{ORS=NR%100?",":"\n"}1'); do
 					cat $(echo $samplechunk | awk '{gsub(/,/," ");}1') | zcat | awk '{print $2}' | awk '{!seen[$0]++}END{for (i in seen) print seen[i], i}' | \
 					awk -v mhf=$(( $( echo $samplechunk | awk '{gsub(/,/,"\n");}1' | wc -l ) / 100 )) '$1>mhf{print $(NF)}' | \
-					awk -v chk=$sample100'{print $1"\t@merged_R2_seq"NR"_chunk"chk"\t"$1"\t"$1}' | $gzip > combined_all_sample_reads_R2_hold_chunk${sample100}.fq.gz
+					awk -v chk=$sample100 '{print $1"\t@merged_R2_seq"NR"_chunk"chk"\t"$1"\t"$1}' | $gzip > combined_all_sample_reads_R2_hold_chunk${sample100}.fq.gz
 					awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$4); print}'  combined_all_sample_reads_R2_hold_chunk${sample100}.fq.gz | \
 					awk '{print $2"\n"$3"\n+\n"$4}' | $gzip > combined_all_sample_reads_R2_chunk${sample100}.fq.gz
 					rm combined_all_sample_reads_R2_hold*.fq
@@ -694,7 +694,7 @@ main () {
 				for samplechunk in $(ls -S *_uniq_R1.fasta.gz | awk '{ORS=NR%100?",":"\n"}1'); do
 					cat $(echo $samplechunk | awk '{gsub(/,/," ");}1') | zcat | awk '{print $2}' | awk '{!seen[$0]++}END{for (i in seen) print seen[i], i}' | \
 					awk -v mhf=$(( $( echo $samplechunk | awk '{gsub(/,/,"\n");}1' | wc -l ) / 100 )) '$1>mhf{print $(NF)}' | \
-					awk -v chk=$sample100'{print $1"\t@merged_R1_seq"NR"_chunk"chk"\t"$1"\t"$1}' | $gzip > combined_all_sample_reads_R1_hold_chunk${sample100}.fq.gz
+					awk -v chk=$sample100 '{print $1"\t@merged_R1_seq"NR"_chunk"chk"\t"$1"\t"$1}' | $gzip > combined_all_sample_reads_R1_hold_chunk${sample100}.fq.gz
 					awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$4); print}'  combined_all_sample_reads_R1_hold_chunk${sample100}.fq.gz | \
 					awk '{print $2"\n"$3"\n+\n"$4}' | $gzip > combined_all_sample_reads_R1_chunk${sample100}.fq.gz
 					rm combined_all_sample_reads_R1_hold*.fq
