@@ -662,7 +662,7 @@ main () {
 					awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$4); print}'  combined_all_sample_reads_R1_hold_chunk${sample100}.fq.gz | \
 					awk '{print $2"\n"$3"\n+\n"$4}' | $gzip > combined_all_sample_reads_R1_chunk${sample100}.fq.gz
 					rm combined_all_sample_reads_R1_hold*.fq
-					sample100=$(sample100 + 1)
+					sample100=$((sample100 + 1))
 				done
 				wait
 				for mergechunk in combined_all_sample_reads_R1_hold_chunk*; do
@@ -678,7 +678,7 @@ main () {
 					awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$4); print}'  combined_all_sample_reads_R2_hold_chunk${sample100}.fq.gz | \
 					awk '{print $2"\n"$3"\n+\n"$4}' | $gzip > combined_all_sample_reads_R2_chunk${sample100}.fq.gz
 					rm combined_all_sample_reads_R2_hold*.fq
-					sample100=$(sample100 + 1)
+					sample100=$((sample100 + 1))
 				done
 				wait
 				for mergechunk in combined_all_sample_reads_R2_hold_chunk*; do
@@ -699,7 +699,7 @@ main () {
 					awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$4); print}'  combined_all_sample_reads_R1_hold_chunk${sample100}.fq.gz | \
 					awk '{print $2"\n"$3"\n+\n"$4}' | $gzip > combined_all_sample_reads_R1_chunk${sample100}.fq.gz
 					rm combined_all_sample_reads_R1_hold*.fq
-					sample100=$(sample100 + 1)
+					sample100=$((sample100 + 1))
 				done
 				wait
 				for mergechunk in combined_all_sample_reads_R1_hold_chunk*; do
