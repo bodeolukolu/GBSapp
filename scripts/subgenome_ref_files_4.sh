@@ -753,8 +753,8 @@ main () {
 		cp -rn ${projdir}/preprocess/combined_all_sample_reads_redun.sam.gz /tmp/${samples_list%.txt}/preprocess/ 2> /dev/null &&
 		cp -rn merged_index.txt.gz /tmp/${samples_list%.txt}/samples/ 2> /dev/null &&
 		nn=${samples_list%.txt}; nn=${nn#samples_list_node_}
-		mv ${projdir}/samples/alignsplit_node${nn}/* /tmp/${samples_list%.txt}/samples/
-		rmdir ${projdir}/samples/alignsplit_node${nn}
+		mv "${projdir}"/samples/alignsplit_node"${nn}"/* /tmp/"${samples_list%.txt}"/samples/
+		rmdir ${projdir}/samples/alignsplit_node"${nn}"
 		if [[ "$lib_type" == "RRS" ]]; then
 			for i in $(cat ${projdir}/${samples_list} ); do
 				cp -rn ${i%.f*}_uniq_R*.fasta.gz /tmp/${samples_list%.txt}/samples/ 2> /dev/null &&
