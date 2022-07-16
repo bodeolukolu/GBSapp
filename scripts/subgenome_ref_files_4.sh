@@ -745,13 +745,13 @@ main () {
 			rm -rf /tmp/${samples_list%.txt} 2> /dev/null
 		fi
 		mkdir -p /tmp/${samples_list%.txt}/refgenomes /tmp/${samples_list%.txt}/samples /tmp/${samples_list%.txt}/preprocess /tmp/${samples_list%.txt}/snpcall
-		touch ${projdir}/queue_move_${samples_list%.txt}
-		queue_move=$(ls ${projdir}/queue_move_samples_list_node_* | wc -l)
-		while [[ "$queue_move" -gt 1 ]]; do
-			rm ${projdir}/queue_move_${samples_list%.txt}; sleep $[ ( $RANDOM % 120 )  + 30 ]s
-			touch ${projdir}/queue_move_${samples_list%.txt}
-			queue_move=$(ls ${projdir}/queue_move_samples_list_node_* | wc -l)
-		done
+		# touch ${projdir}/queue_move_${samples_list%.txt}
+		# queue_move=$(ls ${projdir}/queue_move_samples_list_node_* | wc -l)
+		# while [[ "$queue_move" -gt 1 ]]; do
+		# 	rm ${projdir}/queue_move_${samples_list%.txt}; sleep $[ ( $RANDOM % 120 )  + 30 ]s
+		# 	touch ${projdir}/queue_move_${samples_list%.txt}
+		# 	queue_move=$(ls ${projdir}/queue_move_samples_list_node_* | wc -l)
+		# done
 		cp -rn ${projdir}/refgenomes/* /tmp/${samples_list%.txt}/refgenomes/ &&
 		cp -rn ${projdir}/preprocess/combined_all_sample_reads_redun.sam.gz /tmp/${samples_list%.txt}/preprocess/ 2> /dev/null &&
 		cp -rn merged_index.txt.gz /tmp/${samples_list%.txt}/samples/ 2> /dev/null &&
@@ -768,7 +768,7 @@ main () {
 			done
 			wait
 		fi
-		rm ${projdir}/queue_move_${samples_list%.txt}
+		# rm ${projdir}/queue_move_${samples_list%.txt}
 	fi
 
 
