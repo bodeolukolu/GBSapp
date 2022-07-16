@@ -653,14 +653,14 @@ main () {
 
 			export nempty=$( ls ${projdir}/samples/${i%.f*}_uniq_R2.fasta.gz 2> /dev/null | wc -l | awk '{print $1}' )
 			if [[ "$nempty" -gt 0 ]]; then
-				sample100=1
+				sample200=1
 				for samplechunk in $(ls -S *_uniq_R1.fasta.gz | awk '{ORS=NR%100?",":"\n"}1'); do
 					cat $(echo $samplechunk | awk '{gsub(/,/," ");}1') | zcat | awk '{print $2}' | awk '{!seen[$0]++}END{for (i in seen) print seen[i], i}' | \
 					awk -v mhf=$(( $( echo $samplechunk | awk '{gsub(/,/,"\n");}1' | wc -l ) / 100 )) '$1>mhf{print $(NF)}' | \
-					awk -v chk=$sample100 '{print $1"\t@merged_R1_seq"NR"_chunk"chk"\t"$1"\t"$1}' | $gzip > combined_all_sample_reads_R1_hold_chunk${sample100}.fq.gz
-					awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$4); print}'  combined_all_sample_reads_R1_hold_chunk${sample100}.fq.gz | \
-					awk '{print $2"\n"$3"\n+\n"$4}' | $gzip > combined_all_sample_reads_R1_chunk${sample100}.fq.gz
-					sample100=$((sample100 + 1))
+					awk -v chk=$sample200 '{print $1"\t@merged_R1_seq"NR"_chunk"chk"\t"$1"\t"$1}' | $gzip > combined_all_sample_reads_R1_hold_chunk${sample200}.fq.gz
+					awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$4); print}'  <(zcat combined_all_sample_reads_R1_hold_chunk${sample200}.fq.gz) | \
+					awk '{print $2"\n"$3"\n+\n"$4}' | $gzip > combined_all_sample_reads_R1_chunk${sample200}.fq.gz
+					sample200=$((sample200 + 1))
 				done
 				wait
 				for mergechunk in combined_all_sample_reads_R1_hold_chunk*; do
@@ -668,14 +668,14 @@ main () {
 				done
 				wait
 
-				sample100=1
-				for samplechunk in $(ls -S *_uniq_R2.fasta.gz | awk '{ORS=NR%100?",":"\n"}1'); do
+				sample200=1
+				for samplechunk in $(ls *_uniq_R2.fasta.gz | shuf | awk '{ORS=NR%200?",":"\n"}1'); do
 					cat $(echo $samplechunk | awk '{gsub(/,/," ");}1') | zcat | awk '{print $2}' | awk '{!seen[$0]++}END{for (i in seen) print seen[i], i}' | \
 					awk -v mhf=$(( $( echo $samplechunk | awk '{gsub(/,/,"\n");}1' | wc -l ) / 100 )) '$1>mhf{print $(NF)}' | \
-					awk -v chk=$sample100 '{print $1"\t@merged_R2_seq"NR"_chunk"chk"\t"$1"\t"$1}' | $gzip > combined_all_sample_reads_R2_hold_chunk${sample100}.fq.gz
-					awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$4); print}'  combined_all_sample_reads_R2_hold_chunk${sample100}.fq.gz | \
-					awk '{print $2"\n"$3"\n+\n"$4}' | $gzip > combined_all_sample_reads_R2_chunk${sample100}.fq.gz
-					sample100=$((sample100 + 1))
+					awk -v chk=$sample200 '{print $1"\t@merged_R2_seq"NR"_chunk"chk"\t"$1"\t"$1}' | $gzip > combined_all_sample_reads_R2_hold_chunk${sample200}.fq.gz
+					awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$4); print}'  combined_all_sample_reads_R2_hold_chunk${sample200}.fq.gz | \
+					awk '{print $2"\n"$3"\n+\n"$4}' | $gzip > combined_all_sample_reads_R2_chunk${sample200}.fq.gz
+					sample200=$((sample200 + 1))
 				done
 				wait
 				for mergechunk in combined_all_sample_reads_R2_hold_chunk*; do
@@ -688,14 +688,14 @@ main () {
 				# awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$4); print}'  <(zcat combined_all_sample_reads_singleton_hold2.fq.gz) | awk '{print $2"\n"$3"\n+\n"$4}' | $gzip > combined_all_sample_reads_singleton.fq.gz
 				# rm combined_all_sample_reads_singleton_hold*.fq.gz
 			else
-				sample100=1
+				sample200=1
 				for samplechunk in $(ls -S *_uniq_R1.fasta.gz | awk '{ORS=NR%100?",":"\n"}1'); do
 					cat $(echo $samplechunk | awk '{gsub(/,/," ");}1') | zcat | awk '{print $2}' | awk '{!seen[$0]++}END{for (i in seen) print seen[i], i}' | \
 					awk -v mhf=$(( $( echo $samplechunk | awk '{gsub(/,/,"\n");}1' | wc -l ) / 100 )) '$1>mhf{print $(NF)}' | \
-					awk -v chk=$sample100 '{print $1"\t@merged_R1_seq"NR"_chunk"chk"\t"$1"\t"$1}' | $gzip > combined_all_sample_reads_R1_hold_chunk${sample100}.fq.gz
-					awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$4); print}'  combined_all_sample_reads_R1_hold_chunk${sample100}.fq.gz | \
-					awk '{print $2"\n"$3"\n+\n"$4}' | $gzip > combined_all_sample_reads_R1_chunk${sample100}.fq.gz
-					sample100=$((sample100 + 1))
+					awk -v chk=$sample200 '{print $1"\t@merged_R1_seq"NR"_chunk"chk"\t"$1"\t"$1}' | $gzip > combined_all_sample_reads_R1_hold_chunk${sample200}.fq.gz
+					awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$4); print}'  <(zcat combined_all_sample_reads_R1_hold_chunk${sample200}.fq.gz) | \
+					awk '{print $2"\n"$3"\n+\n"$4}' | $gzip > combined_all_sample_reads_R1_chunk${sample200}.fq.gz
+					sample200=$((sample200 + 1))
 				done
 				wait
 				for mergechunk in combined_all_sample_reads_R1_hold_chunk*; do
@@ -720,8 +720,8 @@ main () {
 				done
 				for nn in $(seq 1 "$nodes"); do
 					start_split=$(($start_split + 1))
-					combined_all_sample_reads_R1_chunk${snode}.fq.gz ./alignsplit_node${nn}/ 2> /dev/null
-					mv combined_all_sample_reads_R2_chunk${snode}.fq.gz ./alignsplit_node${nn}/ 2> /dev/null
+					mv combined_all_sample_reads_R1_chunk${start_split}.fq.gz ./alignsplit_node${nn}/ 2> /dev/null
+					mv combined_all_sample_reads_R2_chunk${start_split}.fq.gz ./alignsplit_node${nn}/ 2> /dev/null
 				done
 			fi
 		fi
@@ -751,8 +751,12 @@ main () {
 		cp -rn ${projdir}/preprocess/combined_all_sample_reads_redun.sam.gz /tmp/${samples_list%.txt}/preprocess/ 2> /dev/null &&
 		cp -rn merged_index.txt.gz /tmp/${samples_list%.txt}/samples/ 2> /dev/null &&
 		nn=${samples_list%.txt}; nn=${nn#samples_list_node_}
-		mv "${projdir}"/samples/alignsplit_node"${nn}"/* /tmp/"${samples_list%.txt}"/samples/
-		rmdir ${projdir}/samples/alignsplit_node"${nn}"
+		if [[ -z $(ls "${projdir}"/samples/alignsplit_node"${nn}"/* 2> /dev/null) ]]; then
+			:
+			else
+				mv "${projdir}"/samples/alignsplit_node"${nn}"/* /tmp/"${samples_list%.txt}"/samples/
+		fi
+		rmdir ${projdir}/samples/alignsplit_node"${nn}" 2> /dev/null
 		if [[ "$lib_type" == "RRS" ]]; then
 			for i in $(cat ${projdir}/${samples_list} ); do
 				cp -rn ${i%.f*}_uniq_R*.fasta.gz /tmp/${samples_list%.txt}/samples/ 2> /dev/null &&
@@ -779,7 +783,7 @@ main () {
 			done
 		fi
 	fi
-	if [[ "$nodes" -gt 1 ]]; then
+	if [[ "$nodes" -gt 1 ]] && [[ "$(ls /tmp/${samples_list%.txt}/samples/combined_all_sample_reads_R*_chunk*.fq.gz | wc -l)" -ge 1 ]]; then
 		if [[ "$lib_type" =~ "RRS" || "$lib_type" =~ "rrs" ]] && test ! -f ${projdir}/precall_done.txt && test ! -f ${projdir}/compress_done.txt && test ! -f ${projdir}/alignment_done_${samples_list}; then
 			for alignfq in /tmp/${samples_list%.txt}/samples/combined_all_sample_reads_R*_chunk*.fq.gz; do
 				if test ! -f ../preprocess/${alignfq%.fq.gz}.sam; then
