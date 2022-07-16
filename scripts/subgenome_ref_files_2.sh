@@ -744,19 +744,16 @@ main () {
 			rm -rf /tmp/${samples_list%.txt} 2> /dev/null
 		fi
 		mkdir -p /tmp/${samples_list%.txt}/refgenomes /tmp/${samples_list%.txt}/samples /tmp/${samples_list%.txt}/preprocess /tmp/${samples_list%.txt}/snpcall
-		# touch ${projdir}/queue_move_${samples_list%.txt}
-		# queue_move=$(ls ${projdir}/queue_move_samples_list_node_* | wc -l)
-		# while [[ "$queue_move" -gt 1 ]]; do
-		# 	rm ${projdir}/queue_move_${samples_list%.txt}; sleep $[ ( $RANDOM % 120 )  + 30 ]s
-		# 	touch ${projdir}/queue_move_${samples_list%.txt}
-		# 	queue_move=$(ls ${projdir}/queue_move_samples_list_node_* | wc -l)
-		# done
+		touch ${projdir}/queue_move_${samples_list%.txt}
+		queue_move=$(ls ${projdir}/queue_move_samples_list_node_* | wc -l)
+		while [[ "$queue_move" -gt 1 ]]; do
+			rm ${projdir}/queue_move_${samples_list%.txt}; sleep $[ ( $RANDOM % 120 )  + 30 ]s
+			touch ${projdir}/queue_move_${samples_list%.txt}
+			queue_move=$(ls ${projdir}/queue_move_samples_list_node_* | wc -l)
+		done
 		cp -rn ${projdir}/refgenomes/* /tmp/${samples_list%.txt}/refgenomes/ &&
 		cp -rn ${projdir}/preprocess/combined_all_sample_reads_redun.sam.gz /tmp/${samples_list%.txt}/preprocess/ 2> /dev/null &&
 		cp -rn merged_index.txt.gz /tmp/${samples_list%.txt}/samples/ 2> /dev/null &&
-		nn=${samples_list%.txt}; nn=${nn#samples_list_node_}
-		mv ./alignsplit_node"${nn}"/* /tmp/"${samples_list%.txt}"/samples/ 2> /dev/null
-		wait
 		rmdir ${projdir}/samples/alignsplit_node"${nn}" 2> /dev/null
 		if [[ "$lib_type" == "RRS" ]]; then
 			for i in $(cat ${projdir}/${samples_list} ); do
@@ -786,7 +783,8 @@ main () {
 	fi
 	if [[ "$nodes" -gt 1 ]] && [[ "$(ls /tmp/${samples_list%.txt}/samples/combined_all_sample_reads_R*_chunk*.fq.gz | wc -l)" -ge 1 ]]; then
 		if [[ "$lib_type" =~ "RRS" || "$lib_type" =~ "rrs" ]] && test ! -f ${projdir}/precall_done.txt && test ! -f ${projdir}/alignment_done; then
-			for alignfq in /tmp/${samples_list%.txt}/samples/combined_all_sample_reads_R*_chunk*.fq.gz; do
+			nn=${samples_list%.txt}; nn=${nn#samples_list_node_}
+			for alignfq in ${projdir}/samples/alignsplit_node"${nn}"/*; do
 				if test ! -f ../preprocess/${alignfq%.fq.gz}.sam; then
 					$ngm -r /tmp/${samples_list%.txt}/refgenomes/panref.fasta --qry /tmp/${samples_list%.txt}/samples/${alignfq} -o ../preprocess/${alignfq%.fq.gz}.sam -t $threads --min-identity 0 --topn 12 --strata 12 &&
 					$java $Xmx2 -XX:ParallelGCThreads=$threads -jar $picard SortSam I=../preprocess/${alignfq%.fq.gz}.sam O=../preprocess/${alignfq%.fq.gz}.bam  SORT_ORDER=coordinate  VALIDATION_STRINGENCY=LENIENT &&
