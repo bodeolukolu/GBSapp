@@ -654,7 +654,7 @@ main () {
 			export nempty=$( ls ${projdir}/samples/${i%.f*}_uniq_R2.fasta.gz 2> /dev/null | wc -l | awk '{print $1}' )
 			if [[ "$nempty" -gt 0 ]]; then
 				sample200=1
-				for samplechunk in $(ls -S *_uniq_R1.fasta.gz | awk '{ORS=NR%100?",":"\n"}1'); do
+				for samplechunk in $(ls *_uniq_R1.fasta.gz | shuf | awk '{ORS=NR%200?",":"\n"}1'); do
 					cat $(echo $samplechunk | awk '{gsub(/,/," ");}1') | zcat | awk '{print $2}' | awk '{!seen[$0]++}END{for (i in seen) print seen[i], i}' | \
 					awk -v mhf=$(( $( echo $samplechunk | awk '{gsub(/,/,"\n");}1' | wc -l ) / 100 )) '$1>mhf{print $(NF)}' | \
 					awk -v chk=$sample200 '{print $1"\t@merged_R1_seq"NR"_chunk"chk"\t"$1"\t"$1}' | $gzip > combined_all_sample_reads_R1_hold_chunk${sample200}.fq.gz
@@ -689,7 +689,7 @@ main () {
 				# rm combined_all_sample_reads_singleton_hold*.fq.gz
 			else
 				sample200=1
-				for samplechunk in $(ls -S *_uniq_R1.fasta.gz | awk '{ORS=NR%100?",":"\n"}1'); do
+				for samplechunk in $(ls *_uniq_R1.fasta.gz | shuf | awk '{ORS=NR%200?",":"\n"}1'); do
 					cat $(echo $samplechunk | awk '{gsub(/,/," ");}1') | zcat | awk '{print $2}' | awk '{!seen[$0]++}END{for (i in seen) print seen[i], i}' | \
 					awk -v mhf=$(( $( echo $samplechunk | awk '{gsub(/,/,"\n");}1' | wc -l ) / 100 )) '$1>mhf{print $(NF)}' | \
 					awk -v chk=$sample200 '{print $1"\t@merged_R1_seq"NR"_chunk"chk"\t"$1"\t"$1}' | $gzip > combined_all_sample_reads_R1_hold_chunk${sample200}.fq.gz
@@ -718,7 +718,8 @@ main () {
 					done
 					start_split=$end_split
 				done
-				for nn in $(seq 1 "$nodes"); do
+				nodes_rem=$((nodes - 1))
+				for nn in $(seq 1 "$nodes_rem"); do
 					start_split=$(($start_split + 1))
 					mv combined_all_sample_reads_R1_chunk${start_split}.fq.gz ./alignsplit_node${nn}/ 2> /dev/null
 					mv combined_all_sample_reads_R2_chunk${start_split}.fq.gz ./alignsplit_node${nn}/ 2> /dev/null
@@ -751,9 +752,7 @@ main () {
 		cp -rn ${projdir}/preprocess/combined_all_sample_reads_redun.sam.gz /tmp/${samples_list%.txt}/preprocess/ 2> /dev/null &&
 		cp -rn merged_index.txt.gz /tmp/${samples_list%.txt}/samples/ 2> /dev/null &&
 		nn=${samples_list%.txt}; nn=${nn#samples_list_node_}
-		if [[ -z $(ls "${projdir}"/samples/alignsplit_node"${nn}"/* 2> /dev/null) ]]; then
-			:
-			else
+		if [[ $(ls "${projdir}"/samples/alignsplit_node"${nn}"/* 2> /dev/null | wc -l) -ge 1 ]]; then
 				mv "${projdir}"/samples/alignsplit_node"${nn}"/* /tmp/"${samples_list%.txt}"/samples/
 		fi
 		rmdir ${projdir}/samples/alignsplit_node"${nn}" 2> /dev/null
@@ -827,9 +826,11 @@ main () {
 	wait
 
 	cd ${projdir}/preprocess
-	$samtools view -H combined_all_sample_reads_R1_chunk1.bam > combined_all_sample_reads_redun.sam
-	find ./ -name \*.bam -exec $samtools view {} \; >> combined_all_sample_reads_redun.sam
-	$gzip combined_all_sample_reads_redun.sam
+	if [[ "$samples_list" != "samples_list_node_1.txt" ]]; then
+		$samtools view -H combined_all_sample_reads_R1_chunk1.bam > combined_all_sample_reads_redun.sam
+		find ./ -name \*.bam -exec $samtools view {} \; >> combined_all_sample_reads_redun.sam
+		$gzip combined_all_sample_reads_redun.sam
+	fi
 
 	wait && touch ${projdir}/alignment_done_${samples_list}
 
