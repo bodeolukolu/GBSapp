@@ -687,6 +687,8 @@ main () {
 				# awk '{print $1"\t"$2}' <(zcat combined_all_sample_reads_singleton_hold2.fq.gz) | awk '{gsub(/@/,"");}1' | $gzip >> merged_index.txt.gz
 				# awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$4); print}'  <(zcat combined_all_sample_reads_singleton_hold2.fq.gz) | awk '{print $2"\n"$3"\n+\n"$4}' | $gzip > combined_all_sample_reads_singleton.fq.gz
 				# rm combined_all_sample_reads_singleton_hold*.fq.gz
+				wait
+				rm combined_all_sample_reads_R*_hold*.fq.gz
 			else
 				sample200=1
 				for samplechunk in $(ls *_uniq_R1.fasta.gz | shuf | awk '{ORS=NR%200?",":"\n"}1'); do
