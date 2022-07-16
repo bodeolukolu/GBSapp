@@ -123,6 +123,8 @@ echo -e "${yellow}\t- Contact:	Bode Olukolu <bolukolu@utk.edu> ${white}"
 echo -e "${white}\n##################################################################################\n"
 
 
+cat config.sh | grep -v '^samples_list=' > config_temp.sh
+mv config_temp.sh config.sh
 tr -d '\15\32' < config.sh > temp; mv temp config.sh
 d=($(find . -maxdepth 1 -type d | wc -l))
 if [[ $d -le 3 && -d refgenomes ]]; then
