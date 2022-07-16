@@ -757,8 +757,8 @@ main () {
 		cp -rn ${projdir}/preprocess/combined_all_sample_reads_redun.sam.gz /tmp/${samples_list%.txt}/preprocess/ 2> /dev/null &&
 		cp -rn merged_index.txt.gz /tmp/${samples_list%.txt}/samples/ 2> /dev/null &&
 		nn=${samples_list%.txt}; nn=${nn#samples_list_node_}
-		if [[ $(ls "${projdir}"/samples/alignsplit_node"${nn}"/* 2> /dev/null | wc -l) -ge 1 ]]; then
-				mv "${projdir}"/samples/alignsplit_node"${nn}"/* /tmp/"${samples_list%.txt}"/samples/
+		if [[ "$(ls ./alignsplit_node"${nn}"/* 2> /dev/null | wc -l)" -ge 1 ]]; then
+				mv ./alignsplit_node"${nn}"/* /tmp/"${samples_list%.txt}"/samples/
 		fi
 		rmdir ${projdir}/samples/alignsplit_node"${nn}" 2> /dev/null
 		if [[ "$lib_type" == "RRS" ]]; then
@@ -776,7 +776,7 @@ main () {
 
 	cd ${projdir}/samples
 	if [[ "$nodes" -eq 1 ]]; then
-		if [[ "$lib_type" =~ "RRS" || "$lib_type" =~ "rrs" ]] && test ! -f ${projdir}/precall_done.txt && test ! -f ${projdir}/compress_done.txt && test ! -f ${projdir}/alignment_done_${samples_list}; then
+		if [[ "$lib_type" =~ "RRS" || "$lib_type" =~ "rrs" ]] && test ! -f ${projdir}/precall_done.txt && test ! -f ${projdir}/compress_done.txt && test ! -f ${projdir}/alignment_done; then
 			for alignfq in combined_all_sample_reads_R*_chunk*.fq.gz; do
 				if test ! -f ../preprocess/${alignfq%.fq.gz}.sam; then
 					$ngm -r ../refgenomes/panref.fasta --qry ../samples/${alignfq} -o ../preprocess/${alignfq%.fq.gz}.sam -t $threads --min-identity 0 --topn 12 --strata 12 &&
@@ -789,7 +789,7 @@ main () {
 		fi
 	fi
 	if [[ "$nodes" -gt 1 ]] && [[ "$(ls /tmp/${samples_list%.txt}/samples/combined_all_sample_reads_R*_chunk*.fq.gz | wc -l)" -ge 1 ]]; then
-		if [[ "$lib_type" =~ "RRS" || "$lib_type" =~ "rrs" ]] && test ! -f ${projdir}/precall_done.txt && test ! -f ${projdir}/compress_done.txt && test ! -f ${projdir}/alignment_done_${samples_list}; then
+		if [[ "$lib_type" =~ "RRS" || "$lib_type" =~ "rrs" ]] && test ! -f ${projdir}/precall_done.txt && test ! -f ${projdir}/compress_done.txt && test ! -f ${projdir}/alignment_done; then
 			for alignfq in /tmp/${samples_list%.txt}/samples/combined_all_sample_reads_R*_chunk*.fq.gz; do
 				if test ! -f ../preprocess/${alignfq%.fq.gz}.sam; then
 					$ngm -r /tmp/${samples_list%.txt}/refgenomes/panref.fasta --qry /tmp/${samples_list%.txt}/samples/${alignfq} -o ../preprocess/${alignfq%.fq.gz}.sam -t $threads --min-identity 0 --topn 12 --strata 12 &&
@@ -806,7 +806,7 @@ main () {
 	for i in $(cat ${projdir}/${samples_list} ); do
 		if [[ $nodes -eq 1 ]]; then cd ${projdir}/samples/ ; fi
 		if [[ $nodes -gt 1 ]] && test -f ${projdir}/GBSapp_run_node_1.sh; then cd /tmp/${samples_list%.txt}/samples/ ; fi
-		if [[ "$lib_type" == "WGS" ]] && test ${projdir}/compress_done.txt  && test ! -f ${projdir}/precall_done.txt && test ! -f ${projdir}/alignment_done_${samples_list}; then
+		if [[ "$lib_type" == "WGS" ]] && test ${projdir}/compress_done.txt  && test ! -f ${projdir}/precall_done.txt && test ! -f ${projdir}/alignment_done; then
 			export nempty=$( ls ${i%.f*}_R2.f*.gz 2> /dev/null | wc -l | awk '{print $1}' )
 			if test ! -f ../preprocess/${i%.f*}_redun.sam.gz; then
 				if [[ "$nempty" -gt 0 ]]; then
@@ -832,14 +832,28 @@ main () {
 	done
 	wait
 
+
+	touch ${projdir}/alignment_done_${samples_list}
+
 	cd ${projdir}/preprocess
-	if [[ "$samples_list" != "samples_list_node_1.txt" ]]; then
+	if [[ "$samples_list" == "samples_list_node_1.txt" ]]; then
+		while [[ "$(ls ${projdir}/alignment_done_samples_list_node_* | wc -l)" -lt "$nodes" ]]; do
+			sleep 300
+		done
 		$samtools view -H combined_all_sample_reads_R1_chunk1.bam > combined_all_sample_reads_redun.sam
 		find ./ -name \*.bam -exec $samtools view {} \; >> combined_all_sample_reads_redun.sam
 		$gzip combined_all_sample_reads_redun.sam
+		wait
+		touch ${projdir}/alignment_done
 	fi
 
-	wait && touch ${projdir}/alignment_done_${samples_list}
+
+	while [[ ! -f ${projdir}/alignment_done ]]; do
+		sleep 300
+	done
+	if test -f combined_all_sample_reads_redun.sam.gz; then
+		rm ${projdir}/alignment_done_samples_list_node_*
+	fi
 
 
 	if [[ "$samples_list" == "samples_list_node_1.txt" ]]; then
