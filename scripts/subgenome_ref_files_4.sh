@@ -652,7 +652,7 @@ main () {
 	if [[ "$samples_list" == "samples_list_node_1.txt" ]]; then
 		if [[ "$lib_type" =~ "RRS" || "$lib_type" =~ "rrs" ]] && test -f ${projdir}/organize_files_done.txt && test ! -f ${projdir}/compress_done.txt && test ! -f "${projdir}/preprocess/${i%.f*}_redun.sam.gz" && test ! -f "${projdir}/preprocess/${i%.f*}_${ref1%.f*}_precall.bam.bai"; then
 
-			export nempty=$( ls ${projdir}/samples/${i%.f*}_uniq_R2.fasta.gz 2> /dev/null | wc -l | awk '{print $1}' )
+			export nempty=$( ls ${projdir}/samples/*_uniq_R2.fasta.gz 2> /dev/null | wc -l | awk '{print $1}' )
 			if [[ "$nempty" -gt 0 ]]; then
 				sample200=1
 				for samplechunk in $(ls *_uniq_R1.fasta.gz | shuf | awk '{ORS=NR%200?",":"\n"}1'); do
@@ -756,9 +756,8 @@ main () {
 		cp -rn ${projdir}/preprocess/combined_all_sample_reads_redun.sam.gz /tmp/${samples_list%.txt}/preprocess/ 2> /dev/null &&
 		cp -rn merged_index.txt.gz /tmp/${samples_list%.txt}/samples/ 2> /dev/null &&
 		nn=${samples_list%.txt}; nn=${nn#samples_list_node_}
-		if [[ "$(ls ./alignsplit_node"${nn}"/* 2> /dev/null | wc -l)" -ge 1 ]]; then
-				mv ./alignsplit_node"${nn}"/* /tmp/"${samples_list%.txt}"/samples/
-		fi
+		mv ./alignsplit_node"${nn}"/* /tmp/"${samples_list%.txt}"/samples/ 2> /dev/null
+		wait
 		rmdir ${projdir}/samples/alignsplit_node"${nn}" 2> /dev/null
 		if [[ "$lib_type" == "RRS" ]]; then
 			for i in $(cat ${projdir}/${samples_list} ); do
@@ -775,7 +774,7 @@ main () {
 
 	cd ${projdir}/samples
 	if [[ "$nodes" -eq 1 ]]; then
-		if [[ "$lib_type" =~ "RRS" || "$lib_type" =~ "rrs" ]] && test ! -f ${projdir}/precall_done.txt && test ! -f ${projdir}/compress_done.txt && test ! -f ${projdir}/alignment_done; then
+		if [[ "$lib_type" =~ "RRS" || "$lib_type" =~ "rrs" ]] && test ! -f ${projdir}/precall_done.txt && test ! -f ${projdir}/alignment_done; then
 			for alignfq in combined_all_sample_reads_R*_chunk*.fq.gz; do
 				if test ! -f ../preprocess/${alignfq%.fq.gz}.sam; then
 					$ngm -r ../refgenomes/panref.fasta --qry ../samples/${alignfq} -o ../preprocess/${alignfq%.fq.gz}.sam -t $threads --min-identity 0 --topn 12 --strata 12 &&
@@ -787,7 +786,7 @@ main () {
 		fi
 	fi
 	if [[ "$nodes" -gt 1 ]] && [[ "$(ls /tmp/${samples_list%.txt}/samples/combined_all_sample_reads_R*_chunk*.fq.gz | wc -l)" -ge 1 ]]; then
-		if [[ "$lib_type" =~ "RRS" || "$lib_type" =~ "rrs" ]] && test ! -f ${projdir}/precall_done.txt && test ! -f ${projdir}/compress_done.txt && test ! -f ${projdir}/alignment_done; then
+		if [[ "$lib_type" =~ "RRS" || "$lib_type" =~ "rrs" ]] && test ! -f ${projdir}/precall_done.txt && test ! -f ${projdir}/alignment_done; then
 			for alignfq in /tmp/${samples_list%.txt}/samples/combined_all_sample_reads_R*_chunk*.fq.gz; do
 				if test ! -f ../preprocess/${alignfq%.fq.gz}.sam; then
 					$ngm -r /tmp/${samples_list%.txt}/refgenomes/panref.fasta --qry /tmp/${samples_list%.txt}/samples/${alignfq} -o ../preprocess/${alignfq%.fq.gz}.sam -t $threads --min-identity 0 --topn 12 --strata 12 &&
@@ -802,7 +801,7 @@ main () {
 	for i in $(cat ${projdir}/${samples_list} ); do
 		if [[ $nodes -eq 1 ]]; then cd ${projdir}/samples/ ; fi
 		if [[ $nodes -gt 1 ]] && test -f ${projdir}/GBSapp_run_node_1.sh; then cd /tmp/${samples_list%.txt}/samples/ ; fi
-		if [[ "$lib_type" == "WGS" ]] && test ${projdir}/compress_done.txt  && test ! -f ${projdir}/precall_done.txt && test ! -f ${projdir}/alignment_done; then
+		if [[ "$lib_type" == "WGS" ]] && test ! -f ${projdir}/precall_done.txt && test ! -f ${projdir}/alignment_done; then
 			export nempty=$( ls ${i%.f*}_R2.f*.gz 2> /dev/null | wc -l | awk '{print $1}' )
 			if test ! -f ../preprocess/${i%.f*}_redun.sam.gz; then
 				if [[ "$nempty" -gt 0 ]]; then
