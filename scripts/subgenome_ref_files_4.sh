@@ -773,7 +773,7 @@ main () {
 	if [[ "$nodes" -eq 1 ]]; then
 		if [[ "$lib_type" =~ "RRS" || "$lib_type" =~ "rrs" ]] && test ! -f ${projdir}/precall_done.txt && test ! -f ${projdir}/alignment_done; then
 			for alignfq in combined_all_sample_reads_R*_chunk*.fq.gz; do
-				if test ! -f ../preprocess/${alignfq%.fq.gz}.sam; then
+				if test ! -f ../preprocess/combined_all_sample_reads_redun.sam.gz; then
 					$ngm -r ../refgenomes/panref.fasta --qry ../samples/${alignfq} -o ../preprocess/${alignfq%.fq.gz}.sam -t $threads --min-identity 0 --topn 12 --strata 12 &&
 					$java $Xmx2 -XX:ParallelGCThreads=$threads -jar $picard SortSam I=../preprocess/${alignfq%.fq.gz}.sam O=../preprocess/${alignfq%.fq.gz}.bam  SORT_ORDER=coordinate  VALIDATION_STRINGENCY=LENIENT &&
 					rm ${alignfq} 2> /dev/null
@@ -786,7 +786,7 @@ main () {
 	if [[ "$nodes" -gt 1 ]] && [[ "$(ls ${projdir}/samples/alignsplit_node"${nn}"/combined_all_sample_reads_R*_chunk*.fq.gz | wc -l)" -ge 1 ]]; then
 		if [[ "$lib_type" =~ "RRS" || "$lib_type" =~ "rrs" ]] && test ! -f ${projdir}/precall_done.txt && test ! -f ${projdir}/alignment_done; then
 			for alignfq in ${projdir}/samples/alignsplit_node"${nn}"/*; do
-				if test ! -f ../preprocess/${alignfq%.fq.gz}.sam; then
+				if test ! -f ../preprocess/combined_all_sample_reads_redun.sam.gz; then
 					$ngm -r /tmp/${samples_list%.txt}/refgenomes/panref.fasta --qry /tmp/${samples_list%.txt}/samples/${alignfq} -o ../preprocess/${alignfq%.fq.gz}.sam -t $threads --min-identity 0 --topn 12 --strata 12 &&
 					$java $Xmx2 -XX:ParallelGCThreads=$threads -jar $picard SortSam I=../preprocess/${alignfq%.fq.gz}.sam O=../preprocess/${alignfq%.fq.gz}.bam  SORT_ORDER=coordinate  VALIDATION_STRINGENCY=LENIENT &&
 					rm /tmp/${samples_list%.txt}/samples/${alignfq} 2> /dev/null
