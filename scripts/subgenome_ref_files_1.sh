@@ -780,7 +780,7 @@ main () {
 		fi
 	fi
 	nn=${samples_list%.txt}; nn=${nn#samples_list_node_}
-	if [[ "$nodes" -gt 1 ]] && [[ "$(ls ${projdir}/samples/alignsplit_node"${nn}"/combined_all_sample_reads_R*_chunk*.fq.gz | wc -l)" -ge 1 ]]; then
+	if [[ "$nodes" -gt 1 ]] && [[ "$(ls ${projdir}/samples/alignsplit_node"${nn}"/combined_all_sample_reads_R*_chunk*.fq.gz 2> /dev/null | wc -l)" -ge 1 ]]; then
 		if [[ "$lib_type" =~ "RRS" || "$lib_type" =~ "rrs" ]] && test ! -f ${projdir}/precall_done.txt && test ! -f ${projdir}/alignment_done; then
 			cd ${projdir}/samples/alignsplit_node"${nn}"
 			for alignfq in *; do
