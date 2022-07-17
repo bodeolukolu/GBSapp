@@ -793,7 +793,7 @@ main () {
 					wait
 				fi
 			done
-			rm -rf ${projdir}/samples/alignsplit_node"${nn}"
+			rmdir ${projdir}/samples/alignsplit_node"${nn}"
 		fi
 	fi
 
@@ -831,7 +831,7 @@ main () {
 	touch ${projdir}/alignment_done_${samples_list}
 
 	cd ${projdir}/preprocess
-	if [[ "$samples_list" == "samples_list_node_1.txt" ]]; then
+	if [[ "$samples_list" == "samples_list_node_1.txt" ]] && test ! -f ${projdir}/alignment_done; then
 		while [[ "$(ls ${projdir}/alignment_done_samples_list_node_* | wc -l)" -lt "$nodes" ]]; do
 			sleep 300
 		done
@@ -847,7 +847,8 @@ main () {
 		sleep 300
 	done
 	if test -f combined_all_sample_reads_redun.sam.gz; then
-		rm ${projdir}/alignment_done_samples_list_node_*
+		rm combined_all_sample_reads_R*_chunk* 2> /dev/null
+		rm ${projdir}/alignment_done_samples_list_node_* 2> /dev/null
 	fi
 
 
@@ -856,6 +857,9 @@ main () {
 		zcat ../preprocess/combined_all_sample_reads_redun.sam.gz | $samtools flagstat - > ${projdir}/alignment_summaries/Alignment_merged_summary.txt
 	fi
 
+	cp -rn ${projdir}/samples/merged_index.txt.gz /tmp/${samples_list%.txt}/samples/ &&
+	cp -rn ${projdir}/preprocess/combined_all_sample_reads_redun.sam.gz /tmp/${samples_list%.txt}/preprocess/
+	wait
 	if [[ $nodes -eq 1 ]]; then cd ${projdir}/preprocess/; fi
 	if [[ $nodes -gt 1 ]] && test -f ${projdir}/GBSapp_run_node_1.sh; then cd /tmp/${samples_list%.txt}/preprocess/; fi
 
