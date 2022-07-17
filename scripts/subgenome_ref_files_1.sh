@@ -779,9 +779,9 @@ main () {
 			done
 		fi
 	fi
-	if [[ "$nodes" -gt 1 ]] && [[ "$(ls ${projdir}/samples/combined_all_sample_reads_R*_chunk*.fq.gz | wc -l)" -ge 1 ]]; then
+	nn=${samples_list%.txt}; nn=${nn#samples_list_node_}
+	if [[ "$nodes" -gt 1 ]] && [[ "$(ls ${projdir}/samples/alignsplit_node"${nn}"/combined_all_sample_reads_R*_chunk*.fq.gz | wc -l)" -ge 1 ]]; then
 		if [[ "$lib_type" =~ "RRS" || "$lib_type" =~ "rrs" ]] && test ! -f ${projdir}/precall_done.txt && test ! -f ${projdir}/alignment_done; then
-			nn=${samples_list%.txt}; nn=${nn#samples_list_node_}
 			for alignfq in ${projdir}/samples/alignsplit_node"${nn}"/*; do
 				if test ! -f ../preprocess/${alignfq%.fq.gz}.sam; then
 					$ngm -r /tmp/${samples_list%.txt}/refgenomes/$ref1 --qry /tmp/${samples_list%.txt}/samples/${alignfq} -o ../preprocess/${alignfq%.fq.gz}.sam -t $threads --min-identity 0 --topn 12 --strata 12 &&
