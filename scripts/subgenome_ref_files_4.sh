@@ -765,7 +765,7 @@ main () {
 			done
 			wait
 		fi
-		# rm ${projdir}/queue_move_${samples_list%.txt}
+		rm ${projdir}/queue_move_${samples_list%.txt}
 	fi
 
 
