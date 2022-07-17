@@ -26,6 +26,9 @@ fi
 if [ -z "$p2" ]; then
 	export p2=$p1
 fi
+if [ -z "$joint_alignment" ]; then
+	export joint_alignment=200
+fi
 if [ -z "$softclip" ]; then
 	export softclip=false
 fi
@@ -653,14 +656,14 @@ main () {
 
 			export nempty=$( ls ${projdir}/samples/*_uniq_R2.fasta.gz 2> /dev/null | wc -l | awk '{print $1}' )
 			if [[ "$nempty" -gt 0 ]]; then
-				sample200=1
-				for samplechunk in $(ls *_uniq_R1.fasta.gz | shuf | awk '{ORS=NR%200?",":"\n"}1'); do
+				jalign=1
+				for samplechunk in $(ls *_uniq_R1.fasta.gz | shuf | awk -v jal=$joint_alignment '{ORS=NR%jal?",":"\n"}1'); do
 					cat $(echo $samplechunk | awk '{gsub(/,/," ");}1') | zcat | awk '{print $2}' | awk '{!seen[$0]++}END{for (i in seen) print seen[i], i}' | \
 					awk -v mhf=$(( $( echo $samplechunk | awk '{gsub(/,/,"\n");}1' | wc -l ) / 100 )) '$1>mhf{print $(NF)}' | \
-					awk -v chk=$sample200 '{print $1"\t@merged_R1_seq"NR"_chunk"chk"\t"$1"\t"$1}' | $gzip > combined_all_sample_reads_R1_hold_chunk${sample200}.fq.gz
-					awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$4); print}'  <(zcat combined_all_sample_reads_R1_hold_chunk${sample200}.fq.gz) | \
-					awk '{print $2"\n"$3"\n+\n"$4}' | $gzip > combined_all_sample_reads_R1_chunk${sample200}.fq.gz
-					sample200=$((sample200 + 1))
+					awk -v chk=$jalign '{print $1"\t@merged_R1_seq"NR"_chunk"chk"\t"$1"\t"$1}' | $gzip > combined_all_sample_reads_R1_hold_chunk${jalign}.fq.gz
+					awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$4); print}'  <(zcat combined_all_sample_reads_R1_hold_chunk${jalign}.fq.gz) | \
+					awk '{print $2"\n"$3"\n+\n"$4}' | $gzip > combined_all_sample_reads_R1_chunk${jalign}.fq.gz
+					jalign=$((jalign + 1))
 				done
 				wait
 				for mergechunk in combined_all_sample_reads_R1_hold_chunk*; do
@@ -668,14 +671,14 @@ main () {
 				done
 				wait
 
-				sample200=1
-				for samplechunk in $(ls *_uniq_R2.fasta.gz | shuf | awk '{ORS=NR%200?",":"\n"}1'); do
+				jalign=1
+				for samplechunk in $(ls *_uniq_R2.fasta.gz | shuf | awk -v jal=$joint_alignment '{ORS=NR%jal?",":"\n"}1'); do
 					cat $(echo $samplechunk | awk '{gsub(/,/," ");}1') | zcat | awk '{print $2}' | awk '{!seen[$0]++}END{for (i in seen) print seen[i], i}' | \
 					awk -v mhf=$(( $( echo $samplechunk | awk '{gsub(/,/,"\n");}1' | wc -l ) / 100 )) '$1>mhf{print $(NF)}' | \
-					awk -v chk=$sample200 '{print $1"\t@merged_R2_seq"NR"_chunk"chk"\t"$1"\t"$1}' | $gzip > combined_all_sample_reads_R2_hold_chunk${sample200}.fq.gz
-					awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$4); print}'  <(zcat combined_all_sample_reads_R2_hold_chunk${sample200}.fq.gz) | \
-					awk '{print $2"\n"$3"\n+\n"$4}' | $gzip > combined_all_sample_reads_R2_chunk${sample200}.fq.gz
-					sample200=$((sample200 + 1))
+					awk -v chk=$jalign '{print $1"\t@merged_R2_seq"NR"_chunk"chk"\t"$1"\t"$1}' | $gzip > combined_all_sample_reads_R2_hold_chunk${jalign}.fq.gz
+					awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$4); print}'  <(zcat combined_all_sample_reads_R2_hold_chunk${jalign}.fq.gz) | \
+					awk '{print $2"\n"$3"\n+\n"$4}' | $gzip > combined_all_sample_reads_R2_chunk${jalign}.fq.gz
+					jalign=$((jalign + 1))
 				done
 				wait
 				for mergechunk in combined_all_sample_reads_R2_hold_chunk*; do
@@ -690,14 +693,14 @@ main () {
 				wait
 				rm combined_all_sample_reads_R*_hold*.fq.gz
 			else
-				sample200=1
-				for samplechunk in $(ls *_uniq_R1.fasta.gz | shuf | awk '{ORS=NR%200?",":"\n"}1'); do
+				jalign=1
+				for samplechunk in $(ls *_uniq_R1.fasta.gz | shuf | awk -v jal=$joint_alignment '{ORS=NR%jal?",":"\n"}1'); do
 					cat $(echo $samplechunk | awk '{gsub(/,/," ");}1') | zcat | awk '{print $2}' | awk '{!seen[$0]++}END{for (i in seen) print seen[i], i}' | \
 					awk -v mhf=$(( $( echo $samplechunk | awk '{gsub(/,/,"\n");}1' | wc -l ) / 100 )) '$1>mhf{print $(NF)}' | \
-					awk -v chk=$sample200 '{print $1"\t@merged_R1_seq"NR"_chunk"chk"\t"$1"\t"$1}' | $gzip > combined_all_sample_reads_R1_hold_chunk${sample200}.fq.gz
-					awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$4); print}'  <(zcat combined_all_sample_reads_R1_hold_chunk${sample200}.fq.gz) | \
-					awk '{print $2"\n"$3"\n+\n"$4}' | $gzip > combined_all_sample_reads_R1_chunk${sample200}.fq.gz
-					sample200=$((sample200 + 1))
+					awk -v chk=$jalign '{print $1"\t@merged_R1_seq"NR"_chunk"chk"\t"$1"\t"$1}' | $gzip > combined_all_sample_reads_R1_hold_chunk${jalign}.fq.gz
+					awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$4); print}'  <(zcat combined_all_sample_reads_R1_hold_chunk${jalign}.fq.gz) | \
+					awk '{print $2"\n"$3"\n+\n"$4}' | $gzip > combined_all_sample_reads_R1_chunk${jalign}.fq.gz
+					jalign=$((jalign + 1))
 				done
 				wait
 				for mergechunk in combined_all_sample_reads_R1_hold_chunk*; do

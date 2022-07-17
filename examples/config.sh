@@ -32,6 +32,7 @@ maf=0.05
 
 # Advanced_parameters
 ###################################################
+joint_alignment=200
 maxHaplotype=128
 haplome_number=1
 softclip=false

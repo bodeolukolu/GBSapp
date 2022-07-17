@@ -143,6 +143,7 @@ Using a text editor, save a file containing any of the following variables as 'c
 **Advanced parameters**
 |Variable      |Default       |Usage         |Input         |required/Optional|
 |:-------------|:-------------|:-------------|:-------------|:----------------|
+|joint_alignment|200|number of samples in joint alignment|integer|Optional|
 |maxHaplotype|128|maximum number of haplotypes per haploid genome across population(increase for polyploids/high heterozygosity/high background mutational load)|integer|Optional|
 |haplome_number|1|number of haplomes resolved in reference genome assembly|integer|Optional|
 |softclip|false|do not use soft Clipped bases (recommended)|string|Optional|
@@ -190,6 +191,7 @@ maf=0.05
 
 # Advanced parameters
 ###################################################
+joint_alignment=200
 maxHaplotype=128
 haplome_number=1
 softclip=false
