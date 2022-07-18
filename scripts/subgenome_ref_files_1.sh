@@ -1013,9 +1013,9 @@ if [[ $nodes -gt 1 ]] && [[ "$samples_list" == "samples_list_node_1.txt" ]]; the
 	touch ${projdir}/call0
 fi
 
-while [[ test -f "${projdir}/call0" ]]; do sleep 30; done
+while [[ -f "${projdir}/call0" ]]; do sleep 30; done
 
-if [[ $nodes -gt 1 ]] && [[ test -f "${projdir}/call0" ]]; then
+if [[ $nodes -gt 1 ]] && [[ -f "${projdir}/call0" ]]; then
 	mkdir -p /tmp/${samples_list%.txt}/refgenomes /tmp/${samples_list%.txt}/samples /tmp/${samples_list%.txt}/preprocess /tmp/${samples_list%.txt}/snpcall
 	touch ${projdir}/queue_move_${samples_list%.txt}
 	queue_move=$(ls ${projdir}/queue_move_samples_list_node_* | wc -l)
