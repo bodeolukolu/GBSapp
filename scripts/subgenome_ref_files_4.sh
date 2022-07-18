@@ -2203,10 +2203,10 @@ main () {
     			fi
     			mv "../snpcall/${i%.f*}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.hold.g.vcf.gz" "${projdir}/snpcall/${i%.f*}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.g.vcf.gz" && \
     			mv "../snpcall/${i%.f*}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.hold.g.vcf.gz.tbi" "${projdir}/snpcall/${i%.f*}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.g.vcf.gz.tbi" &&
-    			mv ${i%.f*}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}_precall.bam* ./processed/
 					wait
     		fi
-    	fi ) &
+    	fi
+			mv ${i%.f*}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}_precall.bam* ./processed/ ) &
     	if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
     		wait
     	fi
@@ -2332,10 +2332,10 @@ main () {
     			fi
     			mv "../snpcall/${i%.f*}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}.hold.g.vcf.gz" "${projdir}/snpcall/${i%.f*}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}.g.vcf.gz" && \
     			mv "../snpcall/${i%.f*}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}.hold.g.vcf.gz.tbi" "${projdir}/snpcall/${i%.f*}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}.g.vcf.gz.tbi" &&
-    			mv ${i%.f*}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_precall.bam* ./processed/
 					wait
     		fi
-    	fi ) &
+    	fi
+			mv ${i%.f*}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_precall.bam* ./processed/ ) &
     	if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
     		wait
     	fi
@@ -2461,10 +2461,10 @@ main () {
     			fi
     			mv "../snpcall/${i%.f*}_${ref1%.f*}_${ref2%.f*}_${ref4%.f*}.hold.g.vcf.gz" "${projdir}/snpcall/${i%.f*}_${ref1%.f*}_${ref2%.f*}_${ref4%.f*}.g.vcf.gz" && \
     			mv "../snpcall/${i%.f*}_${ref1%.f*}_${ref2%.f*}_${ref4%.f*}.hold.g.vcf.gz.tbi" "${projdir}/snpcall/${i%.f*}_${ref1%.f*}_${ref2%.f*}_${ref4%.f*}.g.vcf.gz.tbi" &&
-    			mv ${i%.f*}_${ref1%.f*}_${ref2%.f*}_${ref4%.f*}_precall.bam* ./processed/
 					wait
     		fi
-    	fi ) &
+    	fi
+			mv ${i%.f*}_${ref1%.f*}_${ref2%.f*}_${ref4%.f*}_precall.bam* ./processed/ ) &
     	if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
     		wait
     	fi
@@ -2590,10 +2590,10 @@ main () {
     			fi
     			mv "../snpcall/${i%.f*}_${ref1%.f*}_${ref3%.f*}_${ref4%.f*}.hold.g.vcf.gz" "${projdir}/snpcall/${i%.f*}_${ref1%.f*}_${ref3%.f*}_${ref4%.f*}.g.vcf.gz" && \
     			mv "../snpcall/${i%.f*}_${ref1%.f*}_${ref3%.f*}_${ref4%.f*}.hold.g.vcf.gz.tbi" "${projdir}/snpcall/${i%.f*}_${ref1%.f*}_${ref3%.f*}_${ref4%.f*}.g.vcf.gz.tbi" &&
-    			mv ${i%.f*}_${ref1%.f*}_${ref3%.f*}_${ref4%.f*}_precall.bam* ./processed/
 					wait
     		fi
-    	fi ) &
+    	fi
+			mv ${i%.f*}_${ref1%.f*}_${ref3%.f*}_${ref4%.f*}_precall.bam* ./processed/ ) &
     	if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
     		wait
     	fi
@@ -2719,10 +2719,10 @@ main () {
     			fi
     			mv "../snpcall/${i%.f*}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.hold.g.vcf.gz" "${projdir}/snpcall/${i%.f*}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.g.vcf.gz" && \
     			mv "../snpcall/${i%.f*}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.hold.g.vcf.gz.tbi" "${projdir}/snpcall/${i%.f*}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.g.vcf.gz.tbi" &&
-    			mv ${i%.f*}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}_precall.bam* ./processed/
 					wait
     		fi
-    	fi ) &
+    	fi
+			mv ${i%.f*}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}_precall.bam* ./processed/ ) &
     	if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
     		wait
     	fi
@@ -2848,10 +2848,10 @@ main () {
     			fi
     			mv "../snpcall/${i%.f*}_${ref1%.f*}_${ref2%.f*}.hold.g.vcf.gz" "${projdir}/snpcall/${i%.f*}_${ref1%.f*}_${ref2%.f*}.g.vcf.gz" && \
     			mv "../snpcall/${i%.f*}_${ref1%.f*}_${ref2%.f*}.hold.g.vcf.gz.tbi" "${projdir}/snpcall/${i%.f*}_${ref1%.f*}_${ref2%.f*}.g.vcf.gz.tbi" &&
-    			mv ${i%.f*}_${ref1%.f*}_${ref2%.f*}_precall.bam* ./processed/
 					wait
     		fi
-    	fi ) &
+    	fi
+			mv ${i%.f*}_${ref1%.f*}_${ref2%.f*}_precall.bam* ./processed/ ) &
 
     	if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
     		wait
@@ -2978,10 +2978,10 @@ main () {
     			fi
     			mv "../snpcall/${i%.f*}_${ref1%.f*}_${ref3%.f*}.hold.g.vcf.gz" "${projdir}/snpcall/${i%.f*}_${ref1%.f*}_${ref3%.f*}.g.vcf.gz" && \
     			mv "../snpcall/${i%.f*}_${ref1%.f*}_${ref3%.f*}.hold.g.vcf.gz.tbi" "${projdir}/snpcall/${i%.f*}_${ref1%.f*}_${ref3%.f*}.g.vcf.gz.tbi" &&
-    			mv ${i%.f*}_${ref1%.f*}_${ref3%.f*}_precall.bam* ./processed/
 					wait
     		fi
-    	fi ) &
+    	fi
+			mv ${i%.f*}_${ref1%.f*}_${ref3%.f*}_precall.bam* ./processed/ ) &
     	if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
     		wait
     	fi
@@ -3107,10 +3107,10 @@ main () {
     			fi
     			mv "../snpcall/${i%.f*}_${ref1%.f*}_${ref4%.f*}.hold.g.vcf.gz" "${projdir}/snpcall/${i%.f*}_${ref1%.f*}_${ref4%.f*}.g.vcf.gz" && \
     			mv "../snpcall/${i%.f*}_${ref1%.f*}_${ref4%.f*}.hold.g.vcf.gz.tbi" "${projdir}/snpcall/${i%.f*}_${ref1%.f*}_${ref4%.f*}.g.vcf.gz.tbi" &&
-    			mv ${i%.f*}_${ref1%.f*}_${ref4%.f*}_precall.bam* ./processed/
 					wait
     		fi
-    	fi ) &
+    	fi
+			mv ${i%.f*}_${ref1%.f*}_${ref4%.f*}_precall.bam* ./processed/ ) &
     	if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
     		wait
     	fi
@@ -3236,10 +3236,10 @@ main () {
     			fi
     			mv "../snpcall/${i%.f*}_${ref2%.f*}_${ref3%.f*}.hold.g.vcf.gz" "${projdir}/snpcall/${i%.f*}_${ref2%.f*}_${ref3%.f*}.g.vcf.gz" && \
     			mv "../snpcall/${i%.f*}_${ref2%.f*}_${ref3%.f*}.hold.g.vcf.gz.tbi" "${projdir}/snpcall/${i%.f*}_${ref2%.f*}_${ref3%.f*}.g.vcf.gz.tbi" &&
-    			mv ${i%.f*}_${ref2%.f*}_${ref3%.f*}_precall.bam* ./processed/
 					wait
     		fi
-    	fi ) &
+    	fi
+			mv ${i%.f*}_${ref2%.f*}_${ref3%.f*}_precall.bam* ./processed/ ) &
     	if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
     		wait
     	fi
@@ -3365,10 +3365,10 @@ main () {
     			fi
     			mv "../snpcall/${i%.f*}_${ref2%.f*}_${ref4%.f*}.hold.g.vcf.gz" "${projdir}/snpcall/${i%.f*}_${ref2%.f*}_${ref4%.f*}.g.vcf.gz" && \
     			mv "../snpcall/${i%.f*}_${ref2%.f*}_${ref4%.f*}.hold.g.vcf.gz.tbi" "${projdir}/snpcall/${i%.f*}_${ref2%.f*}_${ref4%.f*}.g.vcf.gz.tbi" &&
-    			mv ${i%.f*}_${ref2%.f*}_${ref4%.f*}_precall.bam* ./processed/
 					wait
     		fi
-    	fi ) &
+    	fi
+			mv ${i%.f*}_${ref2%.f*}_${ref4%.f*}_precall.bam* ./processed/ ) &
     	if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
     		wait
     	fi
@@ -3494,10 +3494,10 @@ main () {
     			fi
     			mv "../snpcall/${i%.f*}_${ref3%.f*}_${ref4%.f*}.hold.g.vcf.gz" "${projdir}/snpcall/${i%.f*}_${ref3%.f*}_${ref4%.f*}.g.vcf.gz" && \
     			mv "../snpcall/${i%.f*}_${ref3%.f*}_${ref4%.f*}.hold.g.vcf.gz.tbi" "${projdir}/snpcall/${i%.f*}_${ref3%.f*}_${ref4%.f*}.g.vcf.gz.tbi" &&
-    			mv ${i%.f*}_${ref3%.f*}_${ref4%.f*}_precall.bam* ./processed/
 					wait
     		fi
-    	fi ) &
+    	fi
+			mv ${i%.f*}_${ref3%.f*}_${ref4%.f*}_precall.bam* ./processed/ ) &
     	if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
     		wait
     	fi
@@ -3622,10 +3622,10 @@ main () {
 						fi
 						mv "../snpcall/${i%.f*}_${ref1%.f*}.hold.g.vcf.gz" "${projdir}/snpcall/${i%.f*}_${ref1%.f*}.g.vcf.gz" && \
 						mv "../snpcall/${i%.f*}_${ref1%.f*}.hold.g.vcf.gz.tbi" "${projdir}/snpcall/${i%.f*}_${ref1%.f*}.g.vcf.gz.tbi" &&
-						mv ${i%.f*}_${ref1%.f*}_precall.bam* ./processed/
 						wait
 					fi
-				fi ) &
+				fi
+				mv ${i%.f*}_${ref1%.f*}_precall.bam* ./processed/ ) &
 				if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
 					wait
 				fi
@@ -3750,10 +3750,10 @@ main () {
 						fi
 						mv "../snpcall/${i%.f*}_${ref2%.f*}.hold.g.vcf.gz" "${projdir}/snpcall/${i%.f*}_${ref2%.f*}.g.vcf.gz" && \
 						mv "../snpcall/${i%.f*}_${ref2%.f*}.hold.g.vcf.gz.tbi" "${projdir}/snpcall/${i%.f*}_${ref2%.f*}.g.vcf.gz.tbi" &&
-						mv ${i%.f*}_${ref2%.f*}_precall.bam* ./processed/
 						wait
 					fi
-				fi ) &
+				fi
+				mv ${i%.f*}_${ref2%.f*}_precall.bam* ./processed/ ) &
 				if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
 					wait
 				fi
@@ -3878,10 +3878,10 @@ main () {
 						fi
 						mv "../snpcall/${i%.f*}_${ref3%.f*}.hold.g.vcf.gz" "${projdir}/snpcall/${i%.f*}_${ref3%.f*}.g.vcf.gz" && \
 						mv "../snpcall/${i%.f*}_${ref3%.f*}.hold.g.vcf.gz.tbi" "${projdir}/snpcall/${i%.f*}_${ref3%.f*}.g.vcf.gz.tbi" &&
-						mv ${i%.f*}_${ref3%.f*}_precall.bam* ./processed/
 						wait
 					fi
-				fi ) &
+				fi
+				mv ${i%.f*}_${ref3%.f*}_precall.bam* ./processed/ ) &
 				if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
 					wait
 				fi
@@ -4006,10 +4006,10 @@ main () {
   						fi
   						mv "../snpcall/${i%.f*}_${ref4%.f*}.hold.g.vcf.gz" "${projdir}/snpcall/${i%.f*}_${ref4%.f*}.g.vcf.gz" && \
   						mv "../snpcall/${i%.f*}_${ref4%.f*}.hold.g.vcf.gz.tbi" "${projdir}/snpcall/${i%.f*}_${ref4%.f*}.g.vcf.gz.tbi" &&
-  						mv ${i%.f*}_${ref4%.f*}_precall.bam* ./processed/
 							wait
   					fi
-  				fi ) &
+  				fi
+					mv ${i%.f*}_${ref4%.f*}_precall.bam* ./processed/ ) &
   				if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
   					wait
   				fi
