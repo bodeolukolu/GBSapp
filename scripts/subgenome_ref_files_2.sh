@@ -61,7 +61,7 @@ echo -e "${blue}\n##############################################################
 main () {
 cd $projdir
 cd refgenomes
-for i in $(ls *.gz); do
+for i in $(ls *.gz 2> /dev/null); do
 	gunzip $i >/dev/null 2>&1
 done
 
@@ -119,7 +119,7 @@ else
 	export ncontigscaffold=$(grep '>' $ref1 | wc -l)
 	if [[ $ncontigscaffold -gt 300 ]]; then
 		mkdir split
-		for reffile in $(ls *.f*); do
+		for reffile in $(ls *.f* 2> /dev/null); do
 			awk -v reffile=${reffile%.f*} '/^>/{close("file.fasta"f);f++}{print $0 > "./split/file_"reffile"_"f}' "$reffile" & PID=$!
 		  wait $PID
 		done
@@ -139,7 +139,7 @@ else
 				done
 			done
 			cd ../
-			for i in $(ls *.f*); do
+			for i in $(ls *.f* 2> /dev/null); do
 				mv $i ./old_"${i%.f*}_fasta.txt"
 				cat ./split/${i%.f*}_Chr* > $i
 			done
@@ -161,7 +161,7 @@ if test -f "$file"; then
 else
 	echo -e "${magenta}- combining reference assembly of subgenomes ${white}\n"
 	touch panref.txt
-	for i in $(ls *.f*); do
+	for i in $(ls *.f* 2> /dev/null); do
 		n=">${i%.f*}_"
 		awk '{ sub("\r$",""); print}' $i | awk -v n="$n" '{gsub(n,""); print}' | awk -v n="$n" '{gsub(/>/,n); print}' >> panref.txt
 	done
@@ -216,7 +216,7 @@ main () {
 		if [ -z "$(ls -A ../pe)" ]; then
 			if [ -z "$(ls -A ../se)" ]; then
 				cd ../
-				for i in $(ls *.f* | grep -v R2.f); do
+				for i in $(ls *.f* 2> /dev/null | grep -v R2.f); do
 					if [[ "$i" == *.R1* ]]; then
 						mv $i ${i/.R1/}
 					elif [[ "$i" == *_R1* ]]; then
@@ -232,7 +232,7 @@ main () {
 		if [ -z "$(ls -A ../pe)" ]; then
 			if [ "$(ls -A ../se)" ]; then
 				echo -e "${magenta}- only single-end reads available in se-folder ${white}\n"
-				for i in $(ls *.f* ); do
+				for i in $(ls *.f*  2> /dev/null); do
 					if [[ "$i" == *.R1* ]]; then
 						mv $i ../${i/.R1/}
 					elif [[ "$i" == *_R1* ]]; then
@@ -248,7 +248,7 @@ main () {
 		if [ -z "$(ls -A ../se)" ]; then
 			if [ "$(ls -A ../pe)" ]; then
 				echo -e "${magenta}- only paired-end reads available in pe-folder ${white}\n"
-				for i in $(ls *R1.f*); do
+				for i in $(ls *R1.f* 2> /dev/null); do
 					mv ${i%R1.f*}R2.f* ../
 					if [[ "$i" == *.R1* ]]; then
 						mv $i ../${i/.R1/}
@@ -270,7 +270,7 @@ main () {
 		cd ${projdir}/samples/pe
 		if [ "$(ls -A ../se)" ]; then
 			if [ "$(ls -A ../pe)" ]; then
-				for i in $(ls *R1.f*); do
+				for i in $(ls *R1.f* 2> /dev/null); do
 					mv ${i%R1.f*}R2.f* ../
 					if [[ "$i" == *.R1* ]]; then
 						cat $i ../se/${i%.R1.f*}* > ../${i}
@@ -658,7 +658,7 @@ main () {
 			export nempty=$( ls ${projdir}/samples/*_uniq_R2.fasta.gz 2> /dev/null | wc -l | awk '{print $1}' )
 			if [[ "$nempty" -gt 0 ]]; then
 				jalign=1
-				for samplechunk in $(ls *_uniq_R1.fasta.gz | shuf | awk -v jal=$joint_alignment '{ORS=NR%jal?",":"\n"}1'); do
+				for samplechunk in $(ls *_uniq_R1.fasta.gz 2> /dev/null | shuf | awk -v jal=$joint_alignment '{ORS=NR%jal?",":"\n"}1'); do
 					cat $(echo $samplechunk | awk '{gsub(/,/," ");}1') | zcat | awk '{print $2}' | awk '{!seen[$0]++}END{for (i in seen) print seen[i], i}' | \
 					awk -v mhf=$(( $( echo $samplechunk | awk '{gsub(/,/,"\n");}1' | wc -l ) / 100 )) '$1>mhf{print $(NF)}' | \
 					awk -v chk=$jalign '{print $1"\t@merged_R1_seq"NR"_chunk"chk"\t"$1"\t"$1}' | $gzip > combined_all_sample_reads_R1_hold_chunk${jalign}.fq.gz
@@ -673,7 +673,7 @@ main () {
 				wait
 
 				jalign=1
-				for samplechunk in $(ls *_uniq_R2.fasta.gz | shuf | awk -v jal=$joint_alignment '{ORS=NR%jal?",":"\n"}1'); do
+				for samplechunk in $(ls *_uniq_R2.fasta.gz 2> /dev/null | shuf | awk -v jal=$joint_alignment '{ORS=NR%jal?",":"\n"}1'); do
 					cat $(echo $samplechunk | awk '{gsub(/,/," ");}1') | zcat | awk '{print $2}' | awk '{!seen[$0]++}END{for (i in seen) print seen[i], i}' | \
 					awk -v mhf=$(( $( echo $samplechunk | awk '{gsub(/,/,"\n");}1' | wc -l ) / 100 )) '$1>mhf{print $(NF)}' | \
 					awk -v chk=$jalign '{print $1"\t@merged_R2_seq"NR"_chunk"chk"\t"$1"\t"$1}' | $gzip > combined_all_sample_reads_R2_hold_chunk${jalign}.fq.gz
@@ -695,7 +695,7 @@ main () {
 				rm combined_all_sample_reads_R*_hold*.fq.gz
 			else
 				jalign=1
-				for samplechunk in $(ls *_uniq_R1.fasta.gz | shuf | awk -v jal=$joint_alignment '{ORS=NR%jal?",":"\n"}1'); do
+				for samplechunk in $(ls *_uniq_R1.fasta.gz 2> /dev/null | shuf | awk -v jal=$joint_alignment '{ORS=NR%jal?",":"\n"}1'); do
 					cat $(echo $samplechunk | awk '{gsub(/,/," ");}1') | zcat | awk '{print $2}' | awk '{!seen[$0]++}END{for (i in seen) print seen[i], i}' | \
 					awk -v mhf=$(( $( echo $samplechunk | awk '{gsub(/,/,"\n");}1' | wc -l ) / 100 )) '$1>mhf{print $(NF)}' | \
 					awk -v chk=$jalign '{print $1"\t@merged_R1_seq"NR"_chunk"chk"\t"$1"\t"$1}' | $gzip > combined_all_sample_reads_R1_hold_chunk${jalign}.fq.gz
@@ -788,7 +788,7 @@ main () {
 	if [[ "$nodes" -gt 1 ]] && [[ "$(ls ${projdir}/samples/alignsplit_node"${nn}"/combined_all_sample_reads_R*_chunk*.fq.gz 2> /dev/null | wc -l)" -ge 1 ]]; then
 		if [[ "$lib_type" =~ "RRS" || "$lib_type" =~ "rrs" ]] && test ! -f ${projdir}/precall_done.txt && test ! -f ${projdir}/alignment_done; then
 			cd ${projdir}/samples/alignsplit_node"${nn}"
-			for alignfq in $(ls *); do
+			for alignfq in $(ls * 2> /dev/null); do
 				if test ! -f ../../preprocess/combined_all_sample_reads_redun.sam.gz; then
 					$ngm -r /tmp/${samples_list%.txt}/refgenomes/panref.fasta --qry $alignfq -o ../../preprocess/${alignfq%.fq.gz}.sam -t $threads --min-identity 0 --topn 12 --strata 12 &&
 					$java $Xmx2 -XX:ParallelGCThreads=$threads -jar $picard SortSam I=../../preprocess/${alignfq%.fq.gz}.sam O=../../preprocess/${alignfq%.fq.gz}.bam  SORT_ORDER=coordinate  VALIDATION_STRINGENCY=LENIENT &&
@@ -1108,7 +1108,7 @@ main () {
 
 		  echo -e "${magenta}- performing SNP calling across entire genome (subgenome 1 and 2) ${white}\n"
 		  j=-I; input=""; k=""
-		  for i in $(ls *_${ref1%.f*}_${ref2%.f*}_precall.bam); do
+		  for i in $(ls *_${ref1%.f*}_${ref2%.f*}_precall.bam 2> /dev/null); do
 		    k="${j} ${i}"; input="${input} ${k}"
 		  done
 		  Get2_Chromosome=$(awk 'NR>1{print $2,"\t",$3}' ${projdir}/refgenomes/panref.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $0}' | sort -k2,2 -nr | awk '{print $1}' )
@@ -1153,7 +1153,7 @@ main () {
 
 		  echo -e "${magenta}- performing SNP calling on subgenome-1 ${white}\n"
 		  j=-I; input=""; k=""
-		  for i in $(ls *_${ref1%.f*}_precall.bam); do
+		  for i in $(ls *_${ref1%.f*}_precall.bam 2> /dev/null); do
 		    k="${j} ${i}"; input="${input} ${k}"
 		  done
 		  Get2_Chromosome=$(awk 'NR>1{print $2,"\t",$3}' ${projdir}/refgenomes/panref.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $0}' | sort -k2,2 -nr | awk '{print $1}'| awk -v pat=${ref1%.f*} '$0 ~ pat' )
@@ -1198,7 +1198,7 @@ main () {
 
 		  echo -e "${magenta}- performing SNP calling on subgenome-2 ${white}\n"
 		  j=-I; input=""; k=""
-		  for i in $(ls *_${ref2%.f*}_precall.bam); do
+		  for i in $(ls *_${ref2%.f*}_precall.bam 2> /dev/null); do
 		    k="${j} ${i}"; input="${input} ${k}"
 		  done
 		  Get2_Chromosome=$(awk 'NR>1{print $2,"\t",$3}' ${projdir}/refgenomes/panref.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $0}' | sort -k2,2 -nr | awk '{print $1}'| awk -v pat=${ref2%.f*} '$0 ~ pat' )
@@ -1289,7 +1289,7 @@ main () {
 					for dir in cohorts*/; do
 						cd $dir
 						j=--variant; input=""; k=""
-						for i in $(ls *_${ref1%.f*}_${ref2%.f*}.g.vcf.gz); do
+						for i in $(ls *_${ref1%.f*}_${ref2%.f*}.g.vcf.gz 2> /dev/null); do
 							k="${j} ${i}"; input="${input} ${k}"
 						done
 						if [[ -z "$Get_Chromosome" ]]; then
@@ -1418,7 +1418,7 @@ main () {
 					for dir in cohorts*/; do
 						cd $dir
 						j=--variant; input=""; k=""
-						for i in $(ls *_${ref1%.f*}.g.vcf.gz); do
+						for i in $(ls *_${ref1%.f*}.g.vcf.gz 2> /dev/null); do
 							k="${j} ${i}"; input="${input} ${k}"
 						done
 						if [[ -z "$Get_Chromosome" ]]; then
@@ -1547,7 +1547,7 @@ main () {
 					for dir in $(ls *cohorts*/); do
 						cd $dir
 						j=--variant; input=""; k=""
-						for i in $(ls *_${ref2%.f*}.g.vcf.gz); do
+						for i in $(ls *_${ref2%.f*}.g.vcf.gz 2> /dev/null); do
 							k="${j} ${i}"; input="${input} ${k}"
 						done
 						if [[ -z "$Get_Chromosome" ]]; then
@@ -1697,7 +1697,7 @@ large_numerous_chrom () {
   cd $projdir
   cd snpcall
   if [[ "$checksplit" -gt 0 ]]; then
-  	for ln in $(ls *_raw0.vcf); do
+  	for ln in $(ls *_raw0.vcf 2> /dev/null); do
   		cp $ln ${ln%.vcf}_positions_split.vcf
   		awk '/^#CHROM/{close("file.vcf"f);f++}{print $0 > "file"f}' $ln
   		awk 'NR==1{print}' file1 | cat file - > file0.vcf
@@ -1736,7 +1736,7 @@ large_numerous_chrom () {
   if [[ ! -f ./index_code.txt ]]; then
   	if [[ $ncontigscaffold -gt 300 ]]; then
   		echo -e "${magenta}- retrieving SNP positions based on contigs/scaffold annotation ${white}\n"
-  		for nc in $(ls *_raw0.vcf); do
+  		for nc in $(ls *_raw0.vcf 2> /dev/null); do
   			if [[ "${nc}" =~ "vcf" ]]; then
   				awk '/^#CHROM/{close("file.vcf"f);f++}{print $0 > "file"f}' $nc
   				awk 'NR==1{print}' file1 | cat file - > file0.txt; rm file
@@ -1812,7 +1812,7 @@ cd ${projdir}/snpcall
 if [ -z "$(ls -A *_DP_GT.txt 2>/dev/null)" ]; then
 	if [ -z "$(ls -A *_x.vcf 2>/dev/null)" ]; then
 		if [ -z "$(ls -A *_raw.vcf 2>/dev/null)" ]; then
-			for g in $(ls *_raw.vcf.gz); do gunzip $g;	done
+			for g in $(ls *_raw.vcf.gz 2> /dev/null); do gunzip $g;	done
 		fi
 	fi
 fi
@@ -1822,7 +1822,7 @@ file2xG=$( if [ "$(ls -A *_2x_DP_GT.txt 2>/dev/null)" ]; then ls *_2x_DP_GT.txt 
 file2xV=$( if [ "$(ls -A *_2x_raw.vcf 2>/dev/null)" ]; then ls *_2x_raw.vcf | head -n 1 | wc -l; else echo 0; fi )
 if [[ "${file2xG}" -lt 1 ]]; then
 	if [[ "${file2xV}" -gt 0 ]]; then
-		for i in $(ls *_2x_raw.vcf); do
+		for i in $(ls *_2x_raw.vcf 2> /dev/null); do
 			$GATK LeftAlignAndTrimVariants -R ${projdir}/refgenomes/panref.fasta -V $i -O ${i%.vcf}0.vcf --split-multi-allelics  --dont-trim-alleles --keep-original-ac
 			wait
 			large_numerous_chrom &>> ${projdir}/log.out
@@ -1840,7 +1840,7 @@ file4xG=$( if [ "$(ls -A *_4x_DP_GT.txt 2>/dev/null)" ]; then ls *_4x_DP_GT.txt 
 file4xV=$( if [ "$(ls -A *_4x_raw.vcf 2>/dev/null)" ]; then ls *_4x_raw.vcf | head -n 1 | wc -l; else echo 0; fi )
 if [[ "${file4xG}" -lt 1 ]]; then
 	if [[ "${file4xV}" -gt 0 ]]; then
-		for i in $(ls *_4x_raw.vcf); do
+		for i in $(ls *_4x_raw.vcf 2> /dev/null); do
 			$GATK LeftAlignAndTrimVariants -R ${projdir}/refgenomes/panref.fasta -V $i -O ${i%.vcf}0.vcf --split-multi-allelics  --dont-trim-alleles --keep-original-ac
 			wait
 			large_numerous_chrom &>> ${projdir}/log.out
@@ -1858,7 +1858,7 @@ file6xG=$( if [ "$(ls -A *_6x_DP_GT.txt 2>/dev/null)" ]; then ls *_6x_DP_GT.txt 
 file6xV=$( if [ "$(ls -A *_6x_raw.vcf 2>/dev/null)" ]; then ls *_6x_raw.vcf | head -n 1 | wc -l; else echo 0; fi )
 if [[ "${file6xG}" -lt 1 ]]; then
 	if [[ "${file6xV}" -gt 0 ]]; then
-		for i in $(ls *_6x_raw.vcf); do
+		for i in $(ls *_6x_raw.vcf 2> /dev/null); do
 			$GATK LeftAlignAndTrimVariants -R ${projdir}/refgenomes/panref.fasta -V $i -O ${i%.vcf}0.vcf --split-multi-allelics  --dont-trim-alleles --keep-original-ac
 			wait
 			large_numerous_chrom &>> ${projdir}/log.out
@@ -1876,7 +1876,7 @@ file8xG=$( if [ "$(ls -A *_8x_DP_GT.txt 2>/dev/null)" ]; then ls *_8x_DP_GT.txt 
 file8xV=$( if [ "$(ls -A *_8x_raw.vcf 2>/dev/null)" ]; then ls *_8x_raw.vcf | head -n 1 | wc -l; else echo 0; fi )
 if [[ "${file8xG}" -lt 1 ]]; then
 	if [[ "${file8xV}" -gt 0 ]]; then
-		for i in $(ls *_8x_raw.vcf); do
+		for i in $(ls *_8x_raw.vcf 2> /dev/null); do
 			$GATK LeftAlignAndTrimVariants -R ${projdir}/refgenomes/panref.fasta -V $i -O ${i%.vcf}0.vcf --split-multi-allelics  --dont-trim-alleles --keep-original-ac
 			wait
 			large_numerous_chrom &>> ${projdir}/log.out
@@ -1893,7 +1893,7 @@ wait
 
 filetest=*x.vcf*
 if [ -z "$(ls -A *x.vcf* 2>/dev/null)" ]; then
-	for v in $(ls *_DP_GT.txt); do
+	for v in $(ls *_DP_GT.txt 2> /dev/null); do
 		vcfdose=${v%_DP*}; vcfdose=${vcfdose#*_}; out=$(ls *${vcfdose}_raw.vcf)
 		for raw in $out; do
 			grep '^#' $raw  > ${raw%_raw.vcf}.vcf
@@ -1904,7 +1904,7 @@ if [ -z "$(ls -A *x.vcf* 2>/dev/null)" ]; then
 fi
 
 if [ "$(ls -A *.vcf 2>/dev/null)" ]; then
-	for v in $(ls *.vcf); do gzip $v; done
+	for v in $(ls *.vcf 2> /dev/null); do gzip $v; done
 fi
 wait
 
@@ -2145,13 +2145,13 @@ cd "$projdir"/snpfilter
 for snpfilter_dir in $(ls -d */); do
 	if [ -d "$snpfilter_dir" ]; then
 		cd $snpfilter_dir
-		for i in $(ls *dose.txt); do
+		for i in $(ls *dose.txt 2> /dev/null); do
 			ARselect=${i%rd*}
 			ARfile=$(ls ../../snpcall/${ARselect}*_AR.txt 2> /dev/null)
 			Rscript "${GBSapp_dir}"/scripts/R/heterozygote_vs_allele_ratio.R "$i" "$ARfile" "ploidy" "2" "${GBSapp_dir}/tools/R"
 		done
 		wait
-		for v in $(ls *dose.txt); do
+		for v in $(ls *dose.txt 2> /dev/null); do
 			vcfdose=${v%_rd*}; vcfdose=${vcfdose#*_}
 			zcat ../../snpcall/*${vcfdose}.vcf.gz | grep '^#' > ${v%.txt}.vcf
 			awk 'FNR==NR{a[$1,$2]=$0;next}{if(b=a[$2,$3]){print b}}' <(gzip -dc ../../snpcall/*${vcfdose}.vcf.gz) $v >> ${v%.txt}.vcf
@@ -2161,19 +2161,19 @@ for snpfilter_dir in $(ls -d */); do
 
 
 		cd unique_mapped
-		for i in $(ls *dose_unique_mapped.txt); do
+		for i in $(ls *dose_unique_mapped.txt 2> /dev/null); do
 			ARselect=${i%rd*}
 			ARfile=$(ls ../../snpcall/${ARselect}*_AR.txt 2> /dev/null)
 			Rscript "${GBSapp_dir}"/scripts/R/heterozygote_vs_allele_ratio_uniqfiltered.R "$i" "$ARfile" "ploidy" "2" "${GBSapp_dir}/tools/R"
 		done
 		wait
-		for i in $(ls *dose_multi_mapped.txt); do
+		for i in $(ls *dose_multi_mapped.txt 2> /dev/null); do
 			ARselect=${i%rd*}
 			ARfile=$(ls ../../snpcall/${ARselect}*_AR.txt 2> /dev/null)
 			Rscript "${GBSapp_dir}"/scripts/R/heterozygote_vs_allele_ratio_multifiltered.R "$i" "$ARfile" "ploidy" "2" "${GBSapp_dir}/tools/R"
 		done
 		wait
-		for v in $(ls *dose*); do
+		for v in $(ls *dose* 2> /dev/null); do
 			vcfdose=${v%_rd*}; vcfdose=${vcfdose#*_}
 			zcat ../../../snpcall/*${vcfdose}.vcf.gz | grep '^#' > ${v%.txt}.vcf
 			awk 'FNR==NR{a[$1,$2]=$0;next}{if(b=a[$2,$3]){print b}}' <(gzip -dc ../../../snpcall/*${vcfdose}.vcf.gz) $v >> ${v%.txt}.vcf
@@ -2256,7 +2256,7 @@ for snpfilter_dir in $(ls -d */); do
 	cd "$snpfilter_dir"  && \
 	cd genotype_accuracy  && \
 	i=0  && \
-	for f in $(ls *); do
+	for f in $(ls * 2> /dev/null); do
 	    d=Variants_Set_$(printf %04d $((i/1000+1)))  && \
 	    mkdir -p "$d"  && \
 	    mv "$f" "$d"  && \
