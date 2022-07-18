@@ -1236,7 +1236,7 @@ main () {
 		sleep 5
 	fi
 
-	while [[ -f "${projdir}/call0" ]]; do sleep 60; done
+	while [[ ! -f "${projdir}/call0" ]]; do sleep 60; done
 
 
 	cd $projdir
