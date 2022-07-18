@@ -42,18 +42,6 @@ if [ -z "$keep_gVCF" ]; then
 	export keep_gVCF=false
 fi
 
-cd $projdir
-if [[ "$samples_list" == "samples_list_node_1.txt" ]]; then
-	for i in samples_list_node_*.txt; do
-		:> ${i%.txt}_hold.txt
-		while read line; do
-			ls -l ./samples/$line | awk '{print $5"\t"$9}' >> ${i%.txt}_hold.txt
-		done < $i
-		sort -nr -k1 ${i%.txt}_hold.txt | awk '{gsub(/.\/samples\//,""); print $2}' > $i
-		rm ${i%.txt}_hold.txt
-	done
-fi
-
 
 
 cd $projdir
@@ -394,6 +382,17 @@ main () {
 	mkdir -p snpcall
 	mkdir -p alignment_summaries
 	mkdir -p ./alignment_summaries/copy_number
+
+	if [[ "$samples_list" == "samples_list_node_1.txt" ]]; then
+		for i in samples_list_node_*.txt; do
+			:> ${i%.txt}_hold.txt
+			while read line; do
+				ls -l ./samples/$line | awk '{print $5"\t"$9}' >> ${i%.txt}_hold.txt
+			done < $i
+			sort -nr -k1 ${i%.txt}_hold.txt | awk '{gsub(/.\/samples\//,""); print $2}' > $i
+			rm ${i%.txt}_hold.txt
+		done
+	fi
 }
 if [[ "$samples_list" == "samples_list_node_1.txt" ]]; then
 	if [[ ! -f "${projdir}/organize_files_done.txt" ]]; then time main &>> ${projdir}/log.out; fi
@@ -1232,11 +1231,12 @@ main () {
 	touch ${projdir}/compress_done.txt
 
 	if [[ "$samples_list" == "samples_list_node_1.txt" ]]; then
-		mv ${projdir}/preprocess/processed/${i%.f*}_*_precall.bam* ${projdir}/preprocess/ 2> /dev/null
+		mv ${projdir}/preprocess/processed/*_precall.bam* ${projdir}/preprocess/ 2> /dev/null
+		touch ${projdir}/call0
+		sleep 5
 	fi
-	touch ${projdir}/call0
 
-	while [[ -f "${projdir}/call0" ]]; do sleep 30; done
+	while [[ -f "${projdir}/call0" ]]; do sleep 60; done
 
 
 	cd $projdir
