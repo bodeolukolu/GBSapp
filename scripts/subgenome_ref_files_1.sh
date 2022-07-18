@@ -1003,29 +1003,37 @@ echo -e "${blue}\n##############################################################
 main () {
 
 
-	touch ${projdir}/compress_done.txt
+touch ${projdir}/compress_done.txt
 
+if [[ "$samples_list" == "samples_list_node_1.txt" ]]; then
+	mv ${projdir}/preprocess/processed/${i%.f*}_*_precall.bam* ${projdir}/preprocess/ 2> /dev/null
+fi
+if [[ $nodes -gt 1 ]] && [[ "$samples_list" == "samples_list_node_1.txt" ]]; then
+	mv ${projdir}/preprocess/${i%.f*}_*_precall.bam* ${projdir}/preprocess/processed/ 2> /dev/null
+	touch ${projdir}/call0
+fi
 
-if [ "$alignments" == 0 ]; then
-	if [[ $nodes -gt 1 ]]; then
-		mkdir -p /tmp/${samples_list%.txt}/refgenomes /tmp/${samples_list%.txt}/samples /tmp/${samples_list%.txt}/preprocess /tmp/${samples_list%.txt}/snpcall
+while [[ test -f "${projdir}/call0" ]]; do sleep 30; done
+
+if [[ $nodes -gt 1 ]] && [[ test -f "${projdir}/call0" ]]; then
+	mkdir -p /tmp/${samples_list%.txt}/refgenomes /tmp/${samples_list%.txt}/samples /tmp/${samples_list%.txt}/preprocess /tmp/${samples_list%.txt}/snpcall
+	touch ${projdir}/queue_move_${samples_list%.txt}
+	queue_move=$(ls ${projdir}/queue_move_samples_list_node_* | wc -l)
+	while [[ "$queue_move" -gt 1 ]]; do
+		rm ${projdir}/queue_move_${samples_list%.txt}; sleep $[ ( $RANDOM % 120 )  + 30 ]s
 		touch ${projdir}/queue_move_${samples_list%.txt}
 		queue_move=$(ls ${projdir}/queue_move_samples_list_node_* | wc -l)
-		while [[ "$queue_move" -gt 1 ]]; do
-			rm ${projdir}/queue_move_${samples_list%.txt}; sleep $[ ( $RANDOM % 120 )  + 30 ]s
-			touch ${projdir}/queue_move_${samples_list%.txt}
-			queue_move=$(ls ${projdir}/queue_move_samples_list_node_* | wc -l)
+	done
+	cp -rn ${projdir}/refgenomes/* /tmp/${samples_list%.txt}/refgenomes/ &&
+	if [[ "$lib_type" == "RRS" ]]; then
+		for i in $(cat ${projdir}/${samples_list} ); do
+			cp ${projdir}/preprocess/processed/${i%.f*}_*_precall.bam* /tmp/${samples_list%.txt}/preprocess/ 2> /dev/null &&
+			wait
 		done
-		cp -r ${projdir}/refgenomes/* /tmp/${samples_list%.txt}/refgenomes/ &&
-		if [[ "$lib_type" == "RRS" ]]; then
-			for i in $(cat ${projdir}/${samples_list} ); do
-				cp ${projdir}/preprocess/${i%.f*}_*_precall.bam* /tmp/${samples_list%.txt}/preprocess/ 2> /dev/null &&
-				wait
-			done
-		fi
-		rm ${projdir}/queue_move_${samples_list%.txt}
 	fi
+	rm ${projdir}/queue_move_${samples_list%.txt}
 fi
+
 
 cd $projdir
 echo -e "${magenta}- performing SNP calling ${white}\n"
@@ -1092,6 +1100,7 @@ if [[ "$joint_calling" == false ]]; then
 					fi
 					mv "../snpcall/${i%.f*}_${ref1%.f*}.hold.g.vcf.gz" "${projdir}/snpcall/${i%.f*}_${ref1%.f*}.g.vcf.gz" && \
 					mv "../snpcall/${i%.f*}_${ref1%.f*}.hold.g.vcf.gz.tbi" "${projdir}/snpcall/${i%.f*}_${ref1%.f*}.g.vcf.gz.tbi" &&
+					mv ${i%.f*}_${ref1%.f*}_precall.bam* ./processed/
 					wait
 			fi
 		fi ) &
