@@ -1510,36 +1510,12 @@ main () {
 
 	touch ${projdir}/compress_done.txt
 
-	touch ${projdir}/compress_done.txt
-
 	if [[ "$samples_list" == "samples_list_node_1.txt" ]]; then
 		mv ${projdir}/preprocess/processed/${i%.f*}_*_precall.bam* ${projdir}/preprocess/ 2> /dev/null
 	fi
-	if [[ $nodes -gt 1 ]] && [[ "$samples_list" == "samples_list_node_1.txt" ]]; then
-		mv ${projdir}/preprocess/${i%.f*}_*_precall.bam* ${projdir}/preprocess/processed/ 2> /dev/null
-		touch ${projdir}/call0
-	fi
+	touch ${projdir}/call0
 
 	while [[ -f "${projdir}/call0" ]]; do sleep 30; done
-
-	if [[ $nodes -gt 1 ]] && [[ -f "${projdir}/call0" ]]; then
-		mkdir -p /tmp/${samples_list%.txt}/refgenomes /tmp/${samples_list%.txt}/samples /tmp/${samples_list%.txt}/preprocess /tmp/${samples_list%.txt}/snpcall
-		touch ${projdir}/queue_move_${samples_list%.txt}
-		queue_move=$(ls ${projdir}/queue_move_samples_list_node_* | wc -l)
-		while [[ "$queue_move" -gt 1 ]]; do
-			rm ${projdir}/queue_move_${samples_list%.txt}; sleep $[ ( $RANDOM % 120 )  + 30 ]s
-			touch ${projdir}/queue_move_${samples_list%.txt}
-			queue_move=$(ls ${projdir}/queue_move_samples_list_node_* | wc -l)
-		done
-		cp -rn ${projdir}/refgenomes/* /tmp/${samples_list%.txt}/refgenomes/ &&
-		if [[ "$lib_type" == "RRS" ]]; then
-			for i in $(cat ${projdir}/${samples_list} ); do
-				cp ${projdir}/preprocess/processed/${i%.f*}_*_precall.bam* /tmp/${samples_list%.txt}/preprocess/ 2> /dev/null &&
-				wait
-			done
-		fi
-		rm ${projdir}/queue_move_${samples_list%.txt}
-	fi
 
 
 	cd $projdir
@@ -2214,8 +2190,6 @@ main () {
     echo -e "${magenta}- performing SNP calling on subgenome-1, 2, 3, and 4 ${white}\n"
 
     for i in $(cat ${projdir}/${samples_list} ); do (
-		if [[ $nodes -eq 1 ]]; then cd ${projdir}/preprocess/; fi
-		if [[ $nodes -gt 1 ]] && test -f ${projdir}/GBSapp_run_node_1.sh; then cd /tmp/${samples_list%.txt}/preprocess/; fi
 
     	if test ! -f "${projdir}/snpcall/${pop}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}_${ploidy}x_raw.vcf.gz"; then
     		if test ! -f "${projdir}/snpcall/${i%.f*}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.g.vcf.gz"; then
@@ -2345,8 +2319,6 @@ main () {
 
     calcploidy=$(($ploidy_ref1 + $ploidy_ref2 + $ploidy_ref3))
     for i in $(cat ${projdir}/${samples_list} ); do (
-		if [[ $nodes -eq 1 ]]; then cd ${projdir}/preprocess/; fi
-		if [[ $nodes -gt 1 ]] && test -f ${projdir}/GBSapp_run_node_1.sh; then cd /tmp/${samples_list%.txt}/preprocess/; fi
 
     	if test ! -f "${projdir}/snpcall/${pop}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${calcploidy}x_raw.vcf.gz"; then
     		if test ! -f "${projdir}/snpcall/${i%.f*}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}.g.vcf.gz"; then
@@ -2476,8 +2448,6 @@ main () {
 
     calcploidy=$(($ploidy_ref1 + $ploidy_ref2 + $ploidy_ref4))
     for i in $(cat ${projdir}/${samples_list} ); do (
-		if [[ $nodes -eq 1 ]]; then cd ${projdir}/preprocess/; fi
-		if [[ $nodes -gt 1 ]] && test -f ${projdir}/GBSapp_run_node_1.sh; then cd /tmp/${samples_list%.txt}/preprocess/; fi
 
     	if test ! -f "${projdir}/snpcall/${pop}_${ref1%.f*}_${ref2%.f*}_${ref4%.f*}_${calcploidy}x_raw.vcf.gz"; then
     		if test ! -f "${projdir}/snpcall/${i%.f*}_${ref1%.f*}_${ref2%.f*}_${ref4%.f*}.g.vcf.gz"; then
@@ -2607,8 +2577,6 @@ main () {
 
     calcploidy=$(($ploidy_ref1 + $ploidy_ref3 + $ploidy_ref4))
     for i in $(cat ${projdir}/${samples_list} ); do (
-		if [[ $nodes -eq 1 ]]; then cd ${projdir}/preprocess/; fi
-		if [[ $nodes -gt 1 ]] && test -f ${projdir}/GBSapp_run_node_1.sh; then cd /tmp/${samples_list%.txt}/preprocess/; fi
 
     	if test ! -f "${projdir}/snpcall/${pop}_${ref1%.f*}_${ref3%.f*}_${ref4%.f*}_${calcploidy}x_raw.vcf.gz"; then
     		if test ! -f "${projdir}/snpcall/${i%.f*}_${ref1%.f*}_${ref3%.f*}_${ref4%.f*}.g.vcf.gz"; then
@@ -2738,8 +2706,6 @@ main () {
 
     calcploidy=$(($ploidy_ref2 + $ploidy_ref3 + $ploidy_ref4))
     for i in $(cat ${projdir}/${samples_list} ); do (
-		if [[ $nodes -eq 1 ]]; then cd ${projdir}/preprocess/; fi
-		if [[ $nodes -gt 1 ]] && test -f ${projdir}/GBSapp_run_node_1.sh; then cd /tmp/${samples_list%.txt}/preprocess/; fi
 
     	if test ! -f "${projdir}/snpcall/${pop}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}_${calcploidy}x_raw.vcf.gz"; then
     		if test ! -f "${projdir}/snpcall/${i%.f*}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.g.vcf.gz"; then
@@ -2869,8 +2835,6 @@ main () {
 
     calcploidy=$(($ploidy_ref1 + $ploidy_ref2))
     for i in $(cat ${projdir}/${samples_list} ); do (
-		if [[ $nodes -eq 1 ]]; then cd ${projdir}/preprocess/; fi
-		if [[ $nodes -gt 1 ]] && test -f ${projdir}/GBSapp_run_node_1.sh; then cd /tmp/${samples_list%.txt}/preprocess/; fi
 
     	if test ! -f "${projdir}/snpcall/${pop}_${ref1%.f*}_${ref2%.f*}_${calcploidy}x_raw.vcf.gz"; then
     		if test ! -f "${projdir}/snpcall/${i%.f*}_${ref1%.f*}_${ref2%.f*}.g.vcf.gz"; then
@@ -3001,8 +2965,6 @@ main () {
 
     calcploidy=$(($ploidy_ref1 + $ploidy_ref3))
     for i in $(cat ${projdir}/${samples_list} ); do (
-		if [[ $nodes -eq 1 ]]; then cd ${projdir}/preprocess/; fi
-		if [[ $nodes -gt 1 ]] && test -f ${projdir}/GBSapp_run_node_1.sh; then cd /tmp/${samples_list%.txt}/preprocess/; fi
 
     	if test ! -f "${projdir}/snpcall/${pop}_${ref1%.f*}_${ref3%.f*}_${calcploidy}x_raw.vcf.gz"; then
     		if test ! -f "${projdir}/snpcall/${i%.f*}_${ref1%.f*}_${ref3%.f*}.g.vcf.gz"; then
@@ -3132,8 +3094,6 @@ main () {
 
     calcploidy=$(($ploidy_ref1 + $ploidy_ref4))
     for i in $(cat ${projdir}/${samples_list} ); do (
-		if [[ $nodes -eq 1 ]]; then cd ${projdir}/preprocess/; fi
-		if [[ $nodes -gt 1 ]] && test -f ${projdir}/GBSapp_run_node_1.sh; then cd /tmp/${samples_list%.txt}/preprocess/; fi
 
     	if test ! -f "${projdir}/snpcall/${pop}_${ref1%.f*}_${ref4%.f*}_${calcploidy}x_raw.vcf.gz"; then
     		if test ! -f "${projdir}/snpcall/${i%.f*}_${ref1%.f*}_${ref4%.f*}.g.vcf.gz"; then
@@ -3263,8 +3223,6 @@ main () {
 
     calcploidy=$(($ploidy_ref2 + $ploidy_ref3))
     for i in $(cat ${projdir}/${samples_list} ); do (
-		if [[ $nodes -eq 1 ]]; then cd ${projdir}/preprocess/; fi
-		if [[ $nodes -gt 1 ]] && test -f ${projdir}/GBSapp_run_node_1.sh; then cd /tmp/${samples_list%.txt}/preprocess/; fi
 
     	if test ! -f "${projdir}/snpcall/${pop}_${ref2%.f*}_${ref3%.f*}_${calcploidy}x_raw.vcf.gz"; then
     		if test ! -f "${projdir}/snpcall/${i%.f*}_${ref2%.f*}_${ref3%.f*}.g.vcf.gz"; then
@@ -3394,8 +3352,6 @@ main () {
 
     calcploidy=$(($ploidy_ref2 + $ploidy_ref4))
     for i in $(cat ${projdir}/${samples_list} ); do (
-		if [[ $nodes -eq 1 ]]; then cd ${projdir}/preprocess/; fi
-		if [[ $nodes -gt 1 ]] && test -f ${projdir}/GBSapp_run_node_1.sh; then cd /tmp/${samples_list%.txt}/preprocess/; fi
 
     	if test ! -f "${projdir}/snpcall/${pop}_${ref2%.f*}_${ref4%.f*}_${calcploidy}x_raw.vcf.gz"; then
     		if test ! -f "${projdir}/snpcall/${i%.f*}_${ref2%.f*}_${ref4%.f*}.g.vcf.gz"; then
@@ -3525,8 +3481,6 @@ main () {
 
     calcploidy=$(($ploidy_ref3 + $ploidy_ref4))
     for i in $(cat ${projdir}/${samples_list} ); do (
-		if [[ $nodes -eq 1 ]]; then cd ${projdir}/preprocess/; fi
-		if [[ $nodes -gt 1 ]] && test -f ${projdir}/GBSapp_run_node_1.sh; then cd /tmp/${samples_list%.txt}/preprocess/; fi
 
     	if test ! -f "${projdir}/snpcall/${pop}_${ref3%.f*}_${ref4%.f*}_${calcploidy}x_raw.vcf.gz"; then
     		if test ! -f "${projdir}/snpcall/${i%.f*}_${ref3%.f*}_${ref4%.f*}.g.vcf.gz"; then
@@ -3655,8 +3609,6 @@ main () {
 
 			echo -e "${magenta}- performing SNP calling on subgenome-1 ${white}\n"
 			for i in $(cat ${projdir}/${samples_list} ); do (
-				if [[ $nodes -eq 1 ]]; then cd ${projdir}/preprocess/; fi
-				if [[ $nodes -gt 1 ]] && test -f ${projdir}/GBSapp_run_node_1.sh; then cd /tmp/${samples_list%.txt}/preprocess/; fi
 
 				if test ! -f "${projdir}/snpcall/${pop}_${ref1%.f*}_${ploidy_ref1}x_raw.vcf.gz"; then
 					if test ! -f ${projdir}/snpcall/${i%.f*}_${ref1%.f*}.g.vcf.gz; then
@@ -3785,8 +3737,6 @@ main () {
 
 			echo -e "${magenta}- performing SNP calling on subgenome-2 ${white}\n"
 			for i in $(cat ${projdir}/${samples_list} ); do (
-			if [[ $nodes -eq 1 ]]; then cd ${projdir}/preprocess/; fi
-			if [[ $nodes -gt 1 ]] && test -f ${projdir}/GBSapp_run_node_1.sh; then cd /tmp/${samples_list%.txt}/preprocess/; fi
 
 				if test ! -f "${projdir}/snpcall/${pop}_${ref2%.f*}_${ploidy_ref2}x_raw.vcf.gz"; then
 					if test ! -f "${projdir}/snpcall/${i%.f*}_${ref2%.f*}.g.vcf.gz"; then
@@ -3915,8 +3865,6 @@ main () {
 
 			echo -e "${magenta}- performing SNP calling on subgenome-3 ${white}\n"
 			for i in $(cat ${projdir}/${samples_list} ); do (
-			if [[ $nodes -eq 1 ]]; then cd ${projdir}/preprocess/; fi
-			if [[ $nodes -gt 1 ]] && test -f ${projdir}/GBSapp_run_node_1.sh; then cd /tmp/${samples_list%.txt}/preprocess/; fi
 
 				if test ! -f "${projdir}/snpcall/${pop}_${ref3%.f*}_${ploidy_ref3}x_raw.vcf.gz"; then
 					if test ! -f ${projdir}/snpcall/${i%.f*}_${ref3%.f*}.g.vcf.gz; then
@@ -4045,8 +3993,6 @@ main () {
 
   			echo -e "${magenta}- performing SNP calling on subgenome-4 ${white}\n"
   			for i in $(cat ${projdir}/${samples_list} ); do (
-				if [[ $nodes -eq 1 ]]; then cd ${projdir}/preprocess/; fi
-				if [[ $nodes -gt 1 ]] && test -f ${projdir}/GBSapp_run_node_1.sh; then cd /tmp/${samples_list%.txt}/preprocess/; fi
 
   				if test ! -f "${projdir}/snpcall/${pop}_${ref4%.f*}_${ploidy_ref4}x_raw.vcf.gz"; then
   					if test ! -f ${projdir}/snpcall/${i%.f*}_${ref4%.f*}.g.vcf.gz; then
