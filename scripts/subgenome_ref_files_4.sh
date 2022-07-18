@@ -61,7 +61,7 @@ echo -e "${blue}\n##############################################################
 main () {
 cd $projdir
 cd refgenomes
-for i in *.gz; do
+for i in $(ls *.gz); do
 	gunzip $i >/dev/null 2>&1
 done
 
@@ -139,7 +139,7 @@ else
 				done
 			done
 			cd ../
-			for i in *.f*; do
+			for i in $(ls *.f*); do
 				mv $i ./old_"${i%.f*}_fasta.txt"
 				cat ./split/${i%.f*}_Chr* > $i
 			done
@@ -789,7 +789,7 @@ main () {
 	if [[ "$nodes" -gt 1 ]] && [[ "$(ls ${projdir}/samples/alignsplit_node"${nn}"/combined_all_sample_reads_R*_chunk*.fq.gz 2> /dev/null | wc -l)" -ge 1 ]]; then
 		if [[ "$lib_type" =~ "RRS" || "$lib_type" =~ "rrs" ]] && test ! -f ${projdir}/precall_done.txt && test ! -f ${projdir}/alignment_done; then
 			cd ${projdir}/samples/alignsplit_node"${nn}"
-			for alignfq in *; do
+			for alignfq in $(ls *); do
 				if test ! -f ../../preprocess/combined_all_sample_reads_redun.sam.gz; then
 					$ngm -r /tmp/${samples_list%.txt}/refgenomes/panref.fasta --qry $alignfq -o ../../preprocess/${alignfq%.fq.gz}.sam -t $threads --min-identity 0 --topn 12 --strata 12 &&
 					$java $Xmx2 -XX:ParallelGCThreads=$threads -jar $picard SortSam I=../../preprocess/${alignfq%.fq.gz}.sam O=../../preprocess/${alignfq%.fq.gz}.bam  SORT_ORDER=coordinate  VALIDATION_STRINGENCY=LENIENT &&
@@ -3826,7 +3826,7 @@ main () {
 					done
 
 
-					for dir in *cohorts*/; do
+					for dir in $(ls *cohorts*/); do
 						cd $dir
 						j=--variant; input=""; k=""
 						for i in $(ls *_${ref2%.f*}.g.vcf.gz); do
@@ -4354,7 +4354,7 @@ cd ${projdir}/snpcall
 if [ -z "$(ls -A *_DP_GT.txt 2>/dev/null)" ]; then
 	if [ -z "$(ls -A *_x.vcf 2>/dev/null)" ]; then
 		if [ -z "$(ls -A *_raw.vcf 2>/dev/null)" ]; then
-			for g in *_raw.vcf.gz; do gunzip $g;	done
+			for g in $(ls *_raw.vcf.gz); do gunzip $g;	done
 		fi
 	fi
 fi
@@ -4364,7 +4364,7 @@ file2xG=$( if [ "$(ls -A *_2x_DP_GT.txt 2>/dev/null)" ]; then ls *_2x_DP_GT.txt 
 file2xV=$( if [ "$(ls -A *_2x_raw.vcf 2>/dev/null)" ]; then ls *_2x_raw.vcf | head -n 1 | wc -l; else echo 0; fi )
 if [[ "${file2xG}" -lt 1 ]]; then
 	if [[ "${file2xV}" -gt 0 ]]; then
-		for i in *_2x_raw.vcf; do
+		for i in $(ls *_2x_raw.vcf); do
 			$GATK LeftAlignAndTrimVariants -R ${projdir}/refgenomes/panref.fasta -V $i -O ${i%.vcf}0.vcf --split-multi-allelics  --dont-trim-alleles --keep-original-ac
 			wait
 			large_numerous_chrom &>> ${projdir}/log.out
@@ -4382,7 +4382,7 @@ file4xG=$( if [ "$(ls -A *_4x_DP_GT.txt 2>/dev/null)" ]; then ls *_4x_DP_GT.txt 
 file4xV=$( if [ "$(ls -A *_4x_raw.vcf 2>/dev/null)" ]; then ls *_4x_raw.vcf | head -n 1 | wc -l; else echo 0; fi )
 if [[ "${file4xG}" -lt 1 ]]; then
 	if [[ "${file4xV}" -gt 0 ]]; then
-		for i in *_4x_raw.vcf; do
+		for i in $(ls *_4x_raw.vcf); do
 			$GATK LeftAlignAndTrimVariants -R ${projdir}/refgenomes/panref.fasta -V $i -O ${i%.vcf}0.vcf --split-multi-allelics  --dont-trim-alleles --keep-original-ac
 			wait
 			large_numerous_chrom &>> ${projdir}/log.out
@@ -4400,7 +4400,7 @@ file6xG=$( if [ "$(ls -A *_6x_DP_GT.txt 2>/dev/null)" ]; then ls *_6x_DP_GT.txt 
 file6xV=$( if [ "$(ls -A *_6x_raw.vcf 2>/dev/null)" ]; then ls *_6x_raw.vcf | head -n 1 | wc -l; else echo 0; fi )
 if [[ "${file6xG}" -lt 1 ]]; then
 	if [[ "${file6xV}" -gt 0 ]]; then
-		for i in *_6x_raw.vcf; do
+		for i in $(ls *_6x_raw.vcf); do
 			$GATK LeftAlignAndTrimVariants -R ${projdir}/refgenomes/panref.fasta -V $i -O ${i%.vcf}0.vcf --split-multi-allelics  --dont-trim-alleles --keep-original-ac
 			wait
 			large_numerous_chrom &>> ${projdir}/log.out
@@ -4418,7 +4418,7 @@ file8xG=$( if [ "$(ls -A *_8x_DP_GT.txt 2>/dev/null)" ]; then ls *_8x_DP_GT.txt 
 file8xV=$( if [ "$(ls -A *_8x_raw.vcf 2>/dev/null)" ]; then ls *_8x_raw.vcf | head -n 1 | wc -l; else echo 0; fi )
 if [[ "${file8xG}" -lt 1 ]]; then
 	if [[ "${file8xV}" -gt 0 ]]; then
-		for i in *_8x_raw.vcf; do
+		for i in $(ls *_8x_raw.vcf); do
 			$GATK LeftAlignAndTrimVariants -R ${projdir}/refgenomes/panref.fasta -V $i -O ${i%.vcf}0.vcf --split-multi-allelics  --dont-trim-alleles --keep-original-ac
 			wait
 			large_numerous_chrom &>> ${projdir}/log.out
@@ -4435,7 +4435,7 @@ wait
 
 filetest=*x.vcf*
 if [ -z "$(ls -A *x.vcf* 2>/dev/null)" ]; then
-	for v in *_DP_GT.txt; do
+	for v in $(ls *_DP_GT.txt); do
 		vcfdose=${v%_DP*}; vcfdose=${vcfdose#*_}; out=$(ls *${vcfdose}_raw.vcf)
 		for raw in $out; do
 			grep '^#' $raw  > ${raw%_raw.vcf}.vcf
@@ -4446,7 +4446,7 @@ if [ -z "$(ls -A *x.vcf* 2>/dev/null)" ]; then
 fi
 
 if [ "$(ls -A *.vcf 2>/dev/null)" ]; then
-	for v in *.vcf; do gzip $v; done
+	for v in $(ls *.vcf); do gzip $v; done
 fi
 wait
 
@@ -4693,7 +4693,7 @@ for snpfilter_dir in $(ls -d */); do
 			Rscript "${GBSapp_dir}"/scripts/R/heterozygote_vs_allele_ratio.R "$i" "$ARfile" "ploidy" "4" "${GBSapp_dir}/tools/R"
 		done
 		wait
-		for v in *dose.txt; do
+		for v in $(ls *dose.txt); do
 			vcfdose=${v%_rd*}; vcfdose=${vcfdose#*_}
 			zcat ../../snpcall/*${vcfdose}.vcf.gz | grep '^#' > ${v%.txt}.vcf
 			awk 'FNR==NR{a[$1,$2]=$0;next}{if(b=a[$2,$3]){print b}}' <(gzip -dc ../../snpcall/*${vcfdose}.vcf.gz) $v >> ${v%.txt}.vcf
@@ -4715,7 +4715,7 @@ for snpfilter_dir in $(ls -d */); do
 			Rscript "${GBSapp_dir}"/scripts/R/heterozygote_vs_allele_ratio_multifiltered.R "$i" "$ARfile" "ploidy" "4" "${GBSapp_dir}/tools/R"
 		done
 		wait
-		for v in *dose*; do
+		for v in $(ls *dose*); do
 			vcfdose=${v%_rd*}; vcfdose=${vcfdose#*_}
 			zcat ../../../snpcall/*${vcfdose}.vcf.gz | grep '^#' > ${v%.txt}.vcf
 			awk 'FNR==NR{a[$1,$2]=$0;next}{if(b=a[$2,$3]){print b}}' <(gzip -dc ../../../snpcall/*${vcfdose}.vcf.gz) $v >> ${v%.txt}.vcf
@@ -4798,7 +4798,7 @@ for snpfilter_dir in $(ls -d */); do
 	cd "$snpfilter_dir"  && \
 	cd genotype_accuracy  && \
 	i=0  && \
-	for f in *; do
+	for f in $(ls *); do
 	    d=Variants_Set_$(printf %04d $((i/1000+1)))  && \
 	    mkdir -p "$d"  && \
 	    mv "$f" "$d"  && \
