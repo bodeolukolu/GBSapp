@@ -1751,8 +1751,9 @@ for snpfilter_dir in $(ls -d */); do
 	if [ -d "$snpfilter_dir" ]; then
 		cd $snpfilter_dir
 		for i in $(ls *dose.txt); do
-			ARfile=$(ls ../../snpcall/*_AR.txt 2> /dev/null)
-			Rscript "${GBSapp_dir}"/scripts/R/heterozygote_vs_allele_ratio.R "$i" "$AR" "ploidy" "1" "${GBSapp_dir}/tools/R"
+			ARselect=${i%rd*}
+			ARfile=$(ls ../../snpcall/${ARselect}*_AR.txt 2> /dev/null)
+			Rscript "${GBSapp_dir}"/scripts/R/heterozygote_vs_allele_ratio.R "$i" "$ARfile" "ploidy" "1" "${GBSapp_dir}/tools/R"
 		done
 		wait
 		for v in *dose.txt; do
@@ -1773,13 +1774,15 @@ for snpfilter_dir in $(ls -d */); do
 
 		cd unique_mapped
 		for i in $(ls *dose_unique_mapped.txt); do
-			ARfile=$(ls ../../../snpcall/*_AR.txt 2> /dev/null)
-			Rscript "${GBSapp_dir}"/scripts/R/heterozygote_vs_allele_ratio_uniqfiltered.R "$i" "$AR" "ploidy" "1" "${GBSapp_dir}/tools/R"
+			ARselect=${i%rd*}
+			ARfile=$(ls ../../snpcall/${ARselect}*_AR.txt 2> /dev/null)
+			Rscript "${GBSapp_dir}"/scripts/R/heterozygote_vs_allele_ratio_uniqfiltered.R "$i" "$ARfile" "ploidy" "1" "${GBSapp_dir}/tools/R"
 		done
 		wait
 		for i in $(ls *dose_multi_mapped.txt); do
-			ARfile=$(ls ../../../snpcall/*_AR.txt 2> /dev/null)
-			Rscript "${GBSapp_dir}"/scripts/R/heterozygote_vs_allele_ratio_multifiltered.R "$i" "$AR" "ploidy" "1" "${GBSapp_dir}/tools/R"
+			ARselect=${i%rd*}
+			ARfile=$(ls ../../snpcall/${ARselect}*_AR.txt 2> /dev/null)
+			Rscript "${GBSapp_dir}"/scripts/R/heterozygote_vs_allele_ratio_multifiltered.R "$i" "$ARfile" "ploidy" "1" "${GBSapp_dir}/tools/R"
 		done
 		wait
 		for v in *dose*; do
