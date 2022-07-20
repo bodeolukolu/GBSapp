@@ -1516,7 +1516,7 @@ main () {
 		sleep 5
 	fi
 
-	while [[ ! -f "${projdir}/call0" ]]; do sleep 60; done
+	while [[ ! -f "${projdir}/call0" ]]; do sleep 5; done
 
 
 	cd $projdir
@@ -4636,10 +4636,26 @@ for snpfilter_dir in $(ls -d */); do
 		cd $snpfilter_dir
 		for i in $(ls *dose.txt 2> /dev/null); do
 			ARselect=${i%rd*}
-			ARfile=$(ls ../../snpcall/${ARselect}*_AR.txt 2> /dev/null)
-			Rscript "${GBSapp_dir}"/scripts/R/heterozygote_vs_allele_ratio.R "$i" "$ARfile" "ploidy" "4" "${GBSapp_dir}/tools/R"
+			ARfile=$(ls ../../snpcall/${ARselect}*AR.txt 2> /dev/null)
+			Rscript "${GBSapp_dir}"/scripts/R/heterozygote_vs_allele_ratio.R "$i" "$ARfile" "${ploidy}x" "4" "${GBSapp_dir}/tools/R"
+			awk 'FNR==NR{a[$1,$2]=$0;next}{if(b=a[$2,$3]){print b}}' $ARfile $i | awk '{gsub(/NA/,"na"); print $1"_"$2"\t"$0}' | \
+			awk '{gsub(/CHROM_POS/,"SNP");}1' > ${i%.txt}_AR_metric.txt
+			grep -v 'CHROM' ${i%.txt}_AR_metric.txt | awk -F'\t' '{$1=$2=$3=$4=$5=""}1' | awk -F'\t' '{gsub(/na/,"0");}1' | \
+			awk '{gsub(/\t/," ");}1' | awk '{gsub(/-/,"");}1' | awk '{gsub(/ /,",");}1' | awk '{gsub(/0,/,",");}1' | awk '{gsub(/,0$/,",");}1' | \
+			awk -F',' -v OFS=',' -v OFMT='%0.3g' '{s=0; numFields=0; for(i=2; i<=NF;i++){if(length($i)){s+=$i; numFields++}} print (numFields ? s/numFields : 0)}' | \
+			cat <(printf "Allele_ratio_mean\n") - | paste <(awk '{print $1"\t"$2"\t"$3}' ${i%.txt}_AR_metric.txt) - > ${i%.txt}_AR_mean.txt
 		done
 		wait
+		for v in $(ls *dose.txt 2> /dev/null); do
+			vcfdose=${v%_rd*}; vcfdose=${vcfdose#*_}
+			zcat ../../snpcall/*${vcfdose}.vcf.gz | grep '^#' > ${v%.txt}.vcf
+			awk 'FNR==NR{a[$1,$2]=$0;next}{if(b=a[$2,$3]){print b}}' <(zcat ../../snpcall/*${vcfdose}.vcf.gz) $v >> ${v%.txt}.vcf
+			arr=$(grep "CHROM" $v | awk '{$1=$2=$3=$4=$5=""}1' | tr -s ' ' | awk '{gsub(/\t/,",");gsub(/ /,",");gsub(/^,/,"");}1')
+			$bcftools view -s "$arr" ${v%.txt}.vcf > tmp.vcf && mv tmp.vcf ${v%.txt}.vcf
+			gzip ${v%.txt}.vcf
+		done
+		wait
+
 		for v in $(ls *dose.txt 2> /dev/null); do
 			vcfdose=${v%_rd*}; vcfdose=${vcfdose#*_}
 			zcat ../../snpcall/*${vcfdose}.vcf.gz | grep '^#' > ${v%.txt}.vcf
@@ -4652,16 +4668,36 @@ for snpfilter_dir in $(ls -d */); do
 		cd unique_mapped
 		for i in $(ls *dose_unique_mapped.txt 2> /dev/null); do
 			ARselect=${i%rd*}
-			ARfile=$(ls ../../snpcall/${ARselect}*_AR.txt 2> /dev/null)
-			Rscript "${GBSapp_dir}"/scripts/R/heterozygote_vs_allele_ratio_uniqfiltered.R "$i" "$ARfile" "ploidy" "4" "${GBSapp_dir}/tools/R"
+			ARfile=$(ls ../../snpcall/${ARselect}*AR.txt 2> /dev/null)
+			Rscript "${GBSapp_dir}"/scripts/R/heterozygote_vs_allele_ratio_uniqfiltered.R "$i" "$ARfile" "${ploidy}x" "4" "${GBSapp_dir}/tools/R"
+			awk 'FNR==NR{a[$1,$2]=$0;next}{if(b=a[$2,$3]){print b}}' $ARfile $i | awk '{gsub(/NA/,"na"); print $1"_"$2"\t"$0}' | \
+			awk 'gsub(/CHROM_POS/,"SNP");}1' > ${i%.txt}_AR_metric.txt
+			grep -v 'CHROM' ${i%.txt}_AR_metric.txt | awk -F'\t' '{$1=$2=$3=$4=$5=""}1' | awk -F'\t' '{gsub(/na/,"0");}1' | \
+			awk '{gsub(/\t/," ");}1' | awk '{gsub(/-/,"");}1' | awk '{gsub(/ /,",");}1' | awk '{gsub(/0,/,",");}1' | awk '{gsub(/,0$/,",");}1' | \
+			awk -F',' -v OFS=',' -v OFMT='%0.3g' '{s=0; numFields=0; for(i=2; i<=NF;i++){if(length($i)){s+=$i; numFields++}} print (numFields ? s/numFields : 0)}' | \
+			cat <(printf "Allele_ratio_mean\n") - | paste <(awk '{print $1"\t"$2"\t"$3}' ${i%.txt}_AR_metric.txt) - > ${i%.txt}_AR_mean.txt
 		done
 		wait
 		for i in $(ls *dose_multi_mapped.txt 2> /dev/null); do
 			ARselect=${i%rd*}
-			ARfile=$(ls ../../snpcall/${ARselect}*_AR.txt 2> /dev/null)
-			Rscript "${GBSapp_dir}"/scripts/R/heterozygote_vs_allele_ratio_multifiltered.R "$i" "$ARfile" "ploidy" "4" "${GBSapp_dir}/tools/R"
+			ARfile=$(ls ../../snpcall/${ARselect}*AR.txt 2> /dev/null)
+			Rscript "${GBSapp_dir}"/scripts/R/heterozygote_vs_allele_ratio_multifiltered.R "$i" "$ARfile" "${ploidy}x" "4" "${GBSapp_dir}/tools/R"
+			awk 'FNR==NR{a[$1,$2]=$0;next}{if(b=a[$2,$3]){print b}}' $ARfile $i | awk '{gsub(/NA/,"na"); print $1"_"$2"\t"$0}' | \
+			awk 'gsub(/CHROM_POS/,"SNP");}1' > ${i%.txt}_AR_metric.txt
+			grep -v 'CHROM' ${i%.txt}_AR_metric.txt | awk -F'\t' '{$1=$2=$3=$4=$5=""}1' | awk -F'\t' '{gsub(/na/,"0");}1' | \
+			awk '{gsub(/\t/," ");}1' | awk '{gsub(/-/,"");}1' | awk '{gsub(/ /,",");}1' | awk '{gsub(/0,/,",");}1' | awk '{gsub(/,0$/,",");}1' | \
+			awk -F',' -v OFS=',' -v OFMT='%0.3g' '{s=0; numFields=0; for(i=2; i<=NF;i++){if(length($i)){s+=$i; numFields++}} print (numFields ? s/numFields : 0)}' | \
+			cat <(printf "Allele_ratio_mean\n") - | paste <(awk '{print $1"\t"$2"\t"$3}' ${i%.txt}_AR_metric.txt) - > ${i%.txt}_AR_mean.txt
 		done
 		wait
+		for v in $(ls *dose* 2> /dev/null); do
+			vcfdose=${v%_rd*}; vcfdose=${vcfdose#*_}
+			zcat ../../../snpcall/*${vcfdose}.vcf.gz | grep '^#' > ${v%.txt}.vcf
+			awk 'FNR==NR{a[$1,$2]=$0;next}{if(b=a[$2,$3]){print b}}' <(zcat ../../../snpcall/*${vcfdose}.vcf.gz) $v >> ${v%.txt}.vcf
+			gzip ${v%.txt}.vcf
+		done
+		wait
+		
 		for v in $(ls *dose* 2> /dev/null); do
 			vcfdose=${v%_rd*}; vcfdose=${vcfdose#*_}
 			zcat ../../../snpcall/*${vcfdose}.vcf.gz | grep '^#' > ${v%.txt}.vcf

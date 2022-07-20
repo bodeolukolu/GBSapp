@@ -6,7 +6,6 @@ args <- commandArgs(trailingOnly = TRUE)
 args
 geno <- read.table(args[1], header=T, sep="\t", check.names=FALSE,stringsAsFactors=FALSE)
 geno$CHROM <- sub(".*\\_","",geno$CHROM)
-geno$SNP <- sub(".*?_","",geno$SNP)
 geno$CHROM <- sub("Chr","",geno$CHROM)
 geno$CHROM <- as.numeric(as.character(geno$CHROM))
 
