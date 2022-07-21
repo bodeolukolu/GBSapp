@@ -13,7 +13,6 @@ GT <- read.table(args[1], header=T, sep="\t", check.names=FALSE,stringsAsFactors
 GT <- subset(GT, select=-c(SNP))
 if (colnames(GT[ncol(GT)]) == "pvalue"){GT <- subset(GT, select=-c(pvalue))}
 AR <- read.table(args[2], header=T, sep="\t", check.names=FALSE,stringsAsFactors=FALSE)
-if (subgenome == 1) { AR$CHROM <-  gsub(".*_", "", AR$CHROM) }
 GT_AR <- merge(GT, AR, by=c("CHROM","POS","REF","ALT"), all.x=TRUE)
 keepAR <- subset(GT_AR, select=-c(CHROM,POS,REF,ALT))
 keepAR <- keepAR[, -grep(pattern = "_AR$", colnames(keepAR))]

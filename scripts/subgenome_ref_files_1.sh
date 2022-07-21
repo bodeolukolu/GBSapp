@@ -1752,7 +1752,7 @@ for snpfilter_dir in $(ls -d */); do
 			grep '^##' ${i%.txt}.vcf | cat - <(awk '{gsub(/CHROM/,"#CHROM");}1' dose_temp.vcf) > ${i%.txt}.vcf
 			mv AR_temp.txt ${i%.txt}_AR_metric.txt
 			rm ${i%.txt}_tmp.vcf dose_temp.vcf
-			gzip ${v%.txt}.vcf
+			gzip ${i%.txt}.vcf
 
 			grep -v 'CHROM' ${i%.txt}_AR_metric.txt | awk -F'\t' '{$1=$2=$3=$4=$5=""}1' | awk -F'\t' '{gsub(/na/,"0");}1' | \
 			awk '{gsub(/\t/," ");}1' | awk '{gsub(/-/,"");}1' | awk '{gsub(/ /,",");}1' | awk '{gsub(/0,/,",");}1' | awk '{gsub(/,0$/,",");}1' | \
@@ -1788,7 +1788,7 @@ for snpfilter_dir in $(ls -d */); do
 			grep '^##' ${i%.txt}.vcf | cat - <(awk '{gsub(/CHROM/,"#CHROM");}1' dose_temp.vcf) > ${i%.txt}.vcf
 			mv AR_temp.txt ${i%.txt}_AR_metric.txt
 			rm ${i%.txt}_tmp.vcf dose_temp.vcf
-			gzip ${v%.txt}.vcf
+			gzip ${i%.txt}.vcf
 
 			grep -v 'CHROM' ${i%.txt}_AR_metric.txt | awk -F'\t' '{$1=$2=$3=$4=$5=""}1' | awk -F'\t' '{gsub(/na/,"0");}1' | \
 			awk '{gsub(/\t/," ");}1' | awk '{gsub(/-/,"");}1' | awk '{gsub(/ /,",");}1' | awk '{gsub(/0,/,",");}1' | awk '{gsub(/,0$/,",");}1' | \
@@ -1817,7 +1817,7 @@ for snpfilter_dir in $(ls -d */); do
 			grep '^##' ${i%.txt}.vcf | cat - <(awk '{gsub(/CHROM/,"#CHROM");}1' dose_temp.vcf) > ${i%.txt}.vcf
 			mv AR_temp.txt ${i%.txt}_AR_metric.txt
 			rm ${i%.txt}_tmp.vcf dose_temp.vcf
-			gzip ${v%.txt}.vcf
+			gzip ${i%.txt}.vcf
 
 			grep -v 'CHROM' ${i%.txt}_AR_metric.txt | awk -F'\t' '{$1=$2=$3=$4=$5=""}1' | awk -F'\t' '{gsub(/na/,"0");}1' | \
 			awk '{gsub(/\t/," ");}1' | awk '{gsub(/-/,"");}1' | awk '{gsub(/ /,",");}1' | awk '{gsub(/0,/,",");}1' | awk '{gsub(/,0$/,",");}1' | \

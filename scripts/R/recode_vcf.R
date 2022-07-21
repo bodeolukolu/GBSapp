@@ -13,7 +13,7 @@ GT <- read.table(args[2], header=T, sep="\t", check.names=FALSE,stringsAsFactors
 AR <- read.table(args[3], header = TRUE, check.names = FALSE)
 
 if (colnames(GT[ncol(GT)]) == "pvalue"){GT <- subset(GT, select=-c(pvalue))}
-names(AR) <- gsub(x=names(AR), pattern = "_AR", replaceme1nt = "")  
+names(AR) <- gsub(x=names(AR), pattern = "_AR", replacement = "")  
 samples <- colnames(GT[,1:ncol(GT)])
 AR <- AR[,samples]
 write.table (AR, file="AR_temp.txt", row.names=F, quote = FALSE, sep = "\t")
