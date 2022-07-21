@@ -28,14 +28,15 @@ if (ploidy == "2x"){
     AR <- subset(AR, AR$propHet != 0)
   AR[,1:(ncol(AR)-1)][AR[,1:(ncol(AR)-1)] == 0] <- NA
   AR <- AR[,c(which(colnames(AR)=="propHet"),which(colnames(AR)!="propHet"))]
-  AR <- na.omit(cbind(AR[1], stack(AR[-1])))
+  AR <- suppressWarnings(na.omit(cbind(AR[1], stack(AR[-1]), row.names = NULL)))
   AR <- AR[,1:2]; names(AR) <- c("propHet","Allele_Ratio")
   ARplot <- ggplot(AR,aes(x=propHet,y=Allele_Ratio))+
     geom_point(aes(x = propHet, y = Allele_Ratio, color = Allele_Ratio), size = 1, pch=19, alpha=0.1)+
-    geom_density_2d(color="white")+
+    geom_density_2d(bins=50)+
     annotate("rect", xmin=0, xmax=1, ymin=-0.2, ymax=0.2, alpha=0.2, fill="tomato")+
     scale_x_continuous(expand=c(0,0), limits=c(0,1.01))+
-    scale_colour_gradient2(low="red", mid="purple", high ="cornflowerblue",
+    scale_y_continuous(expand=c(0,0), limits=c(-1.01,1.01))+
+    scale_colour_gradient2(low="darkorange3", mid="darkgoldenrod1", high ="cornflowerblue",
                            breaks=c(0.75,-0.75), limits=c(-1,1), 
                            labels=c("Minor Allele: Ref","Minor Allele: Alt"))+
     theme(legend.title = element_blank())+
@@ -59,14 +60,15 @@ if (ploidy == "4x"){
   AR <- subset(AR, AR$propHet != 0)
   AR[,1:(ncol(AR)-1)][AR[,1:(ncol(AR)-1)] == 0] <- NA
   AR <- AR[,c(which(colnames(AR)=="propHet"),which(colnames(AR)!="propHet"))]
-  AR <- na.omit(cbind(AR[1], stack(AR[-1])))
+  AR <- suppressWarnings(na.omit(cbind(AR[1], stack(AR[-1]), row.names = NULL)))
   AR <- AR[,1:2]; names(AR) <- c("propHet","Allele_Ratio")
   ARplot <- ggplot(AR,aes(x=propHet,y=Allele_Ratio))+
     geom_point(aes(x = propHet, y = Allele_Ratio, color = Allele_Ratio), size = 1, pch=19, alpha=0.1)+
-    geom_density_2d(color="white")+
-    annotate("rect", xmin=0, xmax=1, ymin=-0.17, ymax=0.17, alpha=0.2, fill="tomato")+
+    geom_density_2d(bins=50)+
+    annotate("rect", xmin=0, xmax=1, ymin=-0.2, ymax=0.2, alpha=0.2, fill="tomato")+
     scale_x_continuous(expand=c(0,0), limits=c(0,1.01))+
-    scale_colour_gradient2(low="red", mid="yellow", high ="cornflowerblue",
+    scale_y_continuous(expand=c(0,0), limits=c(-1.01,1.01))+
+    scale_colour_gradient2(low="darkorange3", mid="darkgoldenrod1", high ="cornflowerblue",
                            breaks=c(0.75,-0.75), limits=c(-1,1), 
                            labels=c("Minor Allele: Ref","Minor Allele: Alt"))+
     theme(legend.title = element_blank())+
@@ -94,14 +96,15 @@ if (ploidy == "6x"){
   AR <- subset(AR, AR$propHet != 0)
   AR[,1:(ncol(AR)-1)][AR[,1:(ncol(AR)-1)] == 0] <- NA
   AR <- AR[,c(which(colnames(AR)=="propHet"),which(colnames(AR)!="propHet"))]
-  AR <- na.omit(cbind(AR[1], stack(AR[-1])))
+  AR <- suppressWarnings(na.omit(cbind(AR[1], stack(AR[-1]), row.names = NULL)))
   AR <- AR[,1:2]; names(AR) <- c("propHet","Allele_Ratio")
   ARplot <- ggplot(AR,aes(x=propHet,y=Allele_Ratio))+
     geom_point(aes(x = propHet, y = Allele_Ratio, color = Allele_Ratio), size = 1, pch=19, alpha=0.1)+
-    geom_density_2d(color="white")+
-    annotate("rect", xmin=0, xmax=1, ymin=-0.14, ymax=0.14, alpha=0.2, fill="tomato")+
+    geom_density_2d(bins=50)+
+    annotate("rect", xmin=0, xmax=1, ymin=-0.2, ymax=0.2, alpha=0.2, fill="tomato")+
     scale_x_continuous(expand=c(0,0), limits=c(0,1.01))+
-    scale_colour_gradient2(low="red", mid="yellow", high ="cornflowerblue",
+    scale_y_continuous(expand=c(0,0), limits=c(-1.01,1.01))+
+    scale_colour_gradient2(low="darkorange3", mid="darkgoldenrod1", high ="cornflowerblue",
                            breaks=c(0.75,-0.75), limits=c(-1,1), 
                            labels=c("Minor Allele: Ref","Minor Allele: Alt"))+
     theme(legend.title = element_blank())+
@@ -132,14 +135,15 @@ if (ploidy == "8x"){
   AR <- AR[,c(keepAR)]
   AR[,1:(ncol(AR)-1)][AR[,1:(ncol(AR)-1)] == 0] <- NA
   AR <- AR[,c(which(colnames(AR)=="propHet"),which(colnames(AR)!="propHet"))]
-  AR <- na.omit(cbind(AR[1], stack(AR[-1])))
+  AR <- suppressWarnings(na.omit(cbind(AR[1], stack(AR[-1]), row.names = NULL)))
   AR <- AR[,1:2]; names(AR) <- c("propHet","Allele_Ratio")
   ARplot <- ggplot(AR,aes(x=propHet,y=Allele_Ratio))+
     geom_point(aes(x = propHet, y = Allele_Ratio, color = Allele_Ratio), size = 1, pch=19, alpha=0.1)+
-    geom_density_2d(color="white")+
-    annotate("rect", xmin=0, xmax=1, ymin=-0.14, ymax=0.14, alpha=0.2, fill="tomato")+
+    geom_density_2d(bins=50)+
+    annotate("rect", xmin=0, xmax=1, ymin=-0.2, ymax=0.2, alpha=0.2, fill="tomato")+
     scale_x_continuous(expand=c(0,0), limits=c(0,1.01))+
-    scale_colour_gradient2(low="red", mid="yellow", high ="cornflowerblue",
+    scale_y_continuous(expand=c(0,0), limits=c(-1.01,1.01))+
+    scale_colour_gradient2(low="darkorange3", mid="darkgoldenrod1", high ="cornflowerblue",
                            breaks=c(0.75,-0.75), limits=c(-1,1), 
                            labels=c("Minor Allele: Ref","Minor Allele: Alt"))+
     theme(legend.title = element_blank())+

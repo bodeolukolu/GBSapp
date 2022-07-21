@@ -44,6 +44,52 @@ fi
 
 
 
+main () {
+	cd $projdir
+	cd samples
+	export nfiles=$(ls -1 -p | grep -v R2.f | grep -v / |  wc -l)
+	export totalk=$(awk '/^MemTotal:/{print $2}' /proc/meminfo)
+	export loopthreads=2
+	if [[ "$threads" -gt 1 ]]; then
+	  export N=$((threads/2))
+	  export ram1=$(($totalk/$N))
+	else
+	  export N=1 && export loopthreads=threads
+	fi
+	export ram1=$((ram1/1000000))
+	export Xmx1=-Xmx${ram1}G
+	export ram2=$(echo "$totalk*0.0000009" | bc)
+	export ram2=${ram2%.*}
+	export Xmx2=-Xmx${ram2}G
+	if [[ "$nfiles" -lt "$N" ]]; then
+	  export N=$nfiles && export loopthreads=$threads
+	fi
+
+	if [[ "$threads" -le 6 ]]; then
+		export prepthreads=threads
+		export Xmxp=$Xmx2
+		export prepN=1
+	else
+		export prepthreads=6
+		export prepN=$(( threads / prepthreads ))
+		export ramprep=$(( ram2 / prepN ))
+		export Xmxp=-Xmx${ramprep}G
+	fi
+
+	if [[ "$threads" -le 4 ]]; then
+		export gthreads=$threads
+		export Xmxg=$Xmx2
+		export gN=1
+	else
+		export gthreads=4
+		export gN=$(( threads / gthreads ))
+		export ramg=$(( ram2 / gN ))
+		export Xmxg=-Xmx${ramg}G
+	fi
+}
+cd $projdir
+main &>> log.out
+
 
 cd $projdir
 echo -e "${blue}\n############################################################################## ${yellow}\n- Index Reference Genome \n${blue}##############################################################################${white}\n"
@@ -325,7 +371,7 @@ main () {
 			export max_seqread_len=$(awk '{all[NR] = $0} END{print all[int(NR*0.95 - 0.5)]}' length_distribution.txt)
 			rm length_distribution.txt
 
-			for i in $(ls -S *.f* | grep -v _uniq.fasta | grep -v _uniq_R1.fasta | grep -v _uniq_R2.fasta | grep -v _uniq.hold.fasta | grep -v _uniq_R1.hold.fasta | grep -v _uniq_R2.hold.fasta | grep -v fq.gz); do
+			for i in $(ls -S *.f* | grep -v _uniq.fasta | grep -v _uniq_R1.fasta | grep -v _uniq_R2.fasta | grep -v _uniq.hold.fasta | grep -v _uniq_R1.hold.fasta | grep -v _uniq_R2.hold.fasta | grep -v fq.gz); do (
 				if [[ $(file $i 2> /dev/null) =~ gzip ]]; then
 					fa_fq=$(zcat $projdir/samples/$i 2> /dev/null | head -n1 | cut -c1-1)
 				else
@@ -335,19 +381,22 @@ main () {
 				if [[ $(file $i 2> /dev/null) =~ gzip ]]; then
 					if [[ "${fa_fq}" == "@" ]]; then
 						awk 'NR%2==0' <(zcat $i) | awk 'NR%2==1' | awk -v max=$max_seqread_len '{print substr($0,1,max)}' | awk '{print "@"NR"\t"$1"\t"$1}' | \
-						awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$3); print}' | awk '{print $1"\n"$2"\n+\n"$3}' | $gzip > temp.fa.gz && mv temp.fa.gz $i
+						awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$3); print}' | awk '{print $1"\n"$2"\n+\n"$3}' | $gzip > ${i%.f*}_tmp.fa.gz  && mv ${i%.f*}_tmp.fa.gz $i
 					fi
 					if [[ "${fa_fq}" == ">" ]]; then
-						grep -v '^>' <(zcat $i) | awk -v max=$max_seqread_len '{print substr($0,1,max)}' | awk '{print ">"NR"\n"$1}' | $gzip > temp.fa.gz && mv temp.fa.gz $i
+						grep -v '^>' <(zcat $i) | awk -v max=$max_seqread_len '{print substr($0,1,max)}' | awk '{print ">"NR"\n"$1}' | $gzip > ${i%.f*}_tmp.fa.gz && mv ${i%.f*}_tmp.fa.gz $i
 					fi
 				else
 					if [[ "${fa_fq}" == "@" ]]; then
 						awk 'NR%2==0' $i | awk 'NR%2==1' | awk -v max=$max_seqread_len '{print substr($0,1,max)}' | awk '{print "@"NR"\t"$1"\t"$1}' | \
-						awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$3); print}' | awk '{print $1"\n"$2"\n+\n"$3}' > temp.fa && mv temp.fa $i
+						awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$3); print}' | awk '{print $1"\n"$2"\n+\n"$3}' > ${i%.f*}_tmp.fa.gz && mv ${i%.f*}_tmp.fa.gz $i
 					fi
 					if [[ "${fa_fq}" == ">" ]]; then
-						grep -v '^>' $i | awk -v max=$max_seqread_len '{print substr($0,1,max)}' | awk '{print ">"NR"\n"$1}' > temp.fa && mv temp.fa $i
+						grep -v '^>' $i | awk -v max=$max_seqread_len '{print substr($0,1,max)}' | awk '{print ">"NR"\n"$1}' > ${i%.f*}_tmp.fa.gz && mv ${i%.f*}_tmp.fa.gz $i
 					fi
+				fi ) &
+				if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
+					wait
 				fi
 			done
 		fi
@@ -399,52 +448,6 @@ if [[ "$samples_list" == "samples_list_node_1.txt" ]]; then
 	if [[ ! -f "${projdir}/organize_files_done.txt" ]]; then time main &>> ${projdir}/log.out; fi
 fi
 
-
-main () {
-	cd $projdir
-	cd samples
-	export nfiles=$(ls -1 -p | grep -v R2.f | grep -v / |  wc -l)
-	export totalk=$(awk '/^MemTotal:/{print $2}' /proc/meminfo)
-	export loopthreads=2
-	if [[ "$threads" -gt 1 ]]; then
-	  export N=$((threads/2))
-	  export ram1=$(($totalk/$N))
-	else
-	  export N=1 && export loopthreads=threads
-	fi
-	export ram1=$((ram1/1000000))
-	export Xmx1=-Xmx${ram1}G
-	export ram2=$(echo "$totalk*0.0000009" | bc)
-	export ram2=${ram2%.*}
-	export Xmx2=-Xmx${ram2}G
-	if [[ "$nfiles" -lt "$N" ]]; then
-	  export N=$nfiles && export loopthreads=$threads
-	fi
-
-	if [[ "$threads" -le 6 ]]; then
-		export prepthreads=threads
-		export Xmxp=$Xmx2
-		export prepN=1
-	else
-		export prepthreads=6
-		export prepN=$(( threads / prepthreads ))
-		export ramprep=$(( ram2 / prepN ))
-		export Xmxp=-Xmx${ramprep}G
-	fi
-
-	if [[ "$threads" -le 4 ]]; then
-		export gthreads=$threads
-		export Xmxg=$Xmx2
-		export gN=1
-	else
-		export gthreads=4
-		export gN=$(( threads / gthreads ))
-		export ramg=$(( ram2 / gN ))
-		export Xmxg=-Xmx${ramg}G
-	fi
-}
-cd $projdir
-main &>> log.out
 
 
 ######################################################################################################################################################
@@ -4634,33 +4637,33 @@ cd "$projdir"/snpfilter
 for snpfilter_dir in $(ls -d */); do
 	if [ -d "$snpfilter_dir" ]; then
 		cd $snpfilter_dir
+		ploidydir=${snpfilter_dir:0:1}
+		mkdir -p unique_mapped
+
 		for i in $(ls *dose.txt 2> /dev/null); do
 			ARselect=${i%rd*}
 			ARfile=$(ls ../../snpcall/${ARselect}*AR.txt 2> /dev/null)
-			Rscript "${GBSapp_dir}"/scripts/R/heterozygote_vs_allele_ratio.R "$i" "$ARfile" "${ploidy}x" "4" "${GBSapp_dir}/tools/R"
+			Rscript "${GBSapp_dir}"/scripts/R/heterozygote_vs_allele_ratio.R "$i" "$ARfile" "${ploidydir}x" "4" "${GBSapp_dir}/tools/R"
 			awk 'FNR==NR{a[$1,$2]=$0;next}{if(b=a[$2,$3]){print b}}' $ARfile $i | awk '{gsub(/NA/,"na"); print $1"_"$2"\t"$0}' | \
 			awk '{gsub(/CHROM_POS/,"SNP");}1' > ${i%.txt}_AR_metric.txt
+
+			vcfdose=${i%_rd*}; vcfdose=${vcfdose#*_}
+			zcat ../../snpcall/*${vcfdose}.vcf.gz | grep '^#' > ${i%.txt}.vcf
+			awk 'FNR==NR{a[$1,$2]=$0;next}{if(b=a[$2,$3]){print b}}' <(zcat ../../snpcall/*${vcfdose}.vcf.gz) $i >> ${i%.txt}.vcf
+			arr=$(grep "CHROM" $i | awk '{$1=$2=$3=$4=$5=""}1' | tr -s ' ' | awk '{gsub(/\t/,",");gsub(/ /,",");gsub(/^,/,"");}1')
+			$bcftools view -s "$arr" ${i%.txt}.vcf > tmp.vcf && mv tmp.vcf ${i%.txt}.vcf
+
+			grep -v '^##' ${i%.txt}.vcf | awk '{gsub(/#CHROM/,"CHROM");}1' > ${i%.txt}_tmp.vcf
+			Rscript "${GBSapp_dir}"/scripts/R/recode_vcf.R "${i%.txt}_tmp.vcf" "$i" "${i%.txt}_AR_metric.txt" "${ploidydir}x" "${GBSapp_dir}/tools/R"
+			grep '^##' ${i%.txt}.vcf | cat - <(awk '{gsub(/CHROM/,"#CHROM");}1' dose_temp.vcf) > ${i%.txt}.vcf
+			mv AR_temp.txt ${i%.txt}_AR_metric.txt
+			rm ${i%.txt}_tmp.vcf dose_temp.vcf
+			gzip ${v%.txt}.vcf
+
 			grep -v 'CHROM' ${i%.txt}_AR_metric.txt | awk -F'\t' '{$1=$2=$3=$4=$5=""}1' | awk -F'\t' '{gsub(/na/,"0");}1' | \
 			awk '{gsub(/\t/," ");}1' | awk '{gsub(/-/,"");}1' | awk '{gsub(/ /,",");}1' | awk '{gsub(/0,/,",");}1' | awk '{gsub(/,0$/,",");}1' | \
 			awk -F',' -v OFS=',' -v OFMT='%0.3g' '{s=0; numFields=0; for(i=2; i<=NF;i++){if(length($i)){s+=$i; numFields++}} print (numFields ? s/numFields : 0)}' | \
 			cat <(printf "Allele_ratio_mean\n") - | paste <(awk '{print $1"\t"$2"\t"$3}' ${i%.txt}_AR_metric.txt) - > ${i%.txt}_AR_mean.txt
-		done
-		wait
-		for v in $(ls *dose.txt 2> /dev/null); do
-			vcfdose=${v%_rd*}; vcfdose=${vcfdose#*_}
-			zcat ../../snpcall/*${vcfdose}.vcf.gz | grep '^#' > ${v%.txt}.vcf
-			awk 'FNR==NR{a[$1,$2]=$0;next}{if(b=a[$2,$3]){print b}}' <(zcat ../../snpcall/*${vcfdose}.vcf.gz) $v >> ${v%.txt}.vcf
-			arr=$(grep "CHROM" $v | awk '{$1=$2=$3=$4=$5=""}1' | tr -s ' ' | awk '{gsub(/\t/,",");gsub(/ /,",");gsub(/^,/,"");}1')
-			$bcftools view -s "$arr" ${v%.txt}.vcf > tmp.vcf && mv tmp.vcf ${v%.txt}.vcf
-			gzip ${v%.txt}.vcf
-		done
-		wait
-
-		for v in $(ls *dose.txt 2> /dev/null); do
-			vcfdose=${v%_rd*}; vcfdose=${vcfdose#*_}
-			zcat ../../snpcall/*${vcfdose}.vcf.gz | grep '^#' > ${v%.txt}.vcf
-			awk 'FNR==NR{a[$1,$2]=$0;next}{if(b=a[$2,$3]){print b}}' <(gzip -dc ../../snpcall/*${vcfdose}.vcf.gz) $v >> ${v%.txt}.vcf
-			gzip ${v%.txt}.vcf
 		done
 		wait
 
@@ -4669,45 +4672,59 @@ for snpfilter_dir in $(ls -d */); do
 		for i in $(ls *dose_unique_mapped.txt 2> /dev/null); do
 			ARselect=${i%rd*}
 			ARfile=$(ls ../../snpcall/${ARselect}*AR.txt 2> /dev/null)
-			Rscript "${GBSapp_dir}"/scripts/R/heterozygote_vs_allele_ratio_uniqfiltered.R "$i" "$ARfile" "${ploidy}x" "4" "${GBSapp_dir}/tools/R"
+			Rscript "${GBSapp_dir}"/scripts/R/heterozygote_vs_allele_ratio_uniqfiltered.R "$i" "$ARfile" "${ploidydir}x" "4" "${GBSapp_dir}/tools/R"
 			awk 'FNR==NR{a[$1,$2]=$0;next}{if(b=a[$2,$3]){print b}}' $ARfile $i | awk '{gsub(/NA/,"na"); print $1"_"$2"\t"$0}' | \
 			awk 'gsub(/CHROM_POS/,"SNP");}1' > ${i%.txt}_AR_metric.txt
+
+			vcfdose=${i%_rd*}; vcfdose=${vcfdose#*_}
+			zcat ../../snpcall/*${vcfdose}.vcf.gz | grep '^#' > ${i%.txt}.vcf
+			awk 'FNR==NR{a[$1,$2]=$0;next}{if(b=a[$2,$3]){print b}}' <(zcat ../../snpcall/*${vcfdose}.vcf.gz) $i >> ${i%.txt}.vcf
+			arr=$(grep "CHROM" $i | awk '{$1=$2=$3=$4=$5=""}1' | tr -s ' ' | awk '{gsub(/\t/,",");gsub(/ /,",");gsub(/^,/,"");}1')
+			$bcftools view -s "$arr" ${i%.txt}.vcf > tmp.vcf && mv tmp.vcf ${i%.txt}.vcf
+
+			grep -v '^##' ${i%.txt}.vcf | awk '{gsub(/#CHROM/,"CHROM");}1' > ${i%.txt}_tmp.vcf
+			Rscript "${GBSapp_dir}"/scripts/R/recode_vcf.R "${i%.txt}_tmp.vcf" "$i" "${i%.txt}_AR_metric.txt" "${ploidydir}x" "${GBSapp_dir}/tools/R"
+			grep '^##' ${i%.txt}.vcf | cat - <(awk '{gsub(/CHROM/,"#CHROM");}1' dose_temp.vcf) > ${i%.txt}.vcf
+			mv AR_temp.txt ${i%.txt}_AR_metric.txt
+			rm ${i%.txt}_tmp.vcf dose_temp.vcf
+			gzip ${v%.txt}.vcf
+
 			grep -v 'CHROM' ${i%.txt}_AR_metric.txt | awk -F'\t' '{$1=$2=$3=$4=$5=""}1' | awk -F'\t' '{gsub(/na/,"0");}1' | \
 			awk '{gsub(/\t/," ");}1' | awk '{gsub(/-/,"");}1' | awk '{gsub(/ /,",");}1' | awk '{gsub(/0,/,",");}1' | awk '{gsub(/,0$/,",");}1' | \
 			awk -F',' -v OFS=',' -v OFMT='%0.3g' '{s=0; numFields=0; for(i=2; i<=NF;i++){if(length($i)){s+=$i; numFields++}} print (numFields ? s/numFields : 0)}' | \
 			cat <(printf "Allele_ratio_mean\n") - | paste <(awk '{print $1"\t"$2"\t"$3}' ${i%.txt}_AR_metric.txt) - > ${i%.txt}_AR_mean.txt
 		done
 		wait
+
 		for i in $(ls *dose_multi_mapped.txt 2> /dev/null); do
 			ARselect=${i%rd*}
 			ARfile=$(ls ../../snpcall/${ARselect}*AR.txt 2> /dev/null)
-			Rscript "${GBSapp_dir}"/scripts/R/heterozygote_vs_allele_ratio_multifiltered.R "$i" "$ARfile" "${ploidy}x" "4" "${GBSapp_dir}/tools/R"
+			Rscript "${GBSapp_dir}"/scripts/R/heterozygote_vs_allele_ratio_multifiltered.R "$i" "$ARfile" "${ploidydir}x" "4" "${GBSapp_dir}/tools/R"
 			awk 'FNR==NR{a[$1,$2]=$0;next}{if(b=a[$2,$3]){print b}}' $ARfile $i | awk '{gsub(/NA/,"na"); print $1"_"$2"\t"$0}' | \
 			awk 'gsub(/CHROM_POS/,"SNP");}1' > ${i%.txt}_AR_metric.txt
+
+			vcfdose=${i%_rd*}; vcfdose=${vcfdose#*_}
+			zcat ../../snpcall/*${vcfdose}.vcf.gz | grep '^#' > ${i%.txt}.vcf
+			awk 'FNR==NR{a[$1,$2]=$0;next}{if(b=a[$2,$3]){print b}}' <(zcat ../../snpcall/*${vcfdose}.vcf.gz) $i >> ${i%.txt}.vcf
+			arr=$(grep "CHROM" $i | awk '{$1=$2=$3=$4=$5=""}1' | tr -s ' ' | awk '{gsub(/\t/,",");gsub(/ /,",");gsub(/^,/,"");}1')
+			$bcftools view -s "$arr" ${i%.txt}.vcf > tmp.vcf && mv tmp.vcf ${i%.txt}.vcf
+
+			grep -v '^##' ${i%.txt}.vcf | awk '{gsub(/#CHROM/,"CHROM");}1' > ${i%.txt}_tmp.vcf
+			Rscript "${GBSapp_dir}"/scripts/R/recode_vcf.R "${i%.txt}_tmp.vcf" "$i" "${i%.txt}_AR_metric.txt" "${ploidydir}x" "${GBSapp_dir}/tools/R"
+			grep '^##' ${i%.txt}.vcf | cat - <(awk '{gsub(/CHROM/,"#CHROM");}1' dose_temp.vcf) > ${i%.txt}.vcf
+			mv AR_temp.txt ${i%.txt}_AR_metric.txt
+			rm ${i%.txt}_tmp.vcf dose_temp.vcf
+			gzip ${v%.txt}.vcf
+
 			grep -v 'CHROM' ${i%.txt}_AR_metric.txt | awk -F'\t' '{$1=$2=$3=$4=$5=""}1' | awk -F'\t' '{gsub(/na/,"0");}1' | \
 			awk '{gsub(/\t/," ");}1' | awk '{gsub(/-/,"");}1' | awk '{gsub(/ /,",");}1' | awk '{gsub(/0,/,",");}1' | awk '{gsub(/,0$/,",");}1' | \
 			awk -F',' -v OFS=',' -v OFMT='%0.3g' '{s=0; numFields=0; for(i=2; i<=NF;i++){if(length($i)){s+=$i; numFields++}} print (numFields ? s/numFields : 0)}' | \
 			cat <(printf "Allele_ratio_mean\n") - | paste <(awk '{print $1"\t"$2"\t"$3}' ${i%.txt}_AR_metric.txt) - > ${i%.txt}_AR_mean.txt
 		done
 		wait
-		for v in $(ls *dose* 2> /dev/null); do
-			vcfdose=${v%_rd*}; vcfdose=${vcfdose#*_}
-			zcat ../../../snpcall/*${vcfdose}.vcf.gz | grep '^#' > ${v%.txt}.vcf
-			awk 'FNR==NR{a[$1,$2]=$0;next}{if(b=a[$2,$3]){print b}}' <(zcat ../../../snpcall/*${vcfdose}.vcf.gz) $v >> ${v%.txt}.vcf
-			gzip ${v%.txt}.vcf
-		done
-		wait
-		
-		for v in $(ls *dose* 2> /dev/null); do
-			vcfdose=${v%_rd*}; vcfdose=${vcfdose#*_}
-			zcat ../../../snpcall/*${vcfdose}.vcf.gz | grep '^#' > ${v%.txt}.vcf
-			awk 'FNR==NR{a[$1,$2]=$0;next}{if(b=a[$2,$3]){print b}}' <(gzip -dc ../../../snpcall/*${vcfdose}.vcf.gz) $v >> ${v%.txt}.vcf
-			gzip ${v%.txt}.vcf
-		done
-		wait
 
 
-		cd ../../
+		cd "$projdir"/snpfilter
 	fi
 done
 
