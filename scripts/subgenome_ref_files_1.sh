@@ -1107,7 +1107,7 @@ if [[ "$joint_calling" == false ]]; then
 				let i++
 			done
 
-			for dir in $(ls cohorts*/); do
+			for dir in cohorts*/; do
 				cd $dir
 				j=--variant; input=""; k=""
 				for i in $(ls *.g.vcf.gz 2> /dev/null); do

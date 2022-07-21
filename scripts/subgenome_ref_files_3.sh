@@ -2246,7 +2246,7 @@ main () {
 					done
 
 
-					for dir in $(ls *cohorts*/); do
+					for dir in cohorts*/; do
 						cd $dir
 						j=--variant; input=""; k=""
 						for i in $(ls *_${ref2%.f*}.g.vcf.gz 2> /dev/null); do
@@ -2374,7 +2374,7 @@ main () {
 					done
 
 
-					for dir in $(ls *cohorts*/); do
+					for dir in cohorts*/; do
 						cd $dir
 						j=--variant; input=""; k=""
 						for i in $(ls *_${ref3%.f*}.g.vcf.gz 2> /dev/null); do
