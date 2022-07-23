@@ -239,7 +239,7 @@ if [[ -d "./samples/pe" ]] || [[ -d "./samples/se" ]]; then
     if [[ -z $alt_dir ]]; then
     	cp -r samples samples_backup
     else
-	cp -r samples $alt_dir
+	    cp -r samples $alt_dir
     fi
   else
     echo -e "${white}\n##############################################################################"

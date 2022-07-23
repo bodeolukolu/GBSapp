@@ -34,7 +34,7 @@ if (ploidy == "2x"){
     geom_point(aes(x = propHet, y = Allele_Ratio, color = Allele_Ratio), size = 1, pch=19, alpha=0.1)+
     geom_density_2d(bins=50)+
     annotate("rect", xmin=0, xmax=1, ymin=-0.2, ymax=0.2, alpha=0.2, fill="tomato")+
-    scale_x_continuous(expand=c(0,0))+
+    scale_x_continuous(expand=c(0,0), limits=c(1,1.01))+
     scale_y_continuous(expand=c(0,0))+
     scale_colour_gradient2(low="darkorange3", mid="darkgoldenrod1", high ="cornflowerblue",
                            breaks=c(0.75,-0.75), limits=c(-1,1), 
@@ -67,7 +67,7 @@ if (ploidy == "4x"){
     geom_point(aes(x = propHet, y = Allele_Ratio, color = Allele_Ratio), size = 1, pch=19, alpha=0.1)+
     geom_density_2d(bins=50)+
     annotate("rect", xmin=0, xmax=1, ymin=-0.2, ymax=0.2, alpha=0.2, fill="tomato")+
-    scale_x_continuous(expand=c(0,0))+
+    scale_x_continuous(expand=c(0,0), limits=c(1,1.01))+
     scale_y_continuous(expand=c(0,0))+
     scale_colour_gradient2(low="darkorange3", mid="darkgoldenrod1", high ="cornflowerblue",
                            breaks=c(0.75,-0.75), limits=c(-1,1), 
@@ -104,7 +104,7 @@ if (ploidy == "6x"){
     geom_point(aes(x = propHet, y = Allele_Ratio, color = Allele_Ratio), size = 1, pch=19, alpha=0.1)+
     geom_density_2d(bins=50)+
     annotate("rect", xmin=0, xmax=1, ymin=-0.2, ymax=0.2, alpha=0.2, fill="tomato")+
-    scale_x_continuous(expand=c(0,0))+
+    scale_x_continuous(expand=c(0,0), limits=c(1,1.01))+
     scale_y_continuous(expand=c(0,0))+
     scale_colour_gradient2(low="darkorange3", mid="darkgoldenrod1", high ="cornflowerblue",
                            breaks=c(0.75,-0.75), limits=c(-1,1), 
@@ -144,7 +144,7 @@ if (ploidy == "8x"){
     geom_point(aes(x = propHet, y = Allele_Ratio, color = Allele_Ratio), size = 1, pch=19, alpha=0.1)+
     geom_density_2d(bins=50)+
     annotate("rect", xmin=0, xmax=1, ymin=-0.2, ymax=0.2, alpha=0.2, fill="tomato")+
-    scale_x_continuous(expand=c(0,0))+
+    scale_x_continuous(expand=c(0,0), limits=c(1,1.01))+
     scale_y_continuous(expand=c(0,0))+
     scale_colour_gradient2(low="darkorange3", mid="darkgoldenrod1", high ="cornflowerblue",
                            breaks=c(0.75,-0.75), limits=c(-1,1), 
