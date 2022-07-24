@@ -483,7 +483,7 @@ main () {
 	cd samples
 
 	if [[ "$samples_list" == "samples_list_node_1.txt" ]] && test ! -f ${projdir}/organize_files_done.txt; then
-		for i in $( cat ${projdir}/samples_list_node_* ); do
+		for i in $( cat ${projdir}/samples_list_node_* ); do (
 			if [[ "$lib_type" =~ "RRS" || "$lib_type" =~ "rrs" ]] && test ! -f ${projdir}/preprocess/${i%.f*}_redun.sam && test ! -f ${projdir}/preprocess/${i%.f*}_${ref1%.f*}_precall.bam.bai; then
 				if test ! -f ${i%.f*}_uniq_R1.fasta.gz; then
 					if [[ $(file $i | awk -F' ' '{print $2}') == gzip ]]; then
@@ -552,6 +552,9 @@ main () {
 					fi
 					wait
 				fi
+			fi ) &
+			if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
+				wait
 			fi
 		done
 
@@ -567,7 +570,7 @@ main () {
 			echo -e "${magenta}- $(wc -l ../report_fq_compress_index.txt | awk '{print $1}') fastq files not properly processed ${white}\n"
 			END=10
 			while [[ $END -gt 0 ]]; do
-				for i in $( cat ${projdir}/${samples_list} ); do
+				for i in $( cat ${projdir}/${samples_list} ); do (
 					if [[ "$lib_type" =~ "RRS" || "$lib_type" =~ "rrs" ]] && test ! -f ${projdir}/compress_done.txt && test ! -f ${projdir}/organize_files_done.txt && test ! -f ${projdir}/preprocess/${i%.f*}_redun.sam && test ! -f ${projdir}/preprocess/${i%.f*}_${ref1%.f*}_precall.bam.bai; then
 						if test ! -f ${i%.f*}_uniq_R1.fasta.gz; then
 							if [[ $(file $i | awk -F' ' '{print $2}') == gzip ]]; then
@@ -636,6 +639,9 @@ main () {
 							fi
 							wait
 						fi
+					fi ) &
+					if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
+						wait
 					fi
 				done
 				END=$(($END-1))
