@@ -520,7 +520,7 @@ main () {
 						export LC_ALL=C; paste -d ~ <(zcat ${i%.f*}_uniq.txt.gz 2> /dev/null) <(zcat ${i%.f*}_R2_uniq.txt.gz 2> /dev/null) | expand -t $(( $(wc -L < $i ) + 2 )) | awk '{!seen[$0]++}END{for (i in seen) print seen[i], i}' | awk '{$1=$1};1' | \
 						awk '{gsub(" /"," "); print}' | awk '{gsub("/\n","\n"); print}' | awk '{gsub("/"," "); print}' | awk '{gsub(" ","\t"); print}' | gzip > ${i%.f*}_rdrefseq.txt.gz 2> /dev/null &&
 						repseqs=$(awk '{all[NR] = $0} END{print all[int(NR*0.999 - 0.5)]}' <(zcat ${i%.f*}_rdrefseq.txt.gz | awk '{print $1}' | sort -n))
-						awk -v repseqs=$repseqs '$1<=repseqs{print $0}' <(zcat ${i%.f*}_rdrefseq.txt.gz) > ${i%.f*}_rdrefseq.tmp; mv ${i%.f*}_rdrefseq.tmp ${i%.f*}_rdrefseq.txt && gzip ${i%.f*}_rdrefseq.txt
+						awk -v repseqs=$repseqs '$1<=repseqs{print $0}' <(zcat ${i%.f*}_rdrefseq.txt.gz) | gzip > ${i%.f*}_rdrefseq.tmp.gz; mv ${i%.f*}_rdrefseq.tmp.gz ${i%.f*}_rdrefseq.txt.gz
 						wait
 						awk 'NF==2 {print ">seq"NR"_se-"$1"\t"$2}' <(zcat ${i%.f*}_rdrefseq.txt.gz 2> /dev/null) | gzip > ${i%.f*}_rdrefseq_se.txt.gz 2> /dev/null &&
 						wait
@@ -540,7 +540,7 @@ main () {
 						export LC_ALL=C; paste -d ~ <(zcat ${i%.f*}_uniq.txt.gz 2> /dev/null) ${i%.f*}_R2_uniq.txt | expand -t $(( $(wc -L < $i ) + 2 )) | awk '{!seen[$0]++}END{for (i in seen) print seen[i], i}' | awk '{$1=$1};1' | \
 						awk '{gsub(" /"," "); print}' | awk '{gsub("/\n","\n"); print}' | awk '{gsub("/"," "); print}' | awk '{gsub(" ","\t"); print}' | gzip > ${i%.f*}_rdrefseq.txt.gz 2> /dev/null &&
 						repseqs=$(awk '{all[NR] = $0} END{print all[int(NR*0.999 - 0.5)]}' <(zcat ${i%.f*}_rdrefseq.txt.gz | awk '{print $1}' | sort -n))
-						awk -v repseqs=$repseqs '$1<=repseqs{print $0}' <(zcat ${i%.f*}_rdrefseq.txt.gz) > ${i%.f*}_rdrefseq.tmp; mv ${i%.f*}_rdrefseq.tmp ${i%.f*}_rdrefseq.txt && gzip ${i%.f*}_rdrefseq.txt
+						awk -v repseqs=$repseqs '$1<=repseqs{print $0}' <(zcat ${i%.f*}_rdrefseq.txt.gz) | gzip > ${i%.f*}_rdrefseq.tmp.gz; mv ${i%.f*}_rdrefseq.tmp.gz ${i%.f*}_rdrefseq.txt.gz
 						wait
 						awk 'NF==2 {print ">seq"NR"_pe-"$0}' <(zcat ${i%.f*}_rdrefseq.txt.gz 2> /dev/null) | awk '{print $1"\t"$2}' | gzip > ${i%.f*}_uniq_R1.hold.fasta.gz 2> /dev/null &&
 						wait
@@ -604,7 +604,7 @@ main () {
 								export LC_ALL=C; paste -d ~ <(zcat ${i%.f*}_uniq.txt.gz 2> /dev/null) <(zcat ${i%.f*}_R2_uniq.txt.gz 2> /dev/null) | expand -t $(( $(wc -L < $i ) + 2 )) | awk '{!seen[$0]++}END{for (i in seen) print seen[i], i}' | awk '{$1=$1};1' | \
 								awk '{gsub(" /"," "); print}' | awk '{gsub("/\n","\n"); print}' | awk '{gsub("/"," "); print}' | awk '{gsub(" ","\t"); print}' | $gzip > ${i%.f*}_rdrefseq.txt.gz 2> /dev/null &&
 								repseqs=$(awk '{all[NR] = $0} END{print all[int(NR*0.999 - 0.5)]}' <(zcat ${i%.f*}_rdrefseq.txt.gz | awk '{print $1}' | sort -n))
-								awk -v repseqs=$repseqs '$1<=repseqs{print $0}' <(zcat ${i%.f*}_rdrefseq.txt.gz) > ${i%.f*}_rdrefseq.tmp; mv ${i%.f*}_rdrefseq.tmp ${i%.f*}_rdrefseq.txt && gzip ${i%.f*}_rdrefseq.txt
+								awk -v repseqs=$repseqs '$1<=repseqs{print $0}' <(zcat ${i%.f*}_rdrefseq.txt.gz) | gzip > ${i%.f*}_rdrefseq.tmp.gz; mv ${i%.f*}_rdrefseq.tmp.gz ${i%.f*}_rdrefseq.txt.gz
 								wait
 								awk 'NF==2 {print ">seq"NR"_se-"$1"\t"$2}' <(zcat ${i%.f*}_rdrefseq.txt.gz 2> /dev/null) | $gzip > ${i%.f*}_rdrefseq_se.txt.gz 2> /dev/null &&
 								wait
@@ -624,7 +624,7 @@ main () {
 								export LC_ALL=C; paste -d ~ <(zcat ${i%.f*}_uniq.txt.gz 2> /dev/null) ${i%.f*}_R2_uniq.txt | expand -t $(( $(wc -L < $i ) + 2 )) | awk '{!seen[$0]++}END{for (i in seen) print seen[i], i}' | awk '{$1=$1};1' | \
 								awk '{gsub(" /"," "); print}' | awk '{gsub("/\n","\n"); print}' | awk '{gsub("/"," "); print}' | awk '{gsub(" ","\t"); print}' | $gzip > ${i%.f*}_rdrefseq.txt.gz 2> /dev/null &&
 								repseqs=$(awk '{all[NR] = $0} END{print all[int(NR*0.999 - 0.5)]}' <(zcat ${i%.f*}_rdrefseq.txt.gz | awk '{print $1}' | sort -n))
-								awk -v repseqs=$repseqs '$1<=repseqs{print $0}' <(zcat ${i%.f*}_rdrefseq.txt.gz) > ${i%.f*}_rdrefseq.tmp; mv ${i%.f*}_rdrefseq.tmp ${i%.f*}_rdrefseq.txt && gzip ${i%.f*}_rdrefseq.txt
+								awk -v repseqs=$repseqs '$1<=repseqs{print $0}' <(zcat ${i%.f*}_rdrefseq.txt.gz) | gzip > ${i%.f*}_rdrefseq.tmp.gz; mv ${i%.f*}_rdrefseq.tmp.gz ${i%.f*}_rdrefseq.txt.gz
 								wait
 								awk 'NF==2 {print ">seq"NR"_pe-"$0}' <(zcat ${i%.f*}_rdrefseq.txt.gz 2> /dev/null) | awk '{print $1"\t"$2}' | $gzip > ${i%.f*}_uniq_R1.hold.fasta.gz 2> /dev/null &&
 								wait
