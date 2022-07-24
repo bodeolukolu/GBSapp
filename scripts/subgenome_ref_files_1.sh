@@ -484,7 +484,7 @@ main () {
 	cd samples
 
 	if [[ "$samples_list" == "samples_list_node_1.txt" ]] && test ! -f ${projdir}/organize_files_done.txt; then
-		for i in $( cat ${projdir}/samples_list_node_* ); do (
+		for i in $( cat ${projdir}/samples_list_node_* ); do
 			if [[ "$lib_type" =~ "RRS" || "$lib_type" =~ "rrs" ]] && test ! -f ${projdir}/preprocess/${i%.f*}_redun.sam && test ! -f ${projdir}/preprocess/${i%.f*}_${ref1%.f*}_precall.bam.bai; then
 				if test ! -f ${i%.f*}_uniq_R1.fasta.gz; then
 					if [[ $(file $i | awk -F' ' '{print $2}') == gzip ]]; then
@@ -515,6 +515,7 @@ main () {
 						wait
 					fi
 					wait
+					rm ${i%.f*}_rdrefseq.txt.gz
 					if test -f "${i%.f*}_R2_uniq.txt.gz"; then
 						export LC_ALL=C; paste -d ~ <(zcat ${i%.f*}_uniq.txt.gz 2> /dev/null) <(zcat ${i%.f*}_R2_uniq.txt.gz 2> /dev/null) | expand -t $(( $(wc -L < $i ) + 2 )) | awk '{!seen[$0]++}END{for (i in seen) print seen[i], i}' | awk '{$1=$1};1' | \
 						awk '{gsub(" /"," "); print}' | awk '{gsub("/\n","\n"); print}' | awk '{gsub("/"," "); print}' | awk '{gsub(" ","\t"); print}' | gzip > ${i%.f*}_rdrefseq.txt.gz 2> /dev/null &&
@@ -552,9 +553,6 @@ main () {
 					fi
 					wait
 				fi
-			fi ) &
-			if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
-				wait
 			fi
 		done
 
@@ -601,6 +599,7 @@ main () {
 								wait
 							fi
 							wait
+							rm ${i%.f*}_rdrefseq.txt.gz
 							if test -f "${i%.f*}_R2_uniq.txt.gz"; then
 								export LC_ALL=C; paste -d ~ <(zcat ${i%.f*}_uniq.txt.gz 2> /dev/null) <(zcat ${i%.f*}_R2_uniq.txt.gz 2> /dev/null) | expand -t $(( $(wc -L < $i ) + 2 )) | awk '{!seen[$0]++}END{for (i in seen) print seen[i], i}' | awk '{$1=$1};1' | \
 								awk '{gsub(" /"," "); print}' | awk '{gsub("/\n","\n"); print}' | awk '{gsub("/"," "); print}' | awk '{gsub(" ","\t"); print}' | $gzip > ${i%.f*}_rdrefseq.txt.gz 2> /dev/null &&
