@@ -483,7 +483,7 @@ main () {
 	cd samples
 
 	if [[ "$samples_list" == "samples_list_node_1.txt" ]] && test ! -f ${projdir}/organize_files_done.txt; then
-		for i in $( cat ${projdir}/samples_list_node_* ); do (
+		for i in $( cat ${projdir}/samples_list_node_* ); do
 			if [[ "$lib_type" =~ "RRS" || "$lib_type" =~ "rrs" ]] && test ! -f ${projdir}/preprocess/${i%.f*}_redun.sam && test ! -f ${projdir}/preprocess/${i%.f*}_${ref1%.f*}_precall.bam.bai; then
 				if test ! -f ${i%.f*}_uniq_R1.fasta.gz; then
 					if [[ $(file $i | awk -F' ' '{print $2}') == gzip ]]; then
@@ -514,7 +514,7 @@ main () {
 						wait
 					fi
 					wait
-					rm ${i%.f*}_rdrefseq.txt.gz
+
 					if test -f "${i%.f*}_R2_uniq.txt.gz"; then
 						export LC_ALL=C; paste -d ~ <(zcat ${i%.f*}_uniq.txt.gz 2> /dev/null) <(zcat ${i%.f*}_R2_uniq.txt.gz 2> /dev/null) | expand -t $(( $(wc -L < $i ) + 2 )) | awk '{!seen[$0]++}END{for (i in seen) print seen[i], i}' | awk '{$1=$1};1' | \
 						awk '{gsub(" /"," "); print}' | awk '{gsub("/\n","\n"); print}' | awk '{gsub("/"," "); print}' | awk '{gsub(" ","\t"); print}' | gzip > ${i%.f*}_rdrefseq.txt.gz 2> /dev/null &&
@@ -548,9 +548,6 @@ main () {
 					fi
 					wait
 				fi
-			fi ) &
-			if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
-				wait
 			fi
 		done
 
@@ -566,7 +563,7 @@ main () {
 			echo -e "${magenta}- $(wc -l ../report_fq_compress_index.txt | awk '{print $1}') fastq files not properly processed ${white}\n"
 			END=10
 			while [[ $END -gt 0 ]]; do
-				for i in $( cat ${projdir}/${samples_list} ); do (
+				for i in $( cat ${projdir}/${samples_list} ); do
 					if [[ "$lib_type" =~ "RRS" || "$lib_type" =~ "rrs" ]] && test ! -f ${projdir}/compress_done.txt && test ! -f ${projdir}/organize_files_done.txt && test ! -f ${projdir}/preprocess/${i%.f*}_redun.sam && test ! -f ${projdir}/preprocess/${i%.f*}_${ref1%.f*}_precall.bam.bai; then
 						if test ! -f ${i%.f*}_uniq_R1.fasta.gz; then
 							if [[ $(file $i | awk -F' ' '{print $2}') == gzip ]]; then
@@ -597,7 +594,7 @@ main () {
 								wait
 							fi
 							wait
-							rm ${i%.f*}_rdrefseq.txt.gz
+
 							if test -f "${i%.f*}_R2_uniq.txt.gz"; then
 								export LC_ALL=C; paste -d ~ <(zcat ${i%.f*}_uniq.txt.gz 2> /dev/null) <(zcat ${i%.f*}_R2_uniq.txt.gz 2> /dev/null) | expand -t $(( $(wc -L < $i ) + 2 )) | awk '{!seen[$0]++}END{for (i in seen) print seen[i], i}' | awk '{$1=$1};1' | \
 								awk '{gsub(" /"," "); print}' | awk '{gsub("/\n","\n"); print}' | awk '{gsub("/"," "); print}' | awk '{gsub(" ","\t"); print}' | $gzip > ${i%.f*}_rdrefseq.txt.gz 2> /dev/null &&
@@ -631,9 +628,6 @@ main () {
 							fi
 							wait
 						fi
-					fi ) &
-					if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
-						wait
 					fi
 				done
 				END=$(($END-1))
@@ -660,7 +654,7 @@ main () {
 				jalign=1
 				for samplechunk in $(ls *_uniq_R1.fasta.gz 2> /dev/null | shuf | awk -v jal=$joint_alignment '{ORS=NR%jal?",":"\n"}1'); do
 					cat $(echo $samplechunk | awk '{gsub(/,/," ");}1') | zcat | awk '{print $2}' | awk '{!seen[$0]++}END{for (i in seen) print seen[i], i}' | \
-					awk -v chk=$jalign '{print $1"\t@merged_R1_seq"NR"_chunk"chk"\t"$1"\t"$1}' | $gzip > combined_all_sample_reads_R1_hold_chunk${jalign}.fq.gz
+					awk -v chk=$jalign '{print $2"\t@merged_R1_seq"NR"_chunk"chk"\t"$2"\t"$2}' | $gzip > combined_all_sample_reads_R1_hold_chunk${jalign}.fq.gz
 					awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$4); print}'  <(zcat combined_all_sample_reads_R1_hold_chunk${jalign}.fq.gz) | \
 					awk '{print $2"\n"$3"\n+\n"$4}' | $gzip > combined_all_sample_reads_R1_chunk${jalign}.fq.gz
 					jalign=$((jalign + 1))
@@ -674,7 +668,7 @@ main () {
 				jalign=1
 				for samplechunk in $(ls *_uniq_R2.fasta.gz 2> /dev/null | shuf | awk -v jal=$joint_alignment '{ORS=NR%jal?",":"\n"}1'); do
 					cat $(echo $samplechunk | awk '{gsub(/,/," ");}1') | zcat | awk '{print $2}' | awk '{!seen[$0]++}END{for (i in seen) print seen[i], i}' | \
-					awk -v chk=$jalign '{print $1"\t@merged_R2_seq"NR"_chunk"chk"\t"$1"\t"$1}' | $gzip > combined_all_sample_reads_R2_hold_chunk${jalign}.fq.gz
+					awk -v chk=$jalign '{print $2"\t@merged_R2_seq"NR"_chunk"chk"\t"$2"\t"$2}' | $gzip > combined_all_sample_reads_R2_hold_chunk${jalign}.fq.gz
 					awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$4); print}'  <(zcat combined_all_sample_reads_R2_hold_chunk${jalign}.fq.gz) | \
 					awk '{print $2"\n"$3"\n+\n"$4}' | $gzip > combined_all_sample_reads_R2_chunk${jalign}.fq.gz
 					jalign=$((jalign + 1))
@@ -695,7 +689,7 @@ main () {
 				jalign=1
 				for samplechunk in $(ls *_uniq_R1.fasta.gz 2> /dev/null | shuf | awk -v jal=$joint_alignment '{ORS=NR%jal?",":"\n"}1'); do
 					cat $(echo $samplechunk | awk '{gsub(/,/," ");}1') | zcat | awk '{print $2}' | awk '{!seen[$0]++}END{for (i in seen) print seen[i], i}' | \
-					awk -v chk=$jalign '{print $1"\t@merged_R1_seq"NR"_chunk"chk"\t"$1"\t"$1}' | $gzip > combined_all_sample_reads_R1_hold_chunk${jalign}.fq.gz
+					awk -v chk=$jalign '{print $2"\t@merged_R1_seq"NR"_chunk"chk"\t"$2"\t"$2}' | $gzip > combined_all_sample_reads_R1_hold_chunk${jalign}.fq.gz
 					awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$4); print}'  <(zcat combined_all_sample_reads_R1_hold_chunk${jalign}.fq.gz) | \
 					awk '{print $2"\n"$3"\n+\n"$4}' | $gzip > combined_all_sample_reads_R1_chunk${jalign}.fq.gz
 					jalign=$((jalign + 1))
@@ -860,8 +854,10 @@ main () {
 	fi
 
 
-	cp -rn ${projdir}/samples/merged_index.txt.gz /tmp/${samples_list%.txt}/samples/ &&
-	cp -rn ${projdir}/preprocess/combined_all_sample_reads_redun.sam.gz /tmp/${samples_list%.txt}/preprocess/
+	if [[ "$nodes" -gt 1 ]]; then
+		cp -rn ${projdir}/samples/merged_index.txt.gz /tmp/${samples_list%.txt}/samples/ &&
+		cp -rn ${projdir}/preprocess/combined_all_sample_reads_redun.sam.gz /tmp/${samples_list%.txt}/preprocess/
+	fi
 	wait
 	if [[ $nodes -eq 1 ]]; then cd ${projdir}/preprocess/; fi
 	if [[ $nodes -gt 1 ]] && test -f ${projdir}/GBSapp_run_node_1.sh; then cd /tmp/${samples_list%.txt}/preprocess/; fi
@@ -1066,7 +1062,7 @@ main () {
 						wait
 			done
 			wait
-		fi )
+		fi ) &
     if [[ $(jobs -r -p | wc -l) -ge $prepN ]]; then
       wait
     fi
@@ -3003,14 +2999,14 @@ for snpfilter_dir in $(ls -d */); do
 		cd unique_mapped
 		for i in $(ls *dose_unique_mapped.txt 2> /dev/null); do
 			ARselect=${i%rd*}
-			ARfile=$(ls ../../snpcall/${ARselect}*AR.txt 2> /dev/null)
+			ARfile=$(ls ../../../snpcall/${ARselect}*AR.txt 2> /dev/null)
 			Rscript "${GBSapp_dir}"/scripts/R/heterozygote_vs_allele_ratio_uniqfiltered.R "$i" "$ARfile" "${ploidydir}x" "3" "${GBSapp_dir}/tools/R"
 			awk 'FNR==NR{a[$1,$2]=$0;next}{if(b=a[$2,$3]){print b}}' $ARfile $i | awk '{gsub(/NA/,"na"); print $1"_"$2"\t"$0}' | \
 			awk 'gsub(/CHROM_POS/,"SNP");}1' > ${i%.txt}_AR_metric.txt
 
 			vcfdose=${i%_rd*}; vcfdose=${vcfdose#*_}
-			zcat ../../snpcall/*${vcfdose}.vcf.gz | grep '^#' > ${i%.txt}.vcf
-			awk 'FNR==NR{a[$1,$2]=$0;next}{if(b=a[$2,$3]){print b}}' <(zcat ../../snpcall/*${vcfdose}.vcf.gz) $i >> ${i%.txt}.vcf
+			zcat ../../../snpcall/*${vcfdose}.vcf.gz | grep '^#' > ${i%.txt}.vcf
+			awk 'FNR==NR{a[$1,$2]=$0;next}{if(b=a[$2,$3]){print b}}' <(zcat ../../../snpcall/*${vcfdose}.vcf.gz) $i >> ${i%.txt}.vcf
 			arr=$(grep "CHROM" $i | awk '{$1=$2=$3=$4=$5=""}1' | tr -s ' ' | awk '{gsub(/\t/,",");gsub(/ /,",");gsub(/^,/,"");}1')
 			$bcftools view -s "$arr" ${i%.txt}.vcf > tmp.vcf && mv tmp.vcf ${i%.txt}.vcf
 
@@ -3030,14 +3026,14 @@ for snpfilter_dir in $(ls -d */); do
 
 		for i in $(ls *dose_multi_mapped.txt 2> /dev/null); do
 			ARselect=${i%rd*}
-			ARfile=$(ls ../../snpcall/${ARselect}*AR.txt 2> /dev/null)
+			ARfile=$(ls ../../../snpcall/${ARselect}*AR.txt 2> /dev/null)
 			Rscript "${GBSapp_dir}"/scripts/R/heterozygote_vs_allele_ratio_multifiltered.R "$i" "$ARfile" "${ploidydir}x" "3" "${GBSapp_dir}/tools/R"
 			awk 'FNR==NR{a[$1,$2]=$0;next}{if(b=a[$2,$3]){print b}}' $ARfile $i | awk '{gsub(/NA/,"na"); print $1"_"$2"\t"$0}' | \
 			awk 'gsub(/CHROM_POS/,"SNP");}1' > ${i%.txt}_AR_metric.txt
 
 			vcfdose=${i%_rd*}; vcfdose=${vcfdose#*_}
-			zcat ../../snpcall/*${vcfdose}.vcf.gz | grep '^#' > ${i%.txt}.vcf
-			awk 'FNR==NR{a[$1,$2]=$0;next}{if(b=a[$2,$3]){print b}}' <(zcat ../../snpcall/*${vcfdose}.vcf.gz) $i >> ${i%.txt}.vcf
+			zcat ../../../snpcall/*${vcfdose}.vcf.gz | grep '^#' > ${i%.txt}.vcf
+			awk 'FNR==NR{a[$1,$2]=$0;next}{if(b=a[$2,$3]){print b}}' <(zcat ../../../snpcall/*${vcfdose}.vcf.gz) $i >> ${i%.txt}.vcf
 			arr=$(grep "CHROM" $i | awk '{$1=$2=$3=$4=$5=""}1' | tr -s ' ' | awk '{gsub(/\t/,",");gsub(/ /,",");gsub(/^,/,"");}1')
 			$bcftools view -s "$arr" ${i%.txt}.vcf > tmp.vcf && mv tmp.vcf ${i%.txt}.vcf
 

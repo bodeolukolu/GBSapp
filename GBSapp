@@ -230,19 +230,19 @@ cd $projdir
 if [[ -d "./samples/pe" ]] || [[ -d "./samples/se" ]]; then
   echo -e "${magenta}- GBSapp will modify your sample fastq files by concatenating <pe-R1-reads> and <se-reads> ${white}"
   echo -e "${magenta}- Do you want to create a copy/backup of your sample fastq file? ${white}"
-  read -p "- y(YES) or n(NO)? " -n 1 -r
-  if [[ $REPLY = ^[Yy]$ ]]; then
+  read -p "- y(YES) or n(NO)? " -t 36000 -n 1 -r
+  if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+    echo -e "${white}\n##############################################################################"
+  else
     printf "\n"
     echo -e "${magenta}- A copy of your sample fastq files will be stored in user-defined directory or in ${projdir}/samples_backup/ ${white}"
     echo -e "${magenta}- Specify alternate directory (Absolute/Full path) or Press Enter? ${white}"
     read alt_dir
     if [[ -z $alt_dir ]]; then
-    	cp -r samples samples_backup
+      cp -r samples samples_backup
     else
-	    cp -r samples $alt_dir
+      printf "cp -r samples $alt_dir" > backup.sh
     fi
-  else
-    echo -e "${white}\n##############################################################################"
   fi
 else
   if test -f "./samples/filename_reformatted.txt" || test -f "./samples/flushed_reads.txt"; then
@@ -250,8 +250,10 @@ else
   else
     echo -e "${magenta}- GBSapp will modify your sample fastq files ${white}"
     echo -e "${magenta}- Do you want to create a copy/backup of your sample fastq file? ${white}"
-    read -p "- y(YES) or n(NO)? " -n 1 -r
-    if [[ $REPLY = ^[Yy]$ ]]; then
+    read -p "- y(YES) or n(NO)? " -t 36000 -n 1 -r
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+      echo -e "${white}\n##############################################################################"
+    else
       printf "\n"
       echo -e "${magenta}- A copy of your sample fastq files will be stored in user-defined directory or in ${projdir}/samples_backup/ ${white}"
       echo -e "${magenta}- Specify alternate directory (Absolute/Full path) or Press Enter? ${white}"
@@ -259,10 +261,8 @@ else
       if [[ -z $alt_dir ]]; then
         cp -r samples samples_backup
       else
-    cp -r samples $alt_dir
+        cp -r samples $alt_dir
       fi
-    else
-      echo -e "${white}\n##############################################################################"
     fi
   fi
 fi
