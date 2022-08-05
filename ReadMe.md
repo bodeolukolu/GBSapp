@@ -18,12 +18,14 @@ For questions, bugs, and suggestions, please contact bolukolu@utk.edu.
 - Annonate SNPs based on if reads map to single and multiple loci.
 - Parallelization of job on multiple compute cluster nodes (spark cluster infrastructure not required)
 - Splice-aware aligner allows for RNAseq data as input (recommended only for haploid or diploid genomes)
-- Can exclude reads that are rare haplotypes at population level (due to sequencing error and somaclonal variation).
+- *Fast alignment speed (up to several 1,000x faster): joint alignment algorithm.
+- *Fast variant calling (~10x faster than normal GATK implementation): excludes monomorphic sequences before variant calling.
+- visualizations for report and QC
 - Functions under-development:
   - calling microhaplotypes
   - generating sequence context for variants
   - estimating ploidy level and aneuploidy.
-
+-*functions only available in fast version of GBSapp (for usage, contact us)
 
 
 ## Contents
@@ -143,7 +145,7 @@ Using a text editor, save a file containing any of the following variables as 'c
 **Advanced parameters**
 |Variable      |Default       |Usage         |Input         |required/Optional|
 |:-------------|:-------------|:-------------|:-------------|:----------------|
-|joint_alignment|200|number of samples in joint alignment|integer|Optional|
+|joint_alignment|1|number of samples in joint alignment|integer|Optional|
 |maxHaplotype|128|maximum number of haplotypes per haploid genome across population(increase for polyploids/high heterozygosity/high background mutational load)|integer|Optional|
 |haplome_number|1|number of haplomes resolved in reference genome assembly|integer|Optional|
 |softclip|false|do not use soft Clipped bases (recommended)|string|Optional|

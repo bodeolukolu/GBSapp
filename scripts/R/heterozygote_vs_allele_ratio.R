@@ -77,14 +77,14 @@ if (ploidy == "4x"){
     geom_hline(yintercept = 0, color="grey20", size=0.5, linetype="dashed")+ 
     geom_hline(yintercept = -0.17, color="tomato", size=0.5, linetype="dashed")+ 
     geom_hline(yintercept = 1, color="grey20", size=0.5, linetype="dashed")+ 
-    geom_hline(yintercept = 0.33, color="grey20", size=0.5, linetype="dashed")+ 
-    geom_hline(yintercept = -0.33, color="grey20", size=0.5, linetype="dashed")+ 
+    # geom_hline(yintercept = 0.33, color="grey20", size=0.5, linetype="dashed")+ 
+    # geom_hline(yintercept = -0.33, color="grey20", size=0.5, linetype="dashed")+ 
     geom_hline(yintercept = -1, color="grey20", size=0.5, linetype="dashed")+ 
     annotate("text", x=0.92, y=0, label="Homozygote", vjust=-0.5, fontface="italic")+
-    annotate("text", x=0.89, y=0.33, label="Heterozygote (0/0/0/1)", vjust=-0.5, fontface="italic")+
+    # annotate("text", x=0.89, y=0.33, label="Heterozygote (0/0/0/1)", vjust=-0.5, fontface="italic")+
     annotate("text", x=0.85, y=1, label="Heterozygote (balanced allele ratio)", vjust=1, fontface="italic")+
     annotate("text", x=0.85, y=-1, label="Heterozygote (balanced allele ratio)", vjust=-1, fontface="italic")+
-    annotate("text", x=0.89, y=-0.33, label="Heterozygote (0/1/1/1)", vjust=0.5, fontface="italic")+
+    # annotate("text", x=0.89, y=-0.33, label="Heterozygote (0/1/1/1)", vjust=0.5, fontface="italic")+
     annotate("text", x=0.85, y=0.17, label="Allele Ratio threshold (> 0.17): 1/1/1/1", vjust=-0.5, fontface="italic")+
     annotate("text", x=0.85, y=-0.17, label="Allele Ratio threshold (< -0.17): 0/0/0/0", vjust=1.2, fontface="italic")+
     xlab("Proportion of Heterozygote per Locus (tetraploid)") +
@@ -114,18 +114,18 @@ if (ploidy == "6x"){
     geom_hline(yintercept = 0, color="grey20", size=0.5, linetype="dashed")+ 
     geom_hline(yintercept = -0.14, color="tomato", size=0.5, linetype="dashed")+ 
     geom_hline(yintercept = 1, color="grey20", size=0.5, linetype="dashed")+ 
-    geom_hline(yintercept = 0.2, color="grey20", size=0.5, linetype="dashed")+
-    geom_hline(yintercept = 0.5, color="grey20", size=0.5, linetype="dashed")+
-    geom_hline(yintercept = -0.2, color="grey20", size=0.5, linetype="dashed")+ 
-    geom_hline(yintercept = -0.5, color="grey20", size=0.5, linetype="dashed")+ 
+    # geom_hline(yintercept = 0.2, color="grey20", size=0.5, linetype="dashed")+
+    # geom_hline(yintercept = 0.5, color="grey20", size=0.5, linetype="dashed")+
+    # geom_hline(yintercept = -0.2, color="grey20", size=0.5, linetype="dashed")+ 
+    # geom_hline(yintercept = -0.5, color="grey20", size=0.5, linetype="dashed")+ 
     geom_hline(yintercept = -1, color="grey20", size=0.5, linetype="dashed")+ 
     annotate("text", x=0.92, y=0, label="Homozygote", vjust=-0.5, fontface="italic")+
-    annotate("text", x=0.88, y=0.2, label="Heterozygote (0/0/0/0/0/1)", vjust=-0.5, fontface="italic")+
-    annotate("text", x=0.88, y=0.5, label="Heterozygote (0/0/0/0/1/1)", vjust=-0.5, fontface="italic")+
+    # annotate("text", x=0.88, y=0.2, label="Heterozygote (0/0/0/0/0/1)", vjust=-0.5, fontface="italic")+
+    # annotate("text", x=0.88, y=0.5, label="Heterozygote (0/0/0/0/1/1)", vjust=-0.5, fontface="italic")+
     annotate("text", x=0.85, y=1, label="Heterozygote (balanced allele ratio)", vjust=1, fontface="italic")+
     annotate("text", x=0.85, y=-1, label="Heterozygote (balanced allele ratio)", vjust=-1, fontface="italic")+
-    annotate("text", x=0.88, y=-0.5, label="Heterozygote (0/0/1/1/1/1)", vjust=0.5, fontface="italic")+
-    annotate("text", x=0.88, y=-0.2, label="Heterozygote (0/1/1/1/1/1)", vjust=0.5, fontface="italic")+
+    # annotate("text", x=0.88, y=-0.5, label="Heterozygote (0/0/1/1/1/1)", vjust=0.5, fontface="italic")+
+    # annotate("text", x=0.88, y=-0.2, label="Heterozygote (0/1/1/1/1/1)", vjust=0.5, fontface="italic")+
     annotate("text", x=0.84, y=0.14, label="Allele Ratio threshold (> 0.14): 1/1/1/1/1/1", vjust=-0.5, fontface="italic")+
     annotate("text", x=0.84, y=-0.14, label="Allele Ratio threshold (< -0.14): 0/0/0/0/0/0", vjust=1.2, fontface="italic")+
     xlab("Proportion of Heterozygote per Locus (hexaploid)") +
@@ -154,22 +154,22 @@ if (ploidy == "8x"){
     geom_hline(yintercept = 0, color="grey20", size=0.5, linetype="dashed")+ 
     geom_hline(yintercept = -0.09, color="tomato", size=0.5, linetype="dashed")+ 
     geom_hline(yintercept = 1, color="grey20", size=0.5, linetype="dashed")+ 
-    geom_hline(yintercept = 0.6, color="grey20", size=0.5, linetype="dashed")+
-    geom_hline(yintercept = 0.33, color="grey20", size=0.5, linetype="dashed")+
-    geom_hline(yintercept = 0.14, color="grey20", size=0.5, linetype="dashed")+
-    geom_hline(yintercept = -0.6, color="grey20", size=0.5, linetype="dashed")+ 
-    geom_hline(yintercept = -0.33, color="grey20", size=0.5, linetype="dashed")+ 
-    geom_hline(yintercept = -0.14, color="grey20", size=0.5, linetype="dashed")+ 
+    # geom_hline(yintercept = 0.6, color="grey20", size=0.5, linetype="dashed")+
+    # geom_hline(yintercept = 0.33, color="grey20", size=0.5, linetype="dashed")+
+    # geom_hline(yintercept = 0.14, color="grey20", size=0.5, linetype="dashed")+
+    # geom_hline(yintercept = -0.6, color="grey20", size=0.5, linetype="dashed")+ 
+    # geom_hline(yintercept = -0.33, color="grey20", size=0.5, linetype="dashed")+ 
+    # geom_hline(yintercept = -0.14, color="grey20", size=0.5, linetype="dashed")+ 
     geom_hline(yintercept = -1, color="grey20", size=0.5, linetype="dashed")+ 
     annotate("text", x=0.92, y=0, label="Homozygote", vjust=-0.5, fontface="italic")+
-    annotate("text", x=0.87, y=0.14, label="Heterozygote (0/0/0/0/0/0/0/1)", vjust=-0.5, fontface="italic")+
-    annotate("text", x=0.87, y=0.33, label="Heterozygote (0/0/0/0/0/0/1/1)", vjust=-0.5, fontface="italic")+
-    annotate("text", x=0.87, y=0.6, label="Heterozygote (0/0/0/0/0/1/1/1)", vjust=-0.5, fontface="italic")+
+    # annotate("text", x=0.87, y=0.14, label="Heterozygote (0/0/0/0/0/0/0/1)", vjust=-0.5, fontface="italic")+
+    # annotate("text", x=0.87, y=0.33, label="Heterozygote (0/0/0/0/0/0/1/1)", vjust=-0.5, fontface="italic")+
+    # annotate("text", x=0.87, y=0.6, label="Heterozygote (0/0/0/0/0/1/1/1)", vjust=-0.5, fontface="italic")+
     annotate("text", x=0.85, y=1, label="Heterozygote (balanced allele ratio)", vjust=1, fontface="italic")+
     annotate("text", x=0.85, y=-1, label="Heterozygote (balanced allele ratio)", vjust=-1, fontface="italic")+
-    annotate("text", x=0.87, y=-0.6, label="Heterozygote (0/0/0/0/1/1/1/1)", vjust=0.5, fontface="italic")+
-    annotate("text", x=0.87, y=-0.33, label="Heterozygote (0/0/1/1/1/1/1/1)", vjust=0.5, fontface="italic")+
-    annotate("text", x=0.87, y=-0.14, label="Heterozygote (0/1/1/1/1/1/1/1)", vjust=0.5, fontface="italic")+
+    # annotate("text", x=0.87, y=-0.6, label="Heterozygote (0/0/0/0/1/1/1/1)", vjust=0.5, fontface="italic")+
+    # annotate("text", x=0.87, y=-0.33, label="Heterozygote (0/0/1/1/1/1/1/1)", vjust=0.5, fontface="italic")+
+    # annotate("text", x=0.87, y=-0.14, label="Heterozygote (0/1/1/1/1/1/1/1)", vjust=0.5, fontface="italic")+
     annotate("text", x=0.83, y=0.09, label="Allele Ratio threshold (0.09): 1/1/1/1/1/1/1/1", vjust=-0.5, fontface="italic")+
     annotate("text", x=0.83, y=-0.09, label="Allele Ratio threshold (0.09): 0/0/0/0/0/0/0/0", vjust=1.2, fontface="italic")+
     xlab("Proportion of Heterozygote per Locus (octaploid)") +
