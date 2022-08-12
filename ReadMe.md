@@ -18,14 +18,14 @@ For questions, bugs, and suggestions, please contact bolukolu@utk.edu.
 - Annonate SNPs based on if reads map to single and multiple loci.
 - Parallelization of job on multiple compute cluster nodes (spark cluster infrastructure not required)
 - Splice-aware aligner allows for RNAseq data as input (recommended only for haploid or diploid genomes)
-- *Fast alignment speed (up to several 1,000x faster): joint alignment algorithm.
-- *Fast variant calling (~10x faster than normal GATK implementation): excludes monomorphic sequences before variant calling.
+- *Fast alignment speed (> 500x faster; speed increases with sample size): joint alignment algorithm.
+- *Fast variant calling (>5x faster than normal GATK implementation): excludes monomorphic & highly repetitive sequences from variant calling.
 - visualizations for report and QC
 - Functions under-development:
   - calling microhaplotypes
   - generating sequence context for variants
   - estimating ploidy level and aneuploidy.
--*functions only available in fast version of GBSapp (for usage, contact us)
+
 
 
 ## Contents
@@ -145,7 +145,7 @@ Using a text editor, save a file containing any of the following variables as 'c
 **Advanced parameters**
 |Variable      |Default       |Usage         |Input         |required/Optional|
 |:-------------|:-------------|:-------------|:-------------|:----------------|
-|joint_alignment|1|number of samples in joint alignment|integer|Optional|
+|joint_alignment|200|number of samples in joint alignment|integer|Optional|
 |maxHaplotype|128|maximum number of haplotypes per haploid genome across population(increase for polyploids/high heterozygosity/high background mutational load)|integer|Optional|
 |haplome_number|1|number of haplomes resolved in reference genome assembly|integer|Optional|
 |softclip|false|do not use soft Clipped bases (recommended)|string|Optional|
@@ -262,6 +262,11 @@ While the installation of samtools and bcftools are automated, the installation 
   $ sudo apt-get install liblzma-dev
   $ sudo apt-get install libcurl4-gnutls-dev
   $ sudo apt-get install libssl-dev
+```
+**If NextGenMap doesn't install properly:**<br />
+```
+While the installation of samtools and bcftools are automated, the installation requires some dependencies. Consider typing the commands below in terminal, delete samtools and bcftools (from within ./GBSapp/tools/), and then re-run GBSapp in terminal:
+  $ sudo apt install cmake
 ```
 **Problem with amount of memory and/or processors/cores specified:**<br />
 ```

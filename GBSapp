@@ -228,20 +228,19 @@ fi
 
 cd $projdir
 if [[ -d "./samples/pe" ]] || [[ -d "./samples/se" ]]; then
-  echo -e "${magenta}- GBSapp will modify your sample fastq files by concatenating <pe-R1-reads> and <se-reads> ${white}"
-  echo -e "${magenta}- Do you want to create a copy/backup of your sample fastq file? ${white}"
-  read -p "- y(YES) or n(NO)? " -t 36000 -n 1 -r
-  if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-    echo -e "${white}\n##############################################################################"
+  if test -f "./samples/filename_reformatted.txt" || test -f "./samples/flushed_reads.txt"; then
+    :
   else
-    printf "\n"
-    echo -e "${magenta}- A copy of your sample fastq files will be stored in user-defined directory or in ${projdir}/samples_backup/ ${white}"
-    echo -e "${magenta}- Specify alternate directory (Absolute/Full path) or Press Enter? ${white}"
-    read alt_dir
-    if [[ -z $alt_dir ]]; then
+    echo -e "${magenta}- GBSapp will modify your sample fastq files by concatenating <pe-R1-reads>, <pe-R2-reads>, and <se-reads> ${white}"
+    echo -e "${magenta}- Do you want create a copy/backup of your sample fastq file? ${white}"
+    read -p "- y(YES) or n(NO)? " -n 1 -r
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+      printf "\n"
+      echo -e "${magenta}- A copy of your sample fastq files is in ${projdir}/samples_backup/ ${white}"
+      mkdir samples_backup
       cp -r samples samples_backup
     else
-      printf "cp -r samples $alt_dir" > backup.sh
+        echo -e "${white}\n#########################################################################################"
     fi
   fi
 else
@@ -249,20 +248,15 @@ else
     :
   else
     echo -e "${magenta}- GBSapp will modify your sample fastq files ${white}"
-    echo -e "${magenta}- Do you want to create a copy/backup of your sample fastq file? ${white}"
-    read -p "- y(YES) or n(NO)? " -t 36000 -n 1 -r
-    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-      echo -e "${white}\n##############################################################################"
-    else
+    echo -e "${magenta}- Do you want create a copy/backup of your sample fastq file? ${white}"
+    read -p "- y(YES) or n(NO)? " -n 1 -r
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
       printf "\n"
-      echo -e "${magenta}- A copy of your sample fastq files will be stored in user-defined directory or in ${projdir}/samples_backup/ ${white}"
-      echo -e "${magenta}- Specify alternate directory (Absolute/Full path) or Press Enter? ${white}"
-      read alt_dir
-      if [[ -z $alt_dir ]]; then
-        cp -r samples samples_backup
-      else
-        cp -r samples $alt_dir
-      fi
+      echo -e "${magenta}- A copy of your sample fastq files is in ${projdir}/samples_backup/ ${white}"
+      mkdir samples_backup
+      cp -r samples samples_backup
+    else
+        echo -e "${white}\n#########################################################################################"
     fi
   fi
 fi

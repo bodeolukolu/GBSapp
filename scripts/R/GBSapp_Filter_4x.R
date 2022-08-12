@@ -198,7 +198,7 @@ SD_snpfiltering <- function() {
   subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2][subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2]=="1/1/1/1"] <- NA
   subgenome_1_SD_1a$no_missing <- apply(subgenome_1_SD_1a, 1, function(x) sum(is.na(x)))
   subgenome_1_SD_1a <- subset(subgenome_1_SD_1a, no_missing <= ((ncol(subgenome_1)-5)/2)*gmissingness)
-  subgenome_1_SD_1a <- subset(subgenome_1_SD_1a, select=c(-(((ncol(subgenome_1)-4)/2)+5)))
+  subgenome_1_SD_1a <- subset(subgenome_1_SD_1a, select=-c(no_missing))
   if (nrow(subgenome_1_SD_1a) > 0) {
     subgenome_1_SD_1ax <- subset(subgenome_1_SD_1a, subgenome_1_SD_1a[paste(p1,"_GT",sep="")]  =="0/0/0/1" & subgenome_1_SD_1a[paste(p2,"_GT",sep="")]  == "0/0/0/0")
     subgenome_1_SD_1ay <- subset(subgenome_1_SD_1a, subgenome_1_SD_1a[paste(p1,"_GT",sep="")]  =="0/0/0/0" & subgenome_1_SD_1a[paste(p2,"_GT",sep="")]  == "0/0/0/1")
@@ -249,7 +249,7 @@ SD_snpfiltering <- function() {
   subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2][subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2]=="0/1/1/1"] <- NA
   subgenome_1_SD_1a$no_missing <- apply(subgenome_1_SD_1a, 1, function(x) sum(is.na(x)))
   subgenome_1_SD_1a <- subset(subgenome_1_SD_1a, no_missing <= ((ncol(subgenome_1)-5)/2)*gmissingness)
-  subgenome_1_SD_1a <- subset(subgenome_1_SD_1a, select=c(-(((ncol(subgenome_1)-4)/2)+5)))
+  subgenome_1_SD_1a <- subset(subgenome_1_SD_1a, select=-c(no_missing))
   if (nrow(subgenome_1_SD_1a) > 0) {
     subgenome_1_SD_1a <- subset(subgenome_1_SD_1a, subgenome_1_SD_1a[paste(p2,"_GT",sep="")]  == "0/0/0/1" & subgenome_1_SD_1a[paste(p1,"_GT",sep="")]  == "0/0/0/1")
   }
@@ -302,7 +302,7 @@ SD_snpfiltering <- function() {
   subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2][subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2]=="1/1/1/1"] <- NA
   subgenome_1_SD_1a$no_missing <- apply(subgenome_1_SD_1a, 1, function(x) sum(is.na(x)))
   subgenome_1_SD_1a <- subset(subgenome_1_SD_1a, no_missing <= ((ncol(subgenome_1)-5)/2)*gmissingness)
-  subgenome_1_SD_1a <- subset(subgenome_1_SD_1a, select=c(-(((ncol(subgenome_1)-4)/2)+5)))
+  subgenome_1_SD_1a <- subset(subgenome_1_SD_1a, select=-c(no_missing))
   if (nrow(subgenome_1_SD_1a) > 0) {
     subgenome_1_SD_1ax <- subset(subgenome_1_SD_1a, subgenome_1_SD_1a[paste(p2,"_GT",sep="")]  == "0/0/0/1" & subgenome_1_SD_1a[paste(p1,"_GT",sep="")]  == "0/0/1/1")
     subgenome_1_SD_1ay <- subset(subgenome_1_SD_1a, subgenome_1_SD_1a[paste(p2,"_GT",sep="")]  == "0/0/1/1" & subgenome_1_SD_1a[paste(p1,"_GT",sep="")]  == "0/0/0/1")
@@ -363,7 +363,7 @@ SD_snpfiltering <- function() {
   subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2][subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2]=="1/1/1/1"] <- NA
   subgenome_1_SD_1a$no_missing <- apply(subgenome_1_SD_1a, 1, function(x) sum(is.na(x)))
   subgenome_1_SD_1a <- subset(subgenome_1_SD_1a, no_missing <= ((ncol(subgenome_1)-5)/2)*gmissingness)
-  subgenome_1_SD_1a <- subset(subgenome_1_SD_1a, select=c(-(((ncol(subgenome_1)-4)/2)+5)))
+  subgenome_1_SD_1a <- subset(subgenome_1_SD_1a, select=-c(no_missing))
   if (nrow(subgenome_1_SD_1a) > 0) {
     subgenome_1_SD_1ax <- subset(subgenome_1_SD_1a, subgenome_1_SD_1a[paste(p2,"_GT",sep="")]  == "0/0/0/1" & subgenome_1_SD_1a[paste(p1,"_GT",sep="")]  == "0/1/1/1")
     subgenome_1_SD_1ay <- subset(subgenome_1_SD_1a, subgenome_1_SD_1a[paste(p2,"_GT",sep="")]  == "0/1/1/1" & subgenome_1_SD_1a[paste(p1,"_GT",sep="")]  == "0/0/0/1")
@@ -420,7 +420,7 @@ SD_snpfiltering <- function() {
   subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2][subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2]=="0/0/0/0"] <- NA
   subgenome_1_SD_1a$no_missing <- apply(subgenome_1_SD_1a, 1, function(x) sum(is.na(x)))
   subgenome_1_SD_1a <- subset(subgenome_1_SD_1a, no_missing <= ((ncol(subgenome_1)-5)/2)*gmissingness)
-  subgenome_1_SD_1a <- subset(subgenome_1_SD_1a, select=c(-(((ncol(subgenome_1)-4)/2)+5)))
+  subgenome_1_SD_1a <- subset(subgenome_1_SD_1a, select=-c(no_missing))
   if (nrow(subgenome_1_SD_1a) > 0) {
     subgenome_1_SD_1ax <- subset(subgenome_1_SD_1a, subgenome_1_SD_1a[paste(p1,"_GT",sep="")]  =="0/0/0/1" & subgenome_1_SD_1a[paste(p2,"_GT",sep="")]  == "1/1/1/1")
     subgenome_1_SD_1ay <- subset(subgenome_1_SD_1a, subgenome_1_SD_1a[paste(p1,"_GT",sep="")]  =="1/1/1/1" & subgenome_1_SD_1a[paste(p2,"_GT",sep="")]  == "0/0/0/1")
@@ -472,7 +472,7 @@ SD_snpfiltering <- function() {
   subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2][subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2]=="0/1/1/1"] <- NA
   subgenome_1_SD_1a$no_missing <- apply(subgenome_1_SD_1a, 1, function(x) sum(is.na(x)))
   subgenome_1_SD_1a <- subset(subgenome_1_SD_1a, no_missing <= ((ncol(subgenome_1)-5)/2)*gmissingness)
-  subgenome_1_SD_1a <- subset(subgenome_1_SD_1a, select=c(-(((ncol(subgenome_1)-4)/2)+5)))
+  subgenome_1_SD_1a <- subset(subgenome_1_SD_1a, select=-c(no_missing))
   if (nrow(subgenome_1_SD_1a) > 0) {
     subgenome_1_SD_1ax <- subset(subgenome_1_SD_1a, subgenome_1_SD_1a[paste(p1,"_GT",sep="")]  =="0/0/1/1" & subgenome_1_SD_1a[paste(p2,"_GT",sep="")]  == "0/0/0/0")
     subgenome_1_SD_1ay <- subset(subgenome_1_SD_1a, subgenome_1_SD_1a[paste(p1,"_GT",sep="")]  =="0/0/0/0" & subgenome_1_SD_1a[paste(p2,"_GT",sep="")]  == "0/0/1/1")
@@ -584,7 +584,7 @@ SD_snpfiltering <- function() {
   subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2][subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2]=="0/0/0/0"] <- NA
   subgenome_1_SD_1a$no_missing <- apply(subgenome_1_SD_1a, 1, function(x) sum(is.na(x)))
   subgenome_1_SD_1a <- subset(subgenome_1_SD_1a, no_missing <= ((ncol(subgenome_1)-5)/2)*gmissingness)
-  subgenome_1_SD_1a <- subset(subgenome_1_SD_1a, select=c(-(((ncol(subgenome_1)-4)/2)+5)))
+  subgenome_1_SD_1a <- subset(subgenome_1_SD_1a, select=-c(no_missing))
   if (nrow(subgenome_1_SD_1a) > 0) {
     subgenome_1_SD_1ax <- subset(subgenome_1_SD_1a, subgenome_1_SD_1a[paste(p1,"_GT",sep="")]  =="0/0/1/1" & subgenome_1_SD_1a[paste(p2,"_GT",sep="")]  == "0/1/1/1")
     subgenome_1_SD_1ay <- subset(subgenome_1_SD_1a, subgenome_1_SD_1a[paste(p1,"_GT",sep="")]  =="0/1/1/1" & subgenome_1_SD_1a[paste(p2,"_GT",sep="")]  == "0/0/1/1")
@@ -645,7 +645,7 @@ SD_snpfiltering <- function() {
   subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2][subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2]=="0/0/0/0"] <- NA
   subgenome_1_SD_1a$no_missing <- apply(subgenome_1_SD_1a, 1, function(x) sum(is.na(x)))
   subgenome_1_SD_1a <- subset(subgenome_1_SD_1a, no_missing <= ((ncol(subgenome_1)-5)/2)*gmissingness)
-  subgenome_1_SD_1a <- subset(subgenome_1_SD_1a, select=c(-(((ncol(subgenome_1)-4)/2)+5)))
+  subgenome_1_SD_1a <- subset(subgenome_1_SD_1a, select=-c(no_missing))
   if (nrow(subgenome_1_SD_1a) > 0) {
     subgenome_1_SD_1ax <- subset(subgenome_1_SD_1a, subgenome_1_SD_1a[paste(p1,"_GT",sep="")]  =="0/0/1/1" & subgenome_1_SD_1a[paste(p2,"_GT",sep="")]  == "1/1/1/1")
     subgenome_1_SD_1ay <- subset(subgenome_1_SD_1a, subgenome_1_SD_1a[paste(p1,"_GT",sep="")]  =="1/1/1/1" & subgenome_1_SD_1a[paste(p2,"_GT",sep="")]  == "0/0/1/1")
@@ -702,9 +702,8 @@ SD_snpfiltering <- function() {
   subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2][subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2]=="0/0/0/0"] <- NA
   subgenome_1_SD_1a$no_missing <- apply(subgenome_1_SD_1a, 1, function(x) sum(is.na(x)))
   subgenome_1_SD_1a <- subset(subgenome_1_SD_1a, no_missing <= ((ncol(subgenome_1)-5)/2)*gmissingness)
-  subgenome_1_SD_1a <- subset(subgenome_1_SD_1a, select=c(-(((ncol(subgenome_1)-4)/2)+5)))
+  subgenome_1_SD_1a <- subset(subgenome_1_SD_1a, select=-c(no_missing))
   if (nrow(subgenome_1_SD_1a) > 0) {
-    subgenome_1_SD_1a <- subset(subgenome_1_SD_1a, select=c(-(((ncol(subgenome_1)-4)/2)+5)))
     subgenome_1_SD_1ax <- subset(subgenome_1_SD_1a, subgenome_1_SD_1a[paste(p2,"_GT",sep="")]  == "0/1/1/1" & subgenome_1_SD_1a[paste(p1,"_GT",sep="")]  == "0/0/0/0")
     subgenome_1_SD_1ay <- subset(subgenome_1_SD_1a, subgenome_1_SD_1a[paste(p2,"_GT",sep="")]  == "0/0/0/0" & subgenome_1_SD_1a[paste(p1,"_GT",sep="")]  == "0/1/1/1")
     subgenome_1_SD_1a <- rbind(subgenome_1_SD_1ax, subgenome_1_SD_1ay)
@@ -754,7 +753,7 @@ SD_snpfiltering <- function() {
   subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2][subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2]=="0/0/0/1"] <- NA
   subgenome_1_SD_1a$no_missing <- apply(subgenome_1_SD_1a, 1, function(x) sum(is.na(x)))
   subgenome_1_SD_1a <- subset(subgenome_1_SD_1a, no_missing <= ((ncol(subgenome_1)-5)/2)*gmissingness)
-  subgenome_1_SD_1a <- subset(subgenome_1_SD_1a, select=c(-(((ncol(subgenome_1)-4)/2)+5)))
+  subgenome_1_SD_1a <- subset(subgenome_1_SD_1a, select=-c(no_missing))
   if (nrow(subgenome_1_SD_1a) > 0) {
     subgenome_1_SD_1a <- subset(subgenome_1_SD_1a, subgenome_1_SD_1a[paste(p2,"_GT",sep="")]  == "0/1/1/1" & subgenome_1_SD_1a[paste(p1,"_GT",sep="")]  == "0/1/1/1")
   }
@@ -809,7 +808,7 @@ SD_snpfiltering <- function() {
   subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2][subgenome_1_SD_1a[, 5:ncol(subgenome_1_SD_1a)-2]=="0/0/1/1"] <- "0/1/1/1"
   subgenome_1_SD_1a$no_missing <- apply(subgenome_1_SD_1a, 1, function(x) sum(is.na(x)))
   subgenome_1_SD_1a <- subset(subgenome_1_SD_1a, no_missing <= ((ncol(subgenome_1)-5)/2)*gmissingness)
-  subgenome_1_SD_1a <- subset(subgenome_1_SD_1a, select=c(-(((ncol(subgenome_1)-4)/2)+5)))
+  subgenome_1_SD_1a <- subset(subgenome_1_SD_1a, select=-c(no_missing))
   if (nrow(subgenome_1_SD_1a) > 0) {
     subgenome_1_SD_1ax <- subset(subgenome_1_SD_1a, subgenome_1_SD_1a[paste(p2,"_GT",sep="")]  == "0/1/1/1" & subgenome_1_SD_1a[paste(p1,"_GT",sep="")]  == "1/1/1/1")
     subgenome_1_SD_1ay <- subset(subgenome_1_SD_1a, subgenome_1_SD_1a[paste(p2,"_GT",sep="")]  == "1/1/1/1" & subgenome_1_SD_1a[paste(p1,"_GT",sep="")]  == "0/1/1/1")

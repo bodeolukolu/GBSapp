@@ -20,7 +20,7 @@ export cluster=${cluster//*=}
 ######################################################################################################################################################
 # Software defined parameters
 
-export slurm_module=$(module --version 2> /dev/null | head -n1)
+export slurm_module=$((module --version) 2>&1 | head -n1)
 
 if [[ "$slurm_module" =~ "Module" ]]; then
 	if [ "$cluster" == true ];then
@@ -114,7 +114,7 @@ export ngm=${GBSapp_dir}/tools/*NextGenMap*/bin/ngm*/ngm
 export samtools=${GBSapp_dir}/tools/samtools*/samtools && samtools=${samtools//'//'/'/'}
 export bcftools=${GBSapp_dir}/tools/bcftools*/bcftools && bcftools=${bcftools//'//'/'/'}
 export picard=${GBSapp_dir}/tools/picard.jar && picard=${picard//'//'/'/'}
-export GATK=${GBSapp_dir}/tools/gatk-4.2.6.0/gatk && GATK=${GATK//'//'/'/'}
+export GATK=${GBSapp_dir}/tools/gatk-4.2.6.1/gatk && GATK=${GATK//'//'/'/'}
 export java=${GBSapp_dir}/tools/jdk8*/bin/java && java=${java//'//'/'/'}
 if command -v pigz &>/dev/null; then
   export gzip=pigz

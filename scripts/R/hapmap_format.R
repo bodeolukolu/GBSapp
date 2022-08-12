@@ -10,7 +10,7 @@ geno$CHROM <- sub("Chr","",geno$CHROM)
 geno$CHROM <- as.numeric(as.character(geno$CHROM))
 
 # convert genotype file to hapmap file
-if("pvalue" %in% colnames(geno)) {geno <- subset(geno, select=-c(pvalue))}
+if (colnames(geno[ncol(geno)]) == "pvalue"){geno <- subset(geno, select=-c(pvalue))}
 
 geno[,6:ncol(geno)][is.na(geno[,6:ncol(geno)])] <- "NN"
 geno_indel <- subset(geno, nchar(geno$REF) > 1 | nchar(geno$ALT) > 1 )
@@ -66,4 +66,4 @@ geno$assayLSID <- "NA"
 geno$panelLSID <- "NA"
 geno$QCcode <- "NA"
 geno <- subset(geno, select=c((ncol(geno)-10):ncol(geno),1:(ncol(geno)-11)))
-write.table(geno,args[2], row.names=F, quote = FALSE, sep="\t")
+write.table(geno,"outfile.hmp.txt", row.names=F, quote = FALSE, sep="\t")

@@ -1,4 +1,7 @@
 
+if [ -z "$slurm_module" ]; then
+ export slurm_module=true
+fi
 if [ -z "$threads" ]; then
 	export threads=$(nproc --all)
 	if [[ "$threads" -ge 4 ]]; then
@@ -26,8 +29,8 @@ fi
 if [ -z "$p2" ]; then
 	export p2=$p1
 fi
-if [ "$joint_alignment" -gt 1 ]; then
-	export joint_alignment=1
+if [ -z "$joint_alignment" ]; then
+	export joint_alignment=200
 fi
 if [ -z "$softclip" ]; then
 	export softclip=false
@@ -430,8 +433,8 @@ fi
 
 main () {
 	cd ${projdir}
-	mkdir -p preprocess
-	mkdir -p snpcall
+	mkdir -p preprocess/tmp
+	mkdir -p snpcall/tmp
 	mkdir -p alignment_summaries
 	mkdir -p ./alignment_summaries/copy_number
 
@@ -684,9 +687,9 @@ main () {
 		      if [[ -z "${alignfq%.f*}_uniq_R2.fasta.gz" ]]; then :> ${alignfq%.f*}_uniq_R2.fasta && gzip ${alignfq%.f*}_uniq_R2.fasta; fi
 		      if test ! -f ../preprocess/${alignfq%.f*}_redun.sam.gz; then
 		        zcat ${alignfq%.f*}_uniq_R1.fasta.gz ${alignfq%.f*}_uniq_R2.fasta.gz | awk '{gsub(/>/,"@");}1'| awk '{print $1"\t"$2"\t"$2}' | \
-						awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$3); print}' | awk '{print $1"\n"$2"\n+\n"$3}'| gzip > ${alignfq%.f*}_uniq.fasta.gz
+						awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$3); print}' | awk '{print $1"\n"$2"\n+\n"$3}'| gzip > ${alignfq%.f*}_uniq.fasta.gz &&
 		        $ngm -r ../refgenomes/panref.fasta --qry ${alignfq%.f*}_uniq.fasta.gz -o ../preprocess/${alignfq%.f*}.sam -t $threads --min-identity 0 --topn 12 --strata 12 &&
-		        $java $Xmx2 -XX:ParallelGCThreads=$threads -jar $picard SortSam I=../preprocess/${alignfq%.f*}.sam O=../preprocess/${alignfq%.f*}.bam  SORT_ORDER=coordinate  VALIDATION_STRINGENCY=LENIENT &&
+		        $java $Xmx2 -XX:ParallelGCThreads=$threads -Djava.io.tmpdir=`pwd`/tmp -jar $picard SortSam I=../preprocess/${alignfq%.f*}.sam O=../preprocess/${alignfq%.f*}.bam  SORT_ORDER=coordinate  VALIDATION_STRINGENCY=LENIENT TMP_DIR=`pwd`/tmp &&
 		        rm ${alignfq%.f*}_uniq.fasta.gz ../preprocess/${alignfq%.f*}.sam &&
 		        $samtools view -h ../preprocess/${alignfq%.f*}.bam | $gzip > ../preprocess/${alignfq%.f*}_redun.sam.gz &&
 		        rm ../preprocess/${alignfq%.f*}.bam
@@ -802,95 +805,95 @@ main () {
 
 		      rm ${i%.f*}_Index0_subgenome.txt ${i%.f*}_Index_subgenome.txt
 
-		      echo "nloci~POS~mapQ~CHROM" > ${projdir}/alignment_summaries/refgenome_paralogs_${i%.f*}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.txt
+		      echo "nloci~mapQ~CHROM~POS" > ${projdir}/alignment_summaries/refgenome_paralogs_${i%.f*}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.txt
 		      grep -v '^@' ${i%.f*}_del_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.sam | awk '($3 != "\*")' 2> /dev/null  | awk '{$2=$2"_"$3}1' | awk '!h[$1] { g[$1]=$0 } { h[$1]++ } END { for(k in g) print h[k], g[k] }' | \
 		      cat <(grep '^@' ${i%.f*}_del_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.sam) - > ${projdir}/alignment_summaries/temp_${i%.f*}.txt
 		      awk -F '\t' '{print $1"\t"$3"\t"$4"\t"$5}' ${projdir}/alignment_summaries/temp_${i%.f*}.txt | awk '{gsub(/ /,"\t"); print}' | awk '{print $1"~"$5"~"$3"~"$4}' | grep -v '\*' | grep -v '^@' >> ${projdir}/alignment_summaries/refgenome_paralogs_${i%.f*}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.txt
 		      awk '!visited[$0]++' ${projdir}/alignment_summaries/refgenome_paralogs_${i%.f*}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.txt > ${projdir}/alignment_summaries/temp_${i%.f*}.txt
 		      mv ${projdir}/alignment_summaries/temp_${i%.f*}.txt ${projdir}/alignment_summaries/refgenome_paralogs_${i%.f*}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.txt
 
-		      echo "nloci~POS~mapQ~CHROM" > ${projdir}/alignment_summaries/refgenome_paralogs_${i%.f*}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}.txt
+		      echo "nloci~mapQ~CHROM~POS" > ${projdir}/alignment_summaries/refgenome_paralogs_${i%.f*}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}.txt
 		      grep -v '^@' ${i%.f*}_del_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}.sam | awk '($3 != "\*")' 2> /dev/null  | awk '{$2=$2"_"$3}1' | awk '!h[$1] { g[$1]=$0 } { h[$1]++ } END { for(k in g) print h[k], g[k] }' | \
 		      cat <(grep '^@' ${i%.f*}_del_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}.sam) - > ${projdir}/alignment_summaries/temp_${i%.f*}.txt
 		      awk -F '\t' '{print $1"\t"$3"\t"$4"\t"$5}' ${projdir}/alignment_summaries/temp_${i%.f*}.txt | awk '{gsub(/ /,"\t"); print}' | awk '{print $1"~"$5"~"$3"~"$4}' | grep -v '\*' | grep -v '^@' >> ${projdir}/alignment_summaries/refgenome_paralogs_${i%.f*}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}.txt
 		      awk '!visited[$0]++' ${projdir}/alignment_summaries/refgenome_paralogs_${i%.f*}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}.txt > ${projdir}/alignment_summaries/temp_${i%.f*}.txt
 		      mv ${projdir}/alignment_summaries/temp_${i%.f*}.txt ${projdir}/alignment_summaries/refgenome_paralogs_${i%.f*}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}.txt
-		      echo "nloci~POS~mapQ~CHROM" > ${projdir}/alignment_summaries/refgenome_paralogs_${i%.f*}_${ref1%.f*}_${ref2%.f*}_${ref4%.f*}.txt
+		      echo "nloci~mapQ~CHROM~POS" > ${projdir}/alignment_summaries/refgenome_paralogs_${i%.f*}_${ref1%.f*}_${ref2%.f*}_${ref4%.f*}.txt
 		      grep -v '^@' ${i%.f*}_del_${ref1%.f*}_${ref2%.f*}_${ref4%.f*}.sam | awk '($3 != "\*")' 2> /dev/null  | awk '{$2=$2"_"$3}1' | awk '!h[$1] { g[$1]=$0 } { h[$1]++ } END { for(k in g) print h[k], g[k] }' | \
 		      cat <(grep '^@' ${i%.f*}_del_${ref1%.f*}_${ref2%.f*}_${ref4%.f*}.sam) - > ${projdir}/alignment_summaries/temp_${i%.f*}.txt
 		      awk -F '\t' '{print $1"\t"$3"\t"$4"\t"$5}' ${projdir}/alignment_summaries/temp_${i%.f*}.txt | awk '{gsub(/ /,"\t"); print}' | awk '{print $1"~"$5"~"$3"~"$4}' | grep -v '\*' | grep -v '^@' >> ${projdir}/alignment_summaries/refgenome_paralogs_${i%.f*}_${ref1%.f*}_${ref2%.f*}_${ref4%.f*}.txt
 		      awk '!visited[$0]++' ${projdir}/alignment_summaries/refgenome_paralogs_${i%.f*}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.txt > ${projdir}/alignment_summaries/temp_${i%.f*}.txt
 		      mv ${projdir}/alignment_summaries/temp_${i%.f*}.txt ${projdir}/alignment_summaries/refgenome_paralogs_${i%.f*}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.txt
-		      echo "nloci~POS~mapQ~CHROM" > ${projdir}/alignment_summaries/refgenome_paralogs_${i%.f*}_${ref1%.f*}_${ref3%.f*}_${ref4%.f*}.txt
+		      echo "nloci~mapQ~CHROM~POS" > ${projdir}/alignment_summaries/refgenome_paralogs_${i%.f*}_${ref1%.f*}_${ref3%.f*}_${ref4%.f*}.txt
 		      grep -v '^@' ${i%.f*}_del_${ref1%.f*}_${ref3%.f*}_${ref4%.f*}.sam | awk '($3 != "\*")' 2> /dev/null  | awk '{$2=$2"_"$3}1' | awk '!h[$1] { g[$1]=$0 } { h[$1]++ } END { for(k in g) print h[k], g[k] }' | \
 		      cat <(grep '^@' ${i%.f*}_del_${ref1%.f*}_${ref3%.f*}_${ref4%.f*}.sam) - > ${projdir}/alignment_summaries/temp_${i%.f*}.txt
 		      awk -F '\t' '{print $1"\t"$3"\t"$4"\t"$5}' ${projdir}/alignment_summaries/temp_${i%.f*}.txt | awk '{gsub(/ /,"\t"); print}' | awk '{print $1"~"$5"~"$3"~"$4}' | grep -v '\*' | grep -v '^@' >> ${projdir}/alignment_summaries/refgenome_paralogs_${i%.f*}_${ref1%.f*}_${ref3%.f*}_${ref4%.f*}.txt
 		      awk '!visited[$0]++' ${projdir}/alignment_summaries/refgenome_paralogs_${i%.f*}_${ref1%.f*}_${ref3%.f*}_${ref4%.f*}.txt > ${projdir}/alignment_summaries/temp_${i%.f*}.txt
 		      mv ${projdir}/alignment_summaries/temp_${i%.f*}.txt ${projdir}/alignment_summaries/refgenome_paralogs_${i%.f*}_${ref1%.f*}_${ref3%.f*}_${ref4%.f*}.txt
-		      echo "nloci~POS~mapQ~CHROM" > ${projdir}/alignment_summaries/refgenome_paralogs_${i%.f*}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.txt
+		      echo "nloci~mapQ~CHROM~POS" > ${projdir}/alignment_summaries/refgenome_paralogs_${i%.f*}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.txt
 		      grep -v '^@' ${i%.f*}_del_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.sam | awk '($3 != "\*")' 2> /dev/null  | awk '{$2=$2"_"$3}1' | awk '!h[$1] { g[$1]=$0 } { h[$1]++ } END { for(k in g) print h[k], g[k] }' | \
 		      cat <(grep '^@' ${i%.f*}_del_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.sam) - > ${projdir}/alignment_summaries/temp_${i%.f*}.txt
 		      awk -F '\t' '{print $1"\t"$3"\t"$4"\t"$5}' ${projdir}/alignment_summaries/temp_${i%.f*}.txt | awk '{gsub(/ /,"\t"); print}' | awk '{print $1"~"$5"~"$3"~"$4}' | grep -v '\*' | grep -v '^@' >> ${projdir}/alignment_summaries/refgenome_paralogs_${i%.f*}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.txt
 		      awk '!visited[$0]++' ${projdir}/alignment_summaries/refgenome_paralogs_${i%.f*}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.txt > ${projdir}/alignment_summaries/temp_${i%.f*}.txt
 		      mv ${projdir}/alignment_summaries/temp_${i%.f*}.txt ${projdir}/alignment_summaries/refgenome_paralogs_${i%.f*}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.txt
 
-		      echo "nloci~POS~mapQ~CHROM" > ${projdir}/alignment_summaries/refgenome_paralogs_${i%.f*}_${ref1%.f*}_${ref2%.f*}.txt
+		      echo "nloci~mapQ~CHROM~POS" > ${projdir}/alignment_summaries/refgenome_paralogs_${i%.f*}_${ref1%.f*}_${ref2%.f*}.txt
 		      grep -v '^@' ${i%.f*}_del_${ref1%.f*}_${ref2%.f*}.sam | awk '($3 != "\*")' 2> /dev/null  | awk '{$2=$2"_"$3}1' | awk '!h[$1] { g[$1]=$0 } { h[$1]++ } END { for(k in g) print h[k], g[k] }' | \
 		      cat <(grep '^@' ${i%.f*}_del_${ref1%.f*}_${ref2%.f*}.sam) - > ${projdir}/alignment_summaries/temp_${i%.f*}.txt
 		      awk -F '\t' '{print $1"\t"$3"\t"$4"\t"$5}' ${projdir}/alignment_summaries/temp_${i%.f*}.txt | awk '{gsub(/ /,"\t"); print}' | awk '{print $1"~"$5"~"$3"~"$4}' | grep -v '\*' | grep -v '^@' >> ${projdir}/alignment_summaries/refgenome_paralogs_${i%.f*}_${ref1%.f*}_${ref2%.f*}.txt
 		      awk '!visited[$0]++' ${projdir}/alignment_summaries/refgenome_paralogs_${i%.f*}_${ref1%.f*}_${ref2%.f*}.txt > ${projdir}/alignment_summaries/temp_${i%.f*}.txt
 		      mv ${projdir}/alignment_summaries/temp_${i%.f*}.txt ${projdir}/alignment_summaries/refgenome_paralogs_${i%.f*}_${ref1%.f*}_${ref2%.f*}.txt
-		      echo "nloci~POS~mapQ~CHROM" > ${projdir}/alignment_summaries/refgenome_paralogs_${i%.f*}_${ref1%.f*}_${ref3%.f*}.txt
+		      echo "nloci~mapQ~CHROM~POS" > ${projdir}/alignment_summaries/refgenome_paralogs_${i%.f*}_${ref1%.f*}_${ref3%.f*}.txt
 		      grep -v '^@' ${i%.f*}_del_${ref1%.f*}_${ref3%.f*}.sam | awk '($3 != "\*")' 2> /dev/null  | awk '{$2=$2"_"$3}1' | awk '!h[$1] { g[$1]=$0 } { h[$1]++ } END { for(k in g) print h[k], g[k] }' | \
 		      cat <(grep '^@' ${i%.f*}_del_${ref1%.f*}_${ref3%.f*}.sam) - > ${projdir}/alignment_summaries/temp_${i%.f*}.txt
 		      awk -F '\t' '{print $1"\t"$3"\t"$4"\t"$5}' ${projdir}/alignment_summaries/temp_${i%.f*}.txt | awk '{gsub(/ /,"\t"); print}' | awk '{print $1"~"$5"~"$3"~"$4}' | grep -v '\*' | grep -v '^@' >> ${projdir}/alignment_summaries/refgenome_paralogs_${i%.f*}_${ref1%.f*}_${ref3%.f*}.txt
 		      awk '!visited[$0]++' ${projdir}/alignment_summaries/refgenome_paralogs_${i%.f*}_${ref1%.f*}_${ref3%.f*}.txt > ${projdir}/alignment_summaries/temp_${i%.f*}.txt
 		      mv ${projdir}/alignment_summaries/temp_${i%.f*}.txt ${projdir}/alignment_summaries/refgenome_paralogs_${i%.f*}_${ref1%.f*}_${ref3%.f*}.txt
-		      echo "nloci~POS~mapQ~CHROM" > ${projdir}/alignment_summaries/refgenome_paralogs_${i%.f*}_${ref1%.f*}_${ref4%.f*}.txt
+		      echo "nloci~mapQ~CHROM~POS" > ${projdir}/alignment_summaries/refgenome_paralogs_${i%.f*}_${ref1%.f*}_${ref4%.f*}.txt
 		      grep -v '^@' ${i%.f*}_del_${ref1%.f*}_${ref4%.f*}.sam | awk '($3 != "\*")' 2> /dev/null  | awk '{$2=$2"_"$3}1' | awk '!h[$1] { g[$1]=$0 } { h[$1]++ } END { for(k in g) print h[k], g[k] }' | \
 		      cat <(grep '^@' ${i%.f*}_del_${ref1%.f*}_${ref4%.f*}.sam) - > ${projdir}/alignment_summaries/temp_${i%.f*}.txt
 		      awk -F '\t' '{print $1"\t"$3"\t"$4"\t"$5}' ${projdir}/alignment_summaries/temp_${i%.f*}.txt | awk '{gsub(/ /,"\t"); print}' | awk '{print $1"~"$5"~"$3"~"$4}' | grep -v '\*' | grep -v '^@' >> ${projdir}/alignment_summaries/refgenome_paralogs_${i%.f*}_${ref1%.f*}_${ref4%.f*}.txt
 		      awk '!visited[$0]++' ${projdir}/alignment_summaries/refgenome_paralogs_${i%.f*}_${ref1%.f*}_${ref4%.f*}.txt > ${projdir}/alignment_summaries/temp_${i%.f*}.txt
 		      mv ${projdir}/alignment_summaries/temp_${i%.f*}.txt ${projdir}/alignment_summaries/refgenome_paralogs_${i%.f*}_${ref1%.f*}_${ref4%.f*}.txt
-		      echo "nloci~POS~mapQ~CHROM" > ${projdir}/alignment_summaries/refgenome_paralogs_${i%.f*}_${ref2%.f*}_${ref3%.f*}.txt
+		      echo "nloci~mapQ~CHROM~POS" > ${projdir}/alignment_summaries/refgenome_paralogs_${i%.f*}_${ref2%.f*}_${ref3%.f*}.txt
 		      grep -v '^@' ${i%.f*}_del_${ref2%.f*}_${ref3%.f*}.sam | awk '($3 != "\*")' 2> /dev/null  | awk '{$2=$2"_"$3}1' | awk '!h[$1] { g[$1]=$0 } { h[$1]++ } END { for(k in g) print h[k], g[k] }' | \
 		      cat <(grep '^@' ${i%.f*}_del_${ref2%.f*}_${ref3%.f*}.sam) - > ${projdir}/alignment_summaries/temp_${i%.f*}.txt
 		      awk -F '\t' '{print $1"\t"$3"\t"$4"\t"$5}' ${projdir}/alignment_summaries/temp_${i%.f*}.txt | awk '{gsub(/ /,"\t"); print}' | awk '{print $1"~"$5"~"$3"~"$4}' | grep -v '\*' | grep -v '^@' >> ${projdir}/alignment_summaries/refgenome_paralogs_${i%.f*}_${ref2%.f*}_${ref3%.f*}.txt
 		      awk '!visited[$0]++' ${projdir}/alignment_summaries/refgenome_paralogs_${i%.f*}_${ref2%.f*}_${ref3%.f*}.txt > ${projdir}/alignment_summaries/temp_${i%.f*}.txt
 		      mv ${projdir}/alignment_summaries/temp_${i%.f*}.txt ${projdir}/alignment_summaries/refgenome_paralogs_${i%.f*}_${ref2%.f*}_${ref3%.f*}.txt
-		      echo "nloci~POS~mapQ~CHROM" > ${projdir}/alignment_summaries/refgenome_paralogs_${i%.f*}_${ref2%.f*}_${ref4%.f*}.txt
+		      echo "nloci~mapQ~CHROM~POS" > ${projdir}/alignment_summaries/refgenome_paralogs_${i%.f*}_${ref2%.f*}_${ref4%.f*}.txt
 		      grep -v '^@' ${i%.f*}_del_${ref2%.f*}_${ref4%.f*}.sam | awk '($3 != "\*")' 2> /dev/null  | awk '{$2=$2"_"$3}1' | awk '!h[$1] { g[$1]=$0 } { h[$1]++ } END { for(k in g) print h[k], g[k] }' | \
 		      cat <(grep '^@' ${i%.f*}_del_${ref2%.f*}_${ref4%.f*}.sam) - > ${projdir}/alignment_summaries/temp_${i%.f*}.txt
 		      awk -F '\t' '{print $1"\t"$3"\t"$4"\t"$5}' ${projdir}/alignment_summaries/temp_${i%.f*}.txt | awk '{gsub(/ /,"\t"); print}' | awk '{print $1"~"$5"~"$3"~"$4}' | grep -v '\*' | grep -v '^@' >> ${projdir}/alignment_summaries/refgenome_paralogs_${i%.f*}_${ref2%.f*}_${ref4%.f*}.txt
 		      awk '!visited[$0]++' ${projdir}/alignment_summaries/refgenome_paralogs_${i%.f*}_${ref2%.f*}_${ref4%.f*}.txt > ${projdir}/alignment_summaries/temp_${i%.f*}.txt
 		      mv ${projdir}/alignment_summaries/temp_${i%.f*}.txt ${projdir}/alignment_summaries/refgenome_paralogs_${i%.f*}_${ref2%.f*}_${ref4%.f*}.txt
-		      echo "nloci~POS~mapQ~CHROM" > ${projdir}/alignment_summaries/refgenome_paralogs_${i%.f*}_${ref3%.f*}_${ref4%.f*}.txt
+		      echo "nloci~mapQ~CHROM~POS" > ${projdir}/alignment_summaries/refgenome_paralogs_${i%.f*}_${ref3%.f*}_${ref4%.f*}.txt
 		      grep -v '^@' ${i%.f*}_del_${ref3%.f*}_${ref4%.f*}.sam | awk '($3 != "\*")' 2> /dev/null  | awk '{$2=$2"_"$3}1' | awk '!h[$1] { g[$1]=$0 } { h[$1]++ } END { for(k in g) print h[k], g[k] }' | \
 		      cat <(grep '^@' ${i%.f*}_del_${ref3%.f*}_${ref4%.f*}.sam) - > ${projdir}/alignment_summaries/temp_${i%.f*}.txt
 		      awk -F '\t' '{print $1"\t"$3"\t"$4"\t"$5}' ${projdir}/alignment_summaries/temp_${i%.f*}.txt | awk '{gsub(/ /,"\t"); print}' | awk '{print $1"~"$5"~"$3"~"$4}' | grep -v '\*' | grep -v '^@' >> ${projdir}/alignment_summaries/refgenome_paralogs_${i%.f*}_${ref3%.f*}_${ref4%.f*}.txt
 		      awk '!visited[$0]++' ${projdir}/alignment_summaries/refgenome_paralogs_${i%.f*}_${ref3%.f*}_${ref4%.f*}.txt > ${projdir}/alignment_summaries/temp_${i%.f*}.txt
 		      mv ${projdir}/alignment_summaries/temp_${i%.f*}.txt ${projdir}/alignment_summaries/refgenome_paralogs_${i%.f*}_${ref3%.f*}_${ref4%.f*}.txt
 
-		      echo "nloci~POS~mapQ~CHROM" > ${projdir}/alignment_summaries/refgenome_paralogs_${i%.f*}_${ref1%.f*}.txt
+		      echo "nloci~mapQ~CHROM~POS" > ${projdir}/alignment_summaries/refgenome_paralogs_${i%.f*}_${ref1%.f*}.txt
 		      grep -v '^@' ${i%.f*}_del_${ref1%.f*}.sam | awk '($3 != "\*")' 2> /dev/null  | awk '{$2=$2"_"$3}1' | awk '!h[$1] { g[$1]=$0 } { h[$1]++ } END { for(k in g) print h[k], g[k] }' | \
 		      cat <(grep '^@' ${i%.f*}_del_${ref1%.f*}.sam) - > ${projdir}/alignment_summaries/temp_${i%.f*}.txt
 		      awk -F '\t' '{print $1"\t"$3"\t"$4"\t"$5}' ${projdir}/alignment_summaries/temp_${i%.f*}.txt | awk '{gsub(/ /,"\t"); print}' | awk '{print $1"~"$5"~"$3"~"$4}' | grep -v '\*' | grep -v '^@'  >> ${projdir}/alignment_summaries/refgenome_paralogs_${i%.f*}_${ref1%.f*}.txt
 		      awk '!visited[$0]++' ${projdir}/alignment_summaries/refgenome_paralogs_${i%.f*}_${ref1%.f*}.txt > ${projdir}/alignment_summaries/temp_${i%.f*}.txt
 		      mv ${projdir}/alignment_summaries/temp_${i%.f*}.txt ${projdir}/alignment_summaries/refgenome_paralogs_${i%.f*}_${ref1%.f*}.txt
-		      echo "nloci~POS~mapQ~CHROM" > ${projdir}/alignment_summaries/refgenome_paralogs_${i%.f*}_${ref2%.f*}.txt
+		      echo "nloci~mapQ~CHROM~POS" > ${projdir}/alignment_summaries/refgenome_paralogs_${i%.f*}_${ref2%.f*}.txt
 		      grep -v '^@' ${i%.f*}_del_${ref2%.f*}.sam | awk '($3 != "\*")' 2> /dev/null  | awk '{$2=$2"_"$3}1' | awk '!h[$1] { g[$1]=$0 } { h[$1]++ } END { for(k in g) print h[k], g[k] }' | \
 		      cat <(grep '^@' ${i%.f*}_del_${ref2%.f*}.sam) - > ${projdir}/alignment_summaries/temp_${i%.f*}.txt
 		      awk -F '\t' '{print $1"\t"$3"\t"$4"\t"$5}' ${projdir}/alignment_summaries/temp_${i%.f*}.txt | awk '{gsub(/ /,"\t"); print}' | awk '{print $1"~"$5"~"$3"~"$4}' | grep -v '\*' | grep -v '^@'  >> ${projdir}/alignment_summaries/refgenome_paralogs_${i%.f*}_${ref2%.f*}.txt
 		      awk '!visited[$0]++' ${projdir}/alignment_summaries/refgenome_paralogs_${i%.f*}_${ref2%.f*}.txt > ${projdir}/alignment_summaries/temp_${i%.f*}.txt
 		      mv ${projdir}/alignment_summaries/temp_${i%.f*}.txt ${projdir}/alignment_summaries/refgenome_paralogs_${i%.f*}_${ref2%.f*}.txt
 		      wait
-		      echo "nloci~POS~mapQ~CHROM" > ${projdir}/alignment_summaries/refgenome_paralogs_${i%.f*}_${ref3%.f*}.txt
+		      echo "nloci~mapQ~CHROM~POS" > ${projdir}/alignment_summaries/refgenome_paralogs_${i%.f*}_${ref3%.f*}.txt
 		      grep -v '^@' ${i%.f*}_del_${ref3%.f*}.sam | awk '($3 != "\*")' 2> /dev/null  | awk '{$2=$2"_"$3}1' | awk '!h[$1] { g[$1]=$0 } { h[$1]++ } END { for(k in g) print h[k], g[k] }' | \
 		      cat <(grep '^@' ${i%.f*}_del_${ref3%.f*}.sam) - > ${projdir}/alignment_summaries/temp_${i%.f*}.txt
 		      awk -F '\t' '{print $1"\t"$3"\t"$4"\t"$5}' ${projdir}/alignment_summaries/temp_${i%.f*}.txt | awk '{gsub(/ /,"\t"); print}' | awk '{print $1"~"$5"~"$3"~"$4}' | grep -v '\*' | grep -v '^@'  >> ${projdir}/alignment_summaries/refgenome_paralogs_${i%.f*}_${ref3%.f*}.txt
 		      awk '!visited[$0]++' ${projdir}/alignment_summaries/refgenome_paralogs_${i%.f*}_${ref1%.f*}.txt > ${projdir}/alignment_summaries/temp_${i%.f*}.txt
 		      mv ${projdir}/alignment_summaries/temp_${i%.f*}.txt ${projdir}/alignment_summaries/refgenome_paralogs_${i%.f*}_${ref1%.f*}.txt
-		      echo "nloci~POS~mapQ~CHROM" > ${projdir}/alignment_summaries/refgenome_paralogs_${i%.f*}_${ref4%.f*}.txt
+		      echo "nloci~mapQ~CHROM~POS" > ${projdir}/alignment_summaries/refgenome_paralogs_${i%.f*}_${ref4%.f*}.txt
 		      grep -v '^@' ${i%.f*}_del_${ref4%.f*}.sam | awk '($3 != "\*")' 2> /dev/null  | awk '{$2=$2"_"$3}1' | awk '!h[$1] { g[$1]=$0 } { h[$1]++ } END { for(k in g) print h[k], g[k] }' | \
 		      cat <(grep '^@' ${i%.f*}_del_${ref4%.f*}.sam) - > ${projdir}/alignment_summaries/temp_${i%.f*}.txt
 		      awk -F '\t' '{print $1"\t"$3"\t"$4"\t"$5}' ${projdir}/alignment_summaries/temp_${i%.f*}.txt | awk '{gsub(/ /,"\t"); print}' | awk '{print $1"~"$5"~"$3"~"$4}' | grep -v '\*' | grep -v '^@'  >> ${projdir}/alignment_summaries/refgenome_paralogs_${i%.f*}_${ref4%.f*}.txt
@@ -906,7 +909,7 @@ main () {
 		          awk -v n="^${k}" '$0~n{print $0}' ${i%.f*}_uniq_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.sam | awk -v n="$k" '{for(i=0;i<n;i++) print}' >> ${i%.f*}_exp_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.sam
 		        done; wait
 		        awk '{print "seq"NR"_"$0}' ${i%.f*}_exp_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.sam | tr -s ' ' | \
-		        awk '($3 != "\*")' 2> /dev/null  | awk '($6 != "\*")' 2> /dev/null   | awk '$5 <= 10 {$5 = 20}1' | cat ${i%.f*}_heading_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.sam - | tr ' ' '\t' > ${i%.f*}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.sam
+		        awk '($3 != "\*")' 2> /dev/null  | awk '($6 != "\*")' 2> /dev/null   | awk '$5 < 10 {$5 = 10}1' | cat ${i%.f*}_heading_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.sam - | tr ' ' '\t' > ${i%.f*}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.sam
 		        rm ${i%.f*}_exp_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.sam ${i%.f*}_uniq_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.sam ${i%.f*}_heading_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.sam ${i%.f*}_del_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.sam
 		      } & PIDexp1=$!
 		      wait $PIDexp1
@@ -919,7 +922,7 @@ main () {
 		          awk -v n="^${k}" '$0~n{print $0}' ${i%.f*}_uniq_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}.sam | awk -v n="$k" '{for(i=0;i<n;i++) print}' >> ${i%.f*}_exp_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}.sam
 		        done; wait
 		        awk '{print "seq"NR"_"$0}' ${i%.f*}_exp_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}.sam | tr -s ' ' | \
-		        awk '($3 != "\*")' 2> /dev/null  | awk '($6 != "\*")' 2> /dev/null   | awk '$5 <= 10 {$5 = 20}1' | cat ${i%.f*}_heading_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}.sam - | tr ' ' '\t' > ${i%.f*}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}.sam
+		        awk '($3 != "\*")' 2> /dev/null  | awk '($6 != "\*")' 2> /dev/null   | awk '$5 < 10 {$5 = 10}1' | cat ${i%.f*}_heading_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}.sam - | tr ' ' '\t' > ${i%.f*}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}.sam
 		        rm ${i%.f*}_exp_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}.sam ${i%.f*}_uniq_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}.sam ${i%.f*}_heading_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}.sam ${i%.f*}_del_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}.sam
 		      } & PIDexp2=$!
 		      wait $PIDexp2
@@ -932,7 +935,7 @@ main () {
 		          awk -v n="^${k}" '$0~n{print $0}' ${i%.f*}_uniq_${ref1%.f*}_${ref2%.f*}_${ref4%.f*}.sam | awk -v n="$k" '{for(i=0;i<n;i++) print}' >> ${i%.f*}_exp_${ref1%.f*}_${ref2%.f*}_${ref4%.f*}.sam
 		        done; wait
 		        awk '{print "seq"NR"_"$0}' ${i%.f*}_exp_${ref1%.f*}_${ref2%.f*}_${ref4%.f*}.sam | tr -s ' ' | \
-		        awk '($3 != "\*")' 2> /dev/null  | awk '($6 != "\*")' 2> /dev/null   | awk '$5 <= 10 {$5 = 20}1' | cat ${i%.f*}_heading_${ref1%.f*}_${ref2%.f*}_${ref4%.f*}.sam - | tr ' ' '\t' > ${i%.f*}_${ref1%.f*}_${ref2%.f*}_${ref4%.f*}.sam
+		        awk '($3 != "\*")' 2> /dev/null  | awk '($6 != "\*")' 2> /dev/null   | awk '$5 < 10 {$5 = 10}1' | cat ${i%.f*}_heading_${ref1%.f*}_${ref2%.f*}_${ref4%.f*}.sam - | tr ' ' '\t' > ${i%.f*}_${ref1%.f*}_${ref2%.f*}_${ref4%.f*}.sam
 		        rm ${i%.f*}_exp_${ref1%.f*}_${ref2%.f*}_${ref4%.f*}.sam ${i%.f*}_uniq_${ref1%.f*}_${ref2%.f*}_${ref4%.f*}.sam ${i%.f*}_heading_${ref1%.f*}_${ref2%.f*}_${ref4%.f*}.sam ${i%.f*}_del_${ref1%.f*}_${ref2%.f*}_${ref4%.f*}.sam
 		      } & PIDexp3=$!
 		      wait $PIDexp3
@@ -945,7 +948,7 @@ main () {
 		          awk -v n="^${k}" '$0~n{print $0}' ${i%.f*}_uniq_${ref1%.f*}_${ref3%.f*}_${ref4%.f*}.sam | awk -v n="$k" '{for(i=0;i<n;i++) print}' >> ${i%.f*}_exp_${ref1%.f*}_${ref3%.f*}_${ref4%.f*}.sam
 		        done; wait
 		        awk '{print "seq"NR"_"$0}' ${i%.f*}_exp_${ref1%.f*}_${ref3%.f*}_${ref4%.f*}.sam | tr -s ' ' | \
-		        awk '($3 != "\*")' 2> /dev/null  | awk '($6 != "\*")' 2> /dev/null   | awk '$5 <= 10 {$5 = 20}1' | cat ${i%.f*}_heading_${ref1%.f*}_${ref3%.f*}_${ref4%.f*}.sam - | tr ' ' '\t' > ${i%.f*}_${ref1%.f*}_${ref3%.f*}_${ref4%.f*}.sam
+		        awk '($3 != "\*")' 2> /dev/null  | awk '($6 != "\*")' 2> /dev/null   | awk '$5 < 10 {$5 = 10}1' | cat ${i%.f*}_heading_${ref1%.f*}_${ref3%.f*}_${ref4%.f*}.sam - | tr ' ' '\t' > ${i%.f*}_${ref1%.f*}_${ref3%.f*}_${ref4%.f*}.sam
 		        rm ${i%.f*}_exp_${ref1%.f*}_${ref3%.f*}_${ref4%.f*}.sam ${i%.f*}_uniq_${ref1%.f*}_${ref3%.f*}_${ref4%.f*}.sam ${i%.f*}_heading_${ref1%.f*}_${ref3%.f*}_${ref4%.f*}.sam ${i%.f*}_del_${ref1%.f*}_${ref3%.f*}_${ref4%.f*}.sam
 		      } & PIDexp4=$!
 		      wait $PIDexp4
@@ -958,7 +961,7 @@ main () {
 		          awk -v n="^${k}" '$0~n{print $0}' ${i%.f*}_uniq_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.sam | awk -v n="$k" '{for(i=0;i<n;i++) print}' >> ${i%.f*}_exp_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.sam
 		        done; wait
 		        awk '{print "seq"NR"_"$0}' ${i%.f*}_exp_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.sam | tr -s ' ' | \
-		        awk '($3 != "\*")' 2> /dev/null  | awk '($6 != "\*")' 2> /dev/null   | awk '$5 <= 10 {$5 = 20}1' | cat ${i%.f*}_heading_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.sam - | tr ' ' '\t' > ${i%.f*}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.sam
+		        awk '($3 != "\*")' 2> /dev/null  | awk '($6 != "\*")' 2> /dev/null   | awk '$5 < 10 {$5 = 10}1' | cat ${i%.f*}_heading_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.sam - | tr ' ' '\t' > ${i%.f*}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.sam
 		        rm ${i%.f*}_exp_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.sam ${i%.f*}_uniq_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.sam ${i%.f*}_heading_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.sam ${i%.f*}_del_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.sam
 		      } & PIDexp5=$!
 		      wait $PIDexp5
@@ -971,7 +974,7 @@ main () {
 		          awk -v n="^${k}" '$0~n{print $0}' ${i%.f*}_uniq_${ref1%.f*}_${ref2%.f*}.sam | awk -v n="$k" '{for(i=0;i<n;i++) print}' >> ${i%.f*}_exp_${ref1%.f*}_${ref2%.f*}.sam
 		        done; wait
 		        awk '{print "seq"NR"_"$0}' ${i%.f*}_exp_${ref1%.f*}_${ref2%.f*}.sam | tr -s ' ' | \
-		        awk '($3 != "\*")' 2> /dev/null  | awk '($6 != "\*")' 2> /dev/null   | awk '$5 <= 10 {$5 = 20}1' | cat ${i%.f*}_heading_${ref1%.f*}_${ref2%.f*}.sam - | tr ' ' '\t' > ${i%.f*}_${ref1%.f*}_${ref2%.f*}.sam
+		        awk '($3 != "\*")' 2> /dev/null  | awk '($6 != "\*")' 2> /dev/null   | awk '$5 < 10 {$5 = 10}1' | cat ${i%.f*}_heading_${ref1%.f*}_${ref2%.f*}.sam - | tr ' ' '\t' > ${i%.f*}_${ref1%.f*}_${ref2%.f*}.sam
 		        rm ${i%.f*}_exp_${ref1%.f*}_${ref2%.f*}.sam ${i%.f*}_uniq_${ref1%.f*}_${ref2%.f*}.sam ${i%.f*}_heading_${ref1%.f*}_${ref2%.f*}.sam ${i%.f*}_del_${ref1%.f*}_${ref2%.f*}.sam
 		      } & PIDexp6=$!
 		      wait $PIDexp6
@@ -984,7 +987,7 @@ main () {
 		          awk -v n="^${k}" '$0~n{print $0}' ${i%.f*}_uniq_${ref1%.f*}_${ref3%.f*}.sam | awk -v n="$k" '{for(i=0;i<n;i++) print}' >> ${i%.f*}_exp_${ref1%.f*}_${ref3%.f*}.sam
 		        done; wait
 		        awk '{print "seq"NR"_"$0}' ${i%.f*}_exp_${ref1%.f*}_${ref3%.f*}.sam | tr -s ' ' | \
-		        awk '($3 != "\*")' 2> /dev/null  | awk '($6 != "\*")' 2> /dev/null   | awk '$5 <= 10 {$5 = 20}1' | cat ${i%.f*}_heading_${ref1%.f*}_${ref3%.f*}.sam - | tr ' ' '\t' > ${i%.f*}_${ref1%.f*}_${ref3%.f*}.sam
+		        awk '($3 != "\*")' 2> /dev/null  | awk '($6 != "\*")' 2> /dev/null   | awk '$5 < 10 {$5 = 10}1' | cat ${i%.f*}_heading_${ref1%.f*}_${ref3%.f*}.sam - | tr ' ' '\t' > ${i%.f*}_${ref1%.f*}_${ref3%.f*}.sam
 		        rm ${i%.f*}_exp_${ref1%.f*}_${ref3%.f*}.sam ${i%.f*}_uniq_${ref1%.f*}_${ref3%.f*}.sam ${i%.f*}_heading_${ref1%.f*}_${ref3%.f*}.sam ${i%.f*}_del_${ref1%.f*}_${ref3%.f*}.sam
 		      } & PIDexp7=$!
 		      wait $PIDexp7
@@ -997,7 +1000,7 @@ main () {
 		          awk -v n="^${k}" '$0~n{print $0}' ${i%.f*}_uniq_${ref1%.f*}_${ref4%.f*}.sam | awk -v n="$k" '{for(i=0;i<n;i++) print}' >> ${i%.f*}_exp_${ref1%.f*}_${ref4%.f*}.sam
 		        done; wait
 		        awk '{print "seq"NR"_"$0}' ${i%.f*}_exp_${ref1%.f*}_${ref4%.f*}.sam | tr -s ' ' | \
-		        awk '($3 != "\*")' 2> /dev/null  | awk '($6 != "\*")' 2> /dev/null   | awk '$5 <= 10 {$5 = 20}1' | cat ${i%.f*}_heading_${ref1%.f*}_${ref4%.f*}.sam - | tr ' ' '\t' > ${i%.f*}_${ref1%.f*}_${ref4%.f*}.sam
+		        awk '($3 != "\*")' 2> /dev/null  | awk '($6 != "\*")' 2> /dev/null   | awk '$5 < 10 {$5 = 10}1' | cat ${i%.f*}_heading_${ref1%.f*}_${ref4%.f*}.sam - | tr ' ' '\t' > ${i%.f*}_${ref1%.f*}_${ref4%.f*}.sam
 		        rm ${i%.f*}_exp_${ref1%.f*}_${ref4%.f*}.sam ${i%.f*}_uniq_${ref1%.f*}_${ref4%.f*}.sam ${i%.f*}_heading_${ref1%.f*}_${ref4%.f*}.sam ${i%.f*}_del_${ref1%.f*}_${ref4%.f*}.sam
 		      } & PIDexp8=$!
 		      wait $PIDexp8
@@ -1010,7 +1013,7 @@ main () {
 		          awk -v n="^${k}" '$0~n{print $0}' ${i%.f*}_uniq_${ref2%.f*}_${ref3%.f*}.sam | awk -v n="$k" '{for(i=0;i<n;i++) print}' >> ${i%.f*}_exp_${ref2%.f*}_${ref3%.f*}.sam
 		        done; wait
 		        awk '{print "seq"NR"_"$0}' ${i%.f*}_exp_${ref2%.f*}_${ref3%.f*}.sam | tr -s ' ' | \
-		        awk '($3 != "\*")' 2> /dev/null  | awk '($6 != "\*")' 2> /dev/null   | awk '$5 <= 10 {$5 = 20}1' | cat ${i%.f*}_heading_${ref2%.f*}_${ref3%.f*}.sam - | tr ' ' '\t' > ${i%.f*}_${ref2%.f*}_${ref3%.f*}.sam
+		        awk '($3 != "\*")' 2> /dev/null  | awk '($6 != "\*")' 2> /dev/null   | awk '$5 < 10 {$5 = 10}1' | cat ${i%.f*}_heading_${ref2%.f*}_${ref3%.f*}.sam - | tr ' ' '\t' > ${i%.f*}_${ref2%.f*}_${ref3%.f*}.sam
 		        rm ${i%.f*}_exp_${ref2%.f*}_${ref3%.f*}.sam ${i%.f*}_uniq_${ref2%.f*}_${ref3%.f*}.sam ${i%.f*}_heading_${ref2%.f*}_${ref3%.f*}.sam ${i%.f*}_del_${ref2%.f*}_${ref3%.f*}.sam
 		      } & PIDexp9=$!
 		      wait $PIDexp9
@@ -1023,7 +1026,7 @@ main () {
 		          awk -v n="^${k}" '$0~n{print $0}' ${i%.f*}_uniq_${ref2%.f*}_${ref4%.f*}.sam | awk -v n="$k" '{for(i=0;i<n;i++) print}' >> ${i%.f*}_exp_${ref2%.f*}_${ref4%.f*}.sam
 		        done; wait
 		        awk '{print "seq"NR"_"$0}' ${i%.f*}_exp_${ref2%.f*}_${ref4%.f*}.sam | tr -s ' ' | \
-		        awk '($3 != "\*")' 2> /dev/null  | awk '($6 != "\*")' 2> /dev/null   | awk '$5 <= 10 {$5 = 20}1' | cat ${i%.f*}_heading_${ref2%.f*}_${ref4%.f*}.sam - | tr ' ' '\t' > ${i%.f*}_${ref2%.f*}_${ref4%.f*}.sam
+		        awk '($3 != "\*")' 2> /dev/null  | awk '($6 != "\*")' 2> /dev/null   | awk '$5 < 10 {$5 = 10}1' | cat ${i%.f*}_heading_${ref2%.f*}_${ref4%.f*}.sam - | tr ' ' '\t' > ${i%.f*}_${ref2%.f*}_${ref4%.f*}.sam
 		        rm ${i%.f*}_exp_${ref2%.f*}_${ref4%.f*}.sam ${i%.f*}_uniq_${ref2%.f*}_${ref4%.f*}.sam ${i%.f*}_heading_${ref2%.f*}_${ref4%.f*}.sam ${i%.f*}_del_${ref2%.f*}_${ref4%.f*}.sam
 		      } & PIDexp10=$!
 		      wait $PIDexp10
@@ -1036,7 +1039,7 @@ main () {
 		          awk -v n="^${k}" '$0~n{print $0}' ${i%.f*}_uniq_${ref3%.f*}_${ref4%.f*}.sam | awk -v n="$k" '{for(i=0;i<n;i++) print}' >> ${i%.f*}_exp_${ref3%.f*}_${ref4%.f*}.sam
 		        done; wait
 		        awk '{print "seq"NR"_"$0}' ${i%.f*}_exp_${ref3%.f*}_${ref4%.f*}.sam | tr -s ' ' | \
-		        awk '($3 != "\*")' 2> /dev/null  | awk '($6 != "\*")' 2> /dev/null   | awk '$5 <= 10 {$5 = 20}1' | cat ${i%.f*}_heading_${ref3%.f*}_${ref4%.f*}.sam - | tr ' ' '\t' > ${i%.f*}_${ref3%.f*}_${ref4%.f*}.sam
+		        awk '($3 != "\*")' 2> /dev/null  | awk '($6 != "\*")' 2> /dev/null   | awk '$5 < 10 {$5 = 10}1' | cat ${i%.f*}_heading_${ref3%.f*}_${ref4%.f*}.sam - | tr ' ' '\t' > ${i%.f*}_${ref3%.f*}_${ref4%.f*}.sam
 		        rm ${i%.f*}_exp_${ref3%.f*}_${ref4%.f*}.sam ${i%.f*}_uniq_${ref3%.f*}_${ref4%.f*}.sam ${i%.f*}_heading_${ref3%.f*}_${ref4%.f*}.sam ${i%.f*}_del_${ref3%.f*}_${ref4%.f*}.sam
 		      } & PIDexp11=$!
 		      wait $PIDexp11
@@ -1049,7 +1052,7 @@ main () {
 		          awk -v n="^${k}" '$0~n{print $0}' ${i%.f*}_uniq_${ref1%.f*}.sam | awk -v n="$k" '{for(i=0;i<n;i++) print}' >> ${i%.f*}_exp_${ref1%.f*}.sam
 		        done; wait
 		        awk '{print "seq"NR"_"$0}' ${i%.f*}_exp_${ref1%.f*}.sam | tr -s ' ' | \
-		        awk '($3 != "\*")' 2> /dev/null  | awk '($6 != "\*")' 2> /dev/null   | awk '$5 <= 10 {$5 = 20}1' | cat ${i%.f*}_heading_${ref1%.f*}.sam - | tr ' ' '\t' > ${i%.f*}_${ref1%.f*}.sam
+		        awk '($3 != "\*")' 2> /dev/null  | awk '($6 != "\*")' 2> /dev/null   | awk '$5 < 10 {$5 = 10}1' | cat ${i%.f*}_heading_${ref1%.f*}.sam - | tr ' ' '\t' > ${i%.f*}_${ref1%.f*}.sam
 		        rm ${i%.f*}_exp_${ref1%.f*}.sam ${i%.f*}_uniq_${ref1%.f*}.sam ${i%.f*}_heading_${ref1%.f*}.sam ${i%.f*}_del_${ref1%.f*}.sam
 		      } & PIDexp12=$!
 		      wait $PIDexp12
@@ -1062,7 +1065,7 @@ main () {
 		          awk -v n="^${k}" '$0~n{print $0}' ${i%.f*}_uniq_${ref2%.f*}.sam | awk -v n="$k" '{for(i=0;i<n;i++) print}' >> ${i%.f*}_exp_${ref2%.f*}.sam
 		        done; wait
 		        awk '{print "seq"NR"_"$0}' ${i%.f*}_exp_${ref2%.f*}.sam | tr -s ' ' | \
-		        awk '($3 != "\*")' 2> /dev/null  | awk '($6 != "\*")' 2> /dev/null   | awk '$5 <= 10 {$5 = 20}1' | cat ${i%.f*}_heading_${ref2%.f*}.sam - | tr ' ' '\t' > ${i%.f*}_${ref2%.f*}.sam
+		        awk '($3 != "\*")' 2> /dev/null  | awk '($6 != "\*")' 2> /dev/null   | awk '$5 < 10 {$5 = 10}1' | cat ${i%.f*}_heading_${ref2%.f*}.sam - | tr ' ' '\t' > ${i%.f*}_${ref2%.f*}.sam
 		        rm ${i%.f*}_exp_${ref2%.f*}.sam ${i%.f*}_uniq_${ref2%.f*}.sam ${i%.f*}_heading_${ref2%.f*}.sam ${i%.f*}_del_${ref2%.f*}.sam
 		      } & PIDexp13=$!
 		      wait $PIDexp13
@@ -1075,7 +1078,7 @@ main () {
 		          awk -v n="^${k}" '$0~n{print $0}' ${i%.f*}_uniq_${ref3%.f*}.sam | awk -v n="$k" '{for(i=0;i<n;i++) print}' >> ${i%.f*}_exp_${ref3%.f*}.sam
 		        done; wait
 		        awk '{print "seq"NR"_"$0}' ${i%.f*}_exp_${ref3%.f*}.sam | tr -s ' ' | \
-		        awk '($3 != "\*")' 2> /dev/null  | awk '($6 != "\*")' 2> /dev/null   | awk '$5 <= 10 {$5 = 20}1' | cat ${i%.f*}_heading_${ref3%.f*}.sam - | tr ' ' '\t' > ${i%.f*}_${ref3%.f*}.sam
+		        awk '($3 != "\*")' 2> /dev/null  | awk '($6 != "\*")' 2> /dev/null   | awk '$5 < 10 {$5 = 10}1' | cat ${i%.f*}_heading_${ref3%.f*}.sam - | tr ' ' '\t' > ${i%.f*}_${ref3%.f*}.sam
 		        rm ${i%.f*}_exp_${ref3%.f*}.sam ${i%.f*}_uniq_${ref3%.f*}.sam ${i%.f*}_heading_${ref3%.f*}.sam ${i%.f*}_del_${ref3%.f*}.sam
 		      } & PIDexp14=$!
 		      wait $PIDexp14
@@ -1088,7 +1091,7 @@ main () {
 		          awk -v n="^${k}" '$0~n{print $0}' ${i%.f*}_uniq_${ref4%.f*}.sam | awk -v n="$k" '{for(i=0;i<n;i++) print}' >> ${i%.f*}_exp_${ref4%.f*}.sam
 		        done; wait
 		        awk '{print "seq"NR"_"$0}' ${i%.f*}_exp_${ref4%.f*}.sam | tr -s ' ' | \
-		        awk '($3 != "\*")' 2> /dev/null  | awk '($6 != "\*")' 2> /dev/null   | awk '$5 <= 10 {$5 = 20}1' | cat ${i%.f*}_heading_${ref4%.f*}.sam - | tr ' ' '\t' > ${i%.f*}_${ref4%.f*}.sam
+		        awk '($3 != "\*")' 2> /dev/null  | awk '($6 != "\*")' 2> /dev/null   | awk '$5 < 10 {$5 = 10}1' | cat ${i%.f*}_heading_${ref4%.f*}.sam - | tr ' ' '\t' > ${i%.f*}_${ref4%.f*}.sam
 		        rm ${i%.f*}_exp_${ref4%.f*}.sam ${i%.f*}_uniq_${ref4%.f*}.sam ${i%.f*}_heading_${ref4%.f*}.sam ${i%.f*}_del_${ref4%.f*}.sam
 		      } & PIDexp15=$!
 		      wait $PIDexp15
@@ -1103,7 +1106,7 @@ main () {
 		      "${i%.f*}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.sam" )  && \
 		      cd ${projdir}/preprocess
 		      for j in "${arr[@]}"; do
-		            $java $Xmxp -XX:ParallelGCThreads=$prepthreads -jar $picard SortSam I=$j O=${j%.sam*}.bam SORT_ORDER=coordinate VALIDATION_STRINGENCY=LENIENT && \
+		            $java $Xmxp -XX:ParallelGCThreads=$prepthreads -Djava.io.tmpdir=`pwd`/tmp -jar $picard SortSam I=$j O=${j%.sam*}.bam SORT_ORDER=coordinate VALIDATION_STRINGENCY=LENIENT TMP_DIR=`pwd`/tmp && \
 		            $java $Xmxp -XX:ParallelGCThreads=$prepthreads -jar $picard BuildBamIndex INPUT=${j%.sam*}.bam VALIDATION_STRINGENCY=LENIENT && \
 		            $java $Xmxp -XX:ParallelGCThreads=$prepthreads -jar $picard AddOrReplaceReadGroups I=${j%.sam*}.bam O=${j%.sam*}_precall.bam RGLB=${i%.f*} RGPL=illumina RGPU=run RGSM=${i%.f*} VALIDATION_STRINGENCY=LENIENT && \
 		            $samtools index ${j%.sam*}_precall.bam &&
@@ -1121,7 +1124,7 @@ main () {
 		  ls * | grep -v precall | grep -v combined_all_sample_reads_redun.sam.gz | xargs rm 2> /dev/null
 		  wait
 	fi
-	
+
 
 	cd ${projdir}/samples
 	if [[ "$samples_list" == "samples_list_node_1.txt" ]]; then
@@ -1161,7 +1164,7 @@ main () {
       wait
       rm refgenome_paralogs_*_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.txt
       awk '{gsub(/~/,"\t"); print $0}' refgenome_paralogs_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.txt > temp.txt &&
-      awk '{print $4"\t"$2"\t"$1}' temp.txt | awk '!/CHROM|nloci|POS|mapQ/' | cat <(printf "CHROM\tPOS\tnloci\n") - > refgenome_paralogs_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.txt &&
+      awk '{print $3"\t"$4"\t"$1}' temp.txt | awk '!/CHROM|nloci|POS|mapQ/' | cat <(printf "CHROM\tPOS\tnloci\n") - > refgenome_paralogs_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.txt &&
 
       touch refgenome_paralogs_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}.txt
       for par in refgenome_paralogs_*_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}.txt; do
@@ -1172,7 +1175,7 @@ main () {
       wait
       rm refgenome_paralogs_*_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}.txt
       awk '{gsub(/~/,"\t"); print $0}' refgenome_paralogs_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}.txt > temp.txt &&
-      awk '{print $4"\t"$2"\t"$1}' temp.txt | awk '!/CHROM|nloci|POS|mapQ/' | cat <(printf "CHROM\tPOS\tnloci\n") - > refgenome_paralogs_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}.txt &&
+      awk '{print $3"\t"$4"\t"$1}' temp.txt | awk '!/CHROM|nloci|POS|mapQ/' | cat <(printf "CHROM\tPOS\tnloci\n") - > refgenome_paralogs_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}.txt &&
 
       touch refgenome_paralogs_${ref1%.f*}_${ref2%.f*}_${ref4%.f*}.txt
       for par in refgenome_paralogs_*_${ref1%.f*}_${ref2%.f*}_${ref4%.f*}.txt; do
@@ -1183,7 +1186,7 @@ main () {
       wait
       rm refgenome_paralogs_*_${ref1%.f*}_${ref2%.f*}_${ref4%.f*}.txt
       awk '{gsub(/~/,"\t"); print $0}' refgenome_paralogs_${ref1%.f*}_${ref2%.f*}_${ref4%.f*}.txt > temp.txt &&
-      awk '{print $4"\t"$2"\t"$1}' temp.txt | awk '!/CHROM|nloci|POS|mapQ/' | cat <(printf "CHROM\tPOS\tnloci\n") - > refgenome_paralogs_${ref1%.f*}_${ref2%.f*}_${ref4%.f*}.txt &&
+      awk '{print $3"\t"$4"\t"$1}' temp.txt | awk '!/CHROM|nloci|POS|mapQ/' | cat <(printf "CHROM\tPOS\tnloci\n") - > refgenome_paralogs_${ref1%.f*}_${ref2%.f*}_${ref4%.f*}.txt &&
 
       touch refgenome_paralogs_${ref1%.f*}_${ref3%.f*}_${ref4%.f*}.txt
       for par in refgenome_paralogs_*_${ref1%.f*}_${ref3%.f*}_${ref4%.f*}.txt; do
@@ -1194,7 +1197,7 @@ main () {
       wait
       rm refgenome_paralogs_*_${ref1%.f*}_${ref3%.f*}_${ref4%.f*}.txt
       awk '{gsub(/~/,"\t"); print $0}' refgenome_paralogs_${ref1%.f*}_${ref3%.f*}_${ref4%.f*}.txt > temp.txt &&
-      awk '{print $4"\t"$2"\t"$1}' temp.txt | awk '!/CHROM|nloci|POS|mapQ/' | cat <(printf "CHROM\tPOS\tnloci\n") - > refgenome_paralogs_${ref1%.f*}_${ref3%.f*}_${ref4%.f*}.txt &&
+      awk '{print $3"\t"$4"\t"$1}' temp.txt | awk '!/CHROM|nloci|POS|mapQ/' | cat <(printf "CHROM\tPOS\tnloci\n") - > refgenome_paralogs_${ref1%.f*}_${ref3%.f*}_${ref4%.f*}.txt &&
 
       touch refgenome_paralogs_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.txt
       for par in refgenome_paralogs_*_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.txt; do
@@ -1205,7 +1208,7 @@ main () {
       wait
       rm refgenome_paralogs_*_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.txt
       awk '{gsub(/~/,"\t"); print $0}' refgenome_paralogs_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.txt > temp.txt &&
-      awk '{print $4"\t"$2"\t"$1}' temp.txt | awk '!/CHROM|nloci|POS|mapQ/' | cat <(printf "CHROM\tPOS\tnloci\n") - > refgenome_paralogs_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.txt &&
+      awk '{print $3"\t"$4"\t"$1}' temp.txt | awk '!/CHROM|nloci|POS|mapQ/' | cat <(printf "CHROM\tPOS\tnloci\n") - > refgenome_paralogs_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.txt &&
 
       touch refgenome_paralogs_${ref1%.f*}_${ref2%.f*}.txt
       for par in refgenome_paralogs_*_${ref1%.f*}_${ref2%.f*}.txt; do
@@ -1216,7 +1219,7 @@ main () {
       wait
       rm refgenome_paralogs_*_${ref1%.f*}_${ref2%.f*}.txt
       awk '{gsub(/~/,"\t"); print $0}' refgenome_paralogs_${ref1%.f*}_${ref2%.f*}.txt > temp.txt &&
-      awk '{print $4"\t"$2"\t"$1}' temp.txt | awk '!/CHROM|nloci|POS|mapQ/' | cat <(printf "CHROM\tPOS\tnloci\n") - > refgenome_paralogs_${ref1%.f*}_${ref2%.f*}.txt &&
+      awk '{print $3"\t"$4"\t"$1}' temp.txt | awk '!/CHROM|nloci|POS|mapQ/' | cat <(printf "CHROM\tPOS\tnloci\n") - > refgenome_paralogs_${ref1%.f*}_${ref2%.f*}.txt &&
 
       touch refgenome_paralogs_${ref1%.f*}_${ref3%.f*}.txt
       for par in refgenome_paralogs_*_${ref1%.f*}_${ref3%.f*}.txt; do
@@ -1227,7 +1230,7 @@ main () {
       wait
       rm refgenome_paralogs_*_${ref1%.f*}_${ref3%.f*}.txt
       awk '{gsub(/~/,"\t"); print $0}' refgenome_paralogs_${ref1%.f*}_${ref3%.f*}.txt > temp.txt &&
-      awk '{print $4"\t"$2"\t"$1}' temp.txt | awk '!/CHROM|nloci|POS|mapQ/' | cat <(printf "CHROM\tPOS\tnloci\n") - > refgenome_paralogs_${ref1%.f*}_${ref3%.f*}.txt &&
+      awk '{print $3"\t"$4"\t"$1}' temp.txt | awk '!/CHROM|nloci|POS|mapQ/' | cat <(printf "CHROM\tPOS\tnloci\n") - > refgenome_paralogs_${ref1%.f*}_${ref3%.f*}.txt &&
 
       touch refgenome_paralogs_${ref1%.f*}_${ref4%.f*}.txt
       for par in refgenome_paralogs_*_${ref1%.f*}_${ref4%.f*}.txt; do
@@ -1238,7 +1241,7 @@ main () {
       wait
       rm refgenome_paralogs_*_${ref1%.f*}_${ref4%.f*}.txt
       awk '{gsub(/~/,"\t"); print $0}' refgenome_paralogs_${ref1%.f*}_${ref4%.f*}.txt > temp.txt &&
-      awk '{print $4"\t"$2"\t"$1}' temp.txt | awk '!/CHROM|nloci|POS|mapQ/' | cat <(printf "CHROM\tPOS\tnloci\n") - > refgenome_paralogs_${ref1%.f*}_${ref4%.f*}.txt &&
+      awk '{print $3"\t"$4"\t"$1}' temp.txt | awk '!/CHROM|nloci|POS|mapQ/' | cat <(printf "CHROM\tPOS\tnloci\n") - > refgenome_paralogs_${ref1%.f*}_${ref4%.f*}.txt &&
 
       touch refgenome_paralogs_${ref2%.f*}_${ref3%.f*}.txt
       for par in refgenome_paralogs_*_${ref2%.f*}_${ref3%.f*}.txt; do
@@ -1249,7 +1252,7 @@ main () {
       wait
       rm refgenome_paralogs_*_${ref2%.f*}_${ref3%.f*}.txt
       awk '{gsub(/~/,"\t"); print $0}' refgenome_paralogs_${ref2%.f*}_${ref3%.f*}.txt > temp.txt &&
-      awk '{print $4"\t"$2"\t"$1}' temp.txt | awk '!/CHROM|nloci|POS|mapQ/' | cat <(printf "CHROM\tPOS\tnloci\n") - > refgenome_paralogs_${ref2%.f*}_${ref3%.f*}.txt &&
+      awk '{print $3"\t"$4"\t"$1}' temp.txt | awk '!/CHROM|nloci|POS|mapQ/' | cat <(printf "CHROM\tPOS\tnloci\n") - > refgenome_paralogs_${ref2%.f*}_${ref3%.f*}.txt &&
 
       touch refgenome_paralogs_${ref2%.f*}_${ref4%.f*}.txt
       for par in refgenome_paralogs_*_${ref2%.f*}_${ref4%.f*}.txt; do
@@ -1260,7 +1263,7 @@ main () {
       wait
       rm refgenome_paralogs_*_${ref2%.f*}_${ref4%.f*}.txt
       awk '{gsub(/~/,"\t"); print $0}' refgenome_paralogs_${ref2%.f*}_${ref4%.f*}.txt > temp.txt &&
-      awk '{print $4"\t"$2"\t"$1}' temp.txt | awk '!/CHROM|nloci|POS|mapQ/' | cat <(printf "CHROM\tPOS\tnloci\n") - > refgenome_paralogs_${ref2%.f*}_${ref4%.f*}.txt &&
+      awk '{print $3"\t"$4"\t"$1}' temp.txt | awk '!/CHROM|nloci|POS|mapQ/' | cat <(printf "CHROM\tPOS\tnloci\n") - > refgenome_paralogs_${ref2%.f*}_${ref4%.f*}.txt &&
 
       touch refgenome_paralogs_${ref3%.f*}_${ref4%.f*}.txt
       for par in refgenome_paralogs_*_${ref3%.f*}_${ref4%.f*}.txt; do
@@ -1271,7 +1274,7 @@ main () {
       wait
       rm refgenome_paralogs_*_${ref3%.f*}_${ref4%.f*}.txt
       awk '{gsub(/~/,"\t"); print $0}' refgenome_paralogs_${ref3%.f*}_${ref4%.f*}.txt > temp.txt &&
-      awk '{print $4"\t"$2"\t"$1}' temp.txt | awk '!/CHROM|nloci|POS|mapQ/' | cat <(printf "CHROM\tPOS\tnloci\n") - > refgenome_paralogs_${ref3%.f*}_${ref4%.f*}.txt &&
+      awk '{print $3"\t"$4"\t"$1}' temp.txt | awk '!/CHROM|nloci|POS|mapQ/' | cat <(printf "CHROM\tPOS\tnloci\n") - > refgenome_paralogs_${ref3%.f*}_${ref4%.f*}.txt &&
 
 			touch refgenome_paralogs_${ref1%.f*}.txt
 			for par in refgenome_paralogs_*_${ref1%.f*}.txt; do
@@ -1282,7 +1285,7 @@ main () {
 			wait
 			rm refgenome_paralogs_*_${ref1%.f*}.txt
 			awk '{gsub(/~/,"\t"); print $0}' refgenome_paralogs_${ref1%.f*}.txt > temp.txt &&
-			awk '{print $4"\t"$2"\t"$1}' temp.txt | awk '!/CHROM|nloci|POS|mapQ/' | cat <(printf "CHROM\tPOS\tnloci\n") - > refgenome_paralogs_${ref1%.f*}.txt &&
+			awk '{print $3"\t"$4"\t"$1}' temp.txt | awk '!/CHROM|nloci|POS|mapQ/' | cat <(printf "CHROM\tPOS\tnloci\n") - > refgenome_paralogs_${ref1%.f*}.txt &&
 
 			touch refgenome_paralogs_${ref2%.f*}.txt
 			for par in $(ls refgenome_paralogs_*_${ref2%.f*}.txt | grep -v ${ref1%.f*}); do
@@ -1293,7 +1296,7 @@ main () {
 			wait
 			rm refgenome_paralogs_*_${ref2%.f*}.txt
 			awk '{gsub(/~/,"\t"); print $0}' refgenome_paralogs_${ref2%.f*}.txt > temp.txt &&
-			awk '{print $4"\t"$2"\t"$1}' temp.txt | awk '!/CHROM|nloci|POS|mapQ/' | cat <(printf "CHROM\tPOS\tnloci\n") - > refgenome_paralogs_${ref2%.f*}.txt &&
+			awk '{print $3"\t"$4"\t"$1}' temp.txt | awk '!/CHROM|nloci|POS|mapQ/' | cat <(printf "CHROM\tPOS\tnloci\n") - > refgenome_paralogs_${ref2%.f*}.txt &&
 
       touch refgenome_paralogs_${ref3%.f*}.txt
 			for par in refgenome_paralogs_*_${ref3%.f*}.txt; do
@@ -1304,7 +1307,7 @@ main () {
 			wait
 			rm refgenome_paralogs_*_${ref3%.f*}.txt
 			awk '{gsub(/~/,"\t"); print $0}' refgenome_paralogs_${ref3%.f*}.txt > temp.txt &&
-			awk '{print $4"\t"$2"\t"$1}' temp.txt | awk '!/CHROM|nloci|POS|mapQ/' | cat <(printf "CHROM\tPOS\tnloci\n") - > refgenome_paralogs_${ref3%.f*}.txt &&
+			awk '{print $3"\t"$4"\t"$1}' temp.txt | awk '!/CHROM|nloci|POS|mapQ/' | cat <(printf "CHROM\tPOS\tnloci\n") - > refgenome_paralogs_${ref3%.f*}.txt &&
 
       touch refgenome_paralogs_${ref4%.f*}.txt
 			for par in refgenome_paralogs_*_${ref4%.f*}.txt; do
@@ -1315,7 +1318,7 @@ main () {
 			wait
 			rm refgenome_paralogs_*_${ref4%.f*}.txt
 			awk '{gsub(/~/,"\t"); print $0}' refgenome_paralogs_${ref4%.f*}.txt > temp.txt &&
-			awk '{print $4"\t"$2"\t"$1}' temp.txt | awk '!/CHROM|nloci|POS|mapQ/' | cat <(printf "CHROM\tPOS\tnloci\n") - > refgenome_paralogs_${ref4%.f*}.txt &&
+			awk '{print $3"\t"$4"\t"$1}' temp.txt | awk '!/CHROM|nloci|POS|mapQ/' | cat <(printf "CHROM\tPOS\tnloci\n") - > refgenome_paralogs_${ref4%.f*}.txt &&
 
 
 			awk 'FNR==1 && NR!=1 { while (/^CHROM/) getline; }1 {print}' refgenome_paralogs_*.txt > refgenome_paralogs.txt &&
@@ -1412,7 +1415,7 @@ main () {
 	      cat vcf_header.txt all.vcf > ${pop}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}_${ploidy}x_raw.vcf
 	      rm vcf_header.txt all.vcf *.vcf.gz.tbi ${pop}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}_${ploidy}x_*_raw.vcf
 	    else
-	      echo $Get_Chromosome | tr ',' '\n' | awk '{print "SN:"$1}' | awk 'NR==FNR{a[$1];next}$2 in a{print $0}' - ${projdir}/refgenomes/panref.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $2}' > ${projdir}/refgenomes/panref.list
+	      echo $Get_Chromosome | tr ',' '\n' | awk '{print "SN:"$1}' | awk 'NR==FNR{a[$1];next}$2 in a{print $0}' - ${projdir}/refgenomes/panref.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $2":1-"$3}' > ${projdir}/refgenomes/panref.list
 	      $GATK --java-options "$Xmx2 -XX:+UseParallelGC -XX:ParallelGCThreads=$threads" HaplotypeCaller -R ${projdir}/refgenomes/panref.fasta -L ${projdir}/refgenomes/panref.list ${input}-ploidy $ploidy -O ${projdir}/snpcall/${pop}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}_${ploidy}x_raw.vcf.gz --dont-use-soft-clipped-bases $softclip --max-reads-per-alignment-start $downsample --minimum-mapping-quality 10 --max-num-haplotypes-in-population $((ploidy * maxHaplotype)) &&
 	      cd ../snpcall
 	      gunzip ${pop}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}_${ploidy}x_raw.vcf &&
@@ -1458,7 +1461,7 @@ main () {
 	    	cat vcf_header.txt all.vcf > ${pop}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${calcploidy}x_raw.vcf
 	    	rm vcf_header.txt all.vcf *.vcf.gz.tbi ${pop}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${calcploidy}x_*_raw.vcf
 	    else
-	    	echo $Get_Chromosome | tr ',' '\n' | awk '{print "SN:"$1}' | awk 'NR==FNR{a[$1];next}$2 in a{print $0}' - ${projdir}/refgenomes/panref.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $2}' > ${projdir}/refgenomes/panref.list
+	    	echo $Get_Chromosome | tr ',' '\n' | awk '{print "SN:"$1}' | awk 'NR==FNR{a[$1];next}$2 in a{print $0}' - ${projdir}/refgenomes/panref.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $2":1-"$3}' > ${projdir}/refgenomes/panref.list
 	    	$GATK --java-options "$Xmx2 -XX:+UseParallelGC -XX:ParallelGCThreads=$threads" HaplotypeCaller -R ${projdir}/refgenomes/panref.fasta -L ${projdir}/refgenomes/panref.list ${input}-ploidy $calcploidy -O ${projdir}/snpcall/${pop}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${calcploidy}x_raw.vcf.gz --dont-use-soft-clipped-bases $softclip --max-reads-per-alignment-start $downsample --minimum-mapping-quality 10 --max-num-haplotypes-in-population $((calcploidy * maxHaplotype)) &&
 	    	cd ../snpcall
 	    	gunzip ${pop}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${calcploidy}x_raw.vcf &&
@@ -1502,7 +1505,7 @@ main () {
 	    	cat vcf_header.txt all.vcf > ${pop}_${ref1%.f*}_${ref2%.f*}_${ref4%.f*}_${calcploidy}x_raw.vcf
 	    	rm vcf_header.txt all.vcf *.vcf.gz.tbi ${pop}_${ref1%.f*}_${ref2%.f*}_${ref4%.f*}_${calcploidy}x_*_raw.vcf
 	    else
-	    	echo $Get_Chromosome | tr ',' '\n' | awk '{print "SN:"$1}' | awk 'NR==FNR{a[$1];next}$2 in a{print $0}' - ${projdir}/refgenomes/panref.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $2}' > ${projdir}/refgenomes/panref.list
+	    	echo $Get_Chromosome | tr ',' '\n' | awk '{print "SN:"$1}' | awk 'NR==FNR{a[$1];next}$2 in a{print $0}' - ${projdir}/refgenomes/panref.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $2":1-"$3}' > ${projdir}/refgenomes/panref.list
 	    	$GATK --java-options "$Xmx2 -XX:+UseParallelGC -XX:ParallelGCThreads=$threads" HaplotypeCaller -R ${projdir}/refgenomes/panref.fasta -L ${projdir}/refgenomes/panref.list ${input}-ploidy $calcploidy -O ${projdir}/snpcall/${pop}_${ref1%.f*}_${ref2%.f*}_${ref4%.f*}_${calcploidy}x_raw.vcf.gz --dont-use-soft-clipped-bases $softclip --max-reads-per-alignment-start $downsample --minimum-mapping-quality 10 --max-num-haplotypes-in-population $((calcploidy * maxHaplotype)) &&
 	    	cd ../snpcall
 	    	gunzip ${pop}_${ref1%.f*}_${ref2%.f*}_${ref4%.f*}_${calcploidy}x_raw.vcf &&
@@ -1546,7 +1549,7 @@ main () {
 	    	cat vcf_header.txt all.vcf > ${pop}_${ref1%.f*}_${ref3%.f*}_${ref4%.f*}_${calcploidy}x_raw.vcf
 	    	rm vcf_header.txt all.vcf *.vcf.gz.tbi ${pop}_${ref1%.f*}_${ref3%.f*}_${ref4%.f*}_${calcploidy}x_*_raw.vcf
 	    else
-	    	echo $Get_Chromosome | tr ',' '\n' | awk '{print "SN:"$1}' | awk 'NR==FNR{a[$1];next}$2 in a{print $0}' - ${projdir}/refgenomes/panref.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $2}' > ${projdir}/refgenomes/panref.list
+	    	echo $Get_Chromosome | tr ',' '\n' | awk '{print "SN:"$1}' | awk 'NR==FNR{a[$1];next}$2 in a{print $0}' - ${projdir}/refgenomes/panref.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $2":1-"$3}' > ${projdir}/refgenomes/panref.list
 	    	$GATK --java-options "$Xmx2 -XX:+UseParallelGC -XX:ParallelGCThreads=$threads" HaplotypeCaller -R ${projdir}/refgenomes/panref.fasta -L ${projdir}/refgenomes/panref.list ${input}-ploidy $calcploidy -O ${projdir}/snpcall/${pop}_${ref1%.f*}_${ref3%.f*}_${ref4%.f*}_${calcploidy}x_raw.vcf.gz --dont-use-soft-clipped-bases $softclip --max-reads-per-alignment-start $downsample --minimum-mapping-quality 10 --max-num-haplotypes-in-population $((calcploidy * maxHaplotype)) &&
 	    	cd ../snpcall
 	    	gunzip ${pop}_${ref1%.f*}_${ref3%.f*}_${ref4%.f*}_${calcploidy}x_raw.vcf &&
@@ -1590,7 +1593,7 @@ main () {
 	    	cat vcf_header.txt all.vcf > ${pop}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}_${calcploidy}x_raw.vcf
 	    	rm vcf_header.txt all.vcf *.vcf.gz.tbi ${pop}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}_${calcploidy}x_*_raw.vcf
 	    else
-	    	echo $Get_Chromosome | tr ',' '\n' | awk '{print "SN:"$1}' | awk 'NR==FNR{a[$1];next}$2 in a{print $0}' - ${projdir}/refgenomes/panref.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $2}' > ${projdir}/refgenomes/panref.list
+	    	echo $Get_Chromosome | tr ',' '\n' | awk '{print "SN:"$1}' | awk 'NR==FNR{a[$1];next}$2 in a{print $0}' - ${projdir}/refgenomes/panref.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $2":1-"$3}' > ${projdir}/refgenomes/panref.list
 	    	$GATK --java-options "$Xmx2 -XX:+UseParallelGC -XX:ParallelGCThreads=$threads" HaplotypeCaller -R ${projdir}/refgenomes/panref.fasta -L ${projdir}/refgenomes/panref.list ${input}-ploidy $calcploidy -O ${projdir}/snpcall/${pop}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}_${calcploidy}x_raw.vcf.gz --dont-use-soft-clipped-bases $softclip --max-reads-per-alignment-start $downsample --minimum-mapping-quality 10 --max-num-haplotypes-in-population $((calcploidy * maxHaplotype)) &&
 	    	cd ../snpcall
 	    	gunzip ${pop}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}_${calcploidy}x_raw.vcf &&
@@ -1634,7 +1637,7 @@ main () {
 	    	cat vcf_header.txt all.vcf > ${pop}_${ref1%.f*}_${ref2%.f*}_${calcploidy}x_raw.vcf
 	    	rm vcf_header.txt all.vcf *.vcf.gz.tbi ${pop}_${ref1%.f*}_${ref2%.f*}_${calcploidy}x_*_raw.vcf
 	    else
-	    	echo $Get_Chromosome | tr ',' '\n' | awk '{print "SN:"$1}' | awk 'NR==FNR{a[$1];next}$2 in a{print $0}' - ${projdir}/refgenomes/panref.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $2}' > ${projdir}/refgenomes/panref.list
+	    	echo $Get_Chromosome | tr ',' '\n' | awk '{print "SN:"$1}' | awk 'NR==FNR{a[$1];next}$2 in a{print $0}' - ${projdir}/refgenomes/panref.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $2":1-"$3}' > ${projdir}/refgenomes/panref.list
 	    	$GATK --java-options "$Xmx2 -XX:+UseParallelGC -XX:ParallelGCThreads=$threads" HaplotypeCaller -R ${projdir}/refgenomes/panref.fasta -L ${projdir}/refgenomes/panref.list ${input}-ploidy $calcploidy -O ${projdir}/snpcall/${pop}_${ref1%.f*}_${ref2%.f*}_${calcploidy}x_raw.vcf.gz --dont-use-soft-clipped-bases $softclip --max-reads-per-alignment-start $downsample --minimum-mapping-quality 10 --max-num-haplotypes-in-population $((calcploidy * maxHaplotype)) &&
 	    	cd ../snpcall
 	    	gunzip ${pop}_${ref1%.f*}_${ref2%.f*}_${calcploidy}x_raw.vcf &&
@@ -1678,7 +1681,7 @@ main () {
 	    	cat vcf_header.txt all.vcf > ${pop}_${ref1%.f*}_${ref3%.f*}_${calcploidy}x_raw.vcf
 	    	rm vcf_header.txt all.vcf *.vcf.gz.tbi ${pop}_${ref1%.f*}_${ref3%.f*}_${calcploidy}x_*_raw.vcf
 	    else
-	    	echo $Get_Chromosome | tr ',' '\n' | awk '{print "SN:"$1}' | awk 'NR==FNR{a[$1];next}$2 in a{print $0}' - ${projdir}/refgenomes/panref.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $2}' > ${projdir}/refgenomes/panref.list
+	    	echo $Get_Chromosome | tr ',' '\n' | awk '{print "SN:"$1}' | awk 'NR==FNR{a[$1];next}$2 in a{print $0}' - ${projdir}/refgenomes/panref.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $2":1-"$3}' > ${projdir}/refgenomes/panref.list
 	    	$GATK --java-options "$Xmx2 -XX:+UseParallelGC -XX:ParallelGCThreads=$threads" HaplotypeCaller -R ${projdir}/refgenomes/panref.fasta -L ${projdir}/refgenomes/panref.list ${input}-ploidy $calcploidy -O ${projdir}/snpcall/${pop}_${ref1%.f*}_${ref3%.f*}_${calcploidy}x_raw.vcf.gz --dont-use-soft-clipped-bases $softclip --max-reads-per-alignment-start $downsample --minimum-mapping-quality 10 --max-num-haplotypes-in-population $((calcploidy * maxHaplotype)) &&
 	    	cd ../snpcall
 	    	gunzip ${pop}_${ref1%.f*}_${ref3%.f*}_${calcploidy}x_raw.vcf &&
@@ -1722,7 +1725,7 @@ main () {
 	    	cat vcf_header.txt all.vcf > ${pop}_${ref1%.f*}_${ref4%.f*}_${calcploidy}x_raw.vcf
 	    	rm vcf_header.txt all.vcf *.vcf.gz.tbi ${pop}_${ref1%.f*}_${ref4%.f*}_${calcploidy}x_*_raw.vcf
 	    else
-	    	echo $Get_Chromosome | tr ',' '\n' | awk '{print "SN:"$1}' | awk 'NR==FNR{a[$1];next}$2 in a{print $0}' - ${projdir}/refgenomes/panref.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $2}' > ${projdir}/refgenomes/panref.list
+	    	echo $Get_Chromosome | tr ',' '\n' | awk '{print "SN:"$1}' | awk 'NR==FNR{a[$1];next}$2 in a{print $0}' - ${projdir}/refgenomes/panref.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $2":1-"$3}' > ${projdir}/refgenomes/panref.list
 	    	$GATK --java-options "$Xmx2 -XX:+UseParallelGC -XX:ParallelGCThreads=$threads" HaplotypeCaller -R ${projdir}/refgenomes/panref.fasta -L ${projdir}/refgenomes/panref.list ${input}-ploidy $calcploidy -O ${projdir}/snpcall/${pop}_${ref1%.f*}_${ref4%.f*}_${calcploidy}x_raw.vcf.gz --dont-use-soft-clipped-bases $softclip --max-reads-per-alignment-start $downsample --minimum-mapping-quality 10 --max-num-haplotypes-in-population $((calcploidy * maxHaplotype)) &&
 	    	cd ../snpcall
 	    	gunzip ${pop}_${ref1%.f*}_${ref4%.f*}_${calcploidy}x_raw.vcf &&
@@ -1766,7 +1769,7 @@ main () {
 	    	cat vcf_header.txt all.vcf > ${pop}_${ref1%.f*}_${ref4%.f*}_${calcploidy}x_raw.vcf
 	    	rm vcf_header.txt all.vcf *.vcf.gz.tbi ${pop}_${ref1%.f*}_${ref4%.f*}_${calcploidy}x_*_raw.vcf
 	    else
-	    	echo $Get_Chromosome | tr ',' '\n' | awk '{print "SN:"$1}' | awk 'NR==FNR{a[$1];next}$2 in a{print $0}' - ${projdir}/refgenomes/panref.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $2}' > ${projdir}/refgenomes/panref.list
+	    	echo $Get_Chromosome | tr ',' '\n' | awk '{print "SN:"$1}' | awk 'NR==FNR{a[$1];next}$2 in a{print $0}' - ${projdir}/refgenomes/panref.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $2":1-"$3}' > ${projdir}/refgenomes/panref.list
 	    	$GATK --java-options "$Xmx2 -XX:+UseParallelGC -XX:ParallelGCThreads=$threads" HaplotypeCaller -R ${projdir}/refgenomes/panref.fasta -L ${projdir}/refgenomes/panref.list ${input}-ploidy $calcploidy -O ${projdir}/snpcall/${pop}_${ref1%.f*}_${ref4%.f*}_${calcploidy}x_raw.vcf.gz --dont-use-soft-clipped-bases $softclip --max-reads-per-alignment-start $downsample --minimum-mapping-quality 10 --max-num-haplotypes-in-population $((calcploidy * maxHaplotype)) &&
 	    	cd ../snpcall
 	    	gunzip ${pop}_${ref1%.f*}_${ref4%.f*}_${calcploidy}x_raw.vcf &&
@@ -1810,7 +1813,7 @@ main () {
 	    	cat vcf_header.txt all.vcf > ${pop}_${ref2%.f*}_${ref4%.f*}_${calcploidy}x_raw.vcf
 	    	rm vcf_header.txt all.vcf *.vcf.gz.tbi ${pop}_${ref2%.f*}_${ref4%.f*}_${calcploidy}x_*_raw.vcf
 	    else
-	    	echo $Get_Chromosome | tr ',' '\n' | awk '{print "SN:"$1}' | awk 'NR==FNR{a[$1];next}$2 in a{print $0}' - ${projdir}/refgenomes/panref.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $2}' > ${projdir}/refgenomes/panref.list
+	    	echo $Get_Chromosome | tr ',' '\n' | awk '{print "SN:"$1}' | awk 'NR==FNR{a[$1];next}$2 in a{print $0}' - ${projdir}/refgenomes/panref.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $2":1-"$3}' > ${projdir}/refgenomes/panref.list
 	    	$GATK --java-options "$Xmx2 -XX:+UseParallelGC -XX:ParallelGCThreads=$threads" HaplotypeCaller -R ${projdir}/refgenomes/panref.fasta -L ${projdir}/refgenomes/panref.list ${input}-ploidy $calcploidy -O ${projdir}/snpcall/${pop}_${ref2%.f*}_${ref4%.f*}_${calcploidy}x_raw.vcf.gz --dont-use-soft-clipped-bases $softclip --max-reads-per-alignment-start $downsample --minimum-mapping-quality 10 --max-num-haplotypes-in-population $((calcploidy * maxHaplotype)) &&
 	    	cd ../snpcall
 	    	gunzip ${pop}_${ref2%.f*}_${ref4%.f*}_${calcploidy}x_raw.vcf &&
@@ -1854,7 +1857,7 @@ main () {
 	    	cat vcf_header.txt all.vcf > ${pop}_${ref3%.f*}_${ref4%.f*}_${calcploidy}x_raw.vcf
 	    	rm vcf_header.txt all.vcf *.vcf.gz.tbi ${pop}_${ref3%.f*}_${ref4%.f*}_${calcploidy}x_*_raw.vcf
 	    else
-	    	echo $Get_Chromosome | tr ',' '\n' | awk '{print "SN:"$1}' | awk 'NR==FNR{a[$1];next}$2 in a{print $0}' - ${projdir}/refgenomes/panref.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $2}' > ${projdir}/refgenomes/panref.list
+	    	echo $Get_Chromosome | tr ',' '\n' | awk '{print "SN:"$1}' | awk 'NR==FNR{a[$1];next}$2 in a{print $0}' - ${projdir}/refgenomes/panref.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $2":1-"$3}' > ${projdir}/refgenomes/panref.list
 	    	$GATK --java-options "$Xmx2 -XX:+UseParallelGC -XX:ParallelGCThreads=$threads" HaplotypeCaller -R ${projdir}/refgenomes/panref.fasta -L ${projdir}/refgenomes/panref.list ${input}-ploidy $calcploidy -O ${projdir}/snpcall/${pop}_${ref3%.f*}_${ref4%.f*}_${calcploidy}x_raw.vcf.gz --dont-use-soft-clipped-bases $softclip --max-reads-per-alignment-start $downsample --minimum-mapping-quality 10 --max-num-haplotypes-in-population $((calcploidy * maxHaplotype)) &&
 	    	cd ../snpcall
 	    	gunzip ${pop}_${ref3%.f*}_${ref4%.f*}_${calcploidy}x_raw.vcf &&
@@ -1897,7 +1900,7 @@ main () {
 		    cat vcf_header.txt all.vcf > ${pop}_${ref1%.f*}_${ploidy_ref1}x_raw.vcf
 		    rm vcf_header.txt all.vcf *.vcf.gz.tbi ${pop}_${ref1%.f*}_${ploidy_ref1}x_*_raw.vcf
 		  else
-		    echo $Get_Chromosome | tr ',' '\n' | awk -v pat=${ref1%.f*} '$0 ~ pat' | awk '{print "SN:"$1}' | awk 'NR==FNR{a[$1];next}$2 in a{print $0}' - ${projdir}/refgenomes/panref.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $2}' > ${projdir}/refgenomes/panref.list
+		    echo $Get_Chromosome | tr ',' '\n' | awk -v pat=${ref1%.f*} '$0 ~ pat' | awk '{print "SN:"$1}' | awk 'NR==FNR{a[$1];next}$2 in a{print $0}' - ${projdir}/refgenomes/panref.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $2":1-"$3}' > ${projdir}/refgenomes/panref.list
 		    $GATK --java-options "$Xmx2 -XX:+UseParallelGC -XX:ParallelGCThreads=$threads" HaplotypeCaller -R ${projdir}/refgenomes/panref.fasta -L ${projdir}/refgenomes/panref.list ${input}-ploidy $ploidy -O ${projdir}/snpcall/${pop}_${ref1%.f*}_${ploidy_ref1}x_raw.vcf.gz --dont-use-soft-clipped-bases $softclip --max-reads-per-alignment-start $downsample --minimum-mapping-quality 10 --max-num-haplotypes-in-population $((ploidy_ref1 * maxHaplotype)) &&
 		    cd ../snpcall
 		    gunzip ${pop}_${ref1%.f*}_${ploidy_ref1}x_raw.vcf &&
@@ -1940,7 +1943,7 @@ main () {
 		    cat vcf_header.txt all.vcf > ${pop}_${ref2%.f*}_${ploidy_ref2}x_raw.vcf
 		    rm vcf_header.txt all.vcf *.vcf.gz.tbi ${pop}_${ref2%.f*}_${ploidy_ref2}x_*_raw.vcf
 		  else
-		    echo $Get_Chromosome | tr ',' '\n' | awk -v pat=${ref2%.f*} '$0 ~ pat' | awk '{print "SN:"$1}' | awk 'NR==FNR{a[$1];next}$2 in a{print $0}' - ${projdir}/refgenomes/panref.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $2}' > ${projdir}/refgenomes/panref.list
+		    echo $Get_Chromosome | tr ',' '\n' | awk -v pat=${ref2%.f*} '$0 ~ pat' | awk '{print "SN:"$1}' | awk 'NR==FNR{a[$1];next}$2 in a{print $0}' - ${projdir}/refgenomes/panref.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $2":1-"$3}' > ${projdir}/refgenomes/panref.list
 		    $GATK --java-options "$Xmx2 -XX:+UseParallelGC -XX:ParallelGCThreads=$threads" HaplotypeCaller -R ${projdir}/refgenomes/panref.fasta -L ${projdir}/refgenomes/panref.list ${input}-ploidy $ploidy -O ${projdir}/snpcall/${pop}_${ref2%.f*}_${ploidy_ref2}x_raw.vcf.gz --dont-use-soft-clipped-bases $softclip --max-reads-per-alignment-start $downsample --minimum-mapping-quality 10 --max-num-haplotypes-in-population $((ploidy_ref2 * maxHaplotype)) &&
 		    cd ../snpcall
 		    gunzip ${pop}_${ref2%.f*}_${ploidy_ref2}x_raw.vcf &&
@@ -1983,7 +1986,7 @@ main () {
 		    cat vcf_header.txt all.vcf > ${pop}_${ref3%.f*}_${ploidy_ref3}x_raw.vcf
 		    rm vcf_header.txt all.vcf *.vcf.gz.tbi ${pop}_${ref3%.f*}_${ploidy_ref3}x_*_raw.vcf
 		  else
-		    echo $Get_Chromosome | tr ',' '\n' | awk -v pat=${ref3%.f*} '$0 ~ pat' | awk '{print "SN:"$1}' | awk 'NR==FNR{a[$1];next}$2 in a{print $0}' - ${projdir}/refgenomes/panref.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $2}' > ${projdir}/refgenomes/panref.list
+		    echo $Get_Chromosome | tr ',' '\n' | awk -v pat=${ref3%.f*} '$0 ~ pat' | awk '{print "SN:"$1}' | awk 'NR==FNR{a[$1];next}$2 in a{print $0}' - ${projdir}/refgenomes/panref.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $2":1-"$3}' > ${projdir}/refgenomes/panref.list
 		    $GATK --java-options "$Xmx2 -XX:+UseParallelGC -XX:ParallelGCThreads=$threads" HaplotypeCaller -R ${projdir}/refgenomes/panref.fasta -L ${projdir}/refgenomes/panref.list ${input}-ploidy $ploidy -O ${projdir}/snpcall/${pop}_${ref3%.f*}_${ploidy_ref3}x_raw.vcf.gz --dont-use-soft-clipped-bases $softclip --max-reads-per-alignment-start $downsample --minimum-mapping-quality 10 --max-num-haplotypes-in-population $((ploidy_ref3 * maxHaplotype)) &&
 		    cd ../snpcall
 		    gunzip ${pop}_${ref3%.f*}_${ploidy_ref3}x_raw.vcf &&
@@ -2026,7 +2029,7 @@ main () {
 		    cat vcf_header.txt all.vcf > ${pop}_${ref4%.f*}_${ploidy_ref4}x_raw.vcf
 		    rm vcf_header.txt all.vcf *.vcf.gz.tbi ${pop}_${ref4%.f*}_${ploidy_ref4}x_*_raw.vcf
 		  else
-		    echo $Get_Chromosome | tr ',' '\n' | awk -v pat=${ref4%.f*} '$0 ~ pat' | awk '{print "SN:"$1}' | awk 'NR==FNR{a[$1];next}$2 in a{print $0}' - ${projdir}/refgenomes/panref.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $2}' > ${projdir}/refgenomes/panref.list
+		    echo $Get_Chromosome | tr ',' '\n' | awk -v pat=${ref4%.f*} '$0 ~ pat' | awk '{print "SN:"$1}' | awk 'NR==FNR{a[$1];next}$2 in a{print $0}' - ${projdir}/refgenomes/panref.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $2":1-"$3}' > ${projdir}/refgenomes/panref.list
 		    $GATK --java-options "$Xmx2 -XX:+UseParallelGC -XX:ParallelGCThreads=$threads" HaplotypeCaller -R ${projdir}/refgenomes/panref.fasta -L ${projdir}/refgenomes/panref.list ${input}-ploidy $ploidy -O ${projdir}/snpcall/${pop}_${ref4%.f*}_${ploidy_ref4}x_raw.vcf.gz --dont-use-soft-clipped-bases $softclip --max-reads-per-alignment-start $downsample --minimum-mapping-quality 10 --max-num-haplotypes-in-population $((ploidy_ref4 * maxHaplotype)) &&
 		    cd ../snpcall
 		    gunzip ${pop}_${ref4%.f*}_${ploidy_ref4}x_raw.vcf &&
@@ -2051,7 +2054,7 @@ main () {
     				$GATK --java-options "$Xmxg -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ../refgenomes/panref.fasta -I ${i%.f*}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}_precall.bam -ploidy $ploidy -O ../snpcall/${i%.f*}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.hold.g.vcf.gz -ERC GVCF --dont-use-soft-clipped-bases $softclip --max-reads-per-alignment-start $downsample --minimum-mapping-quality 10 --max-num-haplotypes-in-population $((ploidy * maxHaplotype)) &&
     				wait
     			else
-    				echo $Get_Chromosome | tr ',' '\n' | awk '{print "SN:"$1}' | awk 'NR==FNR{a[$1];next}$2 in a{print $0}' - ../refgenomes/panref.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $2}' > ../refgenomes/panref.list
+    				echo $Get_Chromosome | tr ',' '\n' | awk '{print "SN:"$1}' | awk 'NR==FNR{a[$1];next}$2 in a{print $0}' - ../refgenomes/panref.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $2":1-"$3}' > ../refgenomes/panref.list
     				$GATK --java-options "$Xmxg -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ../refgenomes/panref.fasta -L ../refgenomes/panref.list -I ${i%.f*}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}_precall.bam -ploidy $ploidy -O ../snpcall/${i%.f*}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.hold.g.vcf.gz -ERC GVCF --dont-use-soft-clipped-bases $softclip --max-reads-per-alignment-start $downsample --minimum-mapping-quality 10 --max-num-haplotypes-in-population $((ploidy * maxHaplotype)) &&
     				wait
     			fi
@@ -2178,7 +2181,7 @@ main () {
     				$GATK --java-options "$Xmxg -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ../refgenomes/panref.fasta -I ${i%.f*}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_precall.bam -ploidy $calcploidy -O ../snpcall/${i%.f*}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}.hold.g.vcf.gz -ERC GVCF --dont-use-soft-clipped-bases $softclip --max-reads-per-alignment-start $downsample --minimum-mapping-quality 10 --max-num-haplotypes-in-population $((calcploidy * maxHaplotype)) &&
     				wait
     			else
-    				echo $Get_Chromosome | tr ',' '\n' | awk '{print "SN:"$1}' | awk 'NR==FNR{a[$1];next}$2 in a{print $0}' - ../refgenomes/panref.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $2}' > ../refgenomes/panref.list
+    				echo $Get_Chromosome | tr ',' '\n' | awk '{print "SN:"$1}' | awk 'NR==FNR{a[$1];next}$2 in a{print $0}' - ../refgenomes/panref.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $2":1-"$3}' > ../refgenomes/panref.list
     				$GATK --java-options "$Xmxg -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ../refgenomes/panref.fasta -L ../refgenomes/panref.list -I ${i%.f*}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_precall.bam -ploidy $calcploidy -O ../snpcall/${i%.f*}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}.hold.g.vcf.gz -ERC GVCF --dont-use-soft-clipped-bases $softclip --max-reads-per-alignment-start $downsample --minimum-mapping-quality 10 --max-num-haplotypes-in-population $((calcploidy * maxHaplotype)) &&
     				wait
     			fi
@@ -2305,7 +2308,7 @@ main () {
     				$GATK --java-options "$Xmxg -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ../refgenomes/panref.fasta -I ${i%.f*}_${ref1%.f*}_${ref2%.f*}_${ref4%.f*}_precall.bam -ploidy $calcploidy -O ../snpcall/${i%.f*}_${ref1%.f*}_${ref2%.f*}_${ref4%.f*}.hold.g.vcf.gz -ERC GVCF --dont-use-soft-clipped-bases $softclip --max-reads-per-alignment-start $downsample --minimum-mapping-quality 10 --max-num-haplotypes-in-population $((calcploidy * maxHaplotype)) &&
     				wait
     			else
-    				echo $Get_Chromosome | tr ',' '\n' | awk '{print "SN:"$1}' | awk 'NR==FNR{a[$1];next}$2 in a{print $0}' - ../refgenomes/panref.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $2}' > ../refgenomes/panref.list
+    				echo $Get_Chromosome | tr ',' '\n' | awk '{print "SN:"$1}' | awk 'NR==FNR{a[$1];next}$2 in a{print $0}' - ../refgenomes/panref.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $2":1-"$3}' > ../refgenomes/panref.list
     				$GATK --java-options "$Xmxg -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ../refgenomes/panref.fasta -L ../refgenomes/panref.list -I ${i%.f*}_${ref1%.f*}_${ref2%.f*}_${ref4%.f*}_precall.bam -ploidy $calcploidy -O ../snpcall/${i%.f*}_${ref1%.f*}_${ref2%.f*}_${ref4%.f*}.hold.g.vcf.gz -ERC GVCF --dont-use-soft-clipped-bases $softclip --max-reads-per-alignment-start $downsample --minimum-mapping-quality 10 --max-num-haplotypes-in-population $((calcploidy * maxHaplotype)) &&
     				wait
     			fi
@@ -2432,7 +2435,7 @@ main () {
     				$GATK --java-options "$Xmxg -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ../refgenomes/panref.fasta -I ${i%.f*}_${ref1%.f*}_${ref3%.f*}_${ref4%.f*}_precall.bam -ploidy $calcploidy -O ../snpcall/${i%.f*}_${ref1%.f*}_${ref3%.f*}_${ref4%.f*}.hold.g.vcf.gz -ERC GVCF --dont-use-soft-clipped-bases $softclip --max-reads-per-alignment-start $downsample --minimum-mapping-quality 10 --max-num-haplotypes-in-population $((calcploidy * maxHaplotype)) &&
     				wait
     			else
-    				echo $Get_Chromosome | tr ',' '\n' | awk '{print "SN:"$1}' | awk 'NR==FNR{a[$1];next}$2 in a{print $0}' - ../refgenomes/panref.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $2}' > ../refgenomes/panref.list
+    				echo $Get_Chromosome | tr ',' '\n' | awk '{print "SN:"$1}' | awk 'NR==FNR{a[$1];next}$2 in a{print $0}' - ../refgenomes/panref.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $2":1-"$3}' > ../refgenomes/panref.list
     				$GATK --java-options "$Xmxg -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ../refgenomes/panref.fasta -L ../refgenomes/panref.list -I ${i%.f*}_${ref1%.f*}_${ref3%.f*}_${ref4%.f*}_precall.bam -ploidy $calcploidy -O ../snpcall/${i%.f*}_${ref1%.f*}_${ref3%.f*}_${ref4%.f*}.hold.g.vcf.gz -ERC GVCF --dont-use-soft-clipped-bases $softclip --max-reads-per-alignment-start $downsample --minimum-mapping-quality 10 --max-num-haplotypes-in-population $((calcploidy * maxHaplotype)) &&
     				wait
     			fi
@@ -2559,7 +2562,7 @@ main () {
     				$GATK --java-options "$Xmxg -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ../refgenomes/panref.fasta -I ${i%.f*}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}_precall.bam -ploidy $calcploidy -O ../snpcall/${i%.f*}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.hold.g.vcf.gz -ERC GVCF --dont-use-soft-clipped-bases $softclip --max-reads-per-alignment-start $downsample --minimum-mapping-quality 10 --max-num-haplotypes-in-population $((calcploidy * maxHaplotype)) &&
     				wait
     			else
-    				echo $Get_Chromosome | tr ',' '\n' | awk '{print "SN:"$1}' | awk 'NR==FNR{a[$1];next}$2 in a{print $0}' - ../refgenomes/panref.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $2}' > ../refgenomes/panref.list
+    				echo $Get_Chromosome | tr ',' '\n' | awk '{print "SN:"$1}' | awk 'NR==FNR{a[$1];next}$2 in a{print $0}' - ../refgenomes/panref.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $2":1-"$3}' > ../refgenomes/panref.list
     				$GATK --java-options "$Xmxg -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ../refgenomes/panref.fasta -L ../refgenomes/panref.list -I ${i%.f*}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}_precall.bam -ploidy $calcploidy -O ../snpcall/${i%.f*}_${ref2%.f*}_${ref3%.f*}_${ref4%.f*}.hold.g.vcf.gz -ERC GVCF --dont-use-soft-clipped-bases $softclip --max-reads-per-alignment-start $downsample --minimum-mapping-quality 10 --max-num-haplotypes-in-population $((calcploidy * maxHaplotype)) &&
     				wait
     			fi
@@ -2686,7 +2689,7 @@ main () {
     				$GATK --java-options "$Xmxg -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ../refgenomes/panref.fasta -I ${i%.f*}_${ref1%.f*}_${ref2%.f*}_precall.bam -ploidy $calcploidy -O ../snpcall/${i%.f*}_${ref1%.f*}_${ref2%.f*}.hold.g.vcf.gz -ERC GVCF --dont-use-soft-clipped-bases $softclip --max-reads-per-alignment-start $downsample --minimum-mapping-quality 10 --max-num-haplotypes-in-population $((calcploidy * maxHaplotype)) &&
     				wait
     			else
-    				echo $Get_Chromosome | tr ',' '\n' | awk '{print "SN:"$1}' | awk 'NR==FNR{a[$1];next}$2 in a{print $0}' - ../refgenomes/panref.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $2}' > ../refgenomes/panref.list
+    				echo $Get_Chromosome | tr ',' '\n' | awk '{print "SN:"$1}' | awk 'NR==FNR{a[$1];next}$2 in a{print $0}' - ../refgenomes/panref.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $2":1-"$3}' > ../refgenomes/panref.list
     				$GATK --java-options "$Xmxg -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ../refgenomes/panref.fasta -L ../refgenomes/panref.list -I ${i%.f*}_${ref1%.f*}_${ref2%.f*}_precall.bam -ploidy $calcploidy -O ../snpcall/${i%.f*}_${ref1%.f*}_${ref2%.f*}.hold.g.vcf.gz -ERC GVCF --dont-use-soft-clipped-bases $softclip --max-reads-per-alignment-start $downsample --minimum-mapping-quality 10 --max-num-haplotypes-in-population $((calcploidy * maxHaplotype)) &&
     				wait
     			fi
@@ -2814,7 +2817,7 @@ main () {
     				$GATK --java-options "$Xmxg -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ../refgenomes/panref.fasta -I ${i%.f*}_${ref1%.f*}_${ref3%.f*}_precall.bam -ploidy $calcploidy -O ../snpcall/${i%.f*}_${ref1%.f*}_${ref3%.f*}.hold.g.vcf.gz -ERC GVCF --dont-use-soft-clipped-bases $softclip --max-reads-per-alignment-start $downsample --minimum-mapping-quality 10 --max-num-haplotypes-in-population $((calcploidy * maxHaplotype)) &&
     				wait
     			else
-    				echo $Get_Chromosome | tr ',' '\n' | awk '{print "SN:"$1}' | awk 'NR==FNR{a[$1];next}$2 in a{print $0}' - ../refgenomes/panref.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $2}' > ../refgenomes/panref.list
+    				echo $Get_Chromosome | tr ',' '\n' | awk '{print "SN:"$1}' | awk 'NR==FNR{a[$1];next}$2 in a{print $0}' - ../refgenomes/panref.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $2":1-"$3}' > ../refgenomes/panref.list
     				$GATK --java-options "$Xmxg -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ../refgenomes/panref.fasta -L ../refgenomes/panref.list -I ${i%.f*}_${ref1%.f*}_${ref3%.f*}_precall.bam -ploidy $calcploidy -O ../snpcall/${i%.f*}_${ref1%.f*}_${ref3%.f*}.hold.g.vcf.gz -ERC GVCF --dont-use-soft-clipped-bases $softclip --max-reads-per-alignment-start $downsample --minimum-mapping-quality 10 --max-num-haplotypes-in-population $((calcploidy * maxHaplotype)) &&
     				wait
     			fi
@@ -2941,7 +2944,7 @@ main () {
     				$GATK --java-options "$Xmxg -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ../refgenomes/panref.fasta -I ${i%.f*}_${ref1%.f*}_${ref4%.f*}_precall.bam -ploidy $calcploidy -O ../snpcall/${i%.f*}_${ref1%.f*}_${ref4%.f*}.hold.g.vcf.gz -ERC GVCF --dont-use-soft-clipped-bases $softclip --max-reads-per-alignment-start $downsample --minimum-mapping-quality 10 --max-num-haplotypes-in-population $((calcploidy * maxHaplotype)) &&
     				wait
     			else
-    				echo $Get_Chromosome | tr ',' '\n' | awk '{print "SN:"$1}' | awk 'NR==FNR{a[$1];next}$2 in a{print $0}' - ../refgenomes/panref.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $2}' > ../refgenomes/panref.list
+    				echo $Get_Chromosome | tr ',' '\n' | awk '{print "SN:"$1}' | awk 'NR==FNR{a[$1];next}$2 in a{print $0}' - ../refgenomes/panref.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $2":1-"$3}' > ../refgenomes/panref.list
     				$GATK --java-options "$Xmxg -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ../refgenomes/panref.fasta -L ../refgenomes/panref.list -I ${i%.f*}_${ref1%.f*}_${ref4%.f*}_precall.bam -ploidy $calcploidy -O ../snpcall/${i%.f*}_${ref1%.f*}_${ref4%.f*}.hold.g.vcf.gz -ERC GVCF --dont-use-soft-clipped-bases $softclip --max-reads-per-alignment-start $downsample --minimum-mapping-quality 10 --max-num-haplotypes-in-population $((calcploidy * maxHaplotype)) &&
     				wait
     			fi
@@ -3068,7 +3071,7 @@ main () {
     				$GATK --java-options "$Xmxg -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ../refgenomes/panref.fasta -I ${i%.f*}_${ref2%.f*}_${ref3%.f*}_precall.bam -ploidy $calcploidy -O ../snpcall/${i%.f*}_${ref2%.f*}_${ref3%.f*}.hold.g.vcf.gz -ERC GVCF --dont-use-soft-clipped-bases $softclip --max-reads-per-alignment-start $downsample --minimum-mapping-quality 10 --max-num-haplotypes-in-population $((calcploidy * maxHaplotype)) &&
     				wait
     			else
-    				echo $Get_Chromosome | tr ',' '\n' | awk '{print "SN:"$1}' | awk 'NR==FNR{a[$1];next}$2 in a{print $0}' - ../refgenomes/panref.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $2}' > ../refgenomes/panref.list
+    				echo $Get_Chromosome | tr ',' '\n' | awk '{print "SN:"$1}' | awk 'NR==FNR{a[$1];next}$2 in a{print $0}' - ../refgenomes/panref.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $2":1-"$3}' > ../refgenomes/panref.list
     				$GATK --java-options "$Xmxg -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ../refgenomes/panref.fasta -L ../refgenomes/panref.list -I "${i%.f*}_${ref2%.f*}_${ref3%.f*}_precall.bam" -ploidy $calcploidy -O ../snpcall/${i%.f*}_${ref2%.f*}_${ref3%.f*}.hold.g.vcf.gz -ERC GVCF --dont-use-soft-clipped-bases $softclip --max-reads-per-alignment-start $downsample --minimum-mapping-quality 10 --max-num-haplotypes-in-population $((calcploidy * maxHaplotype)) &&
     				wait
     			fi
@@ -3195,7 +3198,7 @@ main () {
     				$GATK --java-options "$Xmxg -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ../refgenomes/panref.fasta -I ${i%.f*}_${ref2%.f*}_${ref4%.f*}_precall.bam -ploidy $calcploidy -O ../snpcall/${i%.f*}_${ref2%.f*}_${ref4%.f*}.hold.g.vcf.gz -ERC GVCF --dont-use-soft-clipped-bases $softclip --max-reads-per-alignment-start $downsample --minimum-mapping-quality 10 --max-num-haplotypes-in-population $((calcploidy * maxHaplotype)) &&
     				wait
     			else
-    				echo $Get_Chromosome | tr ',' '\n' | awk '{print "SN:"$1}' | awk 'NR==FNR{a[$1];next}$2 in a{print $0}' - ../refgenomes/panref.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $2}' > ../refgenomes/panref.list
+    				echo $Get_Chromosome | tr ',' '\n' | awk '{print "SN:"$1}' | awk 'NR==FNR{a[$1];next}$2 in a{print $0}' - ../refgenomes/panref.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $2":1-"$3}' > ../refgenomes/panref.list
     				$GATK --java-options "$Xmxg -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ../refgenomes/panref.fasta -L ../refgenomes/panref.list -I ${i%.f*}_${ref2%.f*}_${ref4%.f*}_precall.bam -ploidy $calcploidy -O ../snpcall/${i%.f*}_${ref2%.f*}_${ref4%.f*}.hold.g.vcf.gz -ERC GVCF --dont-use-soft-clipped-bases $softclip --max-reads-per-alignment-start $downsample --minimum-mapping-quality 10 --max-num-haplotypes-in-population $((calcploidy * maxHaplotype)) &&
     				wait
     			fi
@@ -3324,7 +3327,7 @@ main () {
     				$GATK --java-options "$Xmxg -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ../refgenomes/panref.fasta -I ${i%.f*}_${ref3%.f*}_${ref4%.f*}_precall.bam -ploidy $calcploidy -O ../snpcall/${i%.f*}_${ref3%.f*}_${ref4%.f*}.hold.g.vcf.gz -ERC GVCF --dont-use-soft-clipped-bases $softclip --max-reads-per-alignment-start $downsample --minimum-mapping-quality 10 --max-num-haplotypes-in-population $((calcploidy * maxHaplotype)) &&
     				wait
     			else
-    				echo $Get_Chromosome | tr ',' '\n' | awk '{print "SN:"$1}' | awk 'NR==FNR{a[$1];next}$2 in a{print $0}' - ../refgenomes/panref.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $2}' > ../refgenomes/panref.list
+    				echo $Get_Chromosome | tr ',' '\n' | awk '{print "SN:"$1}' | awk 'NR==FNR{a[$1];next}$2 in a{print $0}' - ../refgenomes/panref.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $2":1-"$3}' > ../refgenomes/panref.list
     				$GATK --java-options "$Xmxg -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ../refgenomes/panref.fasta -L ../refgenomes/panref.list -I ${i%.f*}_${ref3%.f*}_${ref4%.f*}_precall.bam -ploidy $calcploidy -O ../snpcall/${i%.f*}_${ref3%.f*}_${ref4%.f*}.hold.g.vcf.gz -ERC GVCF --dont-use-soft-clipped-bases $softclip --max-reads-per-alignment-start $downsample --minimum-mapping-quality 10 --max-num-haplotypes-in-population $((calcploidy * maxHaplotype)) &&
     				wait
     			fi
@@ -3452,7 +3455,7 @@ main () {
 							$GATK --java-options "$Xmxg -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads"  HaplotypeCaller -R ../refgenomes/panref.fasta -I ${i%.f*}_${ref1%.f*}_precall.bam -ploidy $ploidy_ref1 -O ../snpcall/${i%.f*}_${ref1%.f*}.hold.g.vcf.gz -ERC GVCF --dont-use-soft-clipped-bases $softclip --max-reads-per-alignment-start $downsample --minimum-mapping-quality 10 --max-num-haplotypes-in-population $((ploidy_ref1 * maxHaplotype)) &&
 							wait
 						else
-						  echo $Get_Chromosome | tr ',' '\n' | awk -v pat=${ref1%.f*} '$0 ~ pat' | awk '{print "SN:"$1}' | awk 'NR==FNR{a[$1];next}$2 in a{print $0}' - ../refgenomes/panref.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $2}' > ../refgenomes/panref.list
+						  echo $Get_Chromosome | tr ',' '\n' | awk -v pat=${ref1%.f*} '$0 ~ pat' | awk '{print "SN:"$1}' | awk 'NR==FNR{a[$1];next}$2 in a{print $0}' - ../refgenomes/panref.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $2":1-"$3}' > ../refgenomes/panref.list
 							$GATK --java-options "$Xmxg -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads"  HaplotypeCaller -R ../refgenomes/panref.fasta -L ../refgenomes/panref.list -I ${i%.f*}_${ref1%.f*}_precall.bam -ploidy $ploidy_ref1 -O ../snpcall/${i%.f*}_${ref1%.f*}.hold.g.vcf.gz -ERC GVCF --dont-use-soft-clipped-bases $softclip --max-reads-per-alignment-start $downsample --minimum-mapping-quality 10 --max-num-haplotypes-in-population $((ploidy_ref1 * maxHaplotype)) &&
 							wait
 						fi
@@ -3578,7 +3581,7 @@ main () {
 							$GATK --java-options "$Xmxg -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ../refgenomes/panref.fasta -I ${i%.f*}_${ref2%.f*}_precall.bam -ploidy $ploidy_ref2 -O ../snpcall/${i%.f*}_${ref2%.f*}.hold.g.vcf.gz -ERC GVCF --dont-use-soft-clipped-bases $softclip --max-reads-per-alignment-start $downsample --minimum-mapping-quality 10 --max-num-haplotypes-in-population $((ploidy_ref2 * maxHaplotype)) &&
 							wait
 						else
-						  echo $Get_Chromosome | tr ',' '\n' | awk '{print "SN:"$1}' | awk 'NR==FNR{a[$1];next}$2 in a{print $0}' - ../refgenomes/panref.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $2}' > ../refgenomes/panref.list
+						  echo $Get_Chromosome | tr ',' '\n' | awk '{print "SN:"$1}' | awk 'NR==FNR{a[$1];next}$2 in a{print $0}' - ../refgenomes/panref.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $2":1-"$3}' > ../refgenomes/panref.list
 							$GATK --java-options "$Xmxg -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ../refgenomes/panref.fasta -L ../refgenomes/panref.list -I ${i%.f*}_${ref2%.f*}_precall.bam -ploidy $ploidy_ref2 -O ../snpcall/${i%.f*}_${ref2%.f*}.hold.g.vcf.gz -ERC GVCF --dont-use-soft-clipped-bases $softclip --max-reads-per-alignment-start $downsample --minimum-mapping-quality 10 --max-num-haplotypes-in-population $((ploidy_ref2 * maxHaplotype)) &&
 							wait
 						fi
@@ -3704,7 +3707,7 @@ main () {
 							$GATK --java-options "$Xmxg -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads"  HaplotypeCaller -R ../refgenomes/panref.fasta -I ${i%.f*}_${ref3%.f*}_precall.bam -ploidy $ploidy_ref3 -O ../snpcall/${i%.f*}_${ref3%.f*}.hold.g.vcf.gz -ERC GVCF --dont-use-soft-clipped-bases $softclip --max-reads-per-alignment-start $downsample --minimum-mapping-quality 10 --max-num-haplotypes-in-population $((ploidy_ref3 * maxHaplotype)) &&
 							wait
 						else
-						  echo $Get_Chromosome | tr ',' '\n' | awk -v pat=${ref3%.f*} '$0 ~ pat' | awk '{print "SN:"$1}' | awk 'NR==FNR{a[$1];next}$2 in a{print $0}' - ../refgenomes/panref.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $2}' > ../refgenomes/panref.list
+						  echo $Get_Chromosome | tr ',' '\n' | awk -v pat=${ref3%.f*} '$0 ~ pat' | awk '{print "SN:"$1}' | awk 'NR==FNR{a[$1];next}$2 in a{print $0}' - ../refgenomes/panref.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $2":1-"$3}' > ../refgenomes/panref.list
 							$GATK --java-options "$Xmxg -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads"  HaplotypeCaller -R ../refgenomes/panref.fasta -L ../refgenomes/panref.list -I ${i%.f*}_${ref3%.f*}_precall.bam -ploidy $ploidy_ref3 -O ../snpcall/${i%.f*}_${ref3%.f*}.hold.g.vcf.gz -ERC GVCF --dont-use-soft-clipped-bases $softclip --max-reads-per-alignment-start $downsample --minimum-mapping-quality 10 --max-num-haplotypes-in-population $((ploidy_ref3 * maxHaplotype)) &&
 							wait
 						fi
@@ -3830,7 +3833,7 @@ main () {
   							$GATK --java-options "$Xmxg -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads"  HaplotypeCaller -R ../refgenomes/panref.fasta -I ${i%.f*}_${ref4%.f*}_precall.bam -ploidy $ploidy_ref4 -O ../snpcall/${i%.f*}_${ref4%.f*}.hold.g.vcf.gz -ERC GVCF --dont-use-soft-clipped-bases $softclip --max-reads-per-alignment-start $downsample --minimum-mapping-quality 10 --max-num-haplotypes-in-population $((ploidy_ref4 * maxHaplotype)) &&
   							wait
   						else
-  						  echo $Get_Chromosome | tr ',' '\n' | awk -v pat=${ref4%.f*} '$0 ~ pat' | awk '{print "SN:"$1}' | awk 'NR==FNR{a[$1];next}$2 in a{print $0}' - ../refgenomes/panref.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $2}' > ../refgenomes/panref.list
+  						  echo $Get_Chromosome | tr ',' '\n' | awk -v pat=${ref4%.f*} '$0 ~ pat' | awk '{print "SN:"$1}' | awk 'NR==FNR{a[$1];next}$2 in a{print $0}' - ../refgenomes/panref.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $2":1-"$3}' > ../refgenomes/panref.list
   							$GATK --java-options "$Xmxg -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads"  HaplotypeCaller -R ../refgenomes/panref.fasta -L ../refgenomes/panref.list -I ${i%.f*}_${ref4%.f*}_precall.bam -ploidy $ploidy_ref4 -O ../snpcall/${i%.f*}_${ref4%.f*}.hold.g.vcf.gz -ERC GVCF --dont-use-soft-clipped-bases $softclip --max-reads-per-alignment-start $downsample --minimum-mapping-quality 10 --max-num-haplotypes-in-population $((ploidy_ref4 * maxHaplotype)) &&
   							wait
   						fi
