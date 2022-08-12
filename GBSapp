@@ -127,7 +127,7 @@ cat config.sh | grep -v '^samples_list=' > config_temp.sh
 mv config_temp.sh config.sh
 tr -d '\15\32' < config.sh > temp; mv temp config.sh
 d=($(find . -maxdepth 1 -type d | wc -l))
-if test -f ${projdir}/config2.sh; then
+if test -f ${projdir}/steps.txt; then
   if [[ $d -le 3 && -d refgenomes ]]; then
     echo ""
   else
@@ -143,7 +143,7 @@ if test -f ${projdir}/config2.sh; then
 fi
 
 f=($(find . -maxdepth 1 -type f | wc -l))
-if test -f ${projdir}/config2.sh; then
+if test -f ${projdir}/steps.txt; then
   if [ $f == 1 ]; then
     echo ""
   else
@@ -208,7 +208,7 @@ if [[ -z $samples_alt_dir || $samples_alt_dir =~ False ]]; then
 else
   required=$((required0 / 2))
 fi
-if test -f ${projdir}/config2.sh; then
+if test -f ${projdir}/steps.txt; then
   if [[ "$free" -lt "$required" ]]; then
     echo -e "${magenta}- You might not have enough disk space. ${white}\n"
   	echo -e "${magenta}- Free: $((free/1000000))G; Required(approx. 0.5x the size of fastq files): $((required/1000000))G  ${white}\n"
@@ -234,7 +234,7 @@ fi
 
 cd $projdir
 if [[ -d "./samples/pe" ]] || [[ -d "./samples/se" ]]; then
-  if test -f ${projdir}/config2.sh; then
+  if test -f ${projdir}/steps.txt; then
     if test -f "./samples/filename_reformatted.txt" || test -f "./samples/flushed_reads.txt"; then
       :
     else
@@ -252,7 +252,7 @@ if [[ -d "./samples/pe" ]] || [[ -d "./samples/se" ]]; then
     fi
   fi
 else
-  if test -f ${projdir}/config2.sh; then
+  if test -f ${projdir}/steps.txt; then
     if test -f "./samples/filename_reformatted.txt" || test -f "./samples/flushed_reads.txt"; then
       :
     else
@@ -323,7 +323,7 @@ fi
 
 
 if test ! -f ${projdir}/Analysis_Complete; then
-  if test -f ${projdir}/config2.sh; then
+  if test -f ${projdir}/steps.txt; then
     if test ! -f ${projdir}/compress_done.txt && test ! -f ${projdir}/organize_files_done.txt && test ! -f ${projdir}/alignment_summaries/total_read_count.txt && [[ ! -z "$(ls ${projdir}/samples/*uniq_R1.fasta.gz 2> /dev/null)" ]]; then
       echo -e "${magenta}- Job was interrupted during sample fastq file compression/indexing ${white}"
       echo -e "${magenta}- Do you want to continue from where this analytical step was interrupted? ${white}"
@@ -337,7 +337,7 @@ if test ! -f ${projdir}/Analysis_Complete; then
     fi
   fi
 
-  if test -f ${projdir}/config2.sh; then
+  if test -f ${projdir}/steps.txt; then
     if test ! -f ${projdir}/compress_done.txt ; then
       :
     else
@@ -356,7 +356,7 @@ if test ! -f ${projdir}/Analysis_Complete; then
   fi
 fi
 
-if test -f ${projdir}/config2.sh; then
+if test -f ${projdir}/steps.txt; then
   if test -f ${projdir}/Analysis_Complete; then
     echo -e "${magenta}- Analysis was completed ${white}"
     echo -e "${magenta}- Do you want to repeat one or more analytical step(s)? ${white}"
@@ -440,7 +440,7 @@ if [[ "$string" == false ]]; then
   printf "samples_list=samples_list_node_1.txt\n" >> config.sh
   cat header.txt <(grep -v '^[[:space:]]*$' config.sh | awk '{gsub(/^/,"export "); gsub(/export #/,"#");}1') fetchdir.txt $string2 $string3 | awk '{ sub("\r$",""); print}' > GBSapp_run.sh
   rm header.txt fetchdir.txt
-  if test ! -f ${projdir}/config2.sh; then
+  if test ! -f ${projdir}/steps.txt; then
     echo -e "${magenta}- GBSapp is ready to submit job ${white}"
     echo -e "${magenta}- Do you want to continue? ${white}"
     read -p "- y(YES) or n(NO)? " -n 1 -r
@@ -468,7 +468,7 @@ if [[ "$string" == true ]]; then
       sleep 5
     fi
 
-    if test ! -f ${projdir}/config2.sh; then
+    if test ! -f ${projdir}/steps.txt; then
       echo -e "${magenta}- Do you want to perform read alignments and alignment post-processing? ${white}"
       read -p "- y(YES) or n(NO) " -n 1 -r
       if [[ ! $REPLY =~ ^[Yy]$ ]]; then
@@ -483,7 +483,7 @@ if [[ "$string" == true ]]; then
       fi
     fi
 
-    if test ! -f ${projdir}/config2.sh; then
+    if test ! -f ${projdir}/steps.txt; then
       echo -e "${magenta}- Do you want to perform SNP/variant calling? ${white}"
       read -p "- y(YES) or n(NO) " -n 1 -r
       if [[ ! $REPLY =~ ^[Yy]$ ]]; then
@@ -498,7 +498,7 @@ if [[ "$string" == true ]]; then
       fi
     fi
 
-    if test ! -f ${projdir}/config2.sh; then
+    if test ! -f ${projdir}/steps.txt; then
       echo -e "${magenta}- Do you want to perform SNP/variant filtering? ${white}"
       read -p "- y(YES) or n(NO) " -n 1 -r
       if [[ ! $REPLY =~ ^[Yy]$ ]]; then
@@ -513,7 +513,7 @@ if [[ "$string" == true ]]; then
       fi
     fi
 
-    if test ! -f ${projdir}/config2.sh; then
+    if test ! -f ${projdir}/steps.txt; then
       printf "SNPaccuracy_ReadDepth=0 \n" >> steps.txt
       printf "paralogfiltering_haplotyping=0 \n" >> steps.txt
     fi
@@ -553,7 +553,7 @@ if [[ "$string" == true ]]; then
     cat header.txt steps.txt <(grep -v '^[[:space:]]*$' config.sh | awk '{gsub(/^/,"export "); gsub(/export #/,"#");}1') walkaway.txt fetchdir.txt $string2 $string3 | awk '{ sub("\r$",""); print}' > GBSapp_run_node_1.sh
     rm header.txt walkaway.txt fetchdir.txt steps.txt
 
-    if test ! -f ${projdir}/config2.sh; then
+    if test ! -f ${projdir}/steps.txt; then
       echo -e "${magenta}- GBSapp is ready to submit job ${white}"
       echo -e "${magenta}- Do you want to continue? ${white}"
       read -p "- y(YES) or n(NO)? " -n 1 -r
@@ -583,7 +583,7 @@ if [[ "$string" == true ]]; then
     echo -e "${magenta}- GBSapp will run in walkaway mode\n ${white}"
     echo -e "${white}##############################################################################\n ${white}"
 
-    if test ! -f ${projdir}/config2.sh; then
+    if test ! -f ${projdir}/steps.txt; then
       echo -e "${magenta}- Do you want to perform read alignments and alignment post-processing? ${white}"
       read -p "- y(YES) or n(NO) " -n 1 -r
       if [[ ! $REPLY =~ ^[Yy]$ ]]; then
@@ -674,7 +674,7 @@ if [[ "$string" == true ]]; then
       done
       rm fetchdir.txt cluster_header.sh header.txt steps.txt walkaway.txt
 
-      if test ! -f ${projdir}/config2.sh; then
+      if test ! -f ${projdir}/steps.txt; then
         slurm_check=$(sbatch --version)
         if [[ $slurm_check == slurm* ]]; then
           echo -e "${magenta}- GBSapp is ready to submit jobs to $n_nodes nodes ${white}"
@@ -716,7 +716,7 @@ if [[ "$string" == true ]]; then
       cat cluster_header.sh steps.txt <(grep -v '^[[:space:]]*$' config.sh | awk '{gsub(/^/,"export "); gsub(/export #/,"#");}1') walkaway.txt fetchdir.txt $string2 $string3 | awk '{ sub("\r$",""); print}' > GBSapp_run_node_1.sh
       rm fetchdir.txt cluster_header.sh header.txt steps.txt walkaway.txt
 
-      if test ! -f ${projdir}/config2.sh; then
+      if test ! -f ${projdir}/steps.txt; then
         slurm_check=$(sbatch --version)
         if [[ $slurm_check == slurm* ]]; then
           echo -e "${magenta}- GBSapp is ready to submit job ${white}"
