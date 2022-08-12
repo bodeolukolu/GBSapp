@@ -1,0 +1,7 @@
+
+alignments=1 
+snp_calling=1 
+snp_filtering=1
+SNPaccuracy_ReadDepth=0 
+paralogfiltering_haplotyping=0 
+
