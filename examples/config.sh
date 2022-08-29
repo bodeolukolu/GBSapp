@@ -32,9 +32,10 @@ maf=0.05
 
 # Advanced_parameters
 ###################################################
-joint_alignment=200
 maxHaplotype=128
 haplome_number=1
 softclip=false
 joint_calling=false
 keep_gVCF=false
+RE1=TGCAT
+RE2=CATG

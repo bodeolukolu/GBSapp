@@ -122,6 +122,8 @@ echo -e "${yellow}\t- Description:	Automated Pipeline for Variant/Haplotype Call
 echo -e "${yellow}\t- Contact:	Bode Olukolu <bolukolu@utk.edu> ${white}"
 echo -e "${white}\n##################################################################################\n"
 
+rm steps.txt 2> /dev/null
+if test -f input_steps.txt; then cp input_steps.txt steps.txt; fi
 
 cat config.sh | grep -v '^samples_list=' > config_temp.sh
 mv config_temp.sh config.sh
@@ -144,7 +146,7 @@ fi
 
 f=($(find . -maxdepth 1 -type f | wc -l))
 if test ! -f "${projdir}/steps.txt"; then
-  if [ $f == 1 ]; then
+  if [[ $f -eq 1 ]]; then
     echo ""
   else
     echo -e "${magenta}- Expecting only 1 file (i.e. config.sh) ${white}"
@@ -440,17 +442,12 @@ if [[ "$string" == false ]]; then
   printf "samples_list=samples_list_node_1.txt\n" >> config.sh
   cat header.txt <(grep -v '^[[:space:]]*$' config.sh | awk '{gsub(/^/,"export "); gsub(/export #/,"#");}1') fetchdir.txt $string2 $string3 | awk '{ sub("\r$",""); print}' > GBSapp_run.sh
   rm header.txt fetchdir.txt
-  if test ! -f "${projdir}/steps.txt"; then
-    echo -e "${magenta}- GBSapp is ready to submit job ${white}"
-    echo -e "${magenta}- Do you want to continue? ${white}"
-    read -p "- y(YES) or n(NO)? " -n 1 -r
-    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-      echo -e "${magenta}\n- shell script will be saved to ${projdir}GBSapp_run_node_1.sh ${white}\n"
-      exit 1
-    else
-      echo -e "${magenta}\n ${white}\n"
-      bash ${projdir}GBSapp_run_node_1.sh
-    fi
+  echo -e "${magenta}- GBSapp is ready to submit job ${white}"
+  echo -e "${magenta}- Do you want to continue? ${white}"
+  read -p "- y(YES) or n(NO)? " -n 1 -r
+  if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+    echo -e "${magenta}\n- shell script will be saved to ${projdir}GBSapp_run_node_1.sh ${white}\n"
+    exit 1
   else
     echo -e "${magenta}\n ${white}\n"
     bash ${projdir}GBSapp_run_node_1.sh
@@ -552,7 +549,7 @@ if [[ "$string" == true ]]; then
     cat header.txt steps.txt <(grep -v '^[[:space:]]*$' config.sh | awk '{gsub(/^/,"export "); gsub(/export #/,"#");}1') walkaway.txt fetchdir.txt $string2 $string3 | awk '{ sub("\r$",""); print}' > GBSapp_run_node_1.sh
     rm header.txt walkaway.txt fetchdir.txt
 
-    if test ! -f "${projdir}/steps.txt"; then
+    if test ! -f "${projdir}/input_steps.txt"; then
       echo -e "${magenta}- GBSapp is ready to submit job ${white}"
       echo -e "${magenta}- Do you want to continue? ${white}"
       read -p "- y(YES) or n(NO)? " -n 1 -r
@@ -677,7 +674,7 @@ if [[ "$string" == true ]]; then
       done
       rm fetchdir.txt cluster_header.sh header.txt walkaway.txt
 
-      if test ! -f "${projdir}/steps.txt"; then
+      if test ! -f "${projdir}/input_steps.txt"; then
         slurm_check=$(sbatch --version)
         if [[ $slurm_check == slurm* ]]; then
           echo -e "${magenta}- GBSapp is ready to submit jobs to $n_nodes nodes ${white}"
@@ -719,7 +716,7 @@ if [[ "$string" == true ]]; then
       cat cluster_header.sh steps.txt <(grep -v '^[[:space:]]*$' config.sh | awk '{gsub(/^/,"export "); gsub(/export #/,"#");}1') walkaway.txt fetchdir.txt $string2 $string3 | awk '{ sub("\r$",""); print}' > GBSapp_run_node_1.sh
       rm fetchdir.txt cluster_header.sh header.txt walkaway.txt
 
-      if test ! -f "${projdir}/steps.txt"; then
+      if test ! -f "${projdir}/input_steps.txt"; then
         slurm_check=$(sbatch --version)
         if [[ $slurm_check == slurm* ]]; then
           echo -e "${magenta}- GBSapp is ready to submit job ${white}"

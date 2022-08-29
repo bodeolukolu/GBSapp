@@ -18,12 +18,12 @@ For questions, bugs, and suggestions, please contact bolukolu@utk.edu.
 - Annonate SNPs based on if reads map to single and multiple loci.
 - Parallelization of job on multiple compute cluster nodes (spark cluster infrastructure not required)
 - Splice-aware aligner allows for RNAseq data as input (recommended only for haploid or diploid genomes)
-- *Fast alignment speed (> 500x faster; speed increases with sample size): joint alignment algorithm.
-- *Fast variant calling (>5x faster than normal GATK implementation): excludes monomorphic & highly repetitive sequences from variant calling.
+- *Fast joint alignment: speed increases with sample size after consolidation, compression and indexing of files.
+- *Fast variant calling: specify only polymoorphic variants in interval list.
 - visualizations for report and QC
+- generating sequence context for variants
 - Functions under-development:
   - calling microhaplotypes
-  - generating sequence context for variants
   - estimating ploidy level and aneuploidy.
 
 
@@ -145,12 +145,13 @@ Using a text editor, save a file containing any of the following variables as 'c
 **Advanced parameters**
 |Variable      |Default       |Usage         |Input         |required/Optional|
 |:-------------|:-------------|:-------------|:-------------|:----------------|
-|joint_alignment|200|number of samples in joint alignment|integer|Optional|
 |maxHaplotype|128|maximum number of haplotypes per haploid genome across population(increase for polyploids/high heterozygosity/high background mutational load)|integer|Optional|
 |haplome_number|1|number of haplomes resolved in reference genome assembly|integer|Optional|
 |softclip|false|do not use soft Clipped bases (recommended)|string|Optional|
 |joint_calling|false| cohort calling will be performed if set to false|string|Optional|
 |keep_gVCF|false|keep sample gVCF files, if additional samples will be included for future joint calling)|string|Optional|
+|RE1|NA|sequence motif at start of R1 reads|string|Optional|
+|RE2|NA|sequence motif at start of R2 reads|string|Optional|
 
 **Note: na indicates that variable is user-defined or hard-coded/computed intuitively, as well as a function of ploidy.*
 
@@ -193,12 +194,13 @@ maf=0.05
 
 # Advanced parameters
 ###################################################
-joint_alignment=200
 maxHaplotype=128
 haplome_number=1
 softclip=false
 joint_calling=false
 keep_gVCF=false
+RE1=TGCAT
+RE2=CATG
 ```
 
 Alternatively, a configuration file (outlined below) specifying only the ploidy level is sufficient to run GBSapp.

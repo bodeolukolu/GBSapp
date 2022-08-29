@@ -1,3 +1,4 @@
+#!/bin/bash 
 
 alignments=1 
 snp_calling=1 
