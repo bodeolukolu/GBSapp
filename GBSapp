@@ -445,12 +445,17 @@ if [[ "$string" == false ]]; then
   echo -e "${magenta}- GBSapp is ready to submit job ${white}"
   echo -e "${magenta}- Do you want to continue? ${white}"
   read -p "- y(YES) or n(NO)? " -n 1 -r
-  if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-    echo -e "${magenta}\n- shell script will be saved to ${projdir}GBSapp_run_node_1.sh ${white}\n"
-    exit 1
+  if test ! -f "${projdir}/input_steps.txt"; then
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+      echo -e "${magenta}\n- shell script will be saved to ${projdir}GBSapp_run.sh ${white}\n"
+      exit 1
+    else
+      echo -e "${magenta}\n ${white}\n"
+      bash ${projdir}GBSapp_run.sh
+    fi
   else
     echo -e "${magenta}\n ${white}\n"
-    bash ${projdir}GBSapp_run_node_1.sh
+    bash ${projdir}GBSapp_run.sh
   fi
 fi
 
@@ -695,8 +700,8 @@ if [[ "$string" == true ]]; then
             done
           fi
         else
-          echo -e "${magenta}- Cluster manager not SLURM, revise batch file header in ${projdir}GBSapp_run_node_x.sh for different cluster manager syntax ${white}"
-          echo -e "${magenta}- Revise batch file header in ${projdir}GBSapp_run_node_1.sh for your cluster manager ${white}"
+          echo -e "${magenta}- Cluster manager not SLURM, revise shell script header in ${projdir}GBSapp_run_node_x.sh for different cluster manager syntax ${white}"
+          echo -e "${magenta}- Revise shell script header in ${projdir}GBSapp_run_node_1.sh for your cluster manager ${white}"
         fi
       else
         echo -e "${magenta}\n ${white}\n"
@@ -730,8 +735,8 @@ if [[ "$string" == true ]]; then
             sbatch ${projdir}GBSapp_run_node_1.sh
           fi
         else
-          echo -e "${magenta}- Cluster manager not SLURM, revise batch file header in ${projdir}GBSapp_run_node_x.sh for different cluster manager syntax ${white}"
-          echo -e "${magenta}- Revise batch file header in ${projdir}GBSapp_run_node_x.sh for your cluster manager ${white}"
+          echo -e "${magenta}- Cluster manager not SLURM, revise shell script header in ${projdir}GBSapp_run_node_x.sh for different cluster manager syntax ${white}"
+          echo -e "${magenta}- Revise shell script header in ${projdir}GBSapp_run_node_x.sh for your cluster manager ${white}"
         fi
       else
         echo -e "${magenta}\n ${white}\n"

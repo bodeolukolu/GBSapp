@@ -20,9 +20,6 @@ fi
 if [ "$multilocus" == "true" ]; then
 	export multilocus=0
 fi
-if [[ -z "$joint_alignment" ]] || [[ "$joint_alignment" -gt 1 ]]; then
-	export joint_alignment=1
-fi
 if [ -z "$maxHaplotype" ]; then
 	export maxHaplotype=128
 fi
@@ -72,7 +69,7 @@ main () {
 	fi
 
 	if [[ "$threads" -le 6 ]]; then
-		export prepthreads=threads
+		export prepthreads=$threads
 		export Xmxp=$Xmx2
 		export prepN=1
 	else
@@ -727,129 +724,129 @@ main () {
 
 
   for i in $(cat ${projdir}/${samples_list} ); do (
-  printf '\n###---'${i%.f*}'---###\n' > ${projdir}/alignment_summaries/${i%.f*}_summ.txt && \
-  zcat ${i%.f*}_redun.sam.gz | grep -v '^@PG' | tr ' ' '\t' | $samtools flagstat - >> ${projdir}/alignment_summaries/${i%.f*}_summ.txt && \
-  printf '########################################################################################################\n\n' >> ${projdir}/alignment_summaries/${i%.f*}_summ.txt && \
-  printf 'copy\tFrequency\tPercentage\n' > ${projdir}/alignment_summaries/copy_number/${i%.f*}_copy_number_Unique_Read_histogram.txt && \
-  grep -v '^@' <(zcat ${i%.f*}_redun.sam.gz 2> /dev/null) | awk -F' ' '{print $1}' | awk '{gsub(/_/,"\t");gsub(/\//,"\t");gsub(/pe-/,"");gsub(/se-/,""); print $2}' | \
-  awk '{!seen[$0]++}END{for (i in seen) print seen[i], i}' | awk '{print $2"\t"$1}' > ${projdir}/alignment_summaries/copy_number/${i%.f*}_copy_number.txt  && \
-  awk 'NR==FNR{sum+= $2; next;} {printf("%s\t%s\t%3.3f%%\t%3.0f\n",$1,$2,100*$2/sum,100*$2/sum)}' ${projdir}/alignment_summaries/copy_number/${i%.f*}_copy_number.txt ${projdir}/alignment_summaries/copy_number/${i%.f*}_copy_number.txt > ${projdir}/alignment_summaries/copy_number/${i%.f*}_plot.txt && \
-  unset IFS; printf "%s\t%s\t%s\t%*s\n" $(sed 's/$/ |/' ${projdir}/alignment_summaries/copy_number/${i%.f*}_plot.txt) | tr ' ' '|' | sort -k2,2 -nr | awk '{gsub(/se-/,""); gsub(/pe-/,""); print}' >> ${projdir}/alignment_summaries/copy_number/${i%.f*}_copy_number_Unique_Read_histogram.txt &&
-  rm ${projdir}/alignment_summaries/copy_number/${i%.f*}_copy_number.txt ${projdir}/alignment_summaries/copy_number/${i%.f*}_plot.txt
+    printf '\n###---'${i%.f*}'---###\n' > ${projdir}/alignment_summaries/${i%.f*}_summ.txt && \
+    zcat ${i%.f*}_redun.sam.gz | grep -v '^@PG' | tr ' ' '\t' | $samtools flagstat - >> ${projdir}/alignment_summaries/${i%.f*}_summ.txt && \
+    printf '########################################################################################################\n\n' >> ${projdir}/alignment_summaries/${i%.f*}_summ.txt && \
+    printf 'copy\tFrequency\tPercentage\n' > ${projdir}/alignment_summaries/copy_number/${i%.f*}_copy_number_Unique_Read_histogram.txt && \
+    grep -v '^@' <(zcat ${i%.f*}_redun.sam.gz 2> /dev/null) | awk -F' ' '{print $1}' | awk '{gsub(/_/,"\t");gsub(/\//,"\t");gsub(/pe-/,"");gsub(/se-/,""); print $2}' | \
+    awk '{!seen[$0]++}END{for (i in seen) print seen[i], i}' | awk '{print $2"\t"$1}' > ${projdir}/alignment_summaries/copy_number/${i%.f*}_copy_number.txt  && \
+    awk 'NR==FNR{sum+= $2; next;} {printf("%s\t%s\t%3.3f%%\t%3.0f\n",$1,$2,100*$2/sum,100*$2/sum)}' ${projdir}/alignment_summaries/copy_number/${i%.f*}_copy_number.txt ${projdir}/alignment_summaries/copy_number/${i%.f*}_copy_number.txt > ${projdir}/alignment_summaries/copy_number/${i%.f*}_plot.txt && \
+    unset IFS; printf "%s\t%s\t%s\t%*s\n" $(sed 's/$/ |/' ${projdir}/alignment_summaries/copy_number/${i%.f*}_plot.txt) | tr ' ' '|' | sort -k2,2 -nr | awk '{gsub(/se-/,""); gsub(/pe-/,""); print}' >> ${projdir}/alignment_summaries/copy_number/${i%.f*}_copy_number_Unique_Read_histogram.txt &&
+    rm ${projdir}/alignment_summaries/copy_number/${i%.f*}_copy_number.txt ${projdir}/alignment_summaries/copy_number/${i%.f*}_plot.txt
 
 
-  if test ! -f ${projdir}/preprocess/${i%.f*}_${ref1%.f*}_precall.bam.bai && test ! -f ${projdir}/preprocess/${i%.f*}_${ref2%.f*}_precall.bam.bai && test ! -f ${projdir}/preprocess/${i%.f*}_${ref1%.f*}_${ref2%.f*}_precall.bam.bai; then
-    grep -v '^@' <(zcat ${i%.f*}_redun.sam.gz 2> /dev/null) | awk '($3 != "\*")' 2> /dev/null  | awk '($6 != "\*")' 2> /dev/null  | awk '{print $3"\t"$3"\t"$0}' | \
-    awk '{gsub(/_.*$/,"",$1); gsub(/_.*$/,"",$2)}1' > ${i%.f*}_Index0_subgenome.txt
-    awk '{$2=$2"_"$3}1' ${i%.f*}_Index0_subgenome.txt | awk '!h[$2] { g[$2]=$0 } { h[$2]++ } END { for(k in g) print h[k], g[k] }' | \
-    awk '!h[$4] { g[$4]=$0 } { h[$4]++ } END { for(k in g) print h[k], g[k] }' | awk '{print $1"\t"$5"\t"$3}' > ${i%.f*}_Index_subgenome.txt
+    if test ! -f ${projdir}/preprocess/${i%.f*}_${ref1%.f*}_precall.bam.bai && test ! -f ${projdir}/preprocess/${i%.f*}_${ref2%.f*}_precall.bam.bai && test ! -f ${projdir}/preprocess/${i%.f*}_${ref1%.f*}_${ref2%.f*}_precall.bam.bai; then
+      grep -v '^@' <(zcat ${i%.f*}_redun.sam.gz 2> /dev/null) | awk '($3 != "\*")' 2> /dev/null  | awk '($6 != "\*")' 2> /dev/null  | awk '{print $3"\t"$3"\t"$0}' | \
+      awk '{gsub(/_.*$/,"",$1); gsub(/_.*$/,"",$2)}1' > ${i%.f*}_Index0_subgenome.txt
+      awk '{$2=$2"_"$3}1' ${i%.f*}_Index0_subgenome.txt | awk '!h[$2] { g[$2]=$0 } { h[$2]++ } END { for(k in g) print h[k], g[k] }' | \
+      awk '!h[$4] { g[$4]=$0 } { h[$4]++ } END { for(k in g) print h[k], g[k] }' | awk '{print $1"\t"$5"\t"$3}' > ${i%.f*}_Index_subgenome.txt
 
 
-    awk '{if($1==2) print $2}' ${i%.f*}_Index_subgenome.txt | grep -Fw -f - <(zcat ${i%.f*}_redun.sam.gz 2> /dev/null) | cat <(zcat ${i%.f*}_redun.sam.gz 2> /dev/null | grep '^@') - > ${i%.f*}_del_${ref1%.f*}_${ref2%.f*}.sam
+      awk '{if($1==2) print $2}' ${i%.f*}_Index_subgenome.txt | grep -Fw -f - <(zcat ${i%.f*}_redun.sam.gz 2> /dev/null) | cat <(zcat ${i%.f*}_redun.sam.gz 2> /dev/null | grep '^@') - > ${i%.f*}_del_${ref1%.f*}_${ref2%.f*}.sam
 
-    awk -v ref1=${ref1%.f*} '{if($1==1 && $3 == ref1) print $2}' ${i%.f*}_Index_subgenome.txt | grep -Fw -f - <(zcat ${i%.f*}_redun.sam.gz 2> /dev/null) | cat <(zcat ${i%.f*}_redun.sam.gz 2> /dev/null | grep '^@') - > ${i%.f*}_del_${ref1%.f*}.sam
-    awk -v ref2=${ref2%.f*} '{if($1==1 && $3 == ref2) print $2}' ${i%.f*}_Index_subgenome.txt | grep -Fw -f - <(zcat ${i%.f*}_redun.sam.gz 2> /dev/null) | cat <(zcat ${i%.f*}_redun.sam.gz 2> /dev/null | grep '^@') - > ${i%.f*}_del_${ref2%.f*}.sam
+      awk -v ref1=${ref1%.f*} '{if($1==1 && $3 == ref1) print $2}' ${i%.f*}_Index_subgenome.txt | grep -Fw -f - <(zcat ${i%.f*}_redun.sam.gz 2> /dev/null) | cat <(zcat ${i%.f*}_redun.sam.gz 2> /dev/null | grep '^@') - > ${i%.f*}_del_${ref1%.f*}.sam
+      awk -v ref2=${ref2%.f*} '{if($1==1 && $3 == ref2) print $2}' ${i%.f*}_Index_subgenome.txt | grep -Fw -f - <(zcat ${i%.f*}_redun.sam.gz 2> /dev/null) | cat <(zcat ${i%.f*}_redun.sam.gz 2> /dev/null | grep '^@') - > ${i%.f*}_del_${ref2%.f*}.sam
 
-    rm ${i%.f*}_Index0_subgenome.txt ${i%.f*}_Index_subgenome.txt
+      rm ${i%.f*}_Index0_subgenome.txt ${i%.f*}_Index_subgenome.txt
 
-    echo "nloci~mapQ~CHROM~POS" > ${projdir}/alignment_summaries/refgenome_paralogs_${i%.f*}_${ref1%.f*}_${ref2%.f*}.txt
-    grep -v '^@' ${i%.f*}_del_${ref1%.f*}_${ref2%.f*}.sam | awk '($3 != "\*")' 2> /dev/null | awk '($6 != "\*")' 2> /dev/null | awk '!h[$1] { g[$1]=$0 } { h[$1]++ } END { for(k in g) print h[k], g[k] }' | \
-    cat <(grep '^@' ${i%.f*}_del_${ref1%.f*}_${ref2%.f*}.sam) - > ${projdir}/alignment_summaries/temp_${i%.f*}.txt
-    grep -v '^@' ${projdir}/alignment_summaries/temp_${i%.f*}.txt | awk -F '\t' '{print $1"\t"$3"\t"$4"\t"$5}' | awk '{gsub(/ /,"\t"); print}' | awk '{print $1"~"$5"~"$3"~"$4}' | grep -v '\*' >> ${projdir}/alignment_summaries/refgenome_paralogs_${i%.f*}_${ref1%.f*}_${ref2%.f*}.txt
-    awk '!visited[$0]++' ${projdir}/alignment_summaries/refgenome_paralogs_${i%.f*}_${ref1%.f*}_${ref2%.f*}.txt > ${projdir}/alignment_summaries/temp_${i%.f*}.txt
-    mv ${projdir}/alignment_summaries/temp_${i%.f*}.txt ${projdir}/alignment_summaries/refgenome_paralogs_${i%.f*}_${ref1%.f*}_${ref2%.f*}.txt
+      echo "nloci~mapQ~CHROM~POS" > ${projdir}/alignment_summaries/refgenome_paralogs_${i%.f*}_${ref1%.f*}_${ref2%.f*}.txt
+      grep -v '^@' ${i%.f*}_del_${ref1%.f*}_${ref2%.f*}.sam | awk '($3 != "\*")' 2> /dev/null | awk '($6 != "\*")' 2> /dev/null | awk '!h[$1] { g[$1]=$0 } { h[$1]++ } END { for(k in g) print h[k], g[k] }' | \
+      cat <(grep '^@' ${i%.f*}_del_${ref1%.f*}_${ref2%.f*}.sam) - > ${projdir}/alignment_summaries/temp_${i%.f*}.txt
+      grep -v '^@' ${projdir}/alignment_summaries/temp_${i%.f*}.txt | awk -F '\t' '{print $1"\t"$3"\t"$4"\t"$5}' | awk '{gsub(/ /,"\t"); print}' | awk '{print $1"~"$5"~"$3"~"$4}' | grep -v '\*' >> ${projdir}/alignment_summaries/refgenome_paralogs_${i%.f*}_${ref1%.f*}_${ref2%.f*}.txt
+      awk '!visited[$0]++' ${projdir}/alignment_summaries/refgenome_paralogs_${i%.f*}_${ref1%.f*}_${ref2%.f*}.txt > ${projdir}/alignment_summaries/temp_${i%.f*}.txt
+      mv ${projdir}/alignment_summaries/temp_${i%.f*}.txt ${projdir}/alignment_summaries/refgenome_paralogs_${i%.f*}_${ref1%.f*}_${ref2%.f*}.txt
 
-    echo "nloci~mapQ~CHROM~POS" > ${projdir}/alignment_summaries/refgenome_paralogs_${i%.f*}_${ref1%.f*}.txt
-    grep -v '^@' ${i%.f*}_del_${ref1%.f*}.sam | awk '($3 != "\*")' 2> /dev/null  |  awk '($6 != "\*")' 2> /dev/null | awk '!h[$1] { g[$1]=$0 } { h[$1]++ } END { for(k in g) print h[k], g[k] }' | \
-    cat <(grep '^@' ${i%.f*}_del_${ref1%.f*}.sam) - > ${projdir}/alignment_summaries/temp_${i%.f*}.txt
-    grep -v '^@' ${projdir}/alignment_summaries/temp_${i%.f*}.txt | awk -F '\t' '{print $1"\t"$3"\t"$4"\t"$5}' | awk '{gsub(/ /,"\t"); print}' | awk '{print $1"~"$5"~"$3"~"$4}' | grep -v '\*' >> ${projdir}/alignment_summaries/refgenome_paralogs_${i%.f*}_${ref1%.f*}.txt
-    awk '!visited[$0]++' ${projdir}/alignment_summaries/refgenome_paralogs_${i%.f*}_${ref1%.f*}.txt > ${projdir}/alignment_summaries/temp_${i%.f*}.txt
-    mv ${projdir}/alignment_summaries/temp_${i%.f*}.txt ${projdir}/alignment_summaries/refgenome_paralogs_${i%.f*}_${ref1%.f*}.txt
+      echo "nloci~mapQ~CHROM~POS" > ${projdir}/alignment_summaries/refgenome_paralogs_${i%.f*}_${ref1%.f*}.txt
+      grep -v '^@' ${i%.f*}_del_${ref1%.f*}.sam | awk '($3 != "\*")' 2> /dev/null  |  awk '($6 != "\*")' 2> /dev/null | awk '!h[$1] { g[$1]=$0 } { h[$1]++ } END { for(k in g) print h[k], g[k] }' | \
+      cat <(grep '^@' ${i%.f*}_del_${ref1%.f*}.sam) - > ${projdir}/alignment_summaries/temp_${i%.f*}.txt
+      grep -v '^@' ${projdir}/alignment_summaries/temp_${i%.f*}.txt | awk -F '\t' '{print $1"\t"$3"\t"$4"\t"$5}' | awk '{gsub(/ /,"\t"); print}' | awk '{print $1"~"$5"~"$3"~"$4}' | grep -v '\*' >> ${projdir}/alignment_summaries/refgenome_paralogs_${i%.f*}_${ref1%.f*}.txt
+      awk '!visited[$0]++' ${projdir}/alignment_summaries/refgenome_paralogs_${i%.f*}_${ref1%.f*}.txt > ${projdir}/alignment_summaries/temp_${i%.f*}.txt
+      mv ${projdir}/alignment_summaries/temp_${i%.f*}.txt ${projdir}/alignment_summaries/refgenome_paralogs_${i%.f*}_${ref1%.f*}.txt
 
-    echo "nloci~mapQ~CHROM~POS" > ${projdir}/alignment_summaries/refgenome_paralogs_${i%.f*}_${ref2%.f*}.txt
-    grep -v '^@' ${i%.f*}_del_${ref2%.f*}.sam | awk '($3 != "\*")' 2> /dev/null  | awk '($6 != "\*")' 2> /dev/null | awk '!h[$1] { g[$1]=$0 } { h[$1]++ } END { for(k in g) print h[k], g[k] }' | \
-    cat <(grep '^@' ${i%.f*}_del_${ref2%.f*}.sam) - > ${projdir}/alignment_summaries/temp_${i%.f*}.txt
-    grep -v '^@' ${projdir}/alignment_summaries/temp_${i%.f*}.txt | awk -F '\t' '{print $1"\t"$3"\t"$4"\t"$5}' | awk '{gsub(/ /,"\t"); print}' | awk '{print $1"~"$5"~"$3"~"$4}' | grep -v '\*' >> ${projdir}/alignment_summaries/refgenome_paralogs_${i%.f*}_${ref2%.f*}.txt
-    awk '!visited[$0]++' ${projdir}/alignment_summaries/refgenome_paralogs_${i%.f*}_${ref2%.f*}.txt > ${projdir}/alignment_summaries/temp_${i%.f*}.txt
-    mv ${projdir}/alignment_summaries/temp_${i%.f*}.txt ${projdir}/alignment_summaries/refgenome_paralogs_${i%.f*}_${ref2%.f*}.txt
-    wait
-
-    {
-      awk '/@HD/ || /@SQ/{print}' <(zcat ${i%.f*}_redun.sam.gz 2> /dev/null) > ${i%.f*}_heading_${ref1%.f*}_${ref2%.f*}.sam
-      grep -v '^@' ${i%.f*}_del_${ref1%.f*}_${ref2%.f*}.sam | awk '($3 != "\*")' 2> /dev/null  | awk '{gsub(/_se-/,"_se-\t",$1); gsub(/_pe-/,"_pe-\t",$1)}1' | \
-      awk '{print $2"\t"$0}' | awk '{$2=$3=""}1' | awk -v multilocus=$multilocus -F '\t' 'BEGIN{OFS="\t"} {if ($5==multilocus) {$5=$5+40}}1' > ${i%.f*}_uniq_${ref1%.f*}_${ref2%.f*}.sam &&
-      for k in $(awk '{A[$1]++}END{for(i in A)print i}' ${i%.f*}_uniq_${ref1%.f*}_${ref2%.f*}.sam); do (
-        awk -v n="${k}" '$1 == n{print $0}' ${i%.f*}_uniq_${ref1%.f*}_${ref2%.f*}.sam | awk -v n="$k" '{for(i=0;i<n;i++) print}' > ${i%.f*}_uniq_${ref1%.f*}_${ref2%.f*}_exp_${k}.sam ) &
-        if [[ $(jobs -r -p | wc -l) -ge $prepthreads ]]; then
-        wait
-        fi
-      done
+      echo "nloci~mapQ~CHROM~POS" > ${projdir}/alignment_summaries/refgenome_paralogs_${i%.f*}_${ref2%.f*}.txt
+      grep -v '^@' ${i%.f*}_del_${ref2%.f*}.sam | awk '($3 != "\*")' 2> /dev/null  | awk '($6 != "\*")' 2> /dev/null | awk '!h[$1] { g[$1]=$0 } { h[$1]++ } END { for(k in g) print h[k], g[k] }' | \
+      cat <(grep '^@' ${i%.f*}_del_${ref2%.f*}.sam) - > ${projdir}/alignment_summaries/temp_${i%.f*}.txt
+      grep -v '^@' ${projdir}/alignment_summaries/temp_${i%.f*}.txt | awk -F '\t' '{print $1"\t"$3"\t"$4"\t"$5}' | awk '{gsub(/ /,"\t"); print}' | awk '{print $1"~"$5"~"$3"~"$4}' | grep -v '\*' >> ${projdir}/alignment_summaries/refgenome_paralogs_${i%.f*}_${ref2%.f*}.txt
+      awk '!visited[$0]++' ${projdir}/alignment_summaries/refgenome_paralogs_${i%.f*}_${ref2%.f*}.txt > ${projdir}/alignment_summaries/temp_${i%.f*}.txt
+      mv ${projdir}/alignment_summaries/temp_${i%.f*}.txt ${projdir}/alignment_summaries/refgenome_paralogs_${i%.f*}_${ref2%.f*}.txt
       wait
-      cat ${i%.f*}_uniq_${ref1%.f*}_${ref2%.f*}_exp_*.sam > ${i%.f*}_exp_${ref1%.f*}_${ref2%.f*}.sam && rm ${i%.f*}_uniq_${ref1%.f*}_${ref2%.f*}_exp_*.sam &&
-      awk '{print "seq"NR"_"$0}' ${i%.f*}_exp_${ref1%.f*}_${ref2%.f*}.sam  | tr -s ' ' | \
-      awk '($3 != "\*")' 2> /dev/null  | awk '($6 != "\*")' 2> /dev/null   | awk '$5 < 10 {$5 = 10}1' | cat ${i%.f*}_heading_${ref1%.f*}_${ref2%.f*}.sam - | tr ' ' '\t' > ${i%.f*}_${ref1%.f*}_${ref2%.f*}.sam
-      rm ${i%.f*}_exp_${ref1%.f*}_${ref2%.f*}.sam ${i%.f*}_uniq_${ref1%.f*}_${ref2%.f*}.sam 2> /dev/null
-      rm ${i%.f*}_heading_${ref1%.f*}_${ref2%.f*}.sam ${i%.f*}_del_${ref1%.f*}_${ref2%.f*}.sam 2> /dev/null
-      wait
-    } & PIDexp1=$!
-    wait $PIDexp1
 
-    {
-      awk '/@HD/ || /@SQ/{print}' <(zcat ${i%.f*}_redun.sam.gz 2> /dev/null) > ${i%.f*}_heading_${ref1%.f*}.sam
-      grep -v '^@' ${i%.f*}_del_${ref1%.f*}.sam | awk '($3 != "\*")' 2> /dev/null  | awk '{gsub(/_se-/,"_se-\t",$1); gsub(/_pe-/,"_pe-\t",$1)}1' | \
-      awk '{print $2"\t"$0}' | awk '{$2=$3=""}1' | awk -v multilocus=$multilocus -F '\t' 'BEGIN{OFS="\t"} {if ($5==multilocus) {$5=$5+40}}1' > ${i%.f*}_uniq_${ref1%.f*}.sam &&
-      for k in $(awk '{A[$1]++}END{for(i in A)print i}' ${i%.f*}_uniq_${ref1%.f*}.sam); do (
-        awk -v n="${k}" '$1 == n{print $0}' ${i%.f*}_uniq_${ref1%.f*}.sam | awk -v n="$k" '{for(i=0;i<n;i++) print}' > ${i%.f*}_uniq_${ref1%.f*}_exp_${k}.sam ) &
-        if [[ $(jobs -r -p | wc -l) -ge $prepthreads ]]; then
-        wait
-        fi
-      done
-      wait
-      cat ${i%.f*}_uniq_${ref1%.f*}_exp_*.sam > ${i%.f*}_exp_${ref1%.f*}.sam && rm ${i%.f*}_uniq_${ref1%.f*}_exp_*.sam &&
-      awk '{print "seq"NR"_"$0}' ${i%.f*}_exp_${ref1%.f*}.sam | tr -s ' ' | \
-      awk '($3 != "\*")' 2> /dev/null  | awk '($6 != "\*")' 2> /dev/null   | awk '$5 < 10 {$5 = 10}1' | cat ${i%.f*}_heading_${ref1%.f*}.sam - | tr ' ' '\t' > ${i%.f*}_${ref1%.f*}.sam
-      rm ${i%.f*}_exp_${ref1%.f*}.sam ${i%.f*}_uniq_${ref1%.f*}.sam 2> /dev/null
-      rm ${i%.f*}_heading_${ref1%.f*}.sam ${i%.f*}_del_${ref1%.f*}.sam 2> /dev/null
-    } & PIDexp2=$!
-    wait $PIDexp2
-
-    {
-      awk '/@HD/ || /@SQ/{print}' <(zcat ${i%.f*}_redun.sam.gz 2> /dev/null) > ${i%.f*}_heading_${ref2%.f*}.sam
-      grep -v '^@' ${i%.f*}_del_${ref2%.f*}.sam | awk '($3 != "\*")' 2> /dev/null  | awk '{gsub(/_se-/,"_se-\t",$1); gsub(/_pe-/,"_pe-\t",$1)}1' | \
-      awk '{print $2"\t"$0}' | awk '{$2=$3=""}1' | awk -v multilocus=$multilocus -F '\t' 'BEGIN{OFS="\t"} {if ($5==multilocus) {$5=$5+40}}1' > ${i%.f*}_uniq_${ref2%.f*}.sam &&
-      for k in $(awk '{A[$1]++}END{for(i in A)print i}' ${i%.f*}_uniq_${ref2%.f*}.sam); do (
-        awk -v n="${k}" '$1 == n{print $0}' ${i%.f*}_uniq_${ref2%.f*}.sam | awk -v n="$k" '{for(i=0;i<n;i++) print}' > ${i%.f*}_uniq_${ref2%.f*}_exp_${k}.sam ) &
-        if [[ $(jobs -r -p | wc -l) -ge $prepthreads ]]; then
-        wait
-        fi
-      done
-      wait
-      cat ${i%.f*}_uniq_${ref2%.f*}_exp_*.sam > ${i%.f*}_exp_${ref2%.f*}.sam && rm ${i%.f*}_uniq_${ref2%.f*}_exp_*.sam &&
-      awk '{print "seq"NR"_"$0}' ${i%.f*}_exp_${ref2%.f*}.sam | tr -s ' ' | \
-      awk '($3 != "\*")' 2> /dev/null  | awk '($6 != "\*")' 2> /dev/null   | awk '$5 < 10 {$5 = 10}1' | cat ${i%.f*}_heading_${ref2%.f*}.sam - | tr ' ' '\t' > ${i%.f*}_${ref2%.f*}.sam
-      rm ${i%.f*}_exp_${ref2%.f*}.sam ${i%.f*}_uniq_${ref2%.f*}.sam ${i%.f*}_heading_${ref2%.f*}.sam ${i%.f*}_del_${ref2%.f*}.sam
-    } & PIDexp3=$!
-    wait $PIDexp3
-
-    rm ${i%.f*}_redun.sam.gz
-    declare -a arr=("${i%.f*}_${ref1%.f*}.sam" "${i%.f*}_${ref2%.f*}.sam" "${i%.f*}_${ref1%.f*}_${ref2%.f*}.sam")
-    for j in "${arr[@]}"; do
-          $java $Xmxp -XX:ParallelGCThreads=$prepthreads -Djava.io.tmpdir=`pwd`/tmp -jar $picard SortSam I=$j O=${j%.sam*}.bam SORT_ORDER=coordinate VALIDATION_STRINGENCY=LENIENT TMP_DIR=`pwd`/tmp && \
-          $java $Xmxp -XX:ParallelGCThreads=$prepthreads -jar $picard BuildBamIndex INPUT=${j%.sam*}.bam VALIDATION_STRINGENCY=LENIENT && \
-          $java $Xmxp -XX:ParallelGCThreads=$prepthreads -jar $picard AddOrReplaceReadGroups I=${j%.sam*}.bam O=${j%.sam*}_precall.bam RGLB=${i%.f*} RGPL=illumina RGPU=run RGSM=${i%.f*} VALIDATION_STRINGENCY=LENIENT && \
-          $samtools index ${j%.sam*}_precall.bam &&
-          rm $j ${j%.sam*}.bam ${j%.sam*}.bai &&
-          if [[ $nodes -gt 1 ]]; then cp /tmp/${samples_list%.txt}/preprocess/${j%.sam*}_precall.bam* ${projdir}/preprocess/; fi
+      {
+        awk '/@HD/ || /@SQ/{print}' <(zcat ${i%.f*}_redun.sam.gz 2> /dev/null) > ${i%.f*}_heading_${ref1%.f*}_${ref2%.f*}.sam
+        grep -v '^@' ${i%.f*}_del_${ref1%.f*}_${ref2%.f*}.sam | awk '($3 != "\*")' 2> /dev/null  | awk '{gsub(/_se-/,"_se-\t",$1); gsub(/_pe-/,"_pe-\t",$1)}1' | \
+        awk '{print $2"\t"$0}' | awk '{$2=$3=""}1' | awk -v multilocus=$multilocus -F '\t' 'BEGIN{OFS="\t"} {if ($5==multilocus) {$5=$5+40}}1' > ${i%.f*}_uniq_${ref1%.f*}_${ref2%.f*}.sam &&
+        for k in $(awk '{A[$1]++}END{for(i in A)print i}' ${i%.f*}_uniq_${ref1%.f*}_${ref2%.f*}.sam); do (
+          awk -v n="${k}" '$1 == n{print $0}' ${i%.f*}_uniq_${ref1%.f*}_${ref2%.f*}.sam | awk -v n="$k" '{for(i=0;i<n;i++) print}' > ${i%.f*}_uniq_${ref1%.f*}_${ref2%.f*}_exp_${k}.sam ) &
+          if [[ $(jobs -r -p | wc -l) -ge $prepthreads ]]; then
           wait
-    done
-    wait
-  fi ) &
-  if [[ $(jobs -r -p | wc -l) -ge $prepN ]]; then
-    wait
-  fi
+          fi
+        done
+        wait
+        cat ${i%.f*}_uniq_${ref1%.f*}_${ref2%.f*}_exp_*.sam > ${i%.f*}_exp_${ref1%.f*}_${ref2%.f*}.sam && rm ${i%.f*}_uniq_${ref1%.f*}_${ref2%.f*}_exp_*.sam &&
+        awk '{print "seq"NR"_"$0}' ${i%.f*}_exp_${ref1%.f*}_${ref2%.f*}.sam  | tr -s ' ' | \
+        awk '($3 != "\*")' 2> /dev/null  | awk '($6 != "\*")' 2> /dev/null   | awk '$5 < 10 {$5 = 10}1' | cat ${i%.f*}_heading_${ref1%.f*}_${ref2%.f*}.sam - | tr ' ' '\t' > ${i%.f*}_${ref1%.f*}_${ref2%.f*}.sam
+        rm ${i%.f*}_exp_${ref1%.f*}_${ref2%.f*}.sam ${i%.f*}_uniq_${ref1%.f*}_${ref2%.f*}.sam 2> /dev/null
+        rm ${i%.f*}_heading_${ref1%.f*}_${ref2%.f*}.sam ${i%.f*}_del_${ref1%.f*}_${ref2%.f*}.sam 2> /dev/null
+        wait
+      } & PIDexp1=$!
+      wait $PIDexp1
+
+      {
+        awk '/@HD/ || /@SQ/{print}' <(zcat ${i%.f*}_redun.sam.gz 2> /dev/null) > ${i%.f*}_heading_${ref1%.f*}.sam
+        grep -v '^@' ${i%.f*}_del_${ref1%.f*}.sam | awk '($3 != "\*")' 2> /dev/null  | awk '{gsub(/_se-/,"_se-\t",$1); gsub(/_pe-/,"_pe-\t",$1)}1' | \
+        awk '{print $2"\t"$0}' | awk '{$2=$3=""}1' | awk -v multilocus=$multilocus -F '\t' 'BEGIN{OFS="\t"} {if ($5==multilocus) {$5=$5+40}}1' > ${i%.f*}_uniq_${ref1%.f*}.sam &&
+        for k in $(awk '{A[$1]++}END{for(i in A)print i}' ${i%.f*}_uniq_${ref1%.f*}.sam); do (
+          awk -v n="${k}" '$1 == n{print $0}' ${i%.f*}_uniq_${ref1%.f*}.sam | awk -v n="$k" '{for(i=0;i<n;i++) print}' > ${i%.f*}_uniq_${ref1%.f*}_exp_${k}.sam ) &
+          if [[ $(jobs -r -p | wc -l) -ge $prepthreads ]]; then
+          wait
+          fi
+        done
+        wait
+        cat ${i%.f*}_uniq_${ref1%.f*}_exp_*.sam > ${i%.f*}_exp_${ref1%.f*}.sam && rm ${i%.f*}_uniq_${ref1%.f*}_exp_*.sam &&
+        awk '{print "seq"NR"_"$0}' ${i%.f*}_exp_${ref1%.f*}.sam | tr -s ' ' | \
+        awk '($3 != "\*")' 2> /dev/null  | awk '($6 != "\*")' 2> /dev/null   | awk '$5 < 10 {$5 = 10}1' | cat ${i%.f*}_heading_${ref1%.f*}.sam - | tr ' ' '\t' > ${i%.f*}_${ref1%.f*}.sam
+        rm ${i%.f*}_exp_${ref1%.f*}.sam ${i%.f*}_uniq_${ref1%.f*}.sam 2> /dev/null
+        rm ${i%.f*}_heading_${ref1%.f*}.sam ${i%.f*}_del_${ref1%.f*}.sam 2> /dev/null
+      } & PIDexp2=$!
+      wait $PIDexp2
+
+      {
+        awk '/@HD/ || /@SQ/{print}' <(zcat ${i%.f*}_redun.sam.gz 2> /dev/null) > ${i%.f*}_heading_${ref2%.f*}.sam
+        grep -v '^@' ${i%.f*}_del_${ref2%.f*}.sam | awk '($3 != "\*")' 2> /dev/null  | awk '{gsub(/_se-/,"_se-\t",$1); gsub(/_pe-/,"_pe-\t",$1)}1' | \
+        awk '{print $2"\t"$0}' | awk '{$2=$3=""}1' | awk -v multilocus=$multilocus -F '\t' 'BEGIN{OFS="\t"} {if ($5==multilocus) {$5=$5+40}}1' > ${i%.f*}_uniq_${ref2%.f*}.sam &&
+        for k in $(awk '{A[$1]++}END{for(i in A)print i}' ${i%.f*}_uniq_${ref2%.f*}.sam); do (
+          awk -v n="${k}" '$1 == n{print $0}' ${i%.f*}_uniq_${ref2%.f*}.sam | awk -v n="$k" '{for(i=0;i<n;i++) print}' > ${i%.f*}_uniq_${ref2%.f*}_exp_${k}.sam ) &
+          if [[ $(jobs -r -p | wc -l) -ge $prepthreads ]]; then
+          wait
+          fi
+        done
+        wait
+        cat ${i%.f*}_uniq_${ref2%.f*}_exp_*.sam > ${i%.f*}_exp_${ref2%.f*}.sam && rm ${i%.f*}_uniq_${ref2%.f*}_exp_*.sam &&
+        awk '{print "seq"NR"_"$0}' ${i%.f*}_exp_${ref2%.f*}.sam | tr -s ' ' | \
+        awk '($3 != "\*")' 2> /dev/null  | awk '($6 != "\*")' 2> /dev/null   | awk '$5 < 10 {$5 = 10}1' | cat ${i%.f*}_heading_${ref2%.f*}.sam - | tr ' ' '\t' > ${i%.f*}_${ref2%.f*}.sam
+        rm ${i%.f*}_exp_${ref2%.f*}.sam ${i%.f*}_uniq_${ref2%.f*}.sam ${i%.f*}_heading_${ref2%.f*}.sam ${i%.f*}_del_${ref2%.f*}.sam
+      } & PIDexp3=$!
+      wait $PIDexp3
+
+      rm ${i%.f*}_redun.sam.gz
+      declare -a arr=("${i%.f*}_${ref1%.f*}.sam" "${i%.f*}_${ref2%.f*}.sam" "${i%.f*}_${ref1%.f*}_${ref2%.f*}.sam")
+      for j in "${arr[@]}"; do
+            $java $Xmxp -XX:ParallelGCThreads=$prepthreads -Djava.io.tmpdir=`pwd`/tmp -jar $picard SortSam I=$j O=${j%.sam*}.bam SORT_ORDER=coordinate VALIDATION_STRINGENCY=LENIENT TMP_DIR=`pwd`/tmp && \
+            $java $Xmxp -XX:ParallelGCThreads=$prepthreads -jar $picard BuildBamIndex INPUT=${j%.sam*}.bam VALIDATION_STRINGENCY=LENIENT && \
+            $java $Xmxp -XX:ParallelGCThreads=$prepthreads -jar $picard AddOrReplaceReadGroups I=${j%.sam*}.bam O=${j%.sam*}_precall.bam RGLB=${i%.f*} RGPL=illumina RGPU=run RGSM=${i%.f*} VALIDATION_STRINGENCY=LENIENT && \
+            $samtools index ${j%.sam*}_precall.bam &&
+            rm $j ${j%.sam*}.bam ${j%.sam*}.bai &&
+            if [[ $nodes -gt 1 ]]; then cp /tmp/${samples_list%.txt}/preprocess/${j%.sam*}_precall.bam* ${projdir}/preprocess/; fi
+            wait
+      done
+      wait
+    fi ) &
+    if [[ $(jobs -r -p | wc -l) -ge $prepN ]]; then
+      wait
+    fi
   done
   wait && touch ${projdir}/precall_done_${samples_list}
-  ls * | grep -v precall | grep -v combined_all_sample_reads_redun.sam.gz | xargs rm 2> /dev/null
+  ls * | grep -v precall | xargs rm 2> /dev/null
   wait
 
 

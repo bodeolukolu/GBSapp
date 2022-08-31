@@ -20,9 +20,6 @@ fi
 if [ "$multilocus" == "true" ]; then
 	export multilocus=0
 fi
-if [[ -z "$joint_alignment" ]] || [[ "$joint_alignment" -gt 1 ]]; then
-	export joint_alignment=1
-fi
 if [ -z "$maxHaplotype" ]; then
 	export maxHaplotype=128
 fi
@@ -72,7 +69,7 @@ main () {
 	fi
 
 	if [[ "$threads" -le 6 ]]; then
-		export prepthreads=threads
+		export prepthreads=$threads
 		export Xmxp=$Xmx2
 		export prepN=1
 	else
@@ -763,7 +760,7 @@ main () {
       cat ${i%.f*}_exp_*.sam > ${i%.f*}_exp.sam && rm ${i%.f*}*_exp_*.sam &&
       awk '{print "seq"NR"_"$0}' ${i%.f*}_exp.sam | tr -s ' ' | \
       awk '!($3 ~ "\*")' 2> /dev/null | awk '!($6 ~ "\*")' 2> /dev/null | awk '$5 < 10 {$5 = 10}1' | cat ${i%.f*}_heading.sam - | tr ' ' '\t' > ${i%.f*}_${ref1%.f*}.sam &&
-      rm ${i%.f*}_exp.sam ${i%.f*}_exp2.sam ${i%.f*}_uniq.sam ${i%.f*}_heading.sam
+      rm ${i%.f*}_exp.sam ${i%.f*}_uniq.sam ${i%.f*}_heading.sam
       rm ${i%.f*}_redun.sam.gz
 
 
@@ -782,7 +779,7 @@ main () {
   done
   wait && touch ${projdir}/precall_done_${samples_list}
   wait
-  ls * | grep -v precall | grep -v combined_all_sample_reads_redun.sam.gz | xargs rm 2> /dev/null
+  ls * | grep -v precall | xargs rm 2> /dev/null
   wait
 
 
