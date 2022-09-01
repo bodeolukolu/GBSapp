@@ -58,6 +58,7 @@ main () {
 	  export ram1=$(($totalk/$N))
 	else
 	  export N=1 && export loopthreads=threads
+    export ram1=$totalk
 	fi
 	export ram1=$((ram1/1000000))
 	export Xmx1=-Xmx${ram1}G
@@ -84,10 +85,16 @@ main () {
 		export Xmxg=$Xmx2
 		export gN=1
 	else
-		export ramg=20
+    export ramg=20
 		export Xmxg=-Xmx${ramg}G
-		export gthreads=$(($ram2/$ramg))
-		export gN=$gthreads
+		export gN=$(($ram2/$ramg))
+		export gthreads=$(($threads /$gN ))
+    if [[ "$gthreads" -lt 4 ]]; then
+      export gthreads=4
+      export gN=$(($threads / $gthreads ))
+      export ramg=$(( $ram2 / $gN ))
+      export Xmxg=-Xmx${ramg}G
+    fi
 	fi
 }
 cd $projdir
@@ -1014,7 +1021,7 @@ if [[ "$joint_calling" == false ]]; then
 				for selchr in $Get2_Chromosome; do (
 					if test ! -f ${pop}_${ploidy}x_${selchr}_raw.vcf.gz; then
             if [[ -z "$interval_list" ]]; then
-  						$GATK --java-options "$Xmx1 -XX:+UseParallelGC -XX:ParallelGCThreads=$loopthreads" GenotypeGVCFs -R ${projdir}/refgenomes/$ref1 -L ${selchr} -V gendb://${pop}_${ploidy}x_${selchr}_raw -O ${pop}_${ploidy}x_${selchr}_raw.hold.vcf.gz && \
+  						$GATK --java-options "$Xmxg -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" GenotypeGVCFs -R ${projdir}/refgenomes/$ref1 -L ${selchr} -V gendb://${pop}_${ploidy}x_${selchr}_raw -O ${pop}_${ploidy}x_${selchr}_raw.hold.vcf.gz && \
   						rm -r ${pop}_${ploidy}x_${selchr}_raw && \
   						mv ${pop}_${ploidy}x_${selchr}_raw.hold.vcf.gz ${pop}_${ploidy}x_${selchr}_raw.vcf.gz
   						mv ${pop}_${ploidy}x_${selchr}_raw.hold.vcf.gz.tbi ${pop}_${ploidy}x_${selchr}_raw.vcf.gz.tbi &&
@@ -1039,7 +1046,7 @@ if [[ "$joint_calling" == false ]]; then
 						echo -e "${magenta}- \n- Exiting pipeline in 5 seconds ${white}\n"
 						sleep 5 && exit 1
 					fi ) &
-					if [[ $(jobs -r -p | wc -l) -ge $N ]]; then
+					if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
 						wait
 					fi
 				done

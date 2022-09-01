@@ -58,6 +58,7 @@ main () {
 	  export ram1=$(($totalk/$N))
 	else
 	  export N=1 && export loopthreads=threads
+    export ram1=$totalk
 	fi
 	export ram1=$((ram1/1000000))
 	export Xmx1=-Xmx${ram1}G
@@ -86,8 +87,14 @@ main () {
 	else
 		export ramg=20
 		export Xmxg=-Xmx${ramg}G
-		export gthreads=$(($ram2/$ramg))
-		export gN=$gthreads
+		export gN=$(($ram2/$ramg))
+		export gthreads=$(($threads /$gN ))
+    if [[ "$gthreads" -lt 4 ]]; then
+      export gthreads=4
+      export gN=$(($threads / $gthreads ))
+      export ramg=$(( $ram2 / $gN ))
+      export Xmxg=-Xmx${ramg}G
+    fi
 	fi
 }
 cd $projdir
@@ -1240,14 +1247,14 @@ main () {
 						for selchr in $Get2_Chromosome; do (
 							if test ! -f "${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_${selchr}_raw.vcf.gz"; then
                 if [[ -z "$interval_list" ]]; then
-                  $GATK --java-options "$Xmx1 -XX:+UseParallelGC -XX:ParallelGCThreads=$loopthreads"  GenotypeGVCFs -R ${projdir}/refgenomes/panref.fasta -L ${selchr} -V gendb://${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_${selchr}_raw -O ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_${selchr}_raw.hold.vcf.gz && \
+                  $GATK --java-options "$Xmxg -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads"  GenotypeGVCFs -R ${projdir}/refgenomes/panref.fasta -L ${selchr} -V gendb://${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_${selchr}_raw -O ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_${selchr}_raw.hold.vcf.gz && \
   								rm -r ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_${selchr}_raw && \
   								mv "${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_${selchr}_raw.hold.vcf.gz" "${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_${selchr}_raw.vcf.gz"
   								mv "${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_${selchr}_raw.hold.vcf.gz.tbi" "${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_${selchr}_raw.vcf.gz.tbi" &&
   								wait
                 else
                   cat ${projdir}/${interval_list} | grep $selchr > ${projdir}/variant_intervals_${selchr}.list
-                  $GATK --java-options "$Xmx1 -XX:+UseParallelGC -XX:ParallelGCThreads=$loopthreads"  GenotypeGVCFs -R ${projdir}/refgenomes/panref.fasta -L ${projdir}/variant_intervals_${selchr}.list -V gendb://${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_${selchr}_raw -O ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_${selchr}_raw.hold.vcf.gz && \
+                  $GATK --java-options "$Xmxg -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads"  GenotypeGVCFs -R ${projdir}/refgenomes/panref.fasta -L ${projdir}/variant_intervals_${selchr}.list -V gendb://${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_${selchr}_raw -O ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_${selchr}_raw.hold.vcf.gz && \
   								rm ${projdir}/variant_intervals_${selchr}.list
                   rm -r ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_${selchr}_raw && \
   								mv "${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_${selchr}_raw.hold.vcf.gz" "${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_${selchr}_raw.vcf.gz"
@@ -1265,7 +1272,7 @@ main () {
 								echo -e "${magenta}- \n- Exiting pipeline in 5 seconds ${white}\n"
 								sleep 5 && exit 1
 							fi ) &
-							if [[ $(jobs -r -p | wc -l) -ge $N ]]; then
+							if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
 								wait
 							fi
 						done
@@ -1390,14 +1397,14 @@ main () {
 						for selchr in $Get2_Chromosome; do (
 							if test ! -f "${pop}_${ref1%.f*}_${ploidy_ref1}x_${selchr}_raw.vcf.gz"; then
                 if [[ -z "$interval_list_ref1" ]]; then
-                  $GATK --java-options "$Xmx1 -XX:+UseParallelGC -XX:ParallelGCThreads=$loopthreads"  GenotypeGVCFs -R ${projdir}/refgenomes/panref.fasta -L ${selchr} -V gendb://${pop}_${ref1%.f*}_${ploidy_ref1}x_${selchr}_raw -O ${pop}_${ref1%.f*}_${ploidy_ref1}x_${selchr}_raw.hold.vcf.gz && \
+                  $GATK --java-options "$Xmxg -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads"  GenotypeGVCFs -R ${projdir}/refgenomes/panref.fasta -L ${selchr} -V gendb://${pop}_${ref1%.f*}_${ploidy_ref1}x_${selchr}_raw -O ${pop}_${ref1%.f*}_${ploidy_ref1}x_${selchr}_raw.hold.vcf.gz && \
   								rm -r ${pop}_${ref1%.f*}_${ploidy_ref1}x_${selchr}_raw && \
   								mv "${pop}_${ref1%.f*}_${ploidy_ref1}x_${selchr}_raw.hold.vcf.gz" "${pop}_${ref1%.f*}_${ploidy_ref1}x_${selchr}_raw.vcf.gz"
   								mv "${pop}_${ref1%.f*}_${ploidy_ref1}x_${selchr}_raw.hold.vcf.gz.tbi" "${pop}_${ref1%.f*}_${ploidy_ref1}x_${selchr}_raw.vcf.gz.tbi" &&
   								wait
                 else
                   cat ${projdir}/${interval_list_ref1} | grep $selchr > ${projdir}/variant_intervals_${selchr}.list
-                  $GATK --java-options "$Xmx1 -XX:+UseParallelGC -XX:ParallelGCThreads=$loopthreads"  GenotypeGVCFs -R ${projdir}/refgenomes/panref.fasta -L ${projdir}/variant_intervals_${selchr}.list -V gendb://${pop}_${ref1%.f*}_${ploidy_ref1}x_${selchr}_raw -O ${pop}_${ref1%.f*}_${ploidy_ref1}x_${selchr}_raw.hold.vcf.gz && \
+                  $GATK --java-options "$Xmxg -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads"  GenotypeGVCFs -R ${projdir}/refgenomes/panref.fasta -L ${projdir}/variant_intervals_${selchr}.list -V gendb://${pop}_${ref1%.f*}_${ploidy_ref1}x_${selchr}_raw -O ${pop}_${ref1%.f*}_${ploidy_ref1}x_${selchr}_raw.hold.vcf.gz && \
   								rm ${projdir}/variant_intervals_${selchr}.list
                   rm -r ${pop}_${ref1%.f*}_${ploidy_ref1}x_${selchr}_raw && \
   								mv "${pop}_${ref1%.f*}_${ploidy_ref1}x_${selchr}_raw.hold.vcf.gz" "${pop}_${ref1%.f*}_${ploidy_ref1}x_${selchr}_raw.vcf.gz"
@@ -1415,7 +1422,7 @@ main () {
 								echo -e "${magenta}- \n- Exiting pipeline in 5 seconds ${white}\n"
 								sleep 5 && exit 1
 							fi ) &
-							if [[ $(jobs -r -p | wc -l) -ge $N ]]; then
+							if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
 								wait
 							fi
 						done
@@ -1540,13 +1547,13 @@ main () {
 						for selchr in $Get2_Chromosome; do (
 							if test ! -f "${pop}_${ref2%.f*}_${ploidy_ref2}x_${selchr}_raw.vcf.gz"; then
                 if [[ -z "$interval_list_ref2" ]]; then
-                  $GATK --java-options "$Xmx1 -XX:+UseParallelGC -XX:ParallelGCThreads=$loopthreads"  GenotypeGVCFs -R ${projdir}/refgenomes/panref.fasta -L ${selchr} -V gendb://${pop}_${ref2%.f*}_${ploidy_ref2}x_${selchr}_raw -O ${pop}_${ref2%.f*}_${ploidy_ref2}x_${selchr}_raw.hold.vcf.gz && \
+                  $GATK --java-options "$Xmxg -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads"  GenotypeGVCFs -R ${projdir}/refgenomes/panref.fasta -L ${selchr} -V gendb://${pop}_${ref2%.f*}_${ploidy_ref2}x_${selchr}_raw -O ${pop}_${ref2%.f*}_${ploidy_ref2}x_${selchr}_raw.hold.vcf.gz && \
   								rm -r ${pop}_${ref2%.f*}_${ploidy_ref2}x_${selchr}_raw && \
   								mv "${pop}_${ref2%.f*}_${ploidy_ref2}x_${selchr}_raw.hold.vcf.gz" "${pop}_${ref2%.f*}_${ploidy_ref2}x_${selchr}_raw.vcf.gz" &&
   								wait
                 else
                   cat ${projdir}/${interval_list_ref2} | grep $selchr > ${projdir}/variant_intervals_${selchr}.list
-                  $GATK --java-options "$Xmx1 -XX:+UseParallelGC -XX:ParallelGCThreads=$loopthreads"  GenotypeGVCFs -R ${projdir}/refgenomes/panref.fasta -L ${projdir}/variant_intervals_${selchr}.list -V gendb://${pop}_${ref2%.f*}_${ploidy_ref2}x_${selchr}_raw -O ${pop}_${ref2%.f*}_${ploidy_ref2}x_${selchr}_raw.hold.vcf.gz && \
+                  $GATK --java-options "$Xmxg -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads"  GenotypeGVCFs -R ${projdir}/refgenomes/panref.fasta -L ${projdir}/variant_intervals_${selchr}.list -V gendb://${pop}_${ref2%.f*}_${ploidy_ref2}x_${selchr}_raw -O ${pop}_${ref2%.f*}_${ploidy_ref2}x_${selchr}_raw.hold.vcf.gz && \
   								rm ${projdir}/variant_intervals_${selchr}.list
                   rm -r ${pop}_${ref2%.f*}_${ploidy_ref2}x_${selchr}_raw && \
   								mv "${pop}_${ref2%.f*}_${ploidy_ref2}x_${selchr}_raw.hold.vcf.gz" "${pop}_${ref2%.f*}_${ploidy_ref2}x_${selchr}_raw.vcf.gz" &&
@@ -1563,7 +1570,7 @@ main () {
 								echo -e "${magenta}- \n- Exiting pipeline in 5 seconds ${white}\n"
 								sleep 5 && exit 1
 							fi ) &
-							if [[ $(jobs -r -p | wc -l) -ge $N ]]; then
+							if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
 								wait
 							fi
 						done
