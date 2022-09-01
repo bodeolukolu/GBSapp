@@ -24,19 +24,12 @@ export slurm_module=$((module --version) 2>&1 | head -n1)
 
 if [[ "$slurm_module" =~ "Module" ]]; then
 	if [ "$cluster" == true ];then
+		module unload python
+		module add python
 		pythonversion=$((python --version) 2>&1)
-		if [[ "$pythonversion" =~ "Python 2" ]]; then
+		if [[ "$pythonversion" =~ "Python 2" ]] || [[ "$pythonversion" =~ "Python 3" ]]; then
 			echo -e "${white}\n- Using $pythonversion\n ${white}"
-		else
-			mkdir -p ~/bin
-			PATH=~/bin:$PATH
-			rm ~/bin/python
-			ln -s /usr/bin/python3 ~/bin/python
 		fi
-
-	fi
-
-	if [ "$cluster" == true ];then
 		module unload R
 	  module add R
 	  Rversion=$((R --version) 2>&1)
@@ -44,67 +37,48 @@ if [[ "$slurm_module" =~ "Module" ]]; then
 	    echo -e "${white}\n- Using $Rversion\n ${white}"
 	  fi
 	fi
-	if [ "$cluster" == false ];then
-	  Rversion=$((R --version) 2>&1)
-	  if [[ "$Rversion" =~ "R version" ]]; then
-	    echo -e "${white}\n- Using $Rversion\n ${white}"
-	  else
-	    echo -e "${white}- install R before proceeding ${white}"
-	    echo -e "${white}- dependencies for R in linux: <sudo apt install libcurl4-openssl-dev> and <sudo apt install libssl-dev>"
-	  fi
-	fi
+fi
 
-	if [ "$cluster" == true ];then
-		module unload python
-	  module add python/2.7.18
-	  pythonversion=$((python --version) 2>&1)
-	  if [[ "$pythonversion" =~ "Python 2" ]]; then
-	    echo -e "${white}\n- Using $pythonversion\n ${white}"
-	  else
-	    mkdir -p ~/bin
-	    PATH=~/bin:$PATH
-			rm ~/bin/python
-	    ln -s /usr/bin/python2 ~/bin/python
-	  fi
-	fi
-	if [ "$cluster" == false ];then
-	  mkdir -p ~/bin
-	  PATH=~/bin:$PATH
-		rm ~/bin/python
-	  ln -s /usr/bin/python2 ~/bin/python
-	  pythonversion=$((python --version) 2>&1)
-	  if [[ "$pythonversion" =~ "Python 2" ]]; then
-	    echo -e "${white}\n- Using $pythonversion\n ${white}"
-	  else
-	    echo -e "${white}- install python2 before proceeding ${white}"
-	  fi
-	fi
+Rversion=$((R --version) 2>&1)
+if [[ "$Rversion" =~ "R version" ]]; then
+  echo -e "${white}\n- Using $Rversion\n ${white}"
+else
+  echo -e "${white}- install R before proceeding ${white}"
+  echo -e "${white}- dependencies for R in linux: <sudo apt install libcurl4-openssl-dev> and <sudo apt install libssl-dev>"
+fi
 
-	javaversion=$((update-alternatives --list java | grep 'java-8-openjdk') 2>&1)
-	mkdir -p ~/bin
-	PATH=~/bin:$PATH
-	rm ~/bin/java
-	ln -s $javaversion ~/bin/java
-	javaversion=$((java -version) 2>&1)
-	if [[ "$javaversion" =~ "1.8" ]]; then
-		echo -e "${white}\n- Using $javaversion\n ${white}"
-	else
-		mkdir -p ~/bin
-		PATH=~/bin:$PATH
-		rm ~/bin/java
-		ln -s ${GBSapp_dir}/tools/jdk8*/bin/java ~/bin/java
-		javaversion=$((java -version) 2>&1)
-		if [[ "$javaversion" =~ "1.8" ]]; then
-			echo -e "${white}\n- Using $javaversion\n ${white}"
-		else
-			echo -e "${white}- install java version build 1.8 before proceeding ${white}"
-		fi
-	fi
+pythonversion=$((python --version) 2>&1)
+if [[ "$pythonversion" =~ "Python 2" ]]; then
+  echo -e "${white}\n- Using $pythonversion\n ${white}"
+else
+	echo -e "${white}- install python before proceeding ${white}"
+fi
+
+javaversion=$((update-alternatives --list java | grep 'java-8-openjdk') 2>&1)
+mkdir -p ~/bin
+PATH=~/bin:$PATH
+rm ~/bin/java
+ln -s $javaversion ~/bin/java
+javaversion=$((java -version) 2>&1)
+if [[ "$javaversion" =~ "1.8" ]]; then
+	echo -e "${white}\n- Using $javaversion\n ${white}"
+else
 	mkdir -p ~/bin
 	PATH=~/bin:$PATH
 	rm ~/bin/java
 	ln -s ${GBSapp_dir}/tools/jdk8*/bin/java ~/bin/java
+	javaversion=$((java -version) 2>&1)
+	if [[ "$javaversion" =~ "1.8" ]]; then
+		echo -e "${white}\n- Using $javaversion\n ${white}"
+	else
+		echo -e "${white}- install java version build 1.8 before proceeding ${white}"
+	fi
 fi
+mkdir -p ~/bin
+PATH=~/bin:$PATH
+rm ~/bin/java
+ln -s ${GBSapp_dir}/tools/jdk8*/bin/java ~/bin/java
+
 
 
 
