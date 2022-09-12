@@ -9,29 +9,30 @@ GBSapp is an automated pipeline for variant calling and filtering. The pipeline 
 For questions, bugs, and suggestions, please contact bolukolu@utk.edu.
 
 ## Features
-- Easy to learn, and use.
+- Easy use and designed for biologist.
 - Dosage-based variant calling and filtering.
 - Fully-automated: “walk-away” and “walk-through” mode.
 - Allows for use of haplotype-resolved reference genomes.
-- Minimizes excess heterozygosity
+- Minimizes excess heterozygosity and allele dropout.
 - Variant calling implemented from 1x (haploid) to 8x (octoploid).
-- Annonate SNPs based on if reads map to single and multiple loci.
 - Parallelization of job on multiple compute cluster nodes (spark cluster infrastructure not required)
 - Splice-aware aligner allows for RNAseq data as input (recommended only for haploid or diploid genomes)
-- *Fast joint alignment: speed increases with sample size after consolidation, compression and indexing of files.
-- *Fast variant calling: specify only polymoorphic variants in interval list.
-- visualizations for report and QC
-- generating sequence context for variants
+- Generates variant sequence context (useful for applications such as oligo/primer design & sequenced-based phylogenetic analysis)
+- Fast alignment: speed increases with increasing sample read depth.
+- Fast variant calling.
+- Visualizations for report and QC
+
 - Functions under-development:
   - calling microhaplotypes
   - estimating ploidy level and aneuploidy.
 
 
 
-## Contents
+# Contents
 - [Installation](#installation)
 - [Usage](#usage)
   - [Basic usage](#Basic_usage)
+  - [Project directory setup](#Project_directory_setup)
   - [Overview of workflow](#Overview_of_workflow)
   - [Configuration](#Configuration)
 - [Related Software](#Related_Software)
@@ -72,25 +73,32 @@ Pre-install before running GBSapp:
 ## Usage
 ### Basic Usage
 The project directory should contain the following files and directories:
-- **(1) config file**: specifies run parameters (for details: GBSapp_vx.x/examples/config).
-- **(2) samples directory**: contains “se” and/or “pe” (“paired” and “single” name format acceptable) fastq file(s). Paired-end (pe) sample filenames might require formatting so that they end in “_R1.fastq” or  “.R1.fastq” and “_R2.fastq” or “.R2.fastq” (for details: GBSapp_vx.x/misc/format_fastq_filenames.txt).
-- **(3)	refgenomes directory**: contains fasta file(s) of the reference genome.<br />* <u>Genomes with subgenome assemblies in single fasta file</u>: such as allopolyploids and segmental allopolyploids might require formatting to split fasta file into multiple file containing each subgenome (for details: GBSapp_vx.x/misc/split_subgenomes_format_fasta_headers.txt).<br />* <u>Haploids, diploids and autopolyploids with single reference genomes</u>: splitting fasta file not required.<br />* <u>Note</u>:formatting of fasta headers to contain minimal text (e.g. >Chr05) might be required (for details: GBSapp_v0.1/misc/format_fasta_headers.txt)
-- **(4) for help: --help or -h
-- **(5) for version: --version or -v
-
-<img src="https://github.com/bodeolukolu/GBSapp/blob/master/misc/project_dir_setup.PNG" width="782" height="308">
+- **config file**: specifies run parameters (for details: GBSapp_vx.x/examples/config).
+- **samples directory**: contains “se” and/or “pe” (“paired” and “single” name format acceptable) fastq file(s). Paired-end (pe) sample filenames might require formatting so that they end in “_R1.fastq” or  “.R1.fastq” and “_R2.fastq” or “.R2.fastq” (for details: GBSapp_vx.x/misc/format_fastq_filenames.txt).
+- **refgenomes directory**: contains fasta file(s) of the reference genome.<br />* <u>Genomes with subgenome assemblies in single fasta file</u>: such as allopolyploids and segmental allopolyploids might require formatting to split fasta file into multiple file containing each subgenome (for details: GBSapp_vx.x/misc/split_subgenomes_format_fasta_headers.txt).<br />* <u>Haploids, diploids and autopolyploids with single reference genomes</u>: splitting fasta file not required.<br />* <u>Note</u>:formatting of fasta headers to contain minimal text (e.g. >Chr05) might be required (for details: GBSapp_v0.1/misc/format_fasta_headers.txt)
+- **for help**: --help or -h
+- **for version**: --version or -v
 
 From command line, run GBSapp with options shown below (absolute or relative path)
 ```
 $ bash	<path-to-GBSapp-directory/GBSapp>	<path-to-project-directory>
 ```
 
+### Project directory setup
+A project directory should contain the following sub-directories:
+- **samples folder**: this contains your quality filtered sequence data.
+- **refgenomes folder**: this contains your reference genome fasta file.
+- **config.sh file**: a template of the configuration file is provided in the examples folder of the GBSapp download.
+
+<img src="https://github.com/bodeolukolu/GBSapp/blob/master/misc/project_dir_setup.PNG" width="782" height="308">
+
+
 ### Overview of workflow
 The figure below outlines the order of steps in the GBSapp pipeline
 - In Progress
 
-### configuration
-Using a text editor, save a file containing any of the following variables as 'config' file (no file extension) and include it in your project directory.
+### Configuration
+Using a text editor, save a file containing any of the following variables as 'config.sh' file and include it in your project directory.
 
 **General parameters**
 
@@ -118,8 +126,8 @@ Using a text editor, save a file containing any of the following variables as 'c
 |ploidy_ref2|na|ploid level for subgenome 1|integer|Required|
 |ploidy_ref3|na|ploid level for subgenome 1|integer|Required|
 |ploidy_ref4|na|ploid level for subgenome 1|integer|Required|
-|Get_Chromosome|na|variant calling on specific chromosomes, scaffolds,and contigs|string|optional|
-|Exclude_Chromosome|na|variant calling to exclude specific chromosomes, scaffolds,and contigs|string|optional|
+|Get_Chromosome|na|variant calling on specific chromosomes, scaffolds,and contigs|comma delimited string(s)|optional|
+|Exclude_Chromosome|na|variant calling to exclude specific chromosomes, scaffolds,and contigs|comma delimited string(s)|optional|
 
 
 
@@ -129,9 +137,9 @@ Using a text editor, save a file containing any of the following variables as 'c
 |:-------------|:-------------|:-------------|:-------------|:----------------|
 |p1|na|maternal parent (specified only for biparental populations)|string|Optional|
 |p2|na|paternal parent (specified only for biparental populations)|string|Optional|
-|genotype_missingness|0.2|maximum proportion of missing genotypes allowed per sample (multiple comma delimited thresholds permitted)|decimal number|Optional|
-|sample_missingness|0.2|maximum proportion of missing samples allowed per variant (multiple comma delimited thresholds permitted)|decimal number|Optional|
-|exclude_samples|na|sample IDs to be exclude from filtered variant data set|comma delimited strings|Optional|
+|genotype_missingness|0.2|maximum proportion of missing genotypes allowed per sample|comma delimiteddecimal number(s)|Optional|
+|sample_missingness|0.2|maximum proportion of missing samples allowed per variant|comma delimited decimal number(s)|Optional|
+|exclude_samples|na|sample IDs to be exclude from filtered variant data set|comma delimited string(s)|Optional|
 |minRD_1x|2|minimum read depth threshold|integer|Optional|
 |minRD_2x|6|minimum read depth threshold|integer|Optional|
 |minRD_4x|25|minimum read depth threshold|integer|Optional|
@@ -145,6 +153,8 @@ Using a text editor, save a file containing any of the following variables as 'c
 **Advanced parameters**
 |Variable      |Default       |Usage         |Input         |required/Optional|
 |:-------------|:-------------|:-------------|:-------------|:----------------|
+|multilocus|true|use paralogoous sequences for variant callingq|string|Optional|
+|minmapq|20|minimum mapping quality during variant calling|integer|Optional|
 |maxHaplotype|128|maximum number of haplotypes per haploid genome across population(increase for polyploids/high heterozygosity/high background mutational load)|integer|Optional|
 |haplome_number|1|number of haplomes resolved in reference genome assembly|integer|Optional|
 |softclip|false|do not use soft Clipped bases (recommended)|string|Optional|
@@ -159,7 +169,7 @@ Below is an example of a configuration file:
 
 **config.sh**
 ```
-# General parameters
+### General parameters
 ###################################################
 threads=24
 walkaway=true
@@ -168,7 +178,7 @@ nodes=1
 samples_alt_dir=false
 lib_type=RRS
 
-# Variant calling
+### Variant calling
 ###################################################
 ploidy=6
 ref1=TF.fasta
@@ -179,7 +189,7 @@ Get_Chromosome=TF_Chr01,TF_Chr02
 Exclude_Chromosome=TF_Chr00,TF_Chr00
 
 
-# SNP-filtering:
+### SNP-filtering:
 ####################################################
 p1=Beauregard
 p2=Tanzania
@@ -192,8 +202,10 @@ minRD_6x=45
 pseg=0.001
 maf=0.05
 
-# Advanced parameters
+### Advanced parameters
 ###################################################
+multilocus=true
+minmapq=20
 maxHaplotype=128
 haplome_number=1
 softclip=false
@@ -205,9 +217,9 @@ RE2=CATG
 
 Alternatively, a configuration file (outlined below) specifying only the ploidy level is sufficient to run GBSapp.
 
-**config**
+**config.sh**
 ```
-# Variant calling
+### Variant calling
 ###################################################
 ploidy=2
 ```
@@ -216,8 +228,8 @@ Since most of the parameters are hard-coded in an intuitive manner, by specifyin
 - defaults: refer to parameters above
 
 ## Related Software
-- Next-Generation Sequence (NGS) data filtering
-    - [ngsComposer: Empirical Base-call error-filtering and read preprocessing pipeline.](https://github.com/bodeolukolu/ngsComposer)
+- [ngsComposer: Empirical Base-call error-filtering and read preprocessing pipeline.](https://github.com/bodeolukolu/ngsComposer)
+- [Qmatey: Quantitative Metagenomic Alignment and Taxonomic Exact-matching.](https://github.com/bodeolukolu/Qmatey)
 
 
 
@@ -250,10 +262,14 @@ This package has been developed as part of the [Genomic Tools for Sweetpotato Im
 ```
 - Make sure python v2.6 or greater is installed and then type the command below in terminal
 - $ sudo ln -sf /usr/bin/python3 /usr/bin/python
+- or
+- If you are using python3
+- $ sudo apt update
+- $ sudo apt install python-is-python3
 ```
 **If samtools and bcftools doesn't install properly:**<br />
 ```
-While the installation of samtools and bcftools are automated, the installation requires some dependencies. Consider typing the commands below in terminal, delete samtools and bcftools (from within ./GBSapp/tools/), and then re-run GBSapp in terminal:
+While the installation of samtools and bcftools are automated, the installation requires some dependencies:
   $ sudo apt-get update
   $ sudo apt-get install gcc
   $ sudo apt-get install make
@@ -267,7 +283,7 @@ While the installation of samtools and bcftools are automated, the installation 
 ```
 **If NextGenMap doesn't install properly:**<br />
 ```
-While the installation of samtools and bcftools are automated, the installation requires some dependencies. Consider typing the commands below in terminal, delete samtools and bcftools (from within ./GBSapp/tools/), and then re-run GBSapp in terminal:
+While the installation of samtools and bcftools are automated, the installation requires some dependencies:
   $ sudo apt install cmake
 ```
 **Problem with amount of memory and/or processors/cores specified:**<br />

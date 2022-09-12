@@ -19,8 +19,8 @@ Exclude_Chromosome=TF_Chr00,TL_Chr00
 
 # SNP-filtering:
 ####################################################
-p1=Beauregard
-p2=Tanzania
+p1=M9
+p2=M19
 genotype_missingness=0.1,0.2,0.3
 sample_missingness=0.1,0.2,0.3
 exclude_samples=S1,S2,S3
@@ -32,6 +32,8 @@ maf=0.05
 
 # Advanced_parameters
 ###################################################
+multilocus=false
+minmmapq=20
 maxHaplotype=128
 haplome_number=1
 softclip=false

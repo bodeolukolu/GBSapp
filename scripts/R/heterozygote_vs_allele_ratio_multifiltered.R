@@ -23,7 +23,8 @@ AR <- GT_AR; GTlen <- length(keepAR)-1
 
 if (ploidy == "2x"){
   AR$propHet <- (rowSums(AR[,5:(GTlen+4)] == "1", na.rm = TRUE)) / (GTlen - (apply(AR[,5:(GTlen+4)], 1, function(x) sum(is.na(x)))))
-    AR <- subset(AR, AR$propHet != 0)
+  AR <- AR[,c(keepAR)]
+  AR <- subset(AR, AR$propHet != 0)
   AR[,1:(ncol(AR)-1)][AR[,1:(ncol(AR)-1)] == 0] <- NA
   AR <- AR[,c(which(colnames(AR)=="propHet"),which(colnames(AR)!="propHet"))]
   AR <- suppressWarnings(na.omit(cbind(AR[1], stack(AR[-1]), row.names = NULL)))
