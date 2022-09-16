@@ -90,6 +90,7 @@ export bcftools=${GBSapp_dir}/tools/bcftools*/bcftools && bcftools=${bcftools//'
 export picard=${GBSapp_dir}/tools/picard.jar && picard=${picard//'//'/'/'}
 export GATK=${GBSapp_dir}/tools/gatk-4.2.6.1/gatk && GATK=${GATK//'//'/'/'}
 export java=${GBSapp_dir}/tools/jdk8*/bin/java && java=${java//'//'/'/'}
+export cons=${GBSapp_dir}/tools/EMBOSS-6.6.0/emboss/cons
 if command -v pigz &>/dev/null; then
   export gzip=pigz
 else

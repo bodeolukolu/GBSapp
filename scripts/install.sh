@@ -95,6 +95,33 @@ fi
 
 
 main () {
+  echo -e "${blue}\n############################################## \n- installiing Emboss ${blue}\n##############################################${white}"
+  wget http://debian.rub.de/ubuntu/pool/universe/e/emboss/emboss_6.6.0.orig.tar.gz
+  gunzip emboss_6.6.0.orig.tar.gz
+  tar xvf emboss_6.6.0.orig.tar
+  cd EMBOSS-6.6.0/
+  ./configure
+  make
+  cd ..
+  rm emboss_6.6.0.orig.tar*
+}
+dirtool=EMBOSS*
+if [ -d $dirtool ]; then
+  :
+else
+  echo -e "${magenta}- Performing installation of dependency (EMBOSS)${white}"
+  main &>> ./log.out
+fi
+
+dirtool=R
+if [ -d $dirtool ]; then
+  :
+else
+  mkdir ./R
+fi
+
+
+main () {
   echo -e "${green}\n############################################## \n- downloading GATK \n##############################################${white}"
 wget -O GATK4.2.6.1.zip "https://github.com/broadinstitute/gatk/releases/download/4.2.6.1/gatk-4.2.6.1.zip"
 unzip GATK4.2.6.1.zip

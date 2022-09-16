@@ -281,6 +281,18 @@ RD_snpfiltering <- function() {
   }
 
   sumfreq <- read.table(paste(pop,"_8x","_rd",rd+1,"_maf",MinorAlleleFreq,"_dose.txt",sep=""), header=T, sep="\t",stringsAsFactors=FALSE, check.names = FALSE)
+  Chrfreq <- subset(sumfreq, select=(2))
+  Chrfreq <- as.data.frame(table(Chrfreq))
+  sum <- sum(as.numeric(Chrfreq$Freq), na.rm = TRUE)
+  Chrfreq <- subset(Chrfreq, Chrfreq$Freq > 0.05)
+  props <- 100/sum
+  plot <- ggplot(data=Chrfreq, aes(x=Chrfreq, y=Freq)) +
+    geom_bar(stat='identity', color="darkblue", fill="cornflowerblue") +
+    scale_y_continuous(name=paste("Number of Variants"), sec.axis = sec_axis(~.*props, name="Percentage")) +
+    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+    xlab(paste("Chromosomes/Pseudomolecule (",sum," total variants)",sep=""))
+  ggsave(filename=paste(pop,"_8x","_variants_chromosome_rd",rd+1,".tiff",sep=""), plot=plot, width=7.5, height= 5, dpi=300, compression = "lzw")
+  
   sumfreq <- subset(sumfreq, select=-c(1:5))
   SNP <- sumfreq
   SNP$percent <- (apply(SNP, 1, function(x) sum(is.na(x))))/ncol(SNP)*100
