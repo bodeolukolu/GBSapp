@@ -1968,9 +1968,10 @@ if [[ -z "$p1" ]]; then
       fi
       if [[ ! -z "$RE2" ]]; then
         mkdir -p seq_context_${RE2}
-        $samtools view ../../preprocess/processed/${i%.f*}_${ref1%.f*}_precall.bam | awk '{print $3"\t"$4"\t"$10}' | awk -v seq="^${RE2}" '$3 ~ seq' | awk '{$2=sprintf("%d00",$2/100)}1' > ./seq_context_${RE2}/${i%.f*}_seqcontext.tmp
-        awk -v pat="${ref1%.f*}_" '{gsub(pat,""); print $1":"$2"\t"$3}' ./seq_context_${RE2}/${i%.f*}_seqcontext.tmp | awk 'NR==FNR {a[$1]++; next} $1 in a' snplist_haps.txt - > ./seq_context_${RE2}/${i%.f*}_seqcontext.txt &&
-        rm ./seq_context_${RE2}/${i%.f*}_seqcontext.tmp
+        for i in $(cat ${projdir}/samples_list_node_*); do
+          $samtools view ../../preprocess/processed/${i%.f*}_${ref1%.f*}_precall.bam | awk '{print $3"\t"$4"\t"$10}' | awk -v seq="^${RE2}" '$3 ~ seq' | awk '{$2=sprintf("%d00",$2/100)}1' > ./seq_context_${RE2}/${i%.f*}_seqcontext.tmp
+          awk -v pat="${ref1%.f*}_" '{gsub(pat,""); print $1":"$2"\t"$3}' ./seq_context_${RE2}/${i%.f*}_seqcontext.tmp | awk 'NR==FNR {a[$1]++; next} $1 in a' snplist_haps.txt - > ./seq_context_${RE2}/${i%.f*}_seqcontext.txt &&
+          rm ./seq_context_${RE2}/${i%.f*}_seqcontext.tmp
         done
       fi
       mkdir consensus_seq_context
