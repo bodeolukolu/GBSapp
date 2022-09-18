@@ -3,12 +3,19 @@
 
 args <- commandArgs(trailingOnly = TRUE)
 ploidy <- args[4]
-libdir <- args[5]
+remove_id_list <- NULL
+remove_id_list <- unlist(strsplit(args[5],","))
+libdir <- args[6]
 .libPaths( c( .libPaths(), libdir) )
 
 
 
 vcffile <- read.table(args[1], header = TRUE, check.names = FALSE)
+if (length(remove_id_list) > 0) {
+  id <- names(vcffile)
+  keep_id <- setdiff(id,remove_id_list)
+  vcffile <- vcffile[,c(keep_id)]
+}
 GT <- read.table(args[2], header=T, sep="\t", check.names=FALSE,stringsAsFactors=FALSE)
 AR <- read.table(args[3], header = TRUE, check.names = FALSE)
 

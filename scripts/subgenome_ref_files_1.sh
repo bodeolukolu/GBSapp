@@ -62,7 +62,7 @@ main () {
 	fi
 	export ram1=$((ram1/1000000))
 	export Xmx1=-Xmx${ram1}G
-	export ram2=$(echo "$totalk*0.0000009" | bc)
+	export ram2=$(echo "$totalk*0.0000008" | bc)
 	export ram2=${ram2%.*}
 	export Xmx2=-Xmx${ram2}G
 	if [[ "$nfiles" -lt "$N" ]]; then
@@ -971,7 +971,7 @@ if [[ "$joint_calling" == false ]]; then
 
 	for i in $(cat ${projdir}/${samples_list} ); do (
 		if [[ -z "$(ls ${projdir}/snpcall/${pop}_${ploidy}x_raw.vcf* 2> /dev/null)" ]]; then
-			if test ! -f "${projdir}/snpcall/${i%.f*}_${ref1%.f*}.g.vcf.gz"; then
+			if test ! -f "${projdir}/snpcall/${i%.f*}_${ref1%.f*}.g.vcf"; then
 					if [[ -z "$Get_Chromosome" ]]; then
             if [[ -z "$interval_list" ]]; then
   						$GATK --java-options "$Xmxg -Djava.io.tmpdir=../snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ../refgenomes/$ref1 -I ${i%.f*}_${ref1%.f*}_precall.bam -ploidy $ploidy -O ${projdir}/snpcall/${i%.f*}_${ref1%.f*}.hold.g.vcf.gz -ERC GVCF --dont-use-soft-clipped-bases $softclip --max-reads-per-alignment-start $downsample --minimum-mapping-quality $minmapq --max-num-haplotypes-in-population $((ploidy * maxHaplotype)) &&
@@ -988,6 +988,8 @@ if [[ "$joint_calling" == false ]]; then
           wait
 					mv "${projdir}/snpcall/${i%.f*}_${ref1%.f*}.hold.g.vcf.gz" "${projdir}/snpcall/${i%.f*}_${ref1%.f*}.g.vcf.gz" &&
 					rm "${projdir}/snpcall/${i%.f*}_${ref1%.f*}.hold.g.vcf.gz.tbi" &&
+          gunzip ${projdir}/snpcall/${i%.f*}_${ref1%.f*}.g.vcf.gz &&
+          $GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreds=$gthreads" IndexFeatureFile -I ${projdir}/snpcall/${i%.f*}_${ref1%.f*}.g.vcf &&
 					wait
 			fi
 		fi
@@ -1007,25 +1009,11 @@ if [[ "$joint_calling" == false ]]; then
 		while [[ "$call1" -lt $nodes ]]; do sleep 300; call1=$(ls ${projdir}/call1_samples_list_node_* | wc -l); done
 		if [[ $call1 == $nodes ]]; then
 			cd ${projdir}/snpcall
-			cz=$(ls *.g.vcf.gz | wc -l)
-			i=0
-			for f in `find . -maxdepth 1 -iname '*.g.vcf.gz' -type f | shuf`; do
-				d=cohorts_$(printf %02d $((i/cz+1)))
-				mkdir -p $d
-				mv "$f" $d
-				let i++
-			done
+      mkdir -p cohorts_1
+      mv *.g.vcf* ./cohorts_1/
 
 			for dir in cohorts*/; do
 				cd $dir
-        for gunv in $(ls *.g.vcf.gz); do (
-          gunzip $gunv &&
-          $GATK --java-options "$Xmxg -Djava.io.tmpdir=../tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" IndexFeatureFile -I ${gunv%.gz} &&
-          wait ) &
-          if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
-            wait
-          fi
-        done
 				j=--variant; input=""; k=""
 				for i in $(ls *.g.vcf 2> /dev/null); do
 					k="${j} ${i}"; input="${input} ${k}"
@@ -1042,26 +1030,26 @@ if [[ "$joint_calling" == false ]]; then
 				fi
 				for selchr in $Get2_Chromosome; do
           if [[ -z "$interval_list" ]]; then
-  					$GATK --java-options "$Xmx2 -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$threads" GenomicsDBImport ${input} -L ${selchr} --genomicsdb-workspace-path ${pop}_${ploidy}x_${selchr}_raw --genomicsdb-shared-posixfs-optimizations true &&
+  					$GATK --java-options "$Xmx2 -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$threads" GenomicsDBImport ${input} -L ${selchr} --genomicsdb-workspace-path ${pop}_${ploidy}x_${selchr}_raw --genomicsdb-shared-posixfs-optimizations true --batch-size 50 --merge-input-intervals &&
   					wait
           else
             cat ${projdir}/${interval_list} | grep $selchr > ${projdir}/variant_intervals_${selchr}.list &&
-            $GATK --java-options "$Xmx2 -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$threads" GenomicsDBImport ${input} -L ${projdir}/variant_intervals_${selchr}.list --genomicsdb-workspace-path ${pop}_${ploidy}x_${selchr}_raw --genomicsdb-shared-posixfs-optimizations true &&
+            $GATK --java-options "$Xmx2 -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$threads" GenomicsDBImport ${input} -L ${projdir}/variant_intervals_${selchr}.list --genomicsdb-workspace-path ${pop}_${ploidy}x_${selchr}_raw --genomicsdb-shared-posixfs-optimizations true --batch-size 50 --merge-input-intervals &&
             rm ${projdir}/variant_intervals_${selchr}.list &&
             wait
           fi
 				done
-				for selchr in $Get2_Chromosome; do (
+				for selchr in $Get2_Chromosome; do
 					if test ! -f ${pop}_${ploidy}x_${selchr}_raw.vcf.gz; then
             if [[ -z "$interval_list" ]]; then
-  						$GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" GenotypeGVCFs -R ${projdir}/refgenomes/$ref1 -L ${selchr} -V gendb://${pop}_${ploidy}x_${selchr}_raw -O ${pop}_${ploidy}x_${selchr}_raw.hold.vcf.gz && \
+  						$GATK --java-options "$Xmx2 -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$threads" GenotypeGVCFs -R ${projdir}/refgenomes/$ref1 -L ${selchr} -V gendb://${pop}_${ploidy}x_${selchr}_raw -O ${pop}_${ploidy}x_${selchr}_raw.hold.vcf.gz && \
   						rm -r ${pop}_${ploidy}x_${selchr}_raw && \
   						mv ${pop}_${ploidy}x_${selchr}_raw.hold.vcf.gz ${pop}_${ploidy}x_${selchr}_raw.vcf.gz
   						mv ${pop}_${ploidy}x_${selchr}_raw.hold.vcf.gz.tbi ${pop}_${ploidy}x_${selchr}_raw.vcf.gz.tbi &&
   						wait
             else
               cat ${projdir}/${interval_list} | grep $selchr > ${projdir}/variant_intervals_${selchr}.list &&
-              $GATK --java-options "$Xmx1 -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$loopthreads" GenotypeGVCFs -R ${projdir}/refgenomes/$ref1 -L ${projdir}/variant_intervals_${selchr}.list -V gendb://${pop}_${ploidy}x_${selchr}_raw -O ${pop}_${ploidy}x_${selchr}_raw.hold.vcf.gz && \
+              $GATK --java-options "$Xmx2 -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$threads" GenotypeGVCFs -R ${projdir}/refgenomes/$ref1 -L ${projdir}/variant_intervals_${selchr}.list -V gendb://${pop}_${ploidy}x_${selchr}_raw -O ${pop}_${ploidy}x_${selchr}_raw.hold.vcf.gz && \
               rm ${projdir}/variant_intervals_${selchr}.list &&
               rm -r ${pop}_${ploidy}x_${selchr}_raw &&
               mv ${pop}_${ploidy}x_${selchr}_raw.hold.vcf.gz ${pop}_${ploidy}x_${selchr}_raw.vcf.gz
@@ -1078,10 +1066,8 @@ if [[ "$joint_calling" == false ]]; then
 						echo -e "${magenta}- \n- SNP calling failed probably due to insufficient memory ${white}\n"
 						echo -e "${magenta}- \n- Exiting pipeline in 5 seconds ${white}\n"
 						sleep 5 && exit 1
-					fi ) &
-					if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
-						wait
 					fi
+          wait
 				done
 				wait
 				for g in $(ls ${pop}_${ploidy}x_*_raw.vcf.gz); do
@@ -1364,7 +1350,7 @@ if [[ "${file1xG}" -lt 1 ]]; then
       awk -v pat="0:0,0:0" -v samz="$samz" 'gsub(pat,pat) < samz' $ptrimvcf | awk -v pat=".:0,0:0"  -v samz="$samz" 'gsub(pat,pat) < samz' > ${ptrimvcf}.tmp
       mv ${ptrimvcf}.tmp ${ptrimvcf}
     done
-		Rscript "${GBSapp_dir}"/scripts/R/VCF_2_DP_GT.R "${pop}" 1x "${GBSapp_dir}/tools/R" "${minRD_1x}"
+		Rscript "${GBSapp_dir}"/scripts/R/VCF_2_DP_GT.R "${pop}" 1x "${GBSapp_dir}/tools/R" "1"
     rm ${projdir}/vcf1x_trimmed.txt 2> /dev/null
 	fi
 fi
@@ -1394,7 +1380,7 @@ if [[ "${file2xG}" -lt 1 ]]; then
       awk -v pat="0/0:0,0:0" -v samz="$samz" 'gsub(pat,pat) < samz' $ptrimvcf | awk -v pat="./.:0,0:0"  -v samz="$samz" 'gsub(pat,pat) < samz' > ${ptrimvcf}.tmp
       mv ${ptrimvcf}.tmp ${ptrimvcf}
     done
-		Rscript "${GBSapp_dir}"/scripts/R/VCF_2_DP_GT.R "${pop}" 2x "${GBSapp_dir}/tools/R" "2"
+		Rscript "${GBSapp_dir}"/scripts/R/VCF_2_DP_GT.R "${pop}" 2x "${GBSapp_dir}/tools/R" "1"
     rm ${projdir}/vcf2x_trimmed.txt 2> /dev/null
 	fi
 fi
@@ -1425,7 +1411,7 @@ if [[ "${file4xG}" -lt 1 ]]; then
       awk -v pat="0/0/0/0:0,0:0" -v samz="$samz" 'gsub(pat,pat) < samz' $ptrimvcf | awk -v pat="./././.:0,0:0"  -v samz="$samz" 'gsub(pat,pat) < samz' > ${ptrimvcf}.tmp
       mv ${ptrimvcf}.tmp ${ptrimvcf}
     done
-		Rscript "${GBSapp_dir}"/scripts/R/VCF_2_DP_GT.R "${pop}" 4x "${GBSapp_dir}/tools/R" "4"
+		Rscript "${GBSapp_dir}"/scripts/R/VCF_2_DP_GT.R "${pop}" 4x "${GBSapp_dir}/tools/R" "1"
     rm ${projdir}/vcf4x_trimmed.txt 2> /dev/null
 	fi
 fi
@@ -1455,7 +1441,7 @@ if [[ "${file6xG}" -lt 1 ]]; then
       awk -v pat="0/0/0/0/0/0:0,0:0" -v samz="$samz" 'gsub(pat,pat) < samz' $ptrimvcf | awk -v pat="./././././.:0,0:0"  -v samz="$samz" 'gsub(pat,pat) < samz' > ${ptrimvcf}.tmp
       mv ${ptrimvcf}.tmp ${ptrimvcf}
     done
-		Rscript "${GBSapp_dir}"/scripts/R/VCF_2_DP_GT.R "${pop}" 6x "${GBSapp_dir}/tools/R" "6"
+		Rscript "${GBSapp_dir}"/scripts/R/VCF_2_DP_GT.R "${pop}" 6x "${GBSapp_dir}/tools/R" "1"
     rm ${projdir}/vcf6x_trimmed.txt 2> /dev/null
 	fi
 fi
@@ -1486,7 +1472,7 @@ if [[ "${file8xG}" -lt 1 ]]; then
       awk -v pat="0/0/0/0/0/0/0/0:0,0:0" -v samz="$samz" 'gsub(pat,pat) < samz' $ptrimvcf | awk -v pat="./././././././.:0,0:0"  -v samz="$samz" 'gsub(pat,pat) < samz' > ${ptrimvcf}.tmp
       mv ${ptrimvcf}.tmp ${ptrimvcf}
     done
-		Rscript "${GBSapp_dir}"/scripts/R/VCF_2_DP_GT.R "${pop}" 8x "${GBSapp_dir}/tools/R" "8"
+		Rscript "${GBSapp_dir}"/scripts/R/VCF_2_DP_GT.R "${pop}" 8x "${GBSapp_dir}/tools/R" "1"
     rm ${projdir}/vcf8x_trimmed.txt 2> /dev/null
 	fi
 fi
@@ -1588,38 +1574,40 @@ if [[ -z "$p1" ]]; then
           rm ./seq_context_${RE2}/${i%.f*}_seqcontext.tmp
         done
       fi
-      mkdir consensus_seq_context
-      for i in $(cat ${projdir}/samples_list_node_*); do
-        cat ./seq_context_${RE1}/${i%.f*}* ./seq_context_${RE2}/${i%.f*}* | awk '!seen[$0]++' > ./consensus_seq_context/${i%.f*}_seqcontext.fasta &&
-        maxlen=$(awk '{print $2}' ./consensus_seq_context/${i%.f*}_seqcontext.fasta | awk '{print length}' | sort -n | awk '{all[NR] = $0} END{print all[int(NR*0.5 - 0.5)]}')
-        awk -v maxlen=$maxlen '{print $1"\t"substr($2, 1, maxlen)}' ./consensus_seq_context/${i%.f*}_seqcontext.fasta | awk '!seen[$0]++' > ./consensus_seq_context/${i%.f*}_seqcontext.fasta.tmp
-        mv ./consensus_seq_context/${i%.f*}_seqcontext.fasta.tmp ./consensus_seq_context/${i%.f*}_seqcontext.fasta
-        for aln in $(awk '{print $1}' ./consensus_seq_context/${i%.f*}_seqcontext.fasta | sort | uniq); do
-          awk -v aln=$aln '$1 == aln {print}' ./consensus_seq_context/${i%.f*}_seqcontext.fasta | awk '{print ">seq-"NR"_"$1"\n"$2}' > ./consensus_seq_context/${i%.f*}_seqcontext.fasta.tmp
-          bash $cons -sequence ./consensus_seq_context/${i%.f*}_seqcontext.fasta.tmp -outseq ./consensus_seq_context/${i%.f*}_seqcontext.cons.tmp
-          cat ./consensus_seq_context/${i%.f*}_seqcontext.cons.tmp | awk -v aln="${i%.f*}_${aln}_locus" '{gsub(/EMBOSS_001/,aln);}1' >> ./consensus_seq_context/${i%.f*}_seqcontext.cons
-          rm ./consensus_seq_context/${i%.f*}_seqcontext.cons.tmp ./consensus_seq_context/${i%.f*}_seqcontext.fasta.tmp
+      if [[ ! -z "$RE1" ]] || [[ ! -z "$RE2" ]]; then
+        mkdir consensus_seq_context
+        for i in $(cat ${projdir}/samples_list_node_*); do
+          cat ./seq_context_${RE1}/${i%.f*}* ./seq_context_${RE2}/${i%.f*}* | awk '!seen[$0]++' > ./consensus_seq_context/${i%.f*}_seqcontext.fasta &&
+          maxlen=$(awk '{print $2}' ./consensus_seq_context/${i%.f*}_seqcontext.fasta | awk '{print length}' | sort -n | awk '{all[NR] = $0} END{print all[int(NR*0.5 - 0.5)]}')
+          awk -v maxlen=$maxlen '{print $1"\t"substr($2, 1, maxlen)}' ./consensus_seq_context/${i%.f*}_seqcontext.fasta | awk '!seen[$0]++' > ./consensus_seq_context/${i%.f*}_seqcontext.fasta.tmp
+          mv ./consensus_seq_context/${i%.f*}_seqcontext.fasta.tmp ./consensus_seq_context/${i%.f*}_seqcontext.fasta
+          for aln in $(awk '{print $1}' ./consensus_seq_context/${i%.f*}_seqcontext.fasta | sort | uniq); do
+            awk -v aln=$aln '$1 == aln {print}' ./consensus_seq_context/${i%.f*}_seqcontext.fasta | awk '{print ">seq-"NR"_"$1"\n"$2}' > ./consensus_seq_context/${i%.f*}_seqcontext.fasta.tmp
+            bash $cons -sequence ./consensus_seq_context/${i%.f*}_seqcontext.fasta.tmp -outseq ./consensus_seq_context/${i%.f*}_seqcontext.cons.tmp
+            cat ./consensus_seq_context/${i%.f*}_seqcontext.cons.tmp | awk -v aln="${i%.f*}_${aln}_locus" '{gsub(/EMBOSS_001/,aln);}1' >> ./consensus_seq_context/${i%.f*}_seqcontext.cons
+            rm ./consensus_seq_context/${i%.f*}_seqcontext.cons.tmp ./consensus_seq_context/${i%.f*}_seqcontext.fasta.tmp
+          done
         done
-      done
-      for nn in $(ls ./consensus_seq_context/*cons);do
-        for run in {1..10}; do
-          awk '{gsub(/n$|N$/,"");}1' $nn > ${nn}.tmp && mv ${nn}.tmp ${nn}
+        for nn in $(ls ./consensus_seq_context/*cons);do
+          for run in {1..10}; do
+            awk '{gsub(/n$|N$/,"");}1' $nn > ${nn}.tmp && mv ${nn}.tmp ${nn}
+          done
         done
-      done
-      seqid=$(cat ./consensus_seq_context/*cons | grep '>' | awk '{gsub(/>/,""); gsub(/_Chr/,"\t_Chr");}1' | awk '{print $2}' | sort | uniq)
-      mkdir -p ./consensus_seq_context/seqid_combine_samples
-      for splitseqid in $seqid; do
-        filename=${splitseqid%_locus} && filename=${filename#_*}.fasta && filename="${filename/:/_}"
-        cat ./consensus_seq_context/*cons | awk '/^>/ {printf("%s%s\t",(N>0?"\n":""),$0);N++;next;} {printf("%s",$0);} END {printf("\n");}' | \
-        awk -v pat=$splitseqid '$1 ~ pat' > ./consensus_seq_context/seqid_combine_samples/${filename}
-        minlen=$(awk '{print $2}' ./consensus_seq_context/seqid_combine_samples/${filename} | awk '{print length}' | sort -n | head -n 1)
-        awk -v minlen=$minlen '{print $1"\t"substr($2,1,minlen)}' ./consensus_seq_context/seqid_combine_samples/${filename} | awk '{gsub(/\t/,"\n");}1' > ./consensus_seq_context/seqid_combine_samples/${filename}.tmp
-        mv ./consensus_seq_context/seqid_combine_samples/${filename}.tmp ./consensus_seq_context/seqid_combine_samples/${filename}
-      done
-      mkdir -p ./consensus_seq_context/sequences && mv ./consensus_seq_context/*fasta ./consensus_seq_context/sequences/
-      mkdir -p ./consensus_seq_context/sample_consensus_seqs && mv ./consensus_seq_context/*cons ./consensus_seq_context/sample_consensus_seqs
-      mv seq_context_TGCAT ./consensus_seq_context/
-      mv seq_context_CATG ./consensus_seq_context/
+        seqid=$(cat ./consensus_seq_context/*cons | grep '>' | awk '{gsub(/>/,""); gsub(/_Chr/,"\t_Chr");}1' | awk '{print $2}' | sort | uniq)
+        mkdir -p ./consensus_seq_context/seqid_combine_samples
+        for splitseqid in $seqid; do
+          filename=${splitseqid%_locus} && filename=${filename#_*}.fasta && filename="${filename/:/_}"
+          cat ./consensus_seq_context/*cons | awk '/^>/ {printf("%s%s\t",(N>0?"\n":""),$0);N++;next;} {printf("%s",$0);} END {printf("\n");}' | \
+          awk -v pat=$splitseqid '$1 ~ pat' > ./consensus_seq_context/seqid_combine_samples/${filename}
+          minlen=$(awk '{print $2}' ./consensus_seq_context/seqid_combine_samples/${filename} | awk '{print length}' | sort -n | head -n 1)
+          awk -v minlen=$minlen '{print $1"\t"substr($2,1,minlen)}' ./consensus_seq_context/seqid_combine_samples/${filename} | awk '{gsub(/\t/,"\n");}1' > ./consensus_seq_context/seqid_combine_samples/${filename}.tmp
+          mv ./consensus_seq_context/seqid_combine_samples/${filename}.tmp ./consensus_seq_context/seqid_combine_samples/${filename}
+        done
+        mkdir -p ./consensus_seq_context/sequences && mv ./consensus_seq_context/*fasta ./consensus_seq_context/sequences/
+        mkdir -p ./consensus_seq_context/sample_consensus_seqs && mv ./consensus_seq_context/*cons ./consensus_seq_context/sample_consensus_seqs
+        mv seq_context_TGCAT ./consensus_seq_context/
+        mv seq_context_CATG ./consensus_seq_context/
+      fi
     fi
 		find . -type f -empty -delete
 	fi
@@ -1693,38 +1681,40 @@ if [[ -z "$p1" ]]; then
           rm ./seq_context_${RE2}/${i%.f*}_seqcontext.tmp
         done
       fi
-      mkdir consensus_seq_context
-      for i in $(cat ${projdir}/samples_list_node_*); do
-        cat ./seq_context_${RE1}/${i%.f*}* ./seq_context_${RE2}/${i%.f*}* | awk '!seen[$0]++' > ./consensus_seq_context/${i%.f*}_seqcontext.fasta &&
-        maxlen=$(awk '{print $2}' ./consensus_seq_context/${i%.f*}_seqcontext.fasta | awk '{print length}' | sort -n | awk '{all[NR] = $0} END{print all[int(NR*0.5 - 0.5)]}')
-        awk -v maxlen=$maxlen '{print $1"\t"substr($2, 1, maxlen)}' ./consensus_seq_context/${i%.f*}_seqcontext.fasta | awk '!seen[$0]++' > ./consensus_seq_context/${i%.f*}_seqcontext.fasta.tmp
-        mv ./consensus_seq_context/${i%.f*}_seqcontext.fasta.tmp ./consensus_seq_context/${i%.f*}_seqcontext.fasta
-        for aln in $(awk '{print $1}' ./consensus_seq_context/${i%.f*}_seqcontext.fasta | sort | uniq); do
-          awk -v aln=$aln '$1 == aln {print}' ./consensus_seq_context/${i%.f*}_seqcontext.fasta | awk '{print ">seq-"NR"_"$1"\n"$2}' > ./consensus_seq_context/${i%.f*}_seqcontext.fasta.tmp
-          bash $cons -sequence ./consensus_seq_context/${i%.f*}_seqcontext.fasta.tmp -outseq ./consensus_seq_context/${i%.f*}_seqcontext.cons.tmp
-          cat ./consensus_seq_context/${i%.f*}_seqcontext.cons.tmp | awk -v aln="${i%.f*}_${aln}_locus" '{gsub(/EMBOSS_001/,aln);}1' >> ./consensus_seq_context/${i%.f*}_seqcontext.cons
-          rm ./consensus_seq_context/${i%.f*}_seqcontext.cons.tmp ./consensus_seq_context/${i%.f*}_seqcontext.fasta.tmp
+      if [[ ! -z "$RE1" ]] || [[ ! -z "$RE2" ]]; then
+        mkdir consensus_seq_context
+        for i in $(cat ${projdir}/samples_list_node_*); do
+          cat ./seq_context_${RE1}/${i%.f*}* ./seq_context_${RE2}/${i%.f*}* | awk '!seen[$0]++' > ./consensus_seq_context/${i%.f*}_seqcontext.fasta &&
+          maxlen=$(awk '{print $2}' ./consensus_seq_context/${i%.f*}_seqcontext.fasta | awk '{print length}' | sort -n | awk '{all[NR] = $0} END{print all[int(NR*0.5 - 0.5)]}')
+          awk -v maxlen=$maxlen '{print $1"\t"substr($2, 1, maxlen)}' ./consensus_seq_context/${i%.f*}_seqcontext.fasta | awk '!seen[$0]++' > ./consensus_seq_context/${i%.f*}_seqcontext.fasta.tmp
+          mv ./consensus_seq_context/${i%.f*}_seqcontext.fasta.tmp ./consensus_seq_context/${i%.f*}_seqcontext.fasta
+          for aln in $(awk '{print $1}' ./consensus_seq_context/${i%.f*}_seqcontext.fasta | sort | uniq); do
+            awk -v aln=$aln '$1 == aln {print}' ./consensus_seq_context/${i%.f*}_seqcontext.fasta | awk '{print ">seq-"NR"_"$1"\n"$2}' > ./consensus_seq_context/${i%.f*}_seqcontext.fasta.tmp
+            bash $cons -sequence ./consensus_seq_context/${i%.f*}_seqcontext.fasta.tmp -outseq ./consensus_seq_context/${i%.f*}_seqcontext.cons.tmp
+            cat ./consensus_seq_context/${i%.f*}_seqcontext.cons.tmp | awk -v aln="${i%.f*}_${aln}_locus" '{gsub(/EMBOSS_001/,aln);}1' >> ./consensus_seq_context/${i%.f*}_seqcontext.cons
+            rm ./consensus_seq_context/${i%.f*}_seqcontext.cons.tmp ./consensus_seq_context/${i%.f*}_seqcontext.fasta.tmp
+          done
         done
-      done
-      for nn in $(ls ./consensus_seq_context/*cons);do
-        for run in {1..10}; do
-          awk '{gsub(/n$|N$/,"");}1' $nn > ${nn}.tmp && mv ${nn}.tmp ${nn}
+        for nn in $(ls ./consensus_seq_context/*cons);do
+          for run in {1..10}; do
+            awk '{gsub(/n$|N$/,"");}1' $nn > ${nn}.tmp && mv ${nn}.tmp ${nn}
+          done
         done
-      done
-      seqid=$(cat ./consensus_seq_context/*cons | grep '>' | awk '{gsub(/>/,""); gsub(/_Chr/,"\t_Chr");}1' | awk '{print $2}' | sort | uniq)
-      mkdir -p ./consensus_seq_context/seqid_combine_samples
-      for splitseqid in $seqid; do
-        filename=${splitseqid%_locus} && filename=${filename#_*}.fasta && filename="${filename/:/_}"
-        cat ./consensus_seq_context/*cons | awk '/^>/ {printf("%s%s\t",(N>0?"\n":""),$0);N++;next;} {printf("%s",$0);} END {printf("\n");}' | \
-        awk -v pat=$splitseqid '$1 ~ pat' > ./consensus_seq_context/seqid_combine_samples/${filename}
-        minlen=$(awk '{print $2}' ./consensus_seq_context/seqid_combine_samples/${filename} | awk '{print length}' | sort -n | head -n 1)
-        awk -v minlen=$minlen '{print $1"\t"substr($2,1,minlen)}' ./consensus_seq_context/seqid_combine_samples/${filename} | awk '{gsub(/\t/,"\n");}1' > ./consensus_seq_context/seqid_combine_samples/${filename}.tmp
-        mv ./consensus_seq_context/seqid_combine_samples/${filename}.tmp ./consensus_seq_context/seqid_combine_samples/${filename}
-      done
-      mkdir -p ./consensus_seq_context/sequences && mv ./consensus_seq_context/*fasta ./consensus_seq_context/sequences/
-      mkdir -p ./consensus_seq_context/sample_consensus_seqs && mv ./consensus_seq_context/*cons ./consensus_seq_context/sample_consensus_seqs
-      mv seq_context_TGCAT ./consensus_seq_context/
-      mv seq_context_CATG ./consensus_seq_context/
+        seqid=$(cat ./consensus_seq_context/*cons | grep '>' | awk '{gsub(/>/,""); gsub(/_Chr/,"\t_Chr");}1' | awk '{print $2}' | sort | uniq)
+        mkdir -p ./consensus_seq_context/seqid_combine_samples
+        for splitseqid in $seqid; do
+          filename=${splitseqid%_locus} && filename=${filename#_*}.fasta && filename="${filename/:/_}"
+          cat ./consensus_seq_context/*cons | awk '/^>/ {printf("%s%s\t",(N>0?"\n":""),$0);N++;next;} {printf("%s",$0);} END {printf("\n");}' | \
+          awk -v pat=$splitseqid '$1 ~ pat' > ./consensus_seq_context/seqid_combine_samples/${filename}
+          minlen=$(awk '{print $2}' ./consensus_seq_context/seqid_combine_samples/${filename} | awk '{print length}' | sort -n | head -n 1)
+          awk -v minlen=$minlen '{print $1"\t"substr($2,1,minlen)}' ./consensus_seq_context/seqid_combine_samples/${filename} | awk '{gsub(/\t/,"\n");}1' > ./consensus_seq_context/seqid_combine_samples/${filename}.tmp
+          mv ./consensus_seq_context/seqid_combine_samples/${filename}.tmp ./consensus_seq_context/seqid_combine_samples/${filename}
+        done
+        mkdir -p ./consensus_seq_context/sequences && mv ./consensus_seq_context/*fasta ./consensus_seq_context/sequences/
+        mkdir -p ./consensus_seq_context/sample_consensus_seqs && mv ./consensus_seq_context/*cons ./consensus_seq_context/sample_consensus_seqs
+        mv seq_context_TGCAT ./consensus_seq_context/
+        mv seq_context_CATG ./consensus_seq_context/
+      fi
     fi
 		find . -type f -empty -delete
 	fi
@@ -1798,38 +1788,40 @@ if [[ -z "$p1" ]]; then
           rm ./seq_context_${RE2}/${i%.f*}_seqcontext.tmp
         done
       fi
-      mkdir consensus_seq_context
-      for i in $(cat ${projdir}/samples_list_node_*); do
-        cat ./seq_context_${RE1}/${i%.f*}* ./seq_context_${RE2}/${i%.f*}* | awk '!seen[$0]++' > ./consensus_seq_context/${i%.f*}_seqcontext.fasta &&
-        maxlen=$(awk '{print $2}' ./consensus_seq_context/${i%.f*}_seqcontext.fasta | awk '{print length}' | sort -n | awk '{all[NR] = $0} END{print all[int(NR*0.5 - 0.5)]}')
-        awk -v maxlen=$maxlen '{print $1"\t"substr($2, 1, maxlen)}' ./consensus_seq_context/${i%.f*}_seqcontext.fasta | awk '!seen[$0]++' > ./consensus_seq_context/${i%.f*}_seqcontext.fasta.tmp
-        mv ./consensus_seq_context/${i%.f*}_seqcontext.fasta.tmp ./consensus_seq_context/${i%.f*}_seqcontext.fasta
-        for aln in $(awk '{print $1}' ./consensus_seq_context/${i%.f*}_seqcontext.fasta | sort | uniq); do
-          awk -v aln=$aln '$1 == aln {print}' ./consensus_seq_context/${i%.f*}_seqcontext.fasta | awk '{print ">seq-"NR"_"$1"\n"$2}' > ./consensus_seq_context/${i%.f*}_seqcontext.fasta.tmp
-          bash $cons -sequence ./consensus_seq_context/${i%.f*}_seqcontext.fasta.tmp -outseq ./consensus_seq_context/${i%.f*}_seqcontext.cons.tmp
-          cat ./consensus_seq_context/${i%.f*}_seqcontext.cons.tmp | awk -v aln="${i%.f*}_${aln}_locus" '{gsub(/EMBOSS_001/,aln);}1' >> ./consensus_seq_context/${i%.f*}_seqcontext.cons
-          rm ./consensus_seq_context/${i%.f*}_seqcontext.cons.tmp ./consensus_seq_context/${i%.f*}_seqcontext.fasta.tmp
+      if [[ ! -z "$RE1" ]] || [[ ! -z "$RE2" ]]; then
+        mkdir consensus_seq_context
+        for i in $(cat ${projdir}/samples_list_node_*); do
+          cat ./seq_context_${RE1}/${i%.f*}* ./seq_context_${RE2}/${i%.f*}* | awk '!seen[$0]++' > ./consensus_seq_context/${i%.f*}_seqcontext.fasta &&
+          maxlen=$(awk '{print $2}' ./consensus_seq_context/${i%.f*}_seqcontext.fasta | awk '{print length}' | sort -n | awk '{all[NR] = $0} END{print all[int(NR*0.5 - 0.5)]}')
+          awk -v maxlen=$maxlen '{print $1"\t"substr($2, 1, maxlen)}' ./consensus_seq_context/${i%.f*}_seqcontext.fasta | awk '!seen[$0]++' > ./consensus_seq_context/${i%.f*}_seqcontext.fasta.tmp
+          mv ./consensus_seq_context/${i%.f*}_seqcontext.fasta.tmp ./consensus_seq_context/${i%.f*}_seqcontext.fasta
+          for aln in $(awk '{print $1}' ./consensus_seq_context/${i%.f*}_seqcontext.fasta | sort | uniq); do
+            awk -v aln=$aln '$1 == aln {print}' ./consensus_seq_context/${i%.f*}_seqcontext.fasta | awk '{print ">seq-"NR"_"$1"\n"$2}' > ./consensus_seq_context/${i%.f*}_seqcontext.fasta.tmp
+            bash $cons -sequence ./consensus_seq_context/${i%.f*}_seqcontext.fasta.tmp -outseq ./consensus_seq_context/${i%.f*}_seqcontext.cons.tmp
+            cat ./consensus_seq_context/${i%.f*}_seqcontext.cons.tmp | awk -v aln="${i%.f*}_${aln}_locus" '{gsub(/EMBOSS_001/,aln);}1' >> ./consensus_seq_context/${i%.f*}_seqcontext.cons
+            rm ./consensus_seq_context/${i%.f*}_seqcontext.cons.tmp ./consensus_seq_context/${i%.f*}_seqcontext.fasta.tmp
+          done
         done
-      done
-      for nn in $(ls ./consensus_seq_context/*cons);do
-        for run in {1..10}; do
-          awk '{gsub(/n$|N$/,"");}1' $nn > ${nn}.tmp && mv ${nn}.tmp ${nn}
+        for nn in $(ls ./consensus_seq_context/*cons);do
+          for run in {1..10}; do
+            awk '{gsub(/n$|N$/,"");}1' $nn > ${nn}.tmp && mv ${nn}.tmp ${nn}
+          done
         done
-      done
-      seqid=$(cat ./consensus_seq_context/*cons | grep '>' | awk '{gsub(/>/,""); gsub(/_Chr/,"\t_Chr");}1' | awk '{print $2}' | sort | uniq)
-      mkdir -p ./consensus_seq_context/seqid_combine_samples
-      for splitseqid in $seqid; do
-        filename=${splitseqid%_locus} && filename=${filename#_*}.fasta && filename="${filename/:/_}"
-        cat ./consensus_seq_context/*cons | awk '/^>/ {printf("%s%s\t",(N>0?"\n":""),$0);N++;next;} {printf("%s",$0);} END {printf("\n");}' | \
-        awk -v pat=$splitseqid '$1 ~ pat' > ./consensus_seq_context/seqid_combine_samples/${filename}
-        minlen=$(awk '{print $2}' ./consensus_seq_context/seqid_combine_samples/${filename} | awk '{print length}' | sort -n | head -n 1)
-        awk -v minlen=$minlen '{print $1"\t"substr($2,1,minlen)}' ./consensus_seq_context/seqid_combine_samples/${filename} | awk '{gsub(/\t/,"\n");}1' > ./consensus_seq_context/seqid_combine_samples/${filename}.tmp
-        mv ./consensus_seq_context/seqid_combine_samples/${filename}.tmp ./consensus_seq_context/seqid_combine_samples/${filename}
-      done
-      mkdir -p ./consensus_seq_context/sequences && mv ./consensus_seq_context/*fasta ./consensus_seq_context/sequences/
-      mkdir -p ./consensus_seq_context/sample_consensus_seqs && mv ./consensus_seq_context/*cons ./consensus_seq_context/sample_consensus_seqs
-      mv seq_context_TGCAT ./consensus_seq_context/
-      mv seq_context_CATG ./consensus_seq_context/
+        seqid=$(cat ./consensus_seq_context/*cons | grep '>' | awk '{gsub(/>/,""); gsub(/_Chr/,"\t_Chr");}1' | awk '{print $2}' | sort | uniq)
+        mkdir -p ./consensus_seq_context/seqid_combine_samples
+        for splitseqid in $seqid; do
+          filename=${splitseqid%_locus} && filename=${filename#_*}.fasta && filename="${filename/:/_}"
+          cat ./consensus_seq_context/*cons | awk '/^>/ {printf("%s%s\t",(N>0?"\n":""),$0);N++;next;} {printf("%s",$0);} END {printf("\n");}' | \
+          awk -v pat=$splitseqid '$1 ~ pat' > ./consensus_seq_context/seqid_combine_samples/${filename}
+          minlen=$(awk '{print $2}' ./consensus_seq_context/seqid_combine_samples/${filename} | awk '{print length}' | sort -n | head -n 1)
+          awk -v minlen=$minlen '{print $1"\t"substr($2,1,minlen)}' ./consensus_seq_context/seqid_combine_samples/${filename} | awk '{gsub(/\t/,"\n");}1' > ./consensus_seq_context/seqid_combine_samples/${filename}.tmp
+          mv ./consensus_seq_context/seqid_combine_samples/${filename}.tmp ./consensus_seq_context/seqid_combine_samples/${filename}
+        done
+        mkdir -p ./consensus_seq_context/sequences && mv ./consensus_seq_context/*fasta ./consensus_seq_context/sequences/
+        mkdir -p ./consensus_seq_context/sample_consensus_seqs && mv ./consensus_seq_context/*cons ./consensus_seq_context/sample_consensus_seqs
+        mv seq_context_TGCAT ./consensus_seq_context/
+        mv seq_context_CATG ./consensus_seq_context/
+      fi
     fi
 		find . -type f -empty -delete
 	fi
@@ -1900,6 +1892,40 @@ if [[ -z "$p1" ]]; then
           $samtools view ../../preprocess/processed/${i%.f*}_${ref1%.f*}_precall.bam | awk '{print $3"\t"$4"\t"$10}' | awk -v seq="^${RE2}" '$3 ~ seq' | awk '{$2=sprintf("%d00",$2/100)}1' | \
           awk -v pat="${ref1%.f*}_" '{gsub(pat,""); print $1":"$2"\t"$3}' | awk 'NR==FNR {a[$1]++; next} $1 in a' snplist_haps.txt - > ./seq_context_${RE2}/${i%.f*}_seqcontext.txt
         done
+      fi
+      if [[ ! -z "$RE1" ]] || [[ ! -z "$RE2" ]]; then
+        mkdir consensus_seq_context
+        for i in $(cat ${projdir}/samples_list_node_*); do
+          cat ./seq_context_${RE1}/${i%.f*}* ./seq_context_${RE2}/${i%.f*}* | awk '!seen[$0]++' > ./consensus_seq_context/${i%.f*}_seqcontext.fasta &&
+          maxlen=$(awk '{print $2}' ./consensus_seq_context/${i%.f*}_seqcontext.fasta | awk '{print length}' | sort -n | awk '{all[NR] = $0} END{print all[int(NR*0.5 - 0.5)]}')
+          awk -v maxlen=$maxlen '{print $1"\t"substr($2, 1, maxlen)}' ./consensus_seq_context/${i%.f*}_seqcontext.fasta | awk '!seen[$0]++' > ./consensus_seq_context/${i%.f*}_seqcontext.fasta.tmp
+          mv ./consensus_seq_context/${i%.f*}_seqcontext.fasta.tmp ./consensus_seq_context/${i%.f*}_seqcontext.fasta
+          for aln in $(awk '{print $1}' ./consensus_seq_context/${i%.f*}_seqcontext.fasta | sort | uniq); do
+            awk -v aln=$aln '$1 == aln {print}' ./consensus_seq_context/${i%.f*}_seqcontext.fasta | awk '{print ">seq-"NR"_"$1"\n"$2}' > ./consensus_seq_context/${i%.f*}_seqcontext.fasta.tmp
+            bash $cons -sequence ./consensus_seq_context/${i%.f*}_seqcontext.fasta.tmp -outseq ./consensus_seq_context/${i%.f*}_seqcontext.cons.tmp
+            cat ./consensus_seq_context/${i%.f*}_seqcontext.cons.tmp | awk -v aln="${i%.f*}_${aln}_locus" '{gsub(/EMBOSS_001/,aln);}1' >> ./consensus_seq_context/${i%.f*}_seqcontext.cons
+            rm ./consensus_seq_context/${i%.f*}_seqcontext.cons.tmp ./consensus_seq_context/${i%.f*}_seqcontext.fasta.tmp
+          done
+        done
+        for nn in $(ls ./consensus_seq_context/*cons);do
+          for run in {1..10}; do
+            awk '{gsub(/n$|N$/,"");}1' $nn > ${nn}.tmp && mv ${nn}.tmp ${nn}
+          done
+        done
+        seqid=$(cat ./consensus_seq_context/*cons | grep '>' | awk '{gsub(/>/,""); gsub(/_Chr/,"\t_Chr");}1' | awk '{print $2}' | sort | uniq)
+        mkdir -p ./consensus_seq_context/seqid_combine_samples
+        for splitseqid in $seqid; do
+          filename=${splitseqid%_locus} && filename=${filename#_*}.fasta && filename="${filename/:/_}"
+          cat ./consensus_seq_context/*cons | awk '/^>/ {printf("%s%s\t",(N>0?"\n":""),$0);N++;next;} {printf("%s",$0);} END {printf("\n");}' | \
+          awk -v pat=$splitseqid '$1 ~ pat' > ./consensus_seq_context/seqid_combine_samples/${filename}
+          minlen=$(awk '{print $2}' ./consensus_seq_context/seqid_combine_samples/${filename} | awk '{print length}' | sort -n | head -n 1)
+          awk -v minlen=$minlen '{print $1"\t"substr($2,1,minlen)}' ./consensus_seq_context/seqid_combine_samples/${filename} | awk '{gsub(/\t/,"\n");}1' > ./consensus_seq_context/seqid_combine_samples/${filename}.tmp
+          mv ./consensus_seq_context/seqid_combine_samples/${filename}.tmp ./consensus_seq_context/seqid_combine_samples/${filename}
+        done
+        mkdir -p ./consensus_seq_context/sequences && mv ./consensus_seq_context/*fasta ./consensus_seq_context/sequences/
+        mkdir -p ./consensus_seq_context/sample_consensus_seqs && mv ./consensus_seq_context/*cons ./consensus_seq_context/sample_consensus_seqs
+        mv seq_context_TGCAT ./consensus_seq_context/
+        mv seq_context_CATG ./consensus_seq_context/
       fi
     fi
 		find . -type f -empty -delete
@@ -1974,38 +2000,40 @@ if [[ -z "$p1" ]]; then
           rm ./seq_context_${RE2}/${i%.f*}_seqcontext.tmp
         done
       fi
-      mkdir consensus_seq_context
-      for i in $(cat ${projdir}/samples_list_node_*); do
-        cat ./seq_context_${RE1}/${i%.f*}* ./seq_context_${RE2}/${i%.f*}* | awk '!seen[$0]++' > ./consensus_seq_context/${i%.f*}_seqcontext.fasta &&
-        maxlen=$(awk '{print $2}' ./consensus_seq_context/${i%.f*}_seqcontext.fasta | awk '{print length}' | sort -n | awk '{all[NR] = $0} END{print all[int(NR*0.5 - 0.5)]}')
-        awk -v maxlen=$maxlen '{print $1"\t"substr($2, 1, maxlen)}' ./consensus_seq_context/${i%.f*}_seqcontext.fasta | awk '!seen[$0]++' > ./consensus_seq_context/${i%.f*}_seqcontext.fasta.tmp
-        mv ./consensus_seq_context/${i%.f*}_seqcontext.fasta.tmp ./consensus_seq_context/${i%.f*}_seqcontext.fasta
-        for aln in $(awk '{print $1}' ./consensus_seq_context/${i%.f*}_seqcontext.fasta | sort | uniq); do
-          awk -v aln=$aln '$1 == aln {print}' ./consensus_seq_context/${i%.f*}_seqcontext.fasta | awk '{print ">seq-"NR"_"$1"\n"$2}' > ./consensus_seq_context/${i%.f*}_seqcontext.fasta.tmp
-          bash $cons -sequence ./consensus_seq_context/${i%.f*}_seqcontext.fasta.tmp -outseq ./consensus_seq_context/${i%.f*}_seqcontext.cons.tmp
-          cat ./consensus_seq_context/${i%.f*}_seqcontext.cons.tmp | awk -v aln="${i%.f*}_${aln}_locus" '{gsub(/EMBOSS_001/,aln);}1' >> ./consensus_seq_context/${i%.f*}_seqcontext.cons
-          rm ./consensus_seq_context/${i%.f*}_seqcontext.cons.tmp ./consensus_seq_context/${i%.f*}_seqcontext.fasta.tmp
+      if [[ ! -z "$RE1" ]] || [[ ! -z "$RE2" ]]; then
+        mkdir consensus_seq_context
+        for i in $(cat ${projdir}/samples_list_node_*); do
+          cat ./seq_context_${RE1}/${i%.f*}* ./seq_context_${RE2}/${i%.f*}* | awk '!seen[$0]++' > ./consensus_seq_context/${i%.f*}_seqcontext.fasta &&
+          maxlen=$(awk '{print $2}' ./consensus_seq_context/${i%.f*}_seqcontext.fasta | awk '{print length}' | sort -n | awk '{all[NR] = $0} END{print all[int(NR*0.5 - 0.5)]}')
+          awk -v maxlen=$maxlen '{print $1"\t"substr($2, 1, maxlen)}' ./consensus_seq_context/${i%.f*}_seqcontext.fasta | awk '!seen[$0]++' > ./consensus_seq_context/${i%.f*}_seqcontext.fasta.tmp
+          mv ./consensus_seq_context/${i%.f*}_seqcontext.fasta.tmp ./consensus_seq_context/${i%.f*}_seqcontext.fasta
+          for aln in $(awk '{print $1}' ./consensus_seq_context/${i%.f*}_seqcontext.fasta | sort | uniq); do
+            awk -v aln=$aln '$1 == aln {print}' ./consensus_seq_context/${i%.f*}_seqcontext.fasta | awk '{print ">seq-"NR"_"$1"\n"$2}' > ./consensus_seq_context/${i%.f*}_seqcontext.fasta.tmp
+            bash $cons -sequence ./consensus_seq_context/${i%.f*}_seqcontext.fasta.tmp -outseq ./consensus_seq_context/${i%.f*}_seqcontext.cons.tmp
+            cat ./consensus_seq_context/${i%.f*}_seqcontext.cons.tmp | awk -v aln="${i%.f*}_${aln}_locus" '{gsub(/EMBOSS_001/,aln);}1' >> ./consensus_seq_context/${i%.f*}_seqcontext.cons
+            rm ./consensus_seq_context/${i%.f*}_seqcontext.cons.tmp ./consensus_seq_context/${i%.f*}_seqcontext.fasta.tmp
+          done
         done
-      done
-      for nn in $(ls ./consensus_seq_context/*cons);do
-        for run in {1..10}; do
-          awk '{gsub(/n$|N$/,"");}1' $nn > ${nn}.tmp && mv ${nn}.tmp ${nn}
+        for nn in $(ls ./consensus_seq_context/*cons);do
+          for run in {1..10}; do
+            awk '{gsub(/n$|N$/,"");}1' $nn > ${nn}.tmp && mv ${nn}.tmp ${nn}
+          done
         done
-      done
-      seqid=$(cat ./consensus_seq_context/*cons | grep '>' | awk '{gsub(/>/,""); gsub(/_Chr/,"\t_Chr");}1' | awk '{print $2}' | sort | uniq)
-      mkdir -p ./consensus_seq_context/seqid_combine_samples
-      for splitseqid in $seqid; do
-        filename=${splitseqid%_locus} && filename=${filename#_*}.fasta && filename="${filename/:/_}"
-        cat ./consensus_seq_context/*cons | awk '/^>/ {printf("%s%s\t",(N>0?"\n":""),$0);N++;next;} {printf("%s",$0);} END {printf("\n");}' | \
-        awk -v pat=$splitseqid '$1 ~ pat' > ./consensus_seq_context/seqid_combine_samples/${filename}
-        minlen=$(awk '{print $2}' ./consensus_seq_context/seqid_combine_samples/${filename} | awk '{print length}' | sort -n | head -n 1)
-        awk -v minlen=$minlen '{print $1"\t"substr($2,1,minlen)}' ./consensus_seq_context/seqid_combine_samples/${filename} | awk '{gsub(/\t/,"\n");}1' > ./consensus_seq_context/seqid_combine_samples/${filename}.tmp
-        mv ./consensus_seq_context/seqid_combine_samples/${filename}.tmp ./consensus_seq_context/seqid_combine_samples/${filename}
-      done
-      mkdir -p ./consensus_seq_context/sequences && mv ./consensus_seq_context/*fasta ./consensus_seq_context/sequences/
-      mkdir -p ./consensus_seq_context/sample_consensus_seqs && mv ./consensus_seq_context/*cons ./consensus_seq_context/sample_consensus_seqs
-      mv seq_context_TGCAT ./consensus_seq_context/
-      mv seq_context_CATG ./consensus_seq_context/
+        seqid=$(cat ./consensus_seq_context/*cons | grep '>' | awk '{gsub(/>/,""); gsub(/_Chr/,"\t_Chr");}1' | awk '{print $2}' | sort | uniq)
+        mkdir -p ./consensus_seq_context/seqid_combine_samples
+        for splitseqid in $seqid; do
+          filename=${splitseqid%_locus} && filename=${filename#_*}.fasta && filename="${filename/:/_}"
+          cat ./consensus_seq_context/*cons | awk '/^>/ {printf("%s%s\t",(N>0?"\n":""),$0);N++;next;} {printf("%s",$0);} END {printf("\n");}' | \
+          awk -v pat=$splitseqid '$1 ~ pat' > ./consensus_seq_context/seqid_combine_samples/${filename}
+          minlen=$(awk '{print $2}' ./consensus_seq_context/seqid_combine_samples/${filename} | awk '{print length}' | sort -n | head -n 1)
+          awk -v minlen=$minlen '{print $1"\t"substr($2,1,minlen)}' ./consensus_seq_context/seqid_combine_samples/${filename} | awk '{gsub(/\t/,"\n");}1' > ./consensus_seq_context/seqid_combine_samples/${filename}.tmp
+          mv ./consensus_seq_context/seqid_combine_samples/${filename}.tmp ./consensus_seq_context/seqid_combine_samples/${filename}
+        done
+        mkdir -p ./consensus_seq_context/sequences && mv ./consensus_seq_context/*fasta ./consensus_seq_context/sequences/
+        mkdir -p ./consensus_seq_context/sample_consensus_seqs && mv ./consensus_seq_context/*cons ./consensus_seq_context/sample_consensus_seqs
+        mv seq_context_TGCAT ./consensus_seq_context/
+        mv seq_context_CATG ./consensus_seq_context/
+      fi
     fi
 		find . -type f -empty -delete
 	fi
@@ -2082,38 +2110,40 @@ if [[ "$p1" ]]; then
           rm ./seq_context_${RE2}/${i%.f*}_seqcontext.tmp
         done
       fi
-      mkdir consensus_seq_context
-      for i in $(cat ${projdir}/samples_list_node_*); do
-        cat ./seq_context_${RE1}/${i%.f*}* ./seq_context_${RE2}/${i%.f*}* | awk '!seen[$0]++' > ./consensus_seq_context/${i%.f*}_seqcontext.fasta &&
-        maxlen=$(awk '{print $2}' ./consensus_seq_context/${i%.f*}_seqcontext.fasta | awk '{print length}' | sort -n | awk '{all[NR] = $0} END{print all[int(NR*0.5 - 0.5)]}')
-        awk -v maxlen=$maxlen '{print $1"\t"substr($2, 1, maxlen)}' ./consensus_seq_context/${i%.f*}_seqcontext.fasta | awk '!seen[$0]++' > ./consensus_seq_context/${i%.f*}_seqcontext.fasta.tmp
-        mv ./consensus_seq_context/${i%.f*}_seqcontext.fasta.tmp ./consensus_seq_context/${i%.f*}_seqcontext.fasta
-        for aln in $(awk '{print $1}' ./consensus_seq_context/${i%.f*}_seqcontext.fasta | sort | uniq); do
-          awk -v aln=$aln '$1 == aln {print}' ./consensus_seq_context/${i%.f*}_seqcontext.fasta | awk '{print ">seq-"NR"_"$1"\n"$2}' > ./consensus_seq_context/${i%.f*}_seqcontext.fasta.tmp
-          bash $cons -sequence ./consensus_seq_context/${i%.f*}_seqcontext.fasta.tmp -outseq ./consensus_seq_context/${i%.f*}_seqcontext.cons.tmp
-          cat ./consensus_seq_context/${i%.f*}_seqcontext.cons.tmp | awk -v aln="${i%.f*}_${aln}_locus" '{gsub(/EMBOSS_001/,aln);}1' >> ./consensus_seq_context/${i%.f*}_seqcontext.cons
-          rm ./consensus_seq_context/${i%.f*}_seqcontext.cons.tmp ./consensus_seq_context/${i%.f*}_seqcontext.fasta.tmp
+      if [[ ! -z "$RE1" ]] || [[ ! -z "$RE2" ]]; then
+        mkdir consensus_seq_context
+        for i in $(cat ${projdir}/samples_list_node_*); do
+          cat ./seq_context_${RE1}/${i%.f*}* ./seq_context_${RE2}/${i%.f*}* | awk '!seen[$0]++' > ./consensus_seq_context/${i%.f*}_seqcontext.fasta &&
+          maxlen=$(awk '{print $2}' ./consensus_seq_context/${i%.f*}_seqcontext.fasta | awk '{print length}' | sort -n | awk '{all[NR] = $0} END{print all[int(NR*0.5 - 0.5)]}')
+          awk -v maxlen=$maxlen '{print $1"\t"substr($2, 1, maxlen)}' ./consensus_seq_context/${i%.f*}_seqcontext.fasta | awk '!seen[$0]++' > ./consensus_seq_context/${i%.f*}_seqcontext.fasta.tmp
+          mv ./consensus_seq_context/${i%.f*}_seqcontext.fasta.tmp ./consensus_seq_context/${i%.f*}_seqcontext.fasta
+          for aln in $(awk '{print $1}' ./consensus_seq_context/${i%.f*}_seqcontext.fasta | sort | uniq); do
+            awk -v aln=$aln '$1 == aln {print}' ./consensus_seq_context/${i%.f*}_seqcontext.fasta | awk '{print ">seq-"NR"_"$1"\n"$2}' > ./consensus_seq_context/${i%.f*}_seqcontext.fasta.tmp
+            bash $cons -sequence ./consensus_seq_context/${i%.f*}_seqcontext.fasta.tmp -outseq ./consensus_seq_context/${i%.f*}_seqcontext.cons.tmp
+            cat ./consensus_seq_context/${i%.f*}_seqcontext.cons.tmp | awk -v aln="${i%.f*}_${aln}_locus" '{gsub(/EMBOSS_001/,aln);}1' >> ./consensus_seq_context/${i%.f*}_seqcontext.cons
+            rm ./consensus_seq_context/${i%.f*}_seqcontext.cons.tmp ./consensus_seq_context/${i%.f*}_seqcontext.fasta.tmp
+          done
         done
-      done
-      for nn in $(ls ./consensus_seq_context/*cons);do
-        for run in {1..10}; do
-          awk '{gsub(/n$|N$/,"");}1' $nn > ${nn}.tmp && mv ${nn}.tmp ${nn}
+        for nn in $(ls ./consensus_seq_context/*cons);do
+          for run in {1..10}; do
+            awk '{gsub(/n$|N$/,"");}1' $nn > ${nn}.tmp && mv ${nn}.tmp ${nn}
+          done
         done
-      done
-      seqid=$(cat ./consensus_seq_context/*cons | grep '>' | awk '{gsub(/>/,""); gsub(/_Chr/,"\t_Chr");}1' | awk '{print $2}' | sort | uniq)
-      mkdir -p ./consensus_seq_context/seqid_combine_samples
-      for splitseqid in $seqid; do
-        filename=${splitseqid%_locus} && filename=${filename#_*}.fasta && filename="${filename/:/_}"
-        cat ./consensus_seq_context/*cons | awk '/^>/ {printf("%s%s\t",(N>0?"\n":""),$0);N++;next;} {printf("%s",$0);} END {printf("\n");}' | \
-        awk -v pat=$splitseqid '$1 ~ pat' > ./consensus_seq_context/seqid_combine_samples/${filename}
-        minlen=$(awk '{print $2}' ./consensus_seq_context/seqid_combine_samples/${filename} | awk '{print length}' | sort -n | head -n 1)
-        awk -v minlen=$minlen '{print $1"\t"substr($2,1,minlen)}' ./consensus_seq_context/seqid_combine_samples/${filename} | awk '{gsub(/\t/,"\n");}1' > ./consensus_seq_context/seqid_combine_samples/${filename}.tmp
-        mv ./consensus_seq_context/seqid_combine_samples/${filename}.tmp ./consensus_seq_context/seqid_combine_samples/${filename}
-      done
-      mkdir -p ./consensus_seq_context/sequences && mv ./consensus_seq_context/*fasta ./consensus_seq_context/sequences/
-      mkdir -p ./consensus_seq_context/sample_consensus_seqs && mv ./consensus_seq_context/*cons ./consensus_seq_context/sample_consensus_seqs
-      mv seq_context_TGCAT ./consensus_seq_context/
-      mv seq_context_CATG ./consensus_seq_context/
+        seqid=$(cat ./consensus_seq_context/*cons | grep '>' | awk '{gsub(/>/,""); gsub(/_Chr/,"\t_Chr");}1' | awk '{print $2}' | sort | uniq)
+        mkdir -p ./consensus_seq_context/seqid_combine_samples
+        for splitseqid in $seqid; do
+          filename=${splitseqid%_locus} && filename=${filename#_*}.fasta && filename="${filename/:/_}"
+          cat ./consensus_seq_context/*cons | awk '/^>/ {printf("%s%s\t",(N>0?"\n":""),$0);N++;next;} {printf("%s",$0);} END {printf("\n");}' | \
+          awk -v pat=$splitseqid '$1 ~ pat' > ./consensus_seq_context/seqid_combine_samples/${filename}
+          minlen=$(awk '{print $2}' ./consensus_seq_context/seqid_combine_samples/${filename} | awk '{print length}' | sort -n | head -n 1)
+          awk -v minlen=$minlen '{print $1"\t"substr($2,1,minlen)}' ./consensus_seq_context/seqid_combine_samples/${filename} | awk '{gsub(/\t/,"\n");}1' > ./consensus_seq_context/seqid_combine_samples/${filename}.tmp
+          mv ./consensus_seq_context/seqid_combine_samples/${filename}.tmp ./consensus_seq_context/seqid_combine_samples/${filename}
+        done
+        mkdir -p ./consensus_seq_context/sequences && mv ./consensus_seq_context/*fasta ./consensus_seq_context/sequences/
+        mkdir -p ./consensus_seq_context/sample_consensus_seqs && mv ./consensus_seq_context/*cons ./consensus_seq_context/sample_consensus_seqs
+        mv seq_context_TGCAT ./consensus_seq_context/
+        mv seq_context_CATG ./consensus_seq_context/
+      fi
     fi
 		find . -type f -empty -delete
 	fi
@@ -2187,38 +2217,40 @@ if [[ "$p1" ]]; then
           rm ./seq_context_${RE2}/${i%.f*}_seqcontext.tmp
         done
       fi
-      mkdir consensus_seq_context
-      for i in $(cat ${projdir}/samples_list_node_*); do
-        cat ./seq_context_${RE1}/${i%.f*}* ./seq_context_${RE2}/${i%.f*}* | awk '!seen[$0]++' > ./consensus_seq_context/${i%.f*}_seqcontext.fasta &&
-        maxlen=$(awk '{print $2}' ./consensus_seq_context/${i%.f*}_seqcontext.fasta | awk '{print length}' | sort -n | awk '{all[NR] = $0} END{print all[int(NR*0.5 - 0.5)]}')
-        awk -v maxlen=$maxlen '{print $1"\t"substr($2, 1, maxlen)}' ./consensus_seq_context/${i%.f*}_seqcontext.fasta | awk '!seen[$0]++' > ./consensus_seq_context/${i%.f*}_seqcontext.fasta.tmp
-        mv ./consensus_seq_context/${i%.f*}_seqcontext.fasta.tmp ./consensus_seq_context/${i%.f*}_seqcontext.fasta
-        for aln in $(awk '{print $1}' ./consensus_seq_context/${i%.f*}_seqcontext.fasta | sort | uniq); do
-          awk -v aln=$aln '$1 == aln {print}' ./consensus_seq_context/${i%.f*}_seqcontext.fasta | awk '{print ">seq-"NR"_"$1"\n"$2}' > ./consensus_seq_context/${i%.f*}_seqcontext.fasta.tmp
-          bash $cons -sequence ./consensus_seq_context/${i%.f*}_seqcontext.fasta.tmp -outseq ./consensus_seq_context/${i%.f*}_seqcontext.cons.tmp
-          cat ./consensus_seq_context/${i%.f*}_seqcontext.cons.tmp | awk -v aln="${i%.f*}_${aln}_locus" '{gsub(/EMBOSS_001/,aln);}1' >> ./consensus_seq_context/${i%.f*}_seqcontext.cons
-          rm ./consensus_seq_context/${i%.f*}_seqcontext.cons.tmp ./consensus_seq_context/${i%.f*}_seqcontext.fasta.tmp
+      if [[ ! -z "$RE1" ]] || [[ ! -z "$RE2" ]]; then
+        mkdir consensus_seq_context
+        for i in $(cat ${projdir}/samples_list_node_*); do
+          cat ./seq_context_${RE1}/${i%.f*}* ./seq_context_${RE2}/${i%.f*}* | awk '!seen[$0]++' > ./consensus_seq_context/${i%.f*}_seqcontext.fasta &&
+          maxlen=$(awk '{print $2}' ./consensus_seq_context/${i%.f*}_seqcontext.fasta | awk '{print length}' | sort -n | awk '{all[NR] = $0} END{print all[int(NR*0.5 - 0.5)]}')
+          awk -v maxlen=$maxlen '{print $1"\t"substr($2, 1, maxlen)}' ./consensus_seq_context/${i%.f*}_seqcontext.fasta | awk '!seen[$0]++' > ./consensus_seq_context/${i%.f*}_seqcontext.fasta.tmp
+          mv ./consensus_seq_context/${i%.f*}_seqcontext.fasta.tmp ./consensus_seq_context/${i%.f*}_seqcontext.fasta
+          for aln in $(awk '{print $1}' ./consensus_seq_context/${i%.f*}_seqcontext.fasta | sort | uniq); do
+            awk -v aln=$aln '$1 == aln {print}' ./consensus_seq_context/${i%.f*}_seqcontext.fasta | awk '{print ">seq-"NR"_"$1"\n"$2}' > ./consensus_seq_context/${i%.f*}_seqcontext.fasta.tmp
+            bash $cons -sequence ./consensus_seq_context/${i%.f*}_seqcontext.fasta.tmp -outseq ./consensus_seq_context/${i%.f*}_seqcontext.cons.tmp
+            cat ./consensus_seq_context/${i%.f*}_seqcontext.cons.tmp | awk -v aln="${i%.f*}_${aln}_locus" '{gsub(/EMBOSS_001/,aln);}1' >> ./consensus_seq_context/${i%.f*}_seqcontext.cons
+            rm ./consensus_seq_context/${i%.f*}_seqcontext.cons.tmp ./consensus_seq_context/${i%.f*}_seqcontext.fasta.tmp
+          done
         done
-      done
-      for nn in $(ls ./consensus_seq_context/*cons);do
-        for run in {1..10}; do
-          awk '{gsub(/n$|N$/,"");}1' $nn > ${nn}.tmp && mv ${nn}.tmp ${nn}
+        for nn in $(ls ./consensus_seq_context/*cons);do
+          for run in {1..10}; do
+            awk '{gsub(/n$|N$/,"");}1' $nn > ${nn}.tmp && mv ${nn}.tmp ${nn}
+          done
         done
-      done
-      seqid=$(cat ./consensus_seq_context/*cons | grep '>' | awk '{gsub(/>/,""); gsub(/_Chr/,"\t_Chr");}1' | awk '{print $2}' | sort | uniq)
-      mkdir -p ./consensus_seq_context/seqid_combine_samples
-      for splitseqid in $seqid; do
-        filename=${splitseqid%_locus} && filename=${filename#_*}.fasta && filename="${filename/:/_}"
-        cat ./consensus_seq_context/*cons | awk '/^>/ {printf("%s%s\t",(N>0?"\n":""),$0);N++;next;} {printf("%s",$0);} END {printf("\n");}' | \
-        awk -v pat=$splitseqid '$1 ~ pat' > ./consensus_seq_context/seqid_combine_samples/${filename}
-        minlen=$(awk '{print $2}' ./consensus_seq_context/seqid_combine_samples/${filename} | awk '{print length}' | sort -n | head -n 1)
-        awk -v minlen=$minlen '{print $1"\t"substr($2,1,minlen)}' ./consensus_seq_context/seqid_combine_samples/${filename} | awk '{gsub(/\t/,"\n");}1' > ./consensus_seq_context/seqid_combine_samples/${filename}.tmp
-        mv ./consensus_seq_context/seqid_combine_samples/${filename}.tmp ./consensus_seq_context/seqid_combine_samples/${filename}
-      done
-      mkdir -p ./consensus_seq_context/sequences && mv ./consensus_seq_context/*fasta ./consensus_seq_context/sequences/
-      mkdir -p ./consensus_seq_context/sample_consensus_seqs && mv ./consensus_seq_context/*cons ./consensus_seq_context/sample_consensus_seqs
-      mv seq_context_TGCAT ./consensus_seq_context/
-      mv seq_context_CATG ./consensus_seq_context/
+        seqid=$(cat ./consensus_seq_context/*cons | grep '>' | awk '{gsub(/>/,""); gsub(/_Chr/,"\t_Chr");}1' | awk '{print $2}' | sort | uniq)
+        mkdir -p ./consensus_seq_context/seqid_combine_samples
+        for splitseqid in $seqid; do
+          filename=${splitseqid%_locus} && filename=${filename#_*}.fasta && filename="${filename/:/_}"
+          cat ./consensus_seq_context/*cons | awk '/^>/ {printf("%s%s\t",(N>0?"\n":""),$0);N++;next;} {printf("%s",$0);} END {printf("\n");}' | \
+          awk -v pat=$splitseqid '$1 ~ pat' > ./consensus_seq_context/seqid_combine_samples/${filename}
+          minlen=$(awk '{print $2}' ./consensus_seq_context/seqid_combine_samples/${filename} | awk '{print length}' | sort -n | head -n 1)
+          awk -v minlen=$minlen '{print $1"\t"substr($2,1,minlen)}' ./consensus_seq_context/seqid_combine_samples/${filename} | awk '{gsub(/\t/,"\n");}1' > ./consensus_seq_context/seqid_combine_samples/${filename}.tmp
+          mv ./consensus_seq_context/seqid_combine_samples/${filename}.tmp ./consensus_seq_context/seqid_combine_samples/${filename}
+        done
+        mkdir -p ./consensus_seq_context/sequences && mv ./consensus_seq_context/*fasta ./consensus_seq_context/sequences/
+        mkdir -p ./consensus_seq_context/sample_consensus_seqs && mv ./consensus_seq_context/*cons ./consensus_seq_context/sample_consensus_seqs
+        mv seq_context_TGCAT ./consensus_seq_context/
+        mv seq_context_CATG ./consensus_seq_context/
+      fi
     fi
 		find . -type f -empty -delete
 	fi
@@ -2292,38 +2324,40 @@ if [[ "$p1" ]]; then
           rm ./seq_context_${RE2}/${i%.f*}_seqcontext.tmp
         done
       fi
-      mkdir consensus_seq_context
-      for i in $(cat ${projdir}/samples_list_node_*); do
-        cat ./seq_context_${RE1}/${i%.f*}* ./seq_context_${RE2}/${i%.f*}* | awk '!seen[$0]++' > ./consensus_seq_context/${i%.f*}_seqcontext.fasta &&
-        maxlen=$(awk '{print $2}' ./consensus_seq_context/${i%.f*}_seqcontext.fasta | awk '{print length}' | sort -n | awk '{all[NR] = $0} END{print all[int(NR*0.5 - 0.5)]}')
-        awk -v maxlen=$maxlen '{print $1"\t"substr($2, 1, maxlen)}' ./consensus_seq_context/${i%.f*}_seqcontext.fasta | awk '!seen[$0]++' > ./consensus_seq_context/${i%.f*}_seqcontext.fasta.tmp
-        mv ./consensus_seq_context/${i%.f*}_seqcontext.fasta.tmp ./consensus_seq_context/${i%.f*}_seqcontext.fasta
-        for aln in $(awk '{print $1}' ./consensus_seq_context/${i%.f*}_seqcontext.fasta | sort | uniq); do
-          awk -v aln=$aln '$1 == aln {print}' ./consensus_seq_context/${i%.f*}_seqcontext.fasta | awk '{print ">seq-"NR"_"$1"\n"$2}' > ./consensus_seq_context/${i%.f*}_seqcontext.fasta.tmp
-          bash $cons -sequence ./consensus_seq_context/${i%.f*}_seqcontext.fasta.tmp -outseq ./consensus_seq_context/${i%.f*}_seqcontext.cons.tmp
-          cat ./consensus_seq_context/${i%.f*}_seqcontext.cons.tmp | awk -v aln="${i%.f*}_${aln}_locus" '{gsub(/EMBOSS_001/,aln);}1' >> ./consensus_seq_context/${i%.f*}_seqcontext.cons
-          rm ./consensus_seq_context/${i%.f*}_seqcontext.cons.tmp ./consensus_seq_context/${i%.f*}_seqcontext.fasta.tmp
+      if [[ ! -z "$RE1" ]] || [[ ! -z "$RE2" ]]; then
+        mkdir consensus_seq_context
+        for i in $(cat ${projdir}/samples_list_node_*); do
+          cat ./seq_context_${RE1}/${i%.f*}* ./seq_context_${RE2}/${i%.f*}* | awk '!seen[$0]++' > ./consensus_seq_context/${i%.f*}_seqcontext.fasta &&
+          maxlen=$(awk '{print $2}' ./consensus_seq_context/${i%.f*}_seqcontext.fasta | awk '{print length}' | sort -n | awk '{all[NR] = $0} END{print all[int(NR*0.5 - 0.5)]}')
+          awk -v maxlen=$maxlen '{print $1"\t"substr($2, 1, maxlen)}' ./consensus_seq_context/${i%.f*}_seqcontext.fasta | awk '!seen[$0]++' > ./consensus_seq_context/${i%.f*}_seqcontext.fasta.tmp
+          mv ./consensus_seq_context/${i%.f*}_seqcontext.fasta.tmp ./consensus_seq_context/${i%.f*}_seqcontext.fasta
+          for aln in $(awk '{print $1}' ./consensus_seq_context/${i%.f*}_seqcontext.fasta | sort | uniq); do
+            awk -v aln=$aln '$1 == aln {print}' ./consensus_seq_context/${i%.f*}_seqcontext.fasta | awk '{print ">seq-"NR"_"$1"\n"$2}' > ./consensus_seq_context/${i%.f*}_seqcontext.fasta.tmp
+            bash $cons -sequence ./consensus_seq_context/${i%.f*}_seqcontext.fasta.tmp -outseq ./consensus_seq_context/${i%.f*}_seqcontext.cons.tmp
+            cat ./consensus_seq_context/${i%.f*}_seqcontext.cons.tmp | awk -v aln="${i%.f*}_${aln}_locus" '{gsub(/EMBOSS_001/,aln);}1' >> ./consensus_seq_context/${i%.f*}_seqcontext.cons
+            rm ./consensus_seq_context/${i%.f*}_seqcontext.cons.tmp ./consensus_seq_context/${i%.f*}_seqcontext.fasta.tmp
+          done
         done
-      done
-      for nn in $(ls ./consensus_seq_context/*cons);do
-        for run in {1..10}; do
-          awk '{gsub(/n$|N$/,"");}1' $nn > ${nn}.tmp && mv ${nn}.tmp ${nn}
+        for nn in $(ls ./consensus_seq_context/*cons);do
+          for run in {1..10}; do
+            awk '{gsub(/n$|N$/,"");}1' $nn > ${nn}.tmp && mv ${nn}.tmp ${nn}
+          done
         done
-      done
-      seqid=$(cat ./consensus_seq_context/*cons | grep '>' | awk '{gsub(/>/,""); gsub(/_Chr/,"\t_Chr");}1' | awk '{print $2}' | sort | uniq)
-      mkdir -p ./consensus_seq_context/seqid_combine_samples
-      for splitseqid in $seqid; do
-        filename=${splitseqid%_locus} && filename=${filename#_*}.fasta && filename="${filename/:/_}"
-        cat ./consensus_seq_context/*cons | awk '/^>/ {printf("%s%s\t",(N>0?"\n":""),$0);N++;next;} {printf("%s",$0);} END {printf("\n");}' | \
-        awk -v pat=$splitseqid '$1 ~ pat' > ./consensus_seq_context/seqid_combine_samples/${filename}
-        minlen=$(awk '{print $2}' ./consensus_seq_context/seqid_combine_samples/${filename} | awk '{print length}' | sort -n | head -n 1)
-        awk -v minlen=$minlen '{print $1"\t"substr($2,1,minlen)}' ./consensus_seq_context/seqid_combine_samples/${filename} | awk '{gsub(/\t/,"\n");}1' > ./consensus_seq_context/seqid_combine_samples/${filename}.tmp
-        mv ./consensus_seq_context/seqid_combine_samples/${filename}.tmp ./consensus_seq_context/seqid_combine_samples/${filename}
-      done
-      mkdir -p ./consensus_seq_context/sequences && mv ./consensus_seq_context/*fasta ./consensus_seq_context/sequences/
-      mkdir -p ./consensus_seq_context/sample_consensus_seqs && mv ./consensus_seq_context/*cons ./consensus_seq_context/sample_consensus_seqs
-      mv seq_context_TGCAT ./consensus_seq_context/
-      mv seq_context_CATG ./consensus_seq_context/
+        seqid=$(cat ./consensus_seq_context/*cons | grep '>' | awk '{gsub(/>/,""); gsub(/_Chr/,"\t_Chr");}1' | awk '{print $2}' | sort | uniq)
+        mkdir -p ./consensus_seq_context/seqid_combine_samples
+        for splitseqid in $seqid; do
+          filename=${splitseqid%_locus} && filename=${filename#_*}.fasta && filename="${filename/:/_}"
+          cat ./consensus_seq_context/*cons | awk '/^>/ {printf("%s%s\t",(N>0?"\n":""),$0);N++;next;} {printf("%s",$0);} END {printf("\n");}' | \
+          awk -v pat=$splitseqid '$1 ~ pat' > ./consensus_seq_context/seqid_combine_samples/${filename}
+          minlen=$(awk '{print $2}' ./consensus_seq_context/seqid_combine_samples/${filename} | awk '{print length}' | sort -n | head -n 1)
+          awk -v minlen=$minlen '{print $1"\t"substr($2,1,minlen)}' ./consensus_seq_context/seqid_combine_samples/${filename} | awk '{gsub(/\t/,"\n");}1' > ./consensus_seq_context/seqid_combine_samples/${filename}.tmp
+          mv ./consensus_seq_context/seqid_combine_samples/${filename}.tmp ./consensus_seq_context/seqid_combine_samples/${filename}
+        done
+        mkdir -p ./consensus_seq_context/sequences && mv ./consensus_seq_context/*fasta ./consensus_seq_context/sequences/
+        mkdir -p ./consensus_seq_context/sample_consensus_seqs && mv ./consensus_seq_context/*cons ./consensus_seq_context/sample_consensus_seqs
+        mv seq_context_TGCAT ./consensus_seq_context/
+        mv seq_context_CATG ./consensus_seq_context/
+      fi
     fi
 		find . -type f -empty -delete
 	fi
@@ -2397,38 +2431,40 @@ if [[ "$p1" ]]; then
           rm ./seq_context_${RE2}/${i%.f*}_seqcontext.tmp
         done
       fi
-      mkdir consensus_seq_context
-      for i in $(cat ${projdir}/samples_list_node_*); do
-        cat ./seq_context_${RE1}/${i%.f*}* ./seq_context_${RE2}/${i%.f*}* | awk '!seen[$0]++' > ./consensus_seq_context/${i%.f*}_seqcontext.fasta &&
-        maxlen=$(awk '{print $2}' ./consensus_seq_context/${i%.f*}_seqcontext.fasta | awk '{print length}' | sort -n | awk '{all[NR] = $0} END{print all[int(NR*0.5 - 0.5)]}')
-        awk -v maxlen=$maxlen '{print $1"\t"substr($2, 1, maxlen)}' ./consensus_seq_context/${i%.f*}_seqcontext.fasta | awk '!seen[$0]++' > ./consensus_seq_context/${i%.f*}_seqcontext.fasta.tmp
-        mv ./consensus_seq_context/${i%.f*}_seqcontext.fasta.tmp ./consensus_seq_context/${i%.f*}_seqcontext.fasta
-        for aln in $(awk '{print $1}' ./consensus_seq_context/${i%.f*}_seqcontext.fasta | sort | uniq); do
-          awk -v aln=$aln '$1 == aln {print}' ./consensus_seq_context/${i%.f*}_seqcontext.fasta | awk '{print ">seq-"NR"_"$1"\n"$2}' > ./consensus_seq_context/${i%.f*}_seqcontext.fasta.tmp
-          bash $cons -sequence ./consensus_seq_context/${i%.f*}_seqcontext.fasta.tmp -outseq ./consensus_seq_context/${i%.f*}_seqcontext.cons.tmp
-          cat ./consensus_seq_context/${i%.f*}_seqcontext.cons.tmp | awk -v aln="${i%.f*}_${aln}_locus" '{gsub(/EMBOSS_001/,aln);}1' >> ./consensus_seq_context/${i%.f*}_seqcontext.cons
-          rm ./consensus_seq_context/${i%.f*}_seqcontext.cons.tmp ./consensus_seq_context/${i%.f*}_seqcontext.fasta.tmp
+      if [[ ! -z "$RE1" ]] || [[ ! -z "$RE2" ]]; then
+        mkdir consensus_seq_context
+        for i in $(cat ${projdir}/samples_list_node_*); do
+          cat ./seq_context_${RE1}/${i%.f*}* ./seq_context_${RE2}/${i%.f*}* | awk '!seen[$0]++' > ./consensus_seq_context/${i%.f*}_seqcontext.fasta &&
+          maxlen=$(awk '{print $2}' ./consensus_seq_context/${i%.f*}_seqcontext.fasta | awk '{print length}' | sort -n | awk '{all[NR] = $0} END{print all[int(NR*0.5 - 0.5)]}')
+          awk -v maxlen=$maxlen '{print $1"\t"substr($2, 1, maxlen)}' ./consensus_seq_context/${i%.f*}_seqcontext.fasta | awk '!seen[$0]++' > ./consensus_seq_context/${i%.f*}_seqcontext.fasta.tmp
+          mv ./consensus_seq_context/${i%.f*}_seqcontext.fasta.tmp ./consensus_seq_context/${i%.f*}_seqcontext.fasta
+          for aln in $(awk '{print $1}' ./consensus_seq_context/${i%.f*}_seqcontext.fasta | sort | uniq); do
+            awk -v aln=$aln '$1 == aln {print}' ./consensus_seq_context/${i%.f*}_seqcontext.fasta | awk '{print ">seq-"NR"_"$1"\n"$2}' > ./consensus_seq_context/${i%.f*}_seqcontext.fasta.tmp
+            bash $cons -sequence ./consensus_seq_context/${i%.f*}_seqcontext.fasta.tmp -outseq ./consensus_seq_context/${i%.f*}_seqcontext.cons.tmp
+            cat ./consensus_seq_context/${i%.f*}_seqcontext.cons.tmp | awk -v aln="${i%.f*}_${aln}_locus" '{gsub(/EMBOSS_001/,aln);}1' >> ./consensus_seq_context/${i%.f*}_seqcontext.cons
+            rm ./consensus_seq_context/${i%.f*}_seqcontext.cons.tmp ./consensus_seq_context/${i%.f*}_seqcontext.fasta.tmp
+          done
         done
-      done
-      for nn in $(ls ./consensus_seq_context/*cons);do
-        for run in {1..10}; do
-          awk '{gsub(/n$|N$/,"");}1' $nn > ${nn}.tmp && mv ${nn}.tmp ${nn}
+        for nn in $(ls ./consensus_seq_context/*cons);do
+          for run in {1..10}; do
+            awk '{gsub(/n$|N$/,"");}1' $nn > ${nn}.tmp && mv ${nn}.tmp ${nn}
+          done
         done
-      done
-      seqid=$(cat ./consensus_seq_context/*cons | grep '>' | awk '{gsub(/>/,""); gsub(/_Chr/,"\t_Chr");}1' | awk '{print $2}' | sort | uniq)
-      mkdir -p ./consensus_seq_context/seqid_combine_samples
-      for splitseqid in $seqid; do
-        filename=${splitseqid%_locus} && filename=${filename#_*}.fasta && filename="${filename/:/_}"
-        cat ./consensus_seq_context/*cons | awk '/^>/ {printf("%s%s\t",(N>0?"\n":""),$0);N++;next;} {printf("%s",$0);} END {printf("\n");}' | \
-        awk -v pat=$splitseqid '$1 ~ pat' > ./consensus_seq_context/seqid_combine_samples/${filename}
-        minlen=$(awk '{print $2}' ./consensus_seq_context/seqid_combine_samples/${filename} | awk '{print length}' | sort -n | head -n 1)
-        awk -v minlen=$minlen '{print $1"\t"substr($2,1,minlen)}' ./consensus_seq_context/seqid_combine_samples/${filename} | awk '{gsub(/\t/,"\n");}1' > ./consensus_seq_context/seqid_combine_samples/${filename}.tmp
-        mv ./consensus_seq_context/seqid_combine_samples/${filename}.tmp ./consensus_seq_context/seqid_combine_samples/${filename}
-      done
-      mkdir -p ./consensus_seq_context/sequences && mv ./consensus_seq_context/*fasta ./consensus_seq_context/sequences/
-      mkdir -p ./consensus_seq_context/sample_consensus_seqs && mv ./consensus_seq_context/*cons ./consensus_seq_context/sample_consensus_seqs
-      mv seq_context_TGCAT ./consensus_seq_context/
-      mv seq_context_CATG ./consensus_seq_context/
+        seqid=$(cat ./consensus_seq_context/*cons | grep '>' | awk '{gsub(/>/,""); gsub(/_Chr/,"\t_Chr");}1' | awk '{print $2}' | sort | uniq)
+        mkdir -p ./consensus_seq_context/seqid_combine_samples
+        for splitseqid in $seqid; do
+          filename=${splitseqid%_locus} && filename=${filename#_*}.fasta && filename="${filename/:/_}"
+          cat ./consensus_seq_context/*cons | awk '/^>/ {printf("%s%s\t",(N>0?"\n":""),$0);N++;next;} {printf("%s",$0);} END {printf("\n");}' | \
+          awk -v pat=$splitseqid '$1 ~ pat' > ./consensus_seq_context/seqid_combine_samples/${filename}
+          minlen=$(awk '{print $2}' ./consensus_seq_context/seqid_combine_samples/${filename} | awk '{print length}' | sort -n | head -n 1)
+          awk -v minlen=$minlen '{print $1"\t"substr($2,1,minlen)}' ./consensus_seq_context/seqid_combine_samples/${filename} | awk '{gsub(/\t/,"\n");}1' > ./consensus_seq_context/seqid_combine_samples/${filename}.tmp
+          mv ./consensus_seq_context/seqid_combine_samples/${filename}.tmp ./consensus_seq_context/seqid_combine_samples/${filename}
+        done
+        mkdir -p ./consensus_seq_context/sequences && mv ./consensus_seq_context/*fasta ./consensus_seq_context/sequences/
+        mkdir -p ./consensus_seq_context/sample_consensus_seqs && mv ./consensus_seq_context/*cons ./consensus_seq_context/sample_consensus_seqs
+        mv seq_context_TGCAT ./consensus_seq_context/
+        mv seq_context_CATG ./consensus_seq_context/
+      fi
     fi
 		find . -type f -empty -delete
 	fi
@@ -2496,11 +2532,14 @@ for snpfilter_dir in $(ls -d */); do
 			vcfdose=${i%_rd*}; vcfdose=${vcfdose#*_}
 			zcat ../../snpcall/*${vcfdose}.vcf.gz | grep '^#' > ${i%.txt}.vcf
 			awk 'FNR==NR{a[$1,$2]=$0;next}{if(b=a[$2,$3]){print b}}' <(zcat ../../snpcall/*${vcfdose}.vcf.gz) $i >> ${i%.txt}.vcf
-			arr=$(grep "CHROM" $i | awk '{$1=$2=$3=$4=$5=""}1' | tr -s ' ' | awk '{gsub(/ pvalue/,"");}1' | awk '{gsub(/\t/,",");gsub(/ /,",");gsub(/^,/,"");}1')
+      arr=$(cat ./samples_list_node_* | awk '{gsub(/.fastq.gz/,"");();}1' | tr '\n' ',')
 			$bcftools view -s "$arr" ${i%.txt}.vcf > tmp.vcf && mv tmp.vcf ${i%.txt}.vcf
 
-			grep -v '^##' ${i%.txt}.vcf | awk '{gsub(/#CHROM/,"CHROM");}1' > ${i%.txt}_tmp.vcf
-			Rscript "${GBSapp_dir}"/scripts/R/recode_vcf.R "${i%.txt}_tmp.vcf" "$i" "${i%.txt}_AR_metric.txt" "${ploidy}x" "${GBSapp_dir}/tools/R"
+      arr2=$(grep "CHROM" $i | awk '{$1=$2=$3=$4=$5=""}1' | tr -s ' ' | awk '{gsub(/ pvalue/,"");}1' | awk '{gsub(/\t/,",");gsub(/ /,",");gsub(/^,/,"");}1')
+      darr=$(echo ${arr[@]},${arr2[@]} | tr ',' '\n' | sort | uniq -u | tr '\n' ',' | awk '{gsub(/,$/,"");}1')
+
+			grep -v '^##' ${i%.txt}.vcf | awk '{gsub(/#CHROM/,"CHROM");}1' | > ${i%.txt}_tmp.vcf
+			Rscript "${GBSapp_dir}"/scripts/R/recode_vcf.R "${i%.txt}_tmp.vcf" "$i" "${i%.txt}_AR_metric.txt" "${ploidy}x" "$darr" "${GBSapp_dir}/tools/R"
 			grep '^##' ${i%.txt}.vcf | cat - <(awk '{gsub(/CHROM/,"#CHROM");}1' dose_temp.vcf) > ${i%.txt}.vcf
 			mv AR_temp.txt ${i%.txt}_AR_metric.txt
 			rm ${i%.txt}_tmp.vcf dose_temp.vcf
@@ -3003,7 +3042,7 @@ fi
 
 ######################################################################################################################################################
 cd ${projdir}
-if [[ "$samples_list" == "samples_list_node_1.txt" ]] && [[ -d "snpfilter"]]; then
+if [[ "$samples_list" == "samples_list_node_1.txt" ]] && [[ -d "snpfilter" ]]; then
 	find ../ -size 0 -delete >/dev/null 2>&1
 	touch Analysis_Complete
 	rm *node*.txt

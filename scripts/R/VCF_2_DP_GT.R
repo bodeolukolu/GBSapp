@@ -42,7 +42,7 @@ if (ploidy == "1x"){
       sample_size <- increments + 1
       vcffile[, 5:DPend] <- lapply(vcffile[,5:DPend], gsub, pattern = "0,0", replacement = "0", fixed = TRUE)
       vcffile[, 5:DPend] <- lapply(5:DPend, function(x) as.numeric(vcffile[[x]]))
-      vcffile <- vcffile[rowSums(vcffile[, 5:DPend] < minRD, na.rm = TRUE) <= ((ncol(vcffile)-4)/3)*0.8, ]
+      # vcffile <- vcffile[rowSums(vcffile[, 5:DPend] < minRD, na.rm = TRUE) <= ((ncol(vcffile)-4)/3)*0.8, ]
       vcffile$GTsum <- (rowSums(!is.na(vcffile))-(4 + sample_size + sample_size))
       subgenome_1 <- rbind(subgenome_1,vcffile)
       gc()
@@ -116,7 +116,7 @@ if (ploidy == "2x"){
       sample_size <- increments + 1
       vcffile[, 5:DPend] <- lapply(vcffile[,5:DPend], gsub, pattern = "0,0", replacement = "0", fixed = TRUE)
       vcffile[, 5:DPend] <- lapply(5:DPend, function(x) as.numeric(vcffile[[x]]))
-      vcffile <- vcffile[rowSums(vcffile[, 5:DPend] < minRD, na.rm = TRUE) <= ((ncol(vcffile)-4)/3)*0.8, ]
+      # vcffile <- vcffile[rowSums(vcffile[, 5:DPend] < minRD, na.rm = TRUE) <= ((ncol(vcffile)-4)/3)*0.8, ]
       vcffile$GTsum <- (rowSums(!is.na(vcffile))-(4 + sample_size + sample_size))
       vcffile[vcffile=="1/0"] <- "0/1"
       subgenome_1 <- rbind(subgenome_1,vcffile)
@@ -239,7 +239,7 @@ if (ploidy == "4x"){
       sample_size <- increments + 1
       vcffile[, 5:DPend] <- lapply(vcffile[,5:DPend], gsub, pattern = "0,0", replacement = "0", fixed = TRUE)
       vcffile[, 5:DPend] <- lapply(5:DPend, function(x) as.numeric(vcffile[[x]]))
-      vcffile <- vcffile[rowSums(vcffile[, 5:DPend] < minRD, na.rm = TRUE) <= ((ncol(vcffile)-4)/3)*0.8, ]
+      # vcffile <- vcffile[rowSums(vcffile[, 5:DPend] < minRD, na.rm = TRUE) <= ((ncol(vcffile)-4)/3)*0.8, ]
       vcffile$GTsum <- (rowSums(!is.na(vcffile))-(4 + sample_size + sample_size))
       vcffile[vcffile=="1/0/0/0" | vcffile=="0/1/0/0" | vcffile=="0/0/1/0" ] <- "0/0/0/1"
       vcffile[vcffile=="1/1/0/0" | vcffile=="0/1/1/0"] <- "0/0/1/1"
@@ -370,7 +370,7 @@ if (ploidy == "6x"){
       sample_size <- increments + 1
       vcffile[, 5:DPend] <- lapply(vcffile[,5:DPend], gsub, pattern = "0,0", replacement = "0", fixed = TRUE)
       vcffile[, 5:DPend] <- lapply(5:DPend, function(x) as.numeric(vcffile[[x]]))
-      vcffile <- vcffile[rowSums(vcffile[, 5:DPend] < minRD, na.rm = TRUE) <= ((ncol(vcffile)-4)/3)*0.8, ]
+      # vcffile <- vcffile[rowSums(vcffile[, 5:DPend] < minRD, na.rm = TRUE) <= ((ncol(vcffile)-4)/3)*0.8, ]
       vcffile$GTsum <- (rowSums(!is.na(vcffile))-(4 + sample_size + sample_size))
       vcffile[vcffile=="1/0/0/0/0/0" | vcffile=="0/1/0/0/0/0" | 
                     vcffile=="0/0/1/0/0/0" | vcffile=="0/0/0/1/0/0" | vcffile=="0/0/0/0/1/0" ] <- "0/0/0/0/0/1"
@@ -509,7 +509,7 @@ if (ploidy == "8x"){
       sample_size <- increments + 1
       vcffile[, 5:DPend] <- lapply(vcffile[,5:DPend], gsub, pattern = "0,0", replacement = "0", fixed = TRUE)
       vcffile[, 5:DPend] <- lapply(5:DPend, function(x) as.numeric(vcffile[[x]]))
-      vcffile <- vcffile[rowSums(vcffile[, 5:DPend] < minRD, na.rm = TRUE) <= ((ncol(vcffile)-4)/3)*0.8, ]
+      # vcffile <- vcffile[rowSums(vcffile[, 5:DPend] < minRD, na.rm = TRUE) <= ((ncol(vcffile)-4)/3)*0.8, ]
       vcffile$GTsum <- (rowSums(!is.na(vcffile))-(4 + sample_size + sample_size))
       vcffile[vcffile=="1/0/0/0/0/0/0/0" | vcffile=="0/1/0/0/0/0/0/0" | 
                     vcffile=="0/0/1/0/0/0/0/0" | vcffile=="0/0/0/1/0/0/0/0" | vcffile=="0/0/0/0/1/0/0/0" |

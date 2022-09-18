@@ -1063,11 +1063,13 @@ final_summary <- function(){
   Chrfreq <- subset(sumfreq, select=(2))
   Chrfreq <- as.data.frame(table(Chrfreq))
   sum <- sum(as.numeric(Chrfreq$Freq), na.rm = TRUE)
-  Chrfreq <- subset(Chrfreq, Chrfreq$Freq > 0.05)
+  Chrfreq <- subset(Chrfreq, Freq > 0.05)
   props <- 100/sum
   plot <- ggplot(data=Chrfreq, aes(x=Chrfreq, y=Freq)) +
     geom_bar(stat='identity', color="darkblue", fill="cornflowerblue") +
-    scale_y_continuous(name=paste("Number of Variants"), sec.axis = sec_axis(~.*props, name="Percentage")) +
+    scale_y_continuous(name=paste("Number of Variants"), sec.axis = sec_axis(~.*props, name="Percentage (%)")) +
+    geom_text(aes(label=Freq), vjust=-0.3, size=3.5)+
+    geom_text(aes(label=round(Freq*props, digits=1)), vjust=1.5, colour="white", size=3.5) +
     theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
     xlab(paste("Chromosomes/Pseudomolecule (",sum," total variants)",sep=""))
   ggsave(filename=paste(pop,"_4x","_variants_chromosome_rd",rd+1,".tiff",sep=""), plot=plot, width=7.5, height= 5, dpi=300, compression = "lzw")
