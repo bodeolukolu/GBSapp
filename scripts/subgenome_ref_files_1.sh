@@ -989,7 +989,7 @@ if [[ "$joint_calling" == false ]]; then
 					mv "${projdir}/snpcall/${i%.f*}_${ref1%.f*}.hold.g.vcf.gz" "${projdir}/snpcall/${i%.f*}_${ref1%.f*}.g.vcf.gz" &&
 					rm "${projdir}/snpcall/${i%.f*}_${ref1%.f*}.hold.g.vcf.gz.tbi" &&
           gunzip ${projdir}/snpcall/${i%.f*}_${ref1%.f*}.g.vcf.gz &&
-          $GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreds=$gthreads" IndexFeatureFile -I ${projdir}/snpcall/${i%.f*}_${ref1%.f*}.g.vcf &&
+          $GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" IndexFeatureFile -I ${projdir}/snpcall/${i%.f*}_${ref1%.f*}.g.vcf &&
 					wait
 			fi
 		fi
@@ -2525,20 +2525,20 @@ for snpfilter_dir in $(ls -d */); do
 		for i in $(ls *dose.txt 2> /dev/null); do
 			ARselect=${i%rd*}
 			ARfile=$(ls ../../snpcall/${ARselect}*AR.txt 2> /dev/null)
-			Rscript "${GBSapp_dir}"/scripts/R/heterozygote_vs_allele_ratio.R "$i" "$ARfile" "${ploidy}x" "1" "${GBSapp_dir}/tools/R"
+      arr=$(cat ${projdir}/samples_list_node_* | awk '{gsub(/.f/,"\t.f");}1' | awk '{print $1}' | tr '\n' ',' | awk '{gsub(/,$/,"");}1')
+      arr2=$(grep "CHROM" $i | awk '{$1=$2=$3=$4=$5=""}1' | tr -s ' ' | awk '{gsub(/ pvalue/,"");}1' | awk '{gsub(/\t/,",");gsub(/ /,",");gsub(/^,/,"");}1')
+      darr=$(echo ${arr[@]},${arr2[@]} | tr ',' '\n' | sort | uniq -u | tr '\n' ',' | awk '{gsub(/,$/,"");}1')
+
+			Rscript "${GBSapp_dir}"/scripts/R/heterozygote_vs_allele_ratio.R "$i" "$ARfile" "${ploidy}x" "1" "$darr" "${GBSapp_dir}/tools/R"
 			awk 'FNR==NR{a[$1,$2]=$0;next}{if(b=a[$2,$3]){print b}}' $ARfile $i | awk '{gsub(/NA/,"na"); print $1"_"$2"\t"$0}' | \
 			awk -v n="$n" '{gsub(n,""); gsub(/CHROM_POS/,"SNP");}1' > ${i%.txt}_AR_metric.txt
 
 			vcfdose=${i%_rd*}; vcfdose=${vcfdose#*_}
 			zcat ../../snpcall/*${vcfdose}.vcf.gz | grep '^#' > ${i%.txt}.vcf
 			awk 'FNR==NR{a[$1,$2]=$0;next}{if(b=a[$2,$3]){print b}}' <(zcat ../../snpcall/*${vcfdose}.vcf.gz) $i >> ${i%.txt}.vcf
-      arr=$(cat ./samples_list_node_* | awk '{gsub(/.fastq.gz/,"");();}1' | tr '\n' ',')
 			$bcftools view -s "$arr" ${i%.txt}.vcf > tmp.vcf && mv tmp.vcf ${i%.txt}.vcf
 
-      arr2=$(grep "CHROM" $i | awk '{$1=$2=$3=$4=$5=""}1' | tr -s ' ' | awk '{gsub(/ pvalue/,"");}1' | awk '{gsub(/\t/,",");gsub(/ /,",");gsub(/^,/,"");}1')
-      darr=$(echo ${arr[@]},${arr2[@]} | tr ',' '\n' | sort | uniq -u | tr '\n' ',' | awk '{gsub(/,$/,"");}1')
-
-			grep -v '^##' ${i%.txt}.vcf | awk '{gsub(/#CHROM/,"CHROM");}1' | > ${i%.txt}_tmp.vcf
+			grep -v '^##' ${i%.txt}.vcf | awk '{gsub(/#CHROM/,"CHROM");}1' > ${i%.txt}_tmp.vcf
 			Rscript "${GBSapp_dir}"/scripts/R/recode_vcf.R "${i%.txt}_tmp.vcf" "$i" "${i%.txt}_AR_metric.txt" "${ploidy}x" "$darr" "${GBSapp_dir}/tools/R"
 			grep '^##' ${i%.txt}.vcf | cat - <(awk '{gsub(/CHROM/,"#CHROM");}1' dose_temp.vcf) > ${i%.txt}.vcf
 			mv AR_temp.txt ${i%.txt}_AR_metric.txt
