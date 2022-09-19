@@ -2659,7 +2659,7 @@ echo -e "gmiss_smiss_thresholds\t#_of_retained_samples\t#_of_SNPs\t#_of_eliminat
 awk 'FNR==NR{a[$1]=$2;next} ($1 in a) {print $1,"\t",a[$1],"\t",$2}' gmiss_smiss_titration.txt eliminated_samples.txt | \
 awk 'FNR==NR{a[$1]=$2;next} ($1 in a) {print $1,"\t",a[$1],"\t",$2,"\t",$3}' retained_samples.txt - |
 cat summary_precall.txt - > gmiss_smiss.txt
-rm gmiss_smiss_titration.txt eliminated_samples.txt retained_samples.txt summary_precall.txt
+rm gmiss_smiss_titration.txt eliminated_samples.txt retained_samples.txt summary_precall.txt 2> /dev/null
 # wc -l *gmiss*/unique_mapped/*dose*.txt | awk '{print $2"\t"$1-1}' | grep -v "total" | awk '{sub(/\/.*$/,"",$1); print $1"\t"$2}' > gmiss_smiss_titration.txt
 # wc -l *gmiss*/eliminated* | awk '{print $2"\t"$1-1}' | grep -v "total" | awk '{sub(/\/.*$/,"",$1); print $1"\t"$2}' > eliminated_samples.txt
 # wc -l *gmiss*/retained_samples.txt | awk '{print $2"\t"$1}' | grep -v "total" | awk '{sub(/\/.*$/,"",$1); print $1"\t"$2}' > retained_samples.txt
@@ -2675,9 +2675,9 @@ rm -rf ${snpfilter_dir}
 fi
 done
 wait
-ls ./*/*maf*.txt 2> /dev/null | grep -v 'maf0.txt' | grep -v 'dose' | grep -v 'binary' | xargs rm
-ls ./*/*_plusSD.txt 2> /dev/null | xargs rm
-ls ./*/*SD_1_G*G*.txt 2> /dev/null | xargs rm
+ls ./*/*maf*.txt 2> /dev/null | grep -v 'maf0.txt' | grep -v 'dose' | grep -v 'binary' | xargs rm 2> /dev/null
+ls ./*/*_plusSD.txt 2> /dev/null | xargs rm 2> /dev/null
+ls ./*/*SD_1_G*G*.txt 2> /dev/null | xargs rm 2> /dev/null
 
 
 cd "$projdir"/snpfilter
@@ -2690,7 +2690,7 @@ for snpfilter_dir in $(ls -d */); do
 		for i in $(ls *dose.txt 2> /dev/null); do
 			ARselect=${i%rd*}
 			ARfile=$(ls ../../snpcall/${ARselect}*AR.txt 2> /dev/null)
-      arr=$(cat ${projdir}/samples_list_node_* | awk '{gsub(/.f/,"\t.f");}1' | awk '{print $1}' | tr '\n' ',' | awk '{gsub(/,$/,"");}1')
+      arr=$(cat ${projdir}/samples_list_node_* | awk '{gsub(/.fastq/,"\t.fastq");gsub(/.fq/,"\t.fq");}1' | awk '{print $1}' | tr '\n' ',' | awk '{gsub(/,$/,"");}1')
       arr2=$(grep "CHROM" $i | awk '{$1=$2=$3=$4=$5=""}1' | tr -s ' ' | awk '{gsub(/ pvalue/,"");}1' | awk '{gsub(/\t/,",");gsub(/ /,",");gsub(/^,/,"");}1')
       darr=$(echo ${arr[@]},${arr2[@]} | tr ',' '\n' | sort | uniq -u | tr '\n' ',' | awk '{gsub(/,$/,"");}1')
 
@@ -2701,7 +2701,6 @@ for snpfilter_dir in $(ls -d */); do
 			vcfdose=${i%_rd*}; vcfdose=${vcfdose#*_}
 			zcat ../../snpcall/*${vcfdose}.vcf.gz | grep '^#' > ${i%.txt}.vcf
 			awk 'FNR==NR{a[$1,$2]=$0;next}{if(b=a[$2,$3]){print b}}' <(zcat ../../snpcall/*${vcfdose}.vcf.gz) $i >> ${i%.txt}.vcf
-      arr=$(cat ${projdir}/samples_list_node_* | awk '{gsub(/.f/,"\t.f");}1' | awk '{print $1}' | tr '\n' ',')
 			$bcftools view -s "$arr" ${i%.txt}.vcf > tmp.vcf && mv tmp.vcf ${i%.txt}.vcf
 
 			grep -v '^##' ${i%.txt}.vcf | awk '{gsub(/#CHROM/,"CHROM");}1' > ${i%.txt}_tmp.vcf
