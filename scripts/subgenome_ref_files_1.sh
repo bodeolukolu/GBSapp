@@ -1331,7 +1331,7 @@ if [[ "${file1xG}" -lt 1 ]]; then
 	if [[ "${file1xV}" -gt 0 ]]; then
     if test ! -f ${projdir}/vcf1x_trimmed.txt; then
   		for i in $(ls *_1x_raw.vcf 2> /dev/null); do
-        samz=$(( $(wc -l ${projdir}/samples_list_node_* | awk '{print $1}') / 100 * 80 ))
+        samz=$(wc -l ${projdir}/samples_list_node_* | awk '{print $1}') && samz=$((samz*80)) && samz=$((samz/100))
         awk -v pat="0:0,0:0" -v samz="$samz" 'gsub(pat,pat) < samz' $i | awk -v pat=".:0,0:0"  -v samz="$samz" 'gsub(pat,pat) < samz' > ${i}.tmp
         mv ${i}.tmp ${i}
   			$GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" LeftAlignAndTrimVariants -R ${projdir}/refgenomes/$ref1 -V $i -O ${i%.vcf}0.vcf --split-multi-allelics  --dont-trim-alleles --keep-original-ac
@@ -1345,7 +1345,7 @@ if [[ "${file1xG}" -lt 1 ]]; then
   		done
       :> ${projdir}/vcf1x_trimmed.txt
     fi
-    samz=$(( $(wc -l ${projdir}/samples_list_node_* | awk '{print $1}') / 100 * 80 ))
+    samz=$(wc -l ${projdir}/samples_list_node_* | awk '{print $1}') && samz=$((samz*80)) && samz=$((samz/100))
     for ptrimvcf in $(ls *rawSPLIT*.vcf); do
       awk -v pat="0:0,0:0" -v samz="$samz" 'gsub(pat,pat) < samz' $ptrimvcf | awk -v pat=".:0,0:0"  -v samz="$samz" 'gsub(pat,pat) < samz' > ${ptrimvcf}.tmp
       mv ${ptrimvcf}.tmp ${ptrimvcf}
@@ -1361,7 +1361,7 @@ if [[ "${file2xG}" -lt 1 ]]; then
 	if [[ "${file2xV}" -gt 0 ]]; then
     if test ! -f ${projdir}/vcf2x_trimmed.txt; then
   		for i in $(ls *_2x_raw.vcf 2> /dev/null); do
-        samz=$(( $(wc -l ${projdir}/samples_list_node_* | awk '{print $1}') / 100 * 80 ))
+        samz=$(wc -l ${projdir}/samples_list_node_* | awk '{print $1}') && samz=$((samz*80)) && samz=$((samz/100))
         awk -v pat="0/0:0,0:0" -v samz="$samz" 'gsub(pat,pat) < samz' $i | awk -v pat="./.:0,0:0"  -v samz="$samz" 'gsub(pat,pat) < samz' > ${i}.tmp
         mv ${i}.tmp ${i}
   			$GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" LeftAlignAndTrimVariants -R ${projdir}/refgenomes/$ref1 -V $i -O ${i%.vcf}0.vcf --split-multi-allelics  --dont-trim-alleles --keep-original-ac
@@ -1375,7 +1375,7 @@ if [[ "${file2xG}" -lt 1 ]]; then
   		done
       :> ${projdir}/vcf2x_trimmed.txt
     fi
-    samz=$(( $(wc -l ${projdir}/samples_list_node_* | awk '{print $1}') / 100 * 80 ))
+    samz=$(wc -l ${projdir}/samples_list_node_* | awk '{print $1}') && samz=$((samz*80)) && samz=$((samz/100))
     for ptrimvcf in $(ls *rawSPLIT*.vcf); do
       awk -v pat="0/0:0,0:0" -v samz="$samz" 'gsub(pat,pat) < samz' $ptrimvcf | awk -v pat="./.:0,0:0"  -v samz="$samz" 'gsub(pat,pat) < samz' > ${ptrimvcf}.tmp
       mv ${ptrimvcf}.tmp ${ptrimvcf}
@@ -1391,7 +1391,7 @@ if [[ "${file4xG}" -lt 1 ]]; then
 	if [[ "${file4xV}" -gt 0 ]]; then
     if test ! -f ${projdir}/vcf4x_trimmed.txt; then
   		for i in $(ls *_4x_raw.vcf 2> /dev/null); do
-        samz=$(( $(wc -l ${projdir}/samples_list_node_* | awk '{print $1}') / 100 * 80 ))
+        samz=$(wc -l ${projdir}/samples_list_node_* | awk '{print $1}') && samz=$((samz*80)) && samz=$((samz/100))
         awk -v pat="0/0/0/0:0,0:0" -v samz="$samz" 'gsub(pat,pat) < samz' $i | awk -v pat="./././.:0,0:0"  -v samz="$samz" 'gsub(pat,pat) < samz' > ${i}.tmp
         mv ${i}.tmp ${i}
   			$GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" LeftAlignAndTrimVariants -R ${projdir}/refgenomes/$ref1 -V $i -O ${i%.vcf}0.vcf --split-multi-allelics  --dont-trim-alleles --keep-original-ac
@@ -1406,7 +1406,7 @@ if [[ "${file4xG}" -lt 1 ]]; then
   		done
       :> ${projdir}/vcf4x_trimmed.txt
     fi
-    samz=$(( $(wc -l ${projdir}/samples_list_node_* | awk '{print $1}') / 100 * 80 ))
+    samz=$(wc -l ${projdir}/samples_list_node_* | awk '{print $1}') && samz=$((samz*80)) && samz=$((samz/100))
     for ptrimvcf in $(ls *rawSPLIT*.vcf); do
       awk -v pat="0/0/0/0:0,0:0" -v samz="$samz" 'gsub(pat,pat) < samz' $ptrimvcf | awk -v pat="./././.:0,0:0"  -v samz="$samz" 'gsub(pat,pat) < samz' > ${ptrimvcf}.tmp
       mv ${ptrimvcf}.tmp ${ptrimvcf}
@@ -1422,7 +1422,7 @@ if [[ "${file6xG}" -lt 1 ]]; then
 	if [[ "${file6xV}" -gt 0 ]]; then
     if test ! -f ${projdir}/vcf6x_trimmed.txt; then
   		for i in $(ls *_6x_raw.vcf 2> /dev/null); do
-        samz=$(( $(wc -l ${projdir}/samples_list_node_* | awk '{print $1}') / 100 * 80 ))
+        samz=$(wc -l ${projdir}/samples_list_node_* | awk '{print $1}') && samz=$((samz*80)) && samz=$((samz/100))
         awk -v pat="0/0/0/0/0/0:0,0:0" -v samz="$samz" 'gsub(pat,pat) < samz' $i | awk -v pat="./././././.:0,0:0"  -v samz="$samz" 'gsub(pat,pat) < samz' > ${i}.tmp
         mv ${i}.tmp ${i}
   			$GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" LeftAlignAndTrimVariants -R ${projdir}/refgenomes/$ref1 -V $i -O ${i%.vcf}0.vcf --split-multi-allelics  --dont-trim-alleles --keep-original-ac
@@ -1436,7 +1436,7 @@ if [[ "${file6xG}" -lt 1 ]]; then
   		done
       :> ${projdir}/vcf6x_trimmed.txt
     fi
-    samz=$(( $(wc -l ${projdir}/samples_list_node_* | awk '{print $1}') / 100 * 80 ))
+    samz=$(wc -l ${projdir}/samples_list_node_* | awk '{print $1}') && samz=$((samz*80)) && samz=$((samz/100))
     for ptrimvcf in $(ls *rawSPLIT*.vcf); do
       awk -v pat="0/0/0/0/0/0:0,0:0" -v samz="$samz" 'gsub(pat,pat) < samz' $ptrimvcf | awk -v pat="./././././.:0,0:0"  -v samz="$samz" 'gsub(pat,pat) < samz' > ${ptrimvcf}.tmp
       mv ${ptrimvcf}.tmp ${ptrimvcf}
@@ -1452,7 +1452,7 @@ if [[ "${file8xG}" -lt 1 ]]; then
 	if [[ "${file8xV}" -gt 0 ]]; then
     if test ! -f ${projdir}/vcf8x_trimmed.txt; then
   		for i in $(ls *_8x_raw.vcf 2> /dev/null); do
-        samz=$(( $(wc -l ${projdir}/samples_list_node_* | awk '{print $1}') / 100 * 80 ))
+        samz=$(wc -l ${projdir}/samples_list_node_* | awk '{print $1}') && samz=$((samz*80)) && samz=$((samz/100))
         awk -v pat="0/0/0/0/0/0/0/0:0,0:0" -v samz="$samz" 'gsub(pat,pat) < samz' $i | awk -v pat="./././././././.:0,0:0"  -v samz="$samz" 'gsub(pat,pat) < samz' > ${i}.tmp
         mv ${i}.tmp ${i}
   			$GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" LeftAlignAndTrimVariants -R ${projdir}/refgenomes/$ref1 -V $i -O ${i%.vcf}0.vcf --split-multi-allelics  --dont-trim-alleles --keep-original-ac
@@ -1467,7 +1467,7 @@ if [[ "${file8xG}" -lt 1 ]]; then
   		done
       :> ${projdir}/vcf8x_trimmed.txt
     fi
-    samz=$(( $(wc -l ${projdir}/samples_list_node_* | awk '{print $1}') / 100 * 80 ))
+    samz=$(wc -l ${projdir}/samples_list_node_* | awk '{print $1}') && samz=$((samz*80)) && samz=$((samz/100))
     for ptrimvcf in $(ls *rawSPLIT*.vcf); do
       awk -v pat="0/0/0/0/0/0/0/0:0,0:0" -v samz="$samz" 'gsub(pat,pat) < samz' $ptrimvcf | awk -v pat="./././././././.:0,0:0"  -v samz="$samz" 'gsub(pat,pat) < samz' > ${ptrimvcf}.tmp
       mv ${ptrimvcf}.tmp ${ptrimvcf}
