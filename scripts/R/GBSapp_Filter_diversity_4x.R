@@ -25,11 +25,14 @@ remove_id_list <- paste(remove_id_list, "_GT", sep="")
 libdir <- args[6]
 MinorAlleleFreq <- args[7]
 hap <- args[8]
+bial <- args[9]
 gmissingness <- as.numeric(gmissingness)
 smissingness <- as.numeric(smissingness)
 minRD <- as.numeric(minRD)
 hap <- as.numeric(hap)
 rd <- minRD-1
+if(bial == "true"){bial <-"_biallelic"}
+if(bial == "false"){bial <-""}
 
 
 .libPaths( c( .libPaths(), libdir) )
@@ -37,7 +40,7 @@ library(ggplot2)
 
 ####################################################################################################################
 ####################################################################################################################
-subgenome_1 <- read.table (file=paste("../../snpcall/",pop,"_4x","_DP_GT.txt",sep=""), header=T, sep="\t", check.names = FALSE)
+subgenome_1 <- read.table (file=paste("../../snpcall/",pop,"_4x","_DP_GT",bial,".txt",sep=""), header=T, sep="\t", check.names = FALSE)
 subgenome_1[, 5:(((ncol(subgenome_1)-4)/2)+4)] <- lapply(subgenome_1[,5:(((ncol(subgenome_1)-4)/2)+4)], gsub, pattern = "0,0", replacement = "0", fixed = TRUE)
 subgenome_1[, 5:(((ncol(subgenome_1)-4)/2)+4)] <- lapply(5:(((ncol(subgenome_1)-4)/2)+4), function(x) as.numeric(subgenome_1[[x]]))
 subgenome_1[,(((ncol(subgenome_1)-4)/2)+5):ncol(subgenome_1)] <- lapply(subgenome_1[,(((ncol(subgenome_1)-4)/2)+5):ncol(subgenome_1)], gsub, pattern = "|", replacement = "/", fixed = TRUE)
@@ -366,6 +369,8 @@ RD_snpfiltering()
 
 ####################################################################################################################
 subgenome_1 <- read.table (file=paste(pop,"_4x","_DP_GT.txt",sep=""), header=T, sep="\t", check.names = FALSE)
+set.seed(12345)
+if (nrow(subgenome_1) > 100000) { subgenome_1 <- subgenome_1[sample(1:nrow(subgenome_1), 100000), ] }
 subgenome_1[, 5:(((ncol(subgenome_1)-4)/2)+4)] <- lapply(5:(((ncol(subgenome_1)-4)/2)+4), function(x) as.numeric(subgenome_1[[x]]))
 rd_boxplot <- function() {
   #######################################################################################################################################################################################
@@ -425,7 +430,7 @@ rd_boxplot <- function() {
       geom_text(aes(x=meanDP, label=paste("mean = ",round(meanDP),sep=""), y=(maxDP*0.25)), colour="cornflowerblue", angle=90, vjust = 1.2, size=7.5) +
       geom_text(aes(x=medianDP, label=paste("median = ",round(medianDP),sep=""), y=(maxDP*0.5)), colour="tomato", angle=90, vjust = 1.2, size=7.5) +
       scale_y_continuous(expand = c(0, 0), labels = function(x) format(x, big.mark = ",",scientific = T)) +
-      scale_x_continuous(breaks=seq(0,maxX,intervalm), limits=c(-20,maxX)) +
+      scale_x_continuous(breaks=seq(0,maxX,intervalm), limits=c(0,maxX)) +
       theme(axis.text.x=element_text(colour="cornflowerblue", size=24),
             axis.text.y=element_text(colour="cornflowerblue", size=24),
             axis.title=element_text(size=30)) +
@@ -497,7 +502,7 @@ rd_boxplot <- function() {
     geom_text(aes(x=meanDP, label=paste("mean = ",round(meanDP),sep=""), y=(maxDP*0.25)), colour="cornflowerblue", angle=90, vjust = 1.2, size=7.5) +
     geom_text(aes(x=medianDP, label=paste("median = ",round(medianDP),sep=""), y=(maxDP*0.5)), colour="tomato", angle=90, vjust = 1.2, size=7.5) +
     scale_y_continuous(expand = c(0, 0), labels = function(x) format(x, big.mark = ",",scientific = T)) +
-    scale_x_continuous(breaks=seq(0,maxX,intervalm), limits=c(-20,maxX)) +
+    scale_x_continuous(breaks=seq(0,maxX,intervalm), limits=c(0,maxX)) +
     theme(axis.text.x=element_text(colour="cornflowerblue", size=24),
           axis.text.y=element_text(colour="cornflowerblue", size=24),
           axis.title=element_text(size=30)) +
@@ -592,7 +597,7 @@ raw_alleles()
 
 ####################################################################################################################
 pop_struc <- function() {
-  for (i in c(0.01,0.05,0.1)) {
+  for (i in c(0.01,0.05,0.1,0.2,0.3)) {
     pop_data <- read.table(paste(pop,"_4x","_rd",rd+1,"_maf",MinorAlleleFreq,"_dose.txt",sep=""), header=T, sep="\t",stringsAsFactors=FALSE, check.names = FALSE)
     pop_data <- subset(pop_data, select=-c(1:5))
     pop_data$no_missing <- apply(pop_data, MARGIN = 1, FUN = function(x) length(x[is.na(x)]) )
@@ -613,7 +618,7 @@ pop_struc <- function() {
     tmp[1:9,1:9]  
     return(tmp)
   }
-  if (nrow(pop_data) >= 100) {
+  if (nrow(pop_data) >= 10) {
     pop_data <- as.matrix(t(pop_data))
     
     #Computing the full-autopolyploid matrix based on Slater 2016 (Eq. 8 and 9)
@@ -993,9 +998,27 @@ pop_struc <- function() {
     # rgl.snapshot(paste(pop,"_3D_pca_4x.png",sep=""), "png")
     
   } else {
-    print ("Not enough markers to compute Gmatrix (i.e. threshold of 100 markers)")
+    print ("Not enough markers to compute Gmatrix (i.e. threshold of 10 markers)")
   }
 }
-pop_struc()
+try(pop_struc(), silent = TRUE)
+
+var_density <- function() {
+  library("CMplot")
+  map <-read.table(paste(pop,"_4x","_rd",rd+1,"_maf",MinorAlleleFreq,"_dose.txt",sep=""), header=T, sep="\t",stringsAsFactors=FALSE, check.names = FALSE)
+  map <- subset(map, select=c("SNP","CHROM","POS"))
+  map$CHROM <- sub(".*\\_Chr0","",map$CHROM)
+  map$CHROM <- sub(".*\\_Chr","",map$CHROM)
+  colnames(map) <- c("SNP","Chromosome","Position")
+  chroms <- as.data.frame(table(map$Chromosome))
+  if (nrow(chroms) > 100) {
+    chroms <- subset(chroms, Freq >= 50)
+    map <- map[(map[,colnames(map)=="Chromosome"]) %in% chroms$Var1,]
+  }
+  CMplot(map,type="p",plot.type="d",bin.size=1e6,chr.den.col=c("darkgreen", "yellow", "red"),file="tiff",memo="",dpi=300,
+         main="variant genome distribution (4x)",file.output=TRUE,verbose=TRUE,width=9,height=6)
+  file.rename("SNP-Density.Col1.Col0.tiff","variant_genome_distribution_4x.tiff")
+}
+try(var_density(), silent = TRUE)
 
 

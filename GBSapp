@@ -9,7 +9,7 @@ blue=$'\e[1;34m'
 threads=""
 # relpath=$(pwd)
 
-GBSapp_dir="$( cd -- "$(dirname "$0 ")" >/dev/null 2>&1 ; pwd -P )/"
+export GBSapp_dir="$( cd -- "$(dirname "$0 ")" >/dev/null 2>&1 ; pwd -P )/"
 
 if [[ "$1" == "" ]]; then
   echo -e "${white}\n\tUsage:\n\t\t./GBSapp/GBSapp\t\t<command>\n"
@@ -246,7 +246,6 @@ if [[ -d "./samples/pe" ]] || [[ -d "./samples/se" ]]; then
       if [[ $REPLY =~ ^[Yy]$ ]]; then
         printf "\n"
         echo -e "${magenta}- A copy of your sample fastq files is in ${projdir}/samples_backup/ ${white}"
-        mkdir samples_backup
         cp -r samples samples_backup
       else
           echo -e "${white}\n#########################################################################################"
@@ -264,7 +263,6 @@ else
       if [[ $REPLY =~ ^[Yy]$ ]]; then
         printf "\n"
         echo -e "${magenta}- A copy of your sample fastq files is in ${projdir}/samples_backup/ ${white}"
-        mkdir samples_backup
         cp -r samples samples_backup
       else
           echo -e "${white}\n#########################################################################################"
@@ -461,7 +459,7 @@ fi
 
 
 if [[ "$string" == true ]]; then
-  if [ -z $cluster ]; then
+  if [ -z "$cluster" ]; then
     echo -e "${magenta}- GBSapp will run in walkaway mode\n ${white}"
     echo -e "${white}##############################################################################\n ${white}"
     if [ -z "$thread_node" ]; then
@@ -471,7 +469,6 @@ if [[ "$string" == true ]]; then
     fi
 
     if test ! -f "${projdir}/steps.txt"; then
-      echo -e "${magenta}- Why are you here? ${white}"
       echo -e "${magenta}- Do you want to perform read alignments and alignment post-processing? ${white}"
       read -p "- y(YES) or n(NO) " -n 1 -r
       if [[ ! $REPLY =~ ^[Yy]$ ]]; then
@@ -659,7 +656,7 @@ if [[ "$string" == true ]]; then
 
     printf "#""!""/bin/bash \n#SBATCH -c ${thread_node} \n\n" > cluster_header.sh
     printf "walkaway=true \n\n" > walkaway.txt
-    if [[ $n_nodes -gt 1 ]]; then
+    if [[ "$n_nodes" -gt 1 ]]; then
       for i in $(seq 1 "$n_nodes"); do
         echo $samples_list | awk -F' ' -v pos=$i -v skip=$n_nodes '{ for (i=pos;i<=NF;i+=skip) print $i }' | awk '{gsub(/\.R2.f/,"_R2.f");}1' | grep -v _R2.f | grep -v _uniq_R1.fasta | grep -v _uniq_R2.fasta | \
         grep -v _uniq_R1.hold.fasta | grep -v fq.gz | awk '{gsub(/_R1.fastq/,".fastq"); gsub(/\.R1.fastq/,".fastq"); gsub(/_R1.fq/,".fq"); gsub(/\.R1.fq/,".f"); gsub(/_R1.fq/,".fq"); print}'> samples_list_node_${i}.txt

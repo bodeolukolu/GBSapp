@@ -4,7 +4,8 @@
 args <- commandArgs(trailingOnly = TRUE)
 ploidy <- args[3]
 subgenome <- args[4]
-libdir <- args[5]
+remove_id_list <- unlist(strsplit(args[5],","))
+libdir <- args[6]
 .libPaths( c( .libPaths(), libdir) )
 library(ggplot2)
 
@@ -13,6 +14,11 @@ GT <- read.table(args[1], header=T, sep="\t", check.names=FALSE,stringsAsFactors
 GT <- subset(GT, select=-c(SNP))
 if (colnames(GT[ncol(GT)]) == "pvalue"){GT <- subset(GT, select=-c(pvalue))}
 AR <- read.table(args[2], header=T, sep="\t", check.names=FALSE,stringsAsFactors=FALSE)
+if (length(remove_id_list) > 0) {
+  id <- names(AR)
+  keep_id <- setdiff(id,remove_id_list)
+  AR <- AR[,c(keep_id)]
+}
 GT_AR <- merge(GT, AR, by=c("CHROM","POS","REF","ALT"), all.x=TRUE)
 keepAR <- subset(GT_AR, select=-c(CHROM,POS,REF,ALT))
 keepAR <- keepAR[, -grep(pattern = "_AR$", colnames(keepAR))]

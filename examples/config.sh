@@ -1,11 +1,12 @@
 # General_parameters
 ###################################################
-threads=24
+threads=16
 walkaway=true
 cluster=true
 nodes=1
 samples_alt_dir=false
 lib_type=RRS
+subsample_WGS_in_silico_qRRS=false
 
 # Variant calling
 ###################################################
@@ -21,6 +22,7 @@ Exclude_Chromosome=TF_Chr00,TL_Chr00
 ####################################################
 p1=M9
 p2=M19
+biallelic=false
 genotype_missingness=0.1,0.2,0.3
 sample_missingness=0.1,0.2,0.3
 exclude_samples=S1,S2,S3
@@ -32,11 +34,19 @@ maf=0.05
 
 # Advanced_parameters
 ###################################################
-multilocus=false
-minmmapq=20
+uniquely_mapped=true
+paralogs=false
+minmapq=20
+downsample_2x=50
+downsample_4x=100
+downsample_6x=150
+downsample_8x=200
+variant_intervals=true
+interval_list=variant_intervals.list
+interval_list_ref1=variant_intervals_TF.list
+interval_list_ref2=variant_intervals_TL.list
 maxHaplotype=128
 haplome_number=1
-softclip=false
 joint_calling=false
 keep_gVCF=false
 RE1=TGCAT

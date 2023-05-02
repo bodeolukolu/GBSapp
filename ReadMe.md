@@ -4,7 +4,7 @@
 </p>
 
 # Introduction
-GBSapp is an automated pipeline for variant calling and filtering. The pipeline intuitively integrates existing/novel best practices, some of which can be controlled by user-defined parameters. It optimizes memory and speed at various steps of the pipeline, for example, a novel approach performs compression and decompression of unique reads before and after read alignment, respectively. Summary reports and visualizations allow for QC at each step of the pipeline.
+GBSapp v2.0.0 is an automated pipeline for variant calling and filtering. The pipeline intuitively integrates existing/novel best practices, some of which can be controlled by user-defined parameters. It optimizes memory and speed at various steps of the pipeline, for example, a novel approach performs compression and decompression of unique reads before and after read alignment, respectively. Summary reports and visualizations allow for QC at each step of the pipeline.
 
 For questions, bugs, and suggestions, please contact bolukolu@utk.edu.
 
@@ -12,19 +12,23 @@ For questions, bugs, and suggestions, please contact bolukolu@utk.edu.
 - Easy use and designed for biologist.
 - Dosage-based variant calling and filtering.
 - Fully-automated: “walk-away” and “walk-through” mode.
-- Allows for use of haplotype-resolved reference genomes.
+- Allows for use of subgenomes, haplomes, and pan-genomes as reference genomes.
 - Minimizes excess heterozygosity and allele dropout.
 - Variant calling implemented from 1x (haploid) to 8x (octoploid).
-- Parallelization of job on multiple compute cluster nodes (spark cluster infrastructure not required)
-- Splice-aware aligner allows for RNAseq data as input (recommended only for haploid or diploid genomes)
-- Generates variant sequence context (useful for applications such as oligo/primer design & sequenced-based phylogenetic analysis)
-- Fast alignment: speed increases with increasing sample read depth.
-- Fast variant calling.
-- Visualizations for report and QC
+- Input data: shotgun WGS, reduced representation sequence (e.g., OmeSeq-qRRS, GBS, ddRADseq), and multiplexed-PCR data.
+- Can subsample shotgun whole genome data for variant calling, i.e. in silico reduced representation sequencing (RRS).
+- Parallelization of job on multiple compute cluster nodes (spark cluster infrastructure not required).
+- Splice-aware aligner allows for RNAseq data as input (recommended only for haploid or diploid genomes).
+- Generates variant sequence context (useful for applications such as oligo/primer design & sequenced-based phylogenetic analysis).
+- Variant calling delineates SNP from uniquely mapped and paralogs.
+- Fast variant calling due to dynamic downsampling (avoids allele dropout due to biased downsampling).
+- Fast alignment due to joint-alignment method.
+- Visualizations for report and QC.
 
 - Functions under-development:
   - calling microhaplotypes
-  - estimating ploidy level and aneuploidy.
+  - estimating ploidy level and aneuploidy
+  - recoding genotypes for tri-allelic and tetra-allelic
 
 
 
@@ -60,7 +64,7 @@ GBSapp_dir/GBSapp install
 ```
 Installed on first run of pipeline:
 -----------------------------------
-NextGenMap (ngm), samtools, picard, bcftools, GATK, java, R-ggplot2, and R-AGHmatrix
+NextGenMap (ngm), samtools, picard, bcftools, GATK, java, R-ggplot2, CMplot, and R-AGHmatrix
 
 
 Pre-install before running GBSapp:
@@ -110,6 +114,7 @@ Using a text editor, save a file containing any of the following variables as 'c
 |nodes|1|number of nodes|integer|Optional|
 |samples_alt_dir|false|links samples in separate directory to project directory|true or false|Optional|
 |lib_type|RRS|RRS (reduced representation sequence e.g. GBS, ddRADseq, qRRS) or WGS (shotgun whole genome sequence)|string|Optional|
+|subsample_WGS_in_silico_qRRS|false|Fast alternative to variant calling on whole genome data|true or false|Optional|
 
 
 
@@ -117,15 +122,15 @@ Using a text editor, save a file containing any of the following variables as 'c
 
 |Variable      |Default       |Usage         |Input         |required/Optional|
 |:-------------|:-------------|:-------------|:-------------|:----------------|
-|ploidy|na|ploid level = 1,2,4,6, or 8 (ploidy>8 allowed for autopolyploid). Used to determine maximum number of haplotypes per sample|integer|Required|
-|ref1|na|reference genome as .fasta file (haploids, diploids, autopolyploids, or 1st subgenome in allopolyploids)|integer|Optional|
-|ref2|na|2nd reference genome as fasta file|integer|Optional|
-|ref3|na|3rd reference genome as fasta file|integer|Optional|
-|ref4|na|4th reference genome as fasta file|integer|Optional|
+|ploidy|na|value = 1,2,4,6, or 8|integer|Required|
+|ref1|na|reference genome as .fasta file. Anchor when subgenomes/haplomes/pan-genomes are specified |integer|Optional|
+|ref2|na|2nd reference genome as .fasta file|integer|Optional|
+|ref3|na|3rd reference genome as .fasta file|integer|Optional|
+|ref4|na|4th reference genome as .fasta file|integer|Optional|
 |ploidy_ref1|na|ploid level for subgenome 1|integer|Required|
-|ploidy_ref2|na|ploid level for subgenome 1|integer|Required|
-|ploidy_ref3|na|ploid level for subgenome 1|integer|Required|
-|ploidy_ref4|na|ploid level for subgenome 1|integer|Required|
+|ploidy_ref2|na|ploid level for subgenome 2, only specify for subgenome specific variants|integer|Required|
+|ploidy_ref3|na|ploid level for subgenome 3, only specify for subgenome specific variants|integer|Required|
+|ploidy_ref4|na|ploid level for subgenome 4, only specify for subgenome specific variants|integer|Required|
 |Get_Chromosome|na|variant calling on specific chromosomes, scaffolds,and contigs|comma delimited string(s)|optional|
 |Exclude_Chromosome|na|variant calling to exclude specific chromosomes, scaffolds,and contigs|comma delimited string(s)|optional|
 
@@ -137,7 +142,8 @@ Using a text editor, save a file containing any of the following variables as 'c
 |:-------------|:-------------|:-------------|:-------------|:----------------|
 |p1|na|maternal parent (specified only for biparental populations)|string|Optional|
 |p2|na|paternal parent (specified only for biparental populations)|string|Optional|
-|genotype_missingness|0.2|maximum proportion of missing genotypes allowed per sample|comma delimiteddecimal number(s)|Optional|
+|biallelic|false|filter to output only biallelic variants|string|Optional|
+|genotype_missingness|0.2|maximum proportion of missing genotypes allowed per sample|comma delimited decimal number(s)|Optional|
 |sample_missingness|0.2|maximum proportion of missing samples allowed per variant|comma delimited decimal number(s)|Optional|
 |exclude_samples|na|sample IDs to be exclude from filtered variant data set|comma delimited string(s)|Optional|
 |minRD_1x|2|minimum read depth threshold|integer|Optional|
@@ -153,11 +159,15 @@ Using a text editor, save a file containing any of the following variables as 'c
 **Advanced parameters**
 |Variable      |Default       |Usage         |Input         |required/Optional|
 |:-------------|:-------------|:-------------|:-------------|:----------------|
-|multilocus|true|use paralogoous sequences for variant callingq|string|Optional|
-|minmapq|20|minimum mapping quality during variant calling|integer|Optional|
+|uniquely_mapped|true|include uniquely mapped for variant calling |string|Optional|
+|paralogs|false|include paralogs for variant calling |string|Optional|
+|minmapq|20|minimum mapping quality|integer|Optional|
+|downsample_2x|50|value for unbiased downsampling for 2x ploidy|integer|Optional|
+|downsample_4x|100|value for unbiased downsampling for 4x ploidy|integer|Optional|
+|downsample_6x|150|value for unbiased downsampling for 6x ploidy|integer|Optional|
+|downsample_8x|200|value for unbiased downsampling for 8x ploidy|integer|Optional|
 |maxHaplotype|128|maximum number of haplotypes per haploid genome across population(increase for polyploids/high heterozygosity/high background mutational load)|integer|Optional|
 |haplome_number|1|number of haplomes resolved in reference genome assembly|integer|Optional|
-|softclip|false|do not use soft Clipped bases (recommended)|string|Optional|
 |joint_calling|false| cohort calling will be performed if set to false|string|Optional|
 |keep_gVCF|false|keep sample gVCF files, if additional samples will be included for future joint calling)|string|Optional|
 |RE1|NA|sequence motif at start of R1 reads|string|Optional|
@@ -171,7 +181,7 @@ Below is an example of a configuration file:
 ```
 ### General parameters
 ###################################################
-threads=24
+threads=16
 walkaway=true
 cluster=true
 nodes=1
@@ -204,11 +214,15 @@ maf=0.05
 
 ### Advanced parameters
 ###################################################
-multilocus=true
+uniquely_mapped=true
+paralogs=false
 minmapq=20
+downsample_2x=50
+downsample_4x=100
+downsample_6x=150
+downsample_8x=200
 maxHaplotype=128
 haplome_number=1
-softclip=false
 joint_calling=false
 keep_gVCF=false
 RE1=TGCAT

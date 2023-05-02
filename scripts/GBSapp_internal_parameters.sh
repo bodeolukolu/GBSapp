@@ -87,10 +87,12 @@ ln -s ${GBSapp_dir}/tools/jdk8*/bin/java ~/bin/java
 export ngm=${GBSapp_dir}/tools/*NextGenMap*/bin/ngm*/ngm
 export samtools=${GBSapp_dir}/tools/samtools*/samtools && samtools=${samtools//'//'/'/'}
 export bcftools=${GBSapp_dir}/tools/bcftools*/bcftools && bcftools=${bcftools//'//'/'/'}
+export bedtools=${GBSapp_dir}/tools/bedtools2/bin/bedtools && bedtools=${bedtools//'//'/'/'}
 export picard=${GBSapp_dir}/tools/picard.jar && picard=${picard//'//'/'/'}
 export GATK=${GBSapp_dir}/tools/gatk-4.2.6.1/gatk && GATK=${GATK//'//'/'/'}
 export java=${GBSapp_dir}/tools/jdk8*/bin/java && java=${java//'//'/'/'}
-export cons=${GBSapp_dir}/tools/EMBOSS-6.6.0/emboss/cons
+export consambig=${GBSapp_dir}/tools/EMBOSS-6.6.0/emboss/consambig
+export mafft=${GBSapp_dir}/tools/mafft/mafft
 if command -v pigz &>/dev/null; then
   export gzip=pigz
 else

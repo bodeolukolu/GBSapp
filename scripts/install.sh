@@ -30,12 +30,12 @@ fi
 
 main () {
   echo -e "${blue}\n############################################## ${yellow}\n- downloading and installing bcftools ${blue}\n##############################################${white}"
-  wget https://github.com/samtools/bcftools/releases/download/1.13/bcftools-1.13.tar.bz2 &&
-  tar -xvf bcftools-1.13.tar.bz2;  cd bcftools-1.13; make
-  rm ../bcftools-1.13.tar.bz2
+  wget https://github.com/samtools/bcftools/releases/download/1.17/bcftools-1.17.tar.bz2 &&
+  tar -xvf bcftools-1.17.tar.bz2;  cd bcftools-1.17; make
+  rm ../bcftools-1.17.tar.bz2
   cd ..
 }
-dirtool=bcftools-1.13
+dirtool=bcftools-1.17
 if [ -d $dirtool ]; then
   :
 else
@@ -45,11 +45,27 @@ fi
 
 
 main () {
-  echo -e "${blue}\n############################################## ${yellow}\n- downloading and installing samtools ${blue}\n##############################################${white}"
-  wget https://sourceforge.net/projects/samtools/files/latest/download
-  tar -xvjf download*; rm download*; cd samtools*
-  make
+  echo -e "${blue}\n############################################## ${yellow}\n- downloading and installing bedtools ${blue}\n##############################################${white}"
+  wget https://github.com/arq5x/bedtools2/releases/download/v2.29.1/bedtools-2.29.1.tar.gz &&
+  tar -zxvf bedtools-2.29.1.tar.gz; cd bedtools2; make
+  rm ../bedtools-2.29.1.tar.gz
   cd ..
+}
+dirtool=bedtools2
+if [ -d $dirtool ]; then
+  :
+else
+  echo -e "${magenta}- Performing installation of dependency (bedtools) ${white}"
+  main &>> ./log.out
+fi
+
+
+main () {
+  echo -e "${blue}\n############################################## ${yellow}\n- downloading and installing samtools ${blue}\n##############################################${white}"
+  wget https://github.com/samtools/samtools/releases/download/1.17/samtools-1.17.tar.bz2 &&
+  tar -xvf samtools-1.17.tar.bz2;  cd samtools-1.17; make
+  rm ../samtools-1.17.tar.bz2
+  cd ../
 }
 dirtool=samtools*
 if [ -d $dirtool ]; then
@@ -113,6 +129,31 @@ else
   main &>> ./log.out
 fi
 
+
+main () {
+  echo -e "${blue}\n############################################## \n- installiing mafft ${blue}\n##############################################${white}"
+  mkdir mafft
+  wget https://mafft.cbrc.jp/alignment/software/mafft-7.505-without-extensions-src.tgz
+  tar zxvf mafft-7.505-without-extensions-src.tgz
+  rm mafft-7.505-without-extensions-src.tgz
+  cd mafft-7.505-without-extensions/core/
+  awk 'NR!=3{print $0}' Makefile | awk 'NR>1{print $0}' | cat <(printf "BINDIR = ${GBSapp_dir}tools/mafft\n") - | \
+  cat <(printf "PREFIX = ${GBSapp_dir}tools/mafft\n") - > makefile.tmp
+  mv makefile.tmp Makefile
+  make clean
+  make
+  make install
+  cd ../../
+}
+dirtool=EMBOSS*
+if [ -d $dirtool ]; then
+  :
+else
+  echo -e "${magenta}- Performing installation of dependency (EMBOSS)${white}"
+  main &>> ./log.out
+fi
+
+
 dirtool=R
 if [ -d $dirtool ]; then
   :
@@ -164,5 +205,19 @@ if [ -d $dirtool ]; then
   :
 else
   echo -e "${magenta}- Performing installation of R-package: ggplot2 ${white}"
+  main &>> ./log.out
+fi
+
+main () {
+echo -e "${blue}\n############################################## \n- installing R-package: CMplot  ${blue}\n##############################################${white}"
+  mkdir -p R
+  cd ./R
+  R -e 'install.packages("CMplot", dependencies = TRUE, repos="http://cran.r-project.org", lib="./")'
+}
+dirtool=./R/CMplot
+if [ -d $dirtool ]; then
+  :
+else
+  echo -e "${magenta}- Performing installation of R-package: CMplot ${white}"
   main &>> ./log.out
 fi

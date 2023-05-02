@@ -30,7 +30,7 @@ if (ploidy == "2x"){
   for (i in 1:nrow(vcffile)){
     for (j in 6:(ncol(GT))) {
       k=j+4
-      if (is.na(GT[i,j])) { vcffile[i,k] <- "./.:0,0:.:.:.:.:."}
+      if (is.na(GT[i,j])) { vcffile[i,k] <- "./.:0,0:.:."}
       if (AR[i,j] > 0 && AR[i,j] < 0.2){vcffile[i,k] <- gsub(x=vcffile[i,k], pattern="0/1", replacement = "1/1")}
       if (AR[i,j] > 0 && AR[i,j] < 0.2){vcffile[i,k] <- gsub(x=vcffile[i,k], pattern="0|1", replacement = "1/1")}
       if (AR[i,j] < 0 && AR[i,j] > -0.2){vcffile[i,k] <- gsub(x=vcffile[i,k], pattern="0/1", replacement = "0/0")}
@@ -46,7 +46,7 @@ if (ploidy == "4x"){
   for (i in 1:nrow(vcffile)){
     for (j in 6:(ncol(GT))) {
       k=j+4
-      if (is.na(GT[i,j])) { vcffile[i,k] <- "./././.:0,0:.:.:.:.:."}
+      if (is.na(GT[i,j])) { vcffile[i,k] <- "./././.:0,0:.:."}
       if (AR[i,j] > 0 && AR[i,j] < 0.17){vcffile[i,k] <- gsub(x=vcffile[i,k], pattern="0/1/1/1", replacement = "1/1/1/1")}
       if (AR[i,j] < 0 && AR[i,j] > -0.17){vcffile[i,k] <- gsub(x=vcffile[i,k], pattern="0/0/0/1", replacement = "0/0/0/0")}
     }
@@ -60,7 +60,7 @@ if (ploidy == "6x"){
   for (i in 1:nrow(vcffile)){
     for (j in 6:(ncol(GT))) {
       k=j+4
-      if (is.na(GT[i,j])) { vcffile[i,k] <- "./././././.:0,0:.:.:.:.:."}
+      if (is.na(GT[i,j])) { vcffile[i,k] <- "./././././.:0,0:.:."}
       if (AR[i,j] > 0 && AR[i,j] < 0.17){vcffile[i,k] <- gsub(x=vcffile[i,k], pattern="0/1/1/1/1/1", replacement = "1/1/1/1/1/1")}
       if (AR[i,j] < 0 && AR[i,j] > -0.17){vcffile[i,k] <- gsub(x=vcffile[i,k], pattern="0/0/0/0/0/1", replacement = "0/0/0/0/0/0")}
     }
@@ -74,7 +74,7 @@ if (ploidy == "8x"){
   for (i in 1:nrow(vcffile)){
     for (j in 6:(ncol(GT))) {
       k=j+4
-      if (is.na(GT[i,j])) { vcffile[i,k] <- "./././././././.:0,0:.:.:.:.:."}
+      if (is.na(GT[i,j])) { vcffile[i,k] <- "./././././././.:0,0:.:."}
       if (AR[i,j] > 0 && AR[i,j] < 0.17){vcffile[i,k] <- gsub(x=vcffile[i,k], pattern="0/1/1/1/1/1/1/1", replacement = "1/1/1/1/1/1/1/1")}
       if (AR[i,j] < 0 && AR[i,j] > -0.17){vcffile[i,k] <- gsub(x=vcffile[i,k], pattern="0/0/0/0/0/0/0/1", replacement = "0/0/0/0/0/0/0/0")}
     }
