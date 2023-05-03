@@ -1,4 +1,3 @@
--d snpfilter; then
 if [ -z "$slurm_module" ]; then
  export slurm_module=true
 fi
