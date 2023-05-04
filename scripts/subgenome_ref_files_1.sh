@@ -742,7 +742,7 @@ main () {
     while IFS="" read -r alignfq || [ -n "$alignfq" ]; do
       sleep $((RANDOM % 2))
       if test ! -f ../preprocess/alignment/${alignfq%.f*}_redun.sam.gz; then
-          $ngm -r ../refgenomes/$ref1 --qry ${alignfq%.f*}_uniq.fasta.gz -o ../preprocess/alignment/${alignfq%.f*}_redun.sam -t $ngmthreads --topn 6 --strata 6 &&
+          $ngm -r ../refgenomes/$ref1 --qry ${alignfq%.f*}_uniq.fasta.gz -o ../preprocess/alignment/${alignfq%.f*}_redun.sam -t $ngmthreads --topn 6 --strata 6 --affine &&
           awk '/@HD/ || /@SQ/{print}' ../preprocess/alignment/${alignfq%.f*}_redun.sam 2> /dev/null > ../preprocess/alignment/${alignfq%.f*}_redun_head.sam
           grep -v '^@' ../preprocess/alignment/${alignfq%.f*}_redun.sam 2> /dev/null | awk -F"\t" 'BEGIN{FS=OFS="\t"} {$11="*"; print $0}' | cat ../preprocess/alignment/${alignfq%.f*}_redun_head.sam - | gzip  > ../preprocess/alignment/${alignfq%.f*}_redun.sam.gz &&
           rm ../preprocess/alignment/"${alignfq%.f*}"_redun.sam &&
