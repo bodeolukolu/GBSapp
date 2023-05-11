@@ -167,7 +167,6 @@ Using a text editor, save a file containing any of the following variables as 'c
 |downsample_6x|150|value for unbiased downsampling for 6x ploidy|integer|Optional|
 |downsample_8x|200|value for unbiased downsampling for 8x ploidy|integer|Optional|
 |maxHaplotype|128|maximum number of haplotypes per haploid genome across population(increase for polyploids/high heterozygosity/high background mutational load)|integer|Optional|
-|haplome_number|1|number of haplomes resolved in reference genome assembly|integer|Optional|
 |joint_calling|false| cohort calling will be performed if set to false|string|Optional|
 |keep_gVCF|false|keep sample gVCF files, if additional samples will be included for future joint calling)|string|Optional|
 |RE1|NA|sequence motif at start of R1 reads|string|Optional|
@@ -222,7 +221,6 @@ downsample_4x=100
 downsample_6x=150
 downsample_8x=200
 maxHaplotype=128
-haplome_number=1
 joint_calling=false
 keep_gVCF=false
 RE1=TGCAT

@@ -850,8 +850,10 @@ main () {
     zcat ./alignment/${i%.f*}_redun_${ref1%.f*}.sam.gz | grep -v '^@PG' | tr ' ' '\t' | $samtools flagstat - >> ${projdir}/alignment_summaries/${i%.f*}_summ_${ref1%.f*}.txt &&
     printf '########################################################################################################\n\n' >> ${projdir}/alignment_summaries/${i%.f*}_summ_${ref1%.f*}.txt &&
     printf 'copy_number\tFrequency\tPercentage\n' > ${projdir}/alignment_summaries/copy_number/${i%.f*}_copy_number_Read_histogram_${ref1%.f*}.txt &&
-    grep -v '^@' <(zcat ./alignment/${i%.f*}_redun_${ref1%.f*}.sam.gz 2> /dev/null) | awk '{print $1}' | \
+    $samtools view -F4 <(zcat ./alignment/${i%.f*}_redun_${ref1%.f*}.sam.gz 2> /dev/null) | awk '{print $3"\t"$4}' | awk '$1 != "*"' > ${i%.f*}_redun_${ref1%.f*}_collapse.txt
+    awk '{print $2}' ${i%.f*}_redun_${ref1%.f*}_collapse.txt | awk '{printf "%d000\n", $1/1000}' | paste - ${i%.f*}_redun_${ref1%.f*}_collapse.txt | awk '{print $1"_"$3}' | \
     awk '{!seen[$0]++}END{for (i in seen) print seen[i]}' | awk '{!seen[$0]++}END{for (i in seen) print i, seen[i]}' > ${projdir}/alignment_summaries/copy_number/${i%.f*}_copy_number_${ref1%.f*}.txt  &&
+    rm ${i%.f*}_redun_${ref1%.f*}_collapse.txt
     awk 'NR==FNR{sum+= $2; next;} {printf("%s\t%s\t%3.3f%%\t%3.0f\n",$1,$2,100*$2/sum,100*$2/sum)}' ${projdir}/alignment_summaries/copy_number/${i%.f*}_copy_number_${ref1%.f*}.txt ${projdir}/alignment_summaries/copy_number/${i%.f*}_copy_number_${ref1%.f*}.txt > ${projdir}/alignment_summaries/copy_number/${i%.f*}_plot_${ref1%.f*}.txt &&
     unset IFS; printf "%s\t%s\t%s\t%*s\n" $(sed 's/$/ |/' ${projdir}/alignment_summaries/copy_number/${i%.f*}_plot_${ref1%.f*}.txt) | tr ' ' '|' | sort -T ./tmp/ -k1,1 -n | awk '{gsub(/pe-/,""); print}' >> ${projdir}/alignment_summaries/copy_number/${i%.f*}_copy_number_Read_histogram_${ref1%.f*}.txt &&
     rm ${projdir}/alignment_summaries/copy_number/${i%.f*}_copy_number_${ref1%.f*}.txt ${projdir}/alignment_summaries/copy_number/${i%.f*}_plot_${ref1%.f*}.txt
@@ -859,8 +861,10 @@ main () {
     zcat ./alignment/${i%.f*}_redun_${ref2%.f*}.sam.gz | grep -v '^@PG' | tr ' ' '\t' | $samtools flagstat - >> ${projdir}/alignment_summaries/${i%.f*}_summ_${ref2%.f*}.txt &&
     printf '########################################################################################################\n\n' >> ${projdir}/alignment_summaries/${i%.f*}_summ_${ref2%.f*}.txt &&
     printf 'copy_number\tFrequency\tPercentage\n' > ${projdir}/alignment_summaries/copy_number/${i%.f*}_copy_number_Read_histogram_${ref2%.f*}.txt &&
-    grep -v '^@' <(zcat ./alignment/${i%.f*}_redun_${ref2%.f*}.sam.gz 2> /dev/null) | awk '{print $1}' | \
+    $samtools view -F4 <(zcat ./alignment/${i%.f*}_redun_${ref2%.f*}.sam.gz 2> /dev/null) | awk '{print $3"\t"$4}' | awk '$1 != "*"' > {i%.f*}_redun_${ref2%.f*}_collapse.txt
+    awk '{print $2}' {i%.f*}_redun_${ref2%.f*}_collapse.txt | awk '{printf "%d000\n", $1/1000}' | paste - {i%.f*}_redun_${ref2%.f*}_collapse.txt | awk '{print $1"_"$3}' | \
     awk '{!seen[$0]++}END{for (i in seen) print seen[i]}' | awk '{!seen[$0]++}END{for (i in seen) print i, seen[i]}' > ${projdir}/alignment_summaries/copy_number/${i%.f*}_copy_number_${ref2%.f*}.txt  &&
+    rm {i%.f*}_redun_${ref2%.f*}_collapse.txt
     awk 'NR==FNR{sum+= $2; next;} {printf("%s\t%s\t%3.3f%%\t%3.0f\n",$1,$2,100*$2/sum,100*$2/sum)}' ${projdir}/alignment_summaries/copy_number/${i%.f*}_copy_number_${ref2%.f*}.txt ${projdir}/alignment_summaries/copy_number/${i%.f*}_copy_number_${ref2%.f*}.txt > ${projdir}/alignment_summaries/copy_number/${i%.f*}_plot_${ref2%.f*}.txt &&
     unset IFS; printf "%s\t%s\t%s\t%*s\n" $(sed 's/$/ |/' ${projdir}/alignment_summaries/copy_number/${i%.f*}_plot_${ref2%.f*}.txt) | tr ' ' '|' | sort -T ./tmp/ -k1,1 -n | awk '{gsub(/pe-/,""); print}' >> ${projdir}/alignment_summaries/copy_number/${i%.f*}_copy_number_Read_histogram_${ref2%.f*}.txt &&
     rm ${projdir}/alignment_summaries/copy_number/${i%.f*}_copy_number_${ref2%.f*}.txt ${projdir}/alignment_summaries/copy_number/${i%.f*}_plot_${ref2%.f*}.txt
@@ -1153,7 +1157,7 @@ main () {
       j="${i%.f*}_${ref1%.f*}_${ref2%.f*}.sam"
       $java $Xmxp -XX:ParallelGCThreads=$prepthreads -Djava.io.tmpdir=`pwd`/tmp -jar $picard SortSam I=$j O=${j%.sam*}.bam SORT_ORDER=coordinate VALIDATION_STRINGENCY=LENIENT TMP_DIR=`pwd`/tmp && \
       $java $Xmxp -XX:ParallelGCThreads=$prepthreads -jar $picard BuildBamIndex INPUT=${j%.sam*}.bam VALIDATION_STRINGENCY=LENIENT && \
-      $java $Xmxp -XX:ParallelGCThreads=$prepthreads -jar $picard AddOrReplaceReadGroups I=${j%.sam*}.bam O=${j%.sam*}_precall.bam RGLB=${i%.f*} RGPL=illumina RGPU=run RGSM=${i%.f*} VALIDATION_STRINGENCY=LENIENT && \
+      $java $Xmxp -XX:ParallelGCThreads=$prepthreads -jar $picard AddOrReplaceReadGroups I=${j%.sam*}.bam O=${j%.sam*}_precall.bam RGLB=${i%.f*} RGPL=illumina RGPU=run RGSM=${i%.f*} VALIDATION_STRINGENCY=LENIENT -Dsnappy.disable=true && \
       $samtools index ${j%.sam*}_precall.bam &&
       rm $j ${j%.sam*}.bam ${j%.sam*}.bai &&
       wait
@@ -1162,7 +1166,7 @@ main () {
         j="${i%.f*}_${ref1%.f*}.sam"
         $java $Xmxp -XX:ParallelGCThreads=$prepthreads -Djava.io.tmpdir=`pwd`/tmp -jar $picard SortSam I=$j O=${j%.sam*}.bam SORT_ORDER=coordinate VALIDATION_STRINGENCY=LENIENT TMP_DIR=`pwd`/tmp && \
         $java $Xmxp -XX:ParallelGCThreads=$prepthreads -jar $picard BuildBamIndex INPUT=${j%.sam*}.bam VALIDATION_STRINGENCY=LENIENT && \
-        $java $Xmxp -XX:ParallelGCThreads=$prepthreads -jar $picard AddOrReplaceReadGroups I=${j%.sam*}.bam O=${j%.sam*}_precall.bam RGLB=${i%.f*} RGPL=illumina RGPU=run RGSM=${i%.f*} VALIDATION_STRINGENCY=LENIENT && \
+        $java $Xmxp -XX:ParallelGCThreads=$prepthreads -jar $picard AddOrReplaceReadGroups I=${j%.sam*}.bam O=${j%.sam*}_precall.bam RGLB=${i%.f*} RGPL=illumina RGPU=run RGSM=${i%.f*} VALIDATION_STRINGENCY=LENIENT -Dsnappy.disable=true && \
         $samtools index ${j%.sam*}_precall.bam &&
         rm $j ${j%.sam*}.bam ${j%.sam*}.bai &&
         wait
@@ -1172,7 +1176,7 @@ main () {
         j="${i%.f*}_${ref2%.f*}.sam"
         $java $Xmxp -XX:ParallelGCThreads=$prepthreads -Djava.io.tmpdir=`pwd`/tmp -jar $picard SortSam I=$j O=${j%.sam*}.bam SORT_ORDER=coordinate VALIDATION_STRINGENCY=LENIENT TMP_DIR=`pwd`/tmp && \
         $java $Xmxp -XX:ParallelGCThreads=$prepthreads -jar $picard BuildBamIndex INPUT=${j%.sam*}.bam VALIDATION_STRINGENCY=LENIENT && \
-        $java $Xmxp -XX:ParallelGCThreads=$prepthreads -jar $picard AddOrReplaceReadGroups I=${j%.sam*}.bam O=${j%.sam*}_precall.bam RGLB=${i%.f*} RGPL=illumina RGPU=run RGSM=${i%.f*} VALIDATION_STRINGENCY=LENIENT && \
+        $java $Xmxp -XX:ParallelGCThreads=$prepthreads -jar $picard AddOrReplaceReadGroups I=${j%.sam*}.bam O=${j%.sam*}_precall.bam RGLB=${i%.f*} RGPL=illumina RGPU=run RGSM=${i%.f*} VALIDATION_STRINGENCY=LENIENT -Dsnappy.disable=true && \
         $samtools index ${j%.sam*}_precall.bam &&
         rm $j ${j%.sam*}.bam ${j%.sam*}.bai &&
         wait
@@ -1241,7 +1245,7 @@ main () {
     cd ${projdir}/alignment_summaries
     printf "Sample\tGenome_Coverage(percentage)\n" > summary_genomecov.txt
     genome_size=$(awk '{print $3}' ../refgenomes/${ref1%.f*}.dict | awk '{gsub(/LN:/,"");}1' | awk '{s+=$1}END{print s}')
-    for i in ../preprocess/processed/*bam; do
+    for i in ../preprocess/*bam; do
       cov=$($bedtools genomecov -ibam $i -bga | awk -v pat=$genome_size '{s+=$4}END{print (s/pat)*100}')
       printf "${i%_*_*}\t$cov\n"  | awk '{gsub(/..\/preprocess\/processed\//,"");}1' >> summary_genomecov.txt
     done
