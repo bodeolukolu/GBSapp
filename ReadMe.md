@@ -12,7 +12,7 @@ For questions, bugs, and suggestions, please contact bolukolu@utk.edu.
 - Easy use and designed for biologist.
 - Dosage-based variant calling and filtering.
 - Fully-automated: “walk-away” and “walk-through” mode.
-- Allows for use of subgenomes, haplomes, and pan-genomes as reference genomes.
+- Allows for use of haploid genome, subgenomes/haplomes, and pan-genomes references.
 - Minimizes excess heterozygosity and allele dropout.
 - Variant calling implemented from 1x (haploid) to 8x (octoploid).
 - Input data: shotgun WGS, reduced representation sequence (e.g., OmeSeq-qRRS, GBS, ddRADseq), and multiplexed-PCR data.
