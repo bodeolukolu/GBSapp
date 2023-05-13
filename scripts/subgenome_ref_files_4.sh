@@ -908,7 +908,7 @@ main () {
           fi
           wait
 
-          awk '{while ($2-- > 0) print $0' ${i%.f*}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_uniq.sam | awk '{print "seq"NR"_"$0}' ${i%.f*}_exp.sam | tr -s ' ' | tr ' ' '\t' > ${i%.f*}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}.sam &&
+          awk '{while ($1-- > 0) print $0' ${i%.f*}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_uniq.sam | awk '{print "seq"NR"_"$0}' ${i%.f*}_exp.sam | tr -s ' ' | tr ' ' '\t' > ${i%.f*}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}.sam &&
           rm ${i%.f*}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_uniq.sam &&
           awk '{print $4}' ${i%.f*}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}.sam | awk '{printf "%d00\n", $1/100}' | paste - ${i%.f*}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}.sam | shuf | \
           awk -v max="$downsample" 'a[$1$4]++ < max' | awk '{$1=""}1' | awk '{$1=$1};1' | tr -s " " | tr " " "\t" | awk '{$11=$10}1' | \
@@ -985,7 +985,7 @@ main () {
             fi
             wait
 
-            awk '{while ($2-- > 0) print $0' ${i%.f*}_${ref1%.f*}_${ref2%.f*}_uniq.sam | awk '{print "seq"NR"_"$0}' ${i%.f*}_exp.sam | tr -s ' ' | tr ' ' '\t' > ${i%.f*}_${ref1%.f*}_${ref2%.f*}.sam &&
+            awk '{while ($1-- > 0) print $0' ${i%.f*}_${ref1%.f*}_${ref2%.f*}_uniq.sam | awk '{print "seq"NR"_"$0}' ${i%.f*}_exp.sam | tr -s ' ' | tr ' ' '\t' > ${i%.f*}_${ref1%.f*}_${ref2%.f*}.sam &&
             rm ${i%.f*}_${ref1%.f*}_${ref2%.f*}_uniq.sam &&
             awk '{print $4}' ${i%.f*}_${ref1%.f*}_${ref2%.f*}.sam | awk '{printf "%d00\n", $1/100}' | paste - ${i%.f*}_${ref1%.f*}_${ref2%.f*}.sam | shuf | \
             awk -v max="$downsample" 'a[$1$4]++ < max' | awk '{$1=""}1' | awk '{$1=$1};1' | tr -s " " | tr " " "\t" | awk '{$11=$10}1' | \
@@ -1063,7 +1063,7 @@ main () {
             fi
             wait
 
-            awk '{while ($2-- > 0) print $0' ${i%.f*}_${ref1%.f*}_${ref3%.f*}_uniq.sam | awk '{print "seq"NR"_"$0}' ${i%.f*}_exp.sam | tr -s ' ' | tr ' ' '\t' > ${i%.f*}_${ref1%.f*}_${ref3%.f*}.sam &&
+            awk '{while ($1-- > 0) print $0' ${i%.f*}_${ref1%.f*}_${ref3%.f*}_uniq.sam | awk '{print "seq"NR"_"$0}' ${i%.f*}_exp.sam | tr -s ' ' | tr ' ' '\t' > ${i%.f*}_${ref1%.f*}_${ref3%.f*}.sam &&
             rm ${i%.f*}_${ref1%.f*}_${ref3%.f*}_uniq.sam &&
             awk '{print $4}' ${i%.f*}_${ref1%.f*}_${ref3%.f*}.sam | awk '{printf "%d00\n", $1/100}' | paste - ${i%.f*}_${ref1%.f*}_${ref3%.f*}.sam | shuf | \
             awk -v max="$downsample" 'a[$1$4]++ < max' | awk '{$1=""}1' | awk '{$1=$1};1' | tr -s " " | tr " " "\t" | awk '{$11=$10}1' | \
@@ -1141,7 +1141,7 @@ main () {
             fi
             wait
 
-            awk '{while ($2-- > 0) print $0' ${i%.f*}_${ref2%.f*}_${ref3%.f*}_uniq.sam | awk '{print "seq"NR"_"$0}' ${i%.f*}_exp.sam | tr -s ' ' | tr ' ' '\t' > ${i%.f*}_${ref2%.f*}_${ref3%.f*}.sam &&
+            awk '{while ($1-- > 0) print $0' ${i%.f*}_${ref2%.f*}_${ref3%.f*}_uniq.sam | awk '{print "seq"NR"_"$0}' ${i%.f*}_exp.sam | tr -s ' ' | tr ' ' '\t' > ${i%.f*}_${ref2%.f*}_${ref3%.f*}.sam &&
             rm ${i%.f*}_${ref2%.f*}_${ref3%.f*}_uniq.sam &&
             awk '{print $4}' ${i%.f*}_${ref2%.f*}_${ref3%.f*}.sam | awk '{printf "%d00\n", $1/100}' | paste - ${i%.f*}_${ref2%.f*}_${ref3%.f*}.sam | shuf | \
             awk -v max="$downsample" 'a[$1$4]++ < max' | awk '{$1=""}1' | awk '{$1=$1};1' | tr -s " " | tr " " "\t" | awk '{$11=$10}1' | \
@@ -1219,7 +1219,7 @@ main () {
               fi
               wait
 
-              awk '{while ($2-- > 0) print $0' ${i%.f*}_${ref1%.f*}_uniq.sam | awk '{print "seq"NR"_"$0}' ${i%.f*}_exp.sam | tr -s ' ' | tr ' ' '\t' > ${i%.f*}_${ref1%.f*}.sam &&
+              awk '{while ($1-- > 0) print $0' ${i%.f*}_${ref1%.f*}_uniq.sam | awk '{print "seq"NR"_"$0}' ${i%.f*}_exp.sam | tr -s ' ' | tr ' ' '\t' > ${i%.f*}_${ref1%.f*}.sam &&
               rm ${i%.f*}_${ref1%.f*}_uniq.sam &&
               awk '{print $4}' ${i%.f*}_${ref1%.f*}.sam | awk '{printf "%d00\n", $1/100}' | paste - ${i%.f*}_${ref1%.f*}.sam | shuf | \
               awk -v max="$downsample" 'a[$1$4]++ < max' | awk '{$1=""}1' | awk '{$1=$1};1' | tr -s " " | tr " " "\t" | awk '{$11=$10}1' | \
@@ -1298,7 +1298,7 @@ main () {
               fi
               wait
 
-              awk '{while ($2-- > 0) print $0' ${i%.f*}_${ref2%.f*}_uniq.sam | awk '{print "seq"NR"_"$0}' ${i%.f*}_exp.sam | tr -s ' ' | tr ' ' '\t' > ${i%.f*}_${ref2%.f*}.sam &&
+              awk '{while ($1-- > 0) print $0' ${i%.f*}_${ref2%.f*}_uniq.sam | awk '{print "seq"NR"_"$0}' ${i%.f*}_exp.sam | tr -s ' ' | tr ' ' '\t' > ${i%.f*}_${ref2%.f*}.sam &&
               rm ${i%.f*}_${ref2%.f*}_uniq.sam &&
               awk '{print $4}' ${i%.f*}_${ref2%.f*}.sam | awk '{printf "%d00\n", $1/100}' | paste - ${i%.f*}_${ref2%.f*}.sam | shuf | \
               awk -v max="$downsample" 'a[$1$4]++ < max' | awk '{$1=""}1' | awk '{$1=$1};1' | tr -s " " | tr " " "\t" | awk '{$11=$10}1' | \
@@ -1377,7 +1377,7 @@ main () {
               fi
               wait
 
-              awk '{while ($2-- > 0) print $0' ${i%.f*}_${ref3%.f*}_uniq.sam | awk '{print "seq"NR"_"$0}' ${i%.f*}_exp.sam | tr -s ' ' | tr ' ' '\t' > ${i%.f*}_${ref3%.f*}.sam &&
+              awk '{while ($1-- > 0) print $0' ${i%.f*}_${ref3%.f*}_uniq.sam | awk '{print "seq"NR"_"$0}' ${i%.f*}_exp.sam | tr -s ' ' | tr ' ' '\t' > ${i%.f*}_${ref3%.f*}.sam &&
               rm ${i%.f*}_${ref3%.f*}_uniq.sam &&
               awk '{print $4}' ${i%.f*}_${ref3%.f*}.sam | awk '{printf "%d00\n", $1/100}' | paste - ${i%.f*}_${ref3%.f*}.sam | shuf | \
               awk -v max="$downsample" 'a[$1$4]++ < max' | awk '{$1=""}1' | awk '{$1=$1};1' | tr -s " " | tr " " "\t" | awk '{$11=$10}1' | \
