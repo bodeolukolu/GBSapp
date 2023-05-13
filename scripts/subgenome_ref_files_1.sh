@@ -39,6 +39,16 @@ if [ -z "$p2" ]; then
 	 export p2=$p1
  fi
 fi
+if [ -z "$use_softclip" ]; then
+	export use_softclip=false
+fi
+if [ "$use_softclip" == "false" ]; then
+	export dont_use_softclip=true
+fi
+if [ "$use_softclip" == "true" ]; then
+	export dont_use_softclip=false
+fi
+
 if [ -z "$joint_calling" ]; then
 	export joint_calling=false
 fi
@@ -821,12 +831,10 @@ main () {
     zcat ./alignment/${i%.f*}_redun.sam.gz | grep -v '^@PG' | tr ' ' '\t' | $samtools flagstat - >> ${projdir}/alignment_summaries/${i%.f*}_summ.txt &&
     printf '########################################################################################################\n\n' >> ${projdir}/alignment_summaries/${i%.f*}_summ.txt &&
     printf 'copy_number\tFrequency\tPercentage\n' > ${projdir}/alignment_summaries/copy_number/${i%.f*}_copy_number_Read_histogram.txt &&
-    $samtools view -F4 <(zcat ./alignment/${i%.f*}_redun.sam.gz 2> /dev/null) | awk '{print $3"\t"$4}' | awk '$1 != "*"' > ${i%.f*}_collapse.txt
-    awk '{print $2}' ${i%.f*}_collapse.txt | awk '{printf "%d000\n", $1/1000}' | paste - ${i%.f*}_collapse.txt | awk '{print $1"_"$3}' | \
-    awk '{!seen[$0]++}END{for (i in seen) print seen[i]}' | awk '{!seen[$0]++}END{for (i in seen) print i, seen[i]}' > ${projdir}/alignment_summaries/copy_number/${i%.f*}_copy_number.txt  &&
-    rm ${i%.f*}_collapse.txt
-    awk 'NR==FNR{sum+= $2; next;} {printf("%s\t%s\t%3.3f%%\t%3.0f\n",$1,$2,100*$2/sum,100*$2/sum)}' ${projdir}/alignment_summaries/copy_number/${i%.f*}_copy_number.txt ${projdir}/alignment_summaries/copy_number/${i%.f*}_copy_number.txt > ${projdir}/alignment_summaries/copy_number/${i%.f*}_plot.txt &&
-    unset IFS; printf "%s\t%s\t%s\t%*s\n" $(sed 's/$/ |/' ${projdir}/alignment_summaries/copy_number/${i%.f*}_plot.txt) | tr ' ' '|' | sort -T ./tmp/ -k1,1 -n | awk '{gsub(/pe-/,""); print}' >> ${projdir}/alignment_summaries/copy_number/${i%.f*}_copy_number_Read_histogram.txt &&
+    $samtools view -F4 <(zcat ./alignment/${i%.f*}_redun.sam.gz 2> /dev/null) | awk '{print $1}' | awk '{gsub(/_pe-/,"\t");gsub(/seq/,"");}1' | \
+    awk '{while ($2-- > 0) print $1}' | awk '{!seen[$0]++}END{for (i in seen) print seen[i]}' | awk '{!seen[$0]++}END{for (i in seen) print i, seen[i]}' > ${projdir}/alignment_summaries/copy_number/${i%.f*}_copy_number.txt  &&
+    awk 'NR==FNR{sum+= $2; next;} {printf("%s\t%s\t%3.3f%%\t%3.0f\n",$1,$2,100*$2/sum,100*$2/sum)}' ${projdir}/alignment_summaries/copy_number/${i%.f*}_copy_number.txt ${projdir}/alignment_summaries/copy_number/${i%.f*}_copy_number.txt | awk '$4 > 0' > ${projdir}/alignment_summaries/copy_number/${i%.f*}_plot.txt &&
+    unset IFS; printf "%s\t%s\t%s\t%*s\n" $(sed 's/$/ |/' ${projdir}/alignment_summaries/copy_number/${i%.f*}_plot.txt) | tr ' ' '|' | sort -T ./tmp/ -k1,1 -n >> ${projdir}/alignment_summaries/copy_number/${i%.f*}_copy_number_Read_histogram.txt &&
     rm ${projdir}/alignment_summaries/copy_number/${i%.f*}_copy_number.txt ${projdir}/alignment_summaries/copy_number/${i%.f*}_plot.txt
     wait
 
@@ -835,7 +843,7 @@ main () {
         awk '/@HD/ || /@SQ/{print}' <(zcat ./alignment/${i%.f*}_redun.sam.gz 2> /dev/null) > ${i%.f*}_heading.sam &&
         $samtools view -F4 <(zcat ./alignment/${i%.f*}_redun.sam.gz 2> /dev/null) | grep -v '^@' | awk '$3 != "*"' 2> /dev/null | awk '$6 != "*"' 2> /dev/null | \
         awk '!h[$1] { g[$1]=$0 } { h[$1]++ } END { for(k in g) print h[k], g[k] }' | tr " " "\t" | tr '\r' '\n' | awk '$1==1{print $0}' | \
-        awk '{$1=""}1' | awk '$1=$1' | tr " " "\t" | awk '{gsub(/_pe-/,"_pe-\t",$1)}1' | awk '{print $2"\t"$0}' | \
+        awk '{$1=""}1' | awk '$1=$1' | tr " " "\t" | awk '{gsub(/_pe-/,"_pe-\t",$1);}1' | awk '{print $2"\t"$0}' | \
         awk '{$2=$3=""}1' | tr -s " " | tr " " "\t" | awk -F '\t' 'BEGIN{OFS="\t"} {if ($5 == 0) {$5=60}}1' | \
         awk -v min=$minmapq -F '\t' 'BEGIN{OFS="\t"} {if ($5 >= min) {print $0}}' > ${i%.f*}_uniq.sam &&
         wait
@@ -846,7 +854,7 @@ main () {
         awk -F '\t' 'BEGIN{OFS="\t"} {if ($5 == 0) {print $0}}' 2> /dev/null | awk -F '\t' 'BEGIN{OFS="\t"} {if ($5 == 0) {$5=60}}1' > ${i%.f*}_uniqeq.sam
         $samtools view -F4 <(zcat ./alignment/${i%.f*}_redun.sam.gz 2> /dev/null) | grep -v '^@' | awk '$3 != "*"' 2> /dev/null | awk '$6 != "*"' 2> /dev/null | \
         awk -F '\t' 'BEGIN{OFS="\t"} {if ($5 > 0) {print $0}}' 2> /dev/null | cat - ${i%.f*}_uniqeq.sam | \
-        awk '{gsub(/_pe-/,"_pe-\t",$1)}1' | awk '{print $2"\t"$0}' | awk '{$2=$3=""}1' | tr -s " " | tr " " "\t" | \
+        awk '{gsub(/_pe-/,"_pe-\t",$1);}1' | awk '{print $2"\t"$0}' | awk '{$2=$3=""}1' | tr -s " " | tr " " "\t" | \
         awk -v min=$minmapq -F '\t' 'BEGIN{OFS="\t"} {if ($5 >= min) {print $0}}' > ${i%.f*}_uniq.sam &&
         rm ${i%.f*}_uniqeq.sam &&
         wait
@@ -858,27 +866,15 @@ main () {
         awk '$1==1{print $0}' | awk '{print $2}' > ${i%.f*}_uniqsingle.sam &&
         $samtools view -F4 <(zcat ./alignment/${i%.f*}_redun.sam.gz 2> /dev/null) | grep -v '^@' | awk '$3 != "*"' 2> /dev/null | awk '$6 != "*"' 2> /dev/null | \
         awk -F '\t' 'NR==FNR{a[$0];next} !($1 in a)' ${i%.f*}_uniqsingle.sam - | awk -F '\t' 'BEGIN{OFS="\t"} {if ($5 == 0) {$5=60}}1' | \
-        awk '{gsub(/_pe-/,"_pe-\t",$1)}1' | awk '{print $2"\t"$0}' | awk '{$2=$3=""}1' | tr -s " " | tr " " "\t" | \
+        awk '{gsub(/_pe-/,"_pe-\t",$1);}1' | awk '{print $2"\t"$0}' | awk '{$2=$3=""}1' | tr -s " " | tr " " "\t" | \
         awk -v min=$minmapq -F '\t' 'BEGIN{OFS="\t"} {if ($5 >= min) {print $0}}' > ${i%.f*}_uniq.sam &&
         rm ${i%.f*}_uniqsingle.sam &&
         wait
       fi
       wait
 
-      for k in $(awk '{A[$1]++}END{for(i in A)print i}' ${i%.f*}_uniq.sam); do (
-        awk -v n="${k}" '$1 == n{print $0}' ${i%.f*}_uniq.sam | awk -v n="$k" '{for(i=0;i<n;i++) print}' > ${i%.f*}_exp_${k}.sam ) &
-        if [[ $(jobs -r -p | wc -l) -ge $prepthreads ]]; then
-        wait
-        fi
-      done
-      wait
-      for catexp in ${i%.f*}_exp_*.sam; do cat $catexp >> ${i%.f*}_exp.sam 2> /dev/null && wait; done
-      wait
-      find . -maxdepth 1 -type f -name "${i%.f*}_exp_*.sam" | xargs rm 2> /dev/null &&
-      awk '{print "seq"NR"_"$0}' ${i%.f*}_exp.sam | tr -s ' ' | tr ' ' '\t' > ${i%.f*}_${ref1%.f*}.sam &&
-      rm ${i%.f*}_exp.sam ${i%.f*}_uniq.sam &&
-      wait
-
+      awk '{while ($2-- > 0) print $0' ${i%.f*}_uniq.sam | awk '{print "seq"NR"_"$0}' ${i%.f*}_exp.sam | tr -s ' ' | tr ' ' '\t' > ${i%.f*}_${ref1%.f*}.sam &&
+      rm ${i%.f*}_uniq.sam &&
       awk '{print $4}' ${i%.f*}_${ref1%.f*}.sam | awk '{printf "%d00\n", $1/100}' | paste - ${i%.f*}_${ref1%.f*}.sam | shuf | \
       awk -v max="$downsample" 'a[$1$4]++ < max' | awk '{$1=""}1' | awk '{$1=$1};1' | tr -s " " | tr " " "\t" | awk '{$11=$10}1' | \
       awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$11); print}' | cat ${i%.f*}_heading.sam - > ${i%.f*}_${ref1%.f*}_downsample.sam &&
@@ -1029,7 +1025,7 @@ if [[ "$samples_list" == "samples_list_node_1.txt" ]]; then
       if [[ -z "$interval_list" ]]; then
   			for selchr in $Get2_Chromosome; do (
   				if [[ "$(ls ${projdir}/snpcall/${pop}_${ploidy}x_${selchr}_raw.vcf* 2> /dev/null | wc -l)" -eq 0 ]]; then
-  					$GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ${projdir}/refgenomes/$ref1 -L ${selchr} ${input} -ploidy $ploidy -O ${projdir}/snpcall/${pop}_${ploidy}x_${selchr}_raw.vcf.gz --max-reads-per-alignment-start 0 --minimum-mapping-quality $minmapq --max-num-haplotypes-in-population $((ploidy * maxHaplotype)) &&
+  					$GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ${projdir}/refgenomes/$ref1 -L ${selchr} ${input} -ploidy $ploidy -O ${projdir}/snpcall/${pop}_${ploidy}x_${selchr}_raw.vcf.gz --max-reads-per-alignment-start 0 --minimum-mapping-quality $minmapq --dont-use-soft-clipped-bases $dont_use_softclip --max-num-haplotypes-in-population $((ploidy * maxHaplotype)) &&
   					gunzip ${projdir}/snpcall/${pop}_${ploidy}x_${selchr}_raw.vcf.gz &&
   					wait
   				fi
@@ -1042,7 +1038,7 @@ if [[ "$samples_list" == "samples_list_node_1.txt" ]]; then
         for selchr in $Get2_Chromosome; do (
           cat ${projdir}/${interval_list} | grep $selchr > ${projdir}/variant_intervals_${selchr}.list &&
           if [[ "$(ls ${projdir}/snpcall/${pop}_${ploidy}x_${selchr}_raw.vcf* 2> /dev/null | wc -l)" -eq 0 ]]; then
-            $GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ${projdir}/refgenomes/$ref1 -L ${projdir}/variant_intervals_${selchr}.list ${input} -ploidy $ploidy -O ${projdir}/snpcall/${pop}_${ploidy}x_${selchr}_raw.vcf.gz --max-reads-per-alignment-start 0 --minimum-mapping-quality $minmapq --max-num-haplotypes-in-population $((ploidy * maxHaplotype)) &&
+            $GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ${projdir}/refgenomes/$ref1 -L ${projdir}/variant_intervals_${selchr}.list ${input} -ploidy $ploidy -O ${projdir}/snpcall/${pop}_${ploidy}x_${selchr}_raw.vcf.gz --max-reads-per-alignment-start 0 --minimum-mapping-quality $minmapq --dont-use-soft-clipped-bases $dont_use_softclip --max-num-haplotypes-in-population $((ploidy * maxHaplotype)) &&
             gunzip ${projdir}/snpcall/${pop}_${ploidy}x_${selchr}_raw.vcf.gz &&
             rm ${projdir}/variant_intervals_${selchr}.list &&
             wait
@@ -1062,7 +1058,7 @@ if [[ "$samples_list" == "samples_list_node_1.txt" ]]; then
 		else
 			if [[ "$(ls ${projdir}/snpcall/${pop}_${ploidy}x_${selchr}_raw.vcf* 2> /dev/null | wc -l)" -eq 0 ]]; then
 				echo $Get_Chromosome | tr ',' '\n' | awk '{print "SN:"$1}' | awk 'NR==FNR{a[$1];next}$2 in a{print $0}' - ${projdir}/refgenomes/${ref1%.fasta}.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $2":1-"$3}' > ${projdir}/refgenomes/${ref1%.fasta}.list
-				$GATK --java-options "$Xmx2 -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$threads" HaplotypeCaller -R ${projdir}/refgenomes/$ref1 -L ${projdir}/refgenomes/${ref1%.fasta}.list ${input} -ploidy $ploidy -O ${projdir}/snpcall/${pop}_${ploidy}x_raw.vcf.gz --max-reads-per-alignment-start 0 --minimum-mapping-quality $minmapq --max-num-haplotypes-in-population $((ploidy * maxHaplotype)) &&
+				$GATK --java-options "$Xmx2 -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$threads" HaplotypeCaller -R ${projdir}/refgenomes/$ref1 -L ${projdir}/refgenomes/${ref1%.fasta}.list ${input} -ploidy $ploidy -O ${projdir}/snpcall/${pop}_${ploidy}x_raw.vcf.gz --max-reads-per-alignment-start 0 --minimum-mapping-quality $minmapq --dont-use-soft-clipped-bases $dont_use_softclip --max-num-haplotypes-in-population $((ploidy * maxHaplotype)) &&
 				cd ../snpcall
 				gunzip ${pop}_${ploidy}x_raw.vcf.gz &&
 				wait
@@ -1082,15 +1078,15 @@ if [[ "$joint_calling" == false ]]; then
 			if test ! -f "${projdir}/snpcall/${i%.f*}_${ref1%.f*}.g.vcf"; then
 					if [[ -z "$Get_Chromosome" ]]; then
             if [[ -z "$interval_list" ]]; then
-  						$GATK --java-options "$Xmxg -Djava.io.tmpdir=../snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ../refgenomes/$ref1 -I ${i%.f*}_${ref1%.f*}_precall.bam -ploidy $ploidy -O ${projdir}/snpcall/${i%.f*}_${ref1%.f*}.hold.g.vcf.gz -ERC GVCF --max-reads-per-alignment-start 0 --minimum-mapping-quality $minmapq --max-num-haplotypes-in-population $((ploidy * maxHaplotype)) &&
+  						$GATK --java-options "$Xmxg -Djava.io.tmpdir=../snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ../refgenomes/$ref1 -I ${i%.f*}_${ref1%.f*}_precall.bam -ploidy $ploidy -O ${projdir}/snpcall/${i%.f*}_${ref1%.f*}.hold.g.vcf.gz -ERC GVCF --max-reads-per-alignment-start 0 --minimum-mapping-quality $minmapq --dont-use-soft-clipped-bases $dont_use_softclip --max-num-haplotypes-in-population $((ploidy * maxHaplotype)) &&
               wait
             else
-              $GATK --java-options "$Xmxg -Djava.io.tmpdir=../snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ../refgenomes/$ref1 -L ${projdir}/${interval_list} -I ${i%.f*}_${ref1%.f*}_precall.bam -ploidy $ploidy -O ${projdir}/snpcall/${i%.f*}_${ref1%.f*}.hold.g.vcf.gz -ERC GVCF --max-reads-per-alignment-start 0 --minimum-mapping-quality $minmapq --max-num-haplotypes-in-population $((ploidy * maxHaplotype)) &&
+              $GATK --java-options "$Xmxg -Djava.io.tmpdir=../snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ../refgenomes/$ref1 -L ${projdir}/${interval_list} -I ${i%.f*}_${ref1%.f*}_precall.bam -ploidy $ploidy -O ${projdir}/snpcall/${i%.f*}_${ref1%.f*}.hold.g.vcf.gz -ERC GVCF --max-reads-per-alignment-start 0 --minimum-mapping-quality $minmapq --dont-use-soft-clipped-bases $dont_use_softclip --max-num-haplotypes-in-population $((ploidy * maxHaplotype)) &&
   						wait
             fi
 					else
 						echo $Get_Chromosome | tr ',' '\n' | awk '{print "SN:"$1}' | awk 'NR==FNR{a[$1];next}$2 in a{print $0}' - ../refgenomes/${ref1%.fasta}.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $2":1-"$3}' > ../refgenomes/${ref1%.fasta}.list
-						$GATK --java-options "$Xmxg -Djava.io.tmpdir=../snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ../refgenomes/$ref1 -L ../refgenomes/${ref1%.fasta}.list -I ${i%.f*}_${ref1%.f*}_precall.bam -ploidy $ploidy -O ${projdir}/snpcall/${i%.f*}_${ref1%.f*}.hold.g.vcf.gz -ERC GVCF --max-reads-per-alignment-start 0 --minimum-mapping-quality $minmapq --max-num-haplotypes-in-population $((ploidy * maxHaplotype)) &&
+						$GATK --java-options "$Xmxg -Djava.io.tmpdir=../snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ../refgenomes/$ref1 -L ../refgenomes/${ref1%.fasta}.list -I ${i%.f*}_${ref1%.f*}_precall.bam -ploidy $ploidy -O ${projdir}/snpcall/${i%.f*}_${ref1%.f*}.hold.g.vcf.gz -ERC GVCF --max-reads-per-alignment-start 0 --minimum-mapping-quality $minmapq --dont-use-soft-clipped-bases $dont_use_softclip --max-num-haplotypes-in-population $((ploidy * maxHaplotype)) &&
 						wait
 					fi
           wait

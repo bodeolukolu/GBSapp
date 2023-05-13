@@ -46,6 +46,7 @@ interval_list=variant_intervals.list
 interval_list_ref1=variant_intervals_TF.list
 interval_list_ref2=variant_intervals_TL.list
 maxHaplotype=128
+use_softclip=false
 joint_calling=false
 keep_gVCF=false
 RE1=TGCAT
