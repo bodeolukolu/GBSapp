@@ -349,7 +349,7 @@ echo -e "${blue}\n##############################################################
 main () {
 	cd $projdir
 	cd samples
-  if [[ "$(ls -A *fastq* 2> /dev/null | wc -l)" eq 0 ]]; then
+  if [[ "$(ls -A *fastq* 2> /dev/null | wc -l)" -eq 0 ]]; then
     :> filename_reformatted.txt
     :> flushed_reads.txt
   fi
@@ -686,7 +686,7 @@ main () {
 	mkdir -p alignment_summaries
 	mkdir -p ./alignment_summaries/copy_number
 
-	if [[ "$samples_list" == "samples_list_node_1.txt" ]] && [[ "$(ls -A *fastq* 2> /dev/null | wc -l)" eq 0 ]]; then
+	if [[ "$samples_list" == "samples_list_node_1.txt" ]] && [[ "$(ls -A *fastq* 2> /dev/null | wc -l)" -eq 0 ]]; then
 		for i in samples_list_node_*.txt; do
 			:> ${i%.txt}_hold.txt
 			while read line; do
