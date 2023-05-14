@@ -281,6 +281,10 @@ echo -e "${blue}\n##############################################################
 main () {
 	cd $projdir
 	cd samples
+  if [[ "$(ls -A *fastq* 2> /dev/null | wc -l)" eq 0 ]]; then
+    :> filename_reformatted.txt
+    :> flushed_reads.txt
+  fi
   if test ! -f filename_reformatted.txt; then
 		if [ -d "se" ]; then
 			:
@@ -394,7 +398,7 @@ main () {
 		cd ${projdir}/samples/
     find . -type d -empty -delete
 		sampno=$(ls -1 | wc -l)
-		if [[ "$sampno" == "0" ]]; then
+		if [[ "$sampno" == "0" ]] && [[ "$(ls -A ./preprocess/alignment/*sam* | wc -l)" ==0 ]]; then
 			echo -e "${magenta}- \n- samples folder is empty, exiting pipeline ${white}\n"
 			exit 1
     fi
@@ -614,7 +618,7 @@ main () {
 	mkdir -p alignment_summaries
 	mkdir -p ./alignment_summaries/copy_number
 
-	if [[ "$samples_list" == "samples_list_node_1.txt" ]]; then
+	if [[ "$samples_list" == "samples_list_node_1.txt" ]] && [[ "$(ls -A *fastq* 2> /dev/null | wc -l)" eq 0 ]]; then
 		for i in samples_list_node_*.txt; do
 			:> ${i%.txt}_hold.txt
 			while read line; do
