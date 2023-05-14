@@ -281,7 +281,7 @@ echo -e "${blue}\n##############################################################
 main () {
 	cd $projdir
 	cd samples
-  if [[ "$(ls -A *fastq* 2> /dev/null | wc -l)" -eq 0 ]] || [[ "$(ls -A ./preprocess/alignment/*sam* | wc -l)" -gt 0 ]]; then
+  if [[ "$(ls -A *.f* 2> /dev/null | wc -l)" -eq 0 ]] || [[ "$(ls -A ./preprocess/alignment/*sam* | wc -l)" -gt 0 ]]; then
     :> filename_reformatted.txt
     :> flushed_reads.txt
   fi
@@ -618,7 +618,7 @@ main () {
 	mkdir -p alignment_summaries
 	mkdir -p ./alignment_summaries/copy_number
 
-	if [[ "$samples_list" == "samples_list_node_1.txt" ]] && [[ "$(ls -A ./samples/*fastq* 2> /dev/null | wc -l)" -gt 0 ]] && [[ "$(ls -A ./preprocess/alignment/*sam* | wc -l)" -eq 0 ]]; then
+	if [[ "$samples_list" == "samples_list_node_1.txt" ]] && [[ "$(ls -A ./samples/*.f* 2> /dev/null | wc -l)" -gt 0 ]] && [[ "$(ls -A ./preprocess/alignment/*sam* | wc -l)" -eq 0 ]]; then
 		for i in samples_list_node_*.txt; do
 			:> ${i%.txt}_hold.txt
 			while read line; do
@@ -5068,7 +5068,8 @@ main () {
   if [[ "$samples_list" == "samples_list_node_1.txt" ]] && [[ -d "snpfilter" ]]; then
   	find ../ -size 0 -delete >/dev/null 2>&1
   	touch Analysis_Complete
-    rm *node*.txt steps.txt 2> /dev/null
+    ls *node*.txt | grep -v 'samples_list' | xargs rm 2> /dev/null
+    rm steps.txt 2> /dev/null
     mv ${projdir}/GBSapp_run_node_1.sh ${projdir}/GBSapp_run_node_1_done.sh 2> /dev/null
     mv ${projdir}/GBSapp_run_node.sh ${projdir}/GBSapp_run_node_done.sh 2> /dev/null
     if [[ "$biallelic" == "true" ]]; then mv snpfilter snpfilter_biallelic; fi

@@ -382,7 +382,9 @@ cd samples
 if [[ -d pe ]] || [[ -d se ]]; then
   export samples_list=$(ls -R ./*/*.f* 2> /dev/null | awk '{gsub(/.\/se\//,"");gsub(/.\/pe\//,"");}1' | sort | uniq | grep -v .txt | grep -v .txt.gz | grep -v uniq | shuf | awk '{gsub(/\n/," "); print}' | awk -F"/" '{print $NF}' | awk '!a[$0]++' )
 else
-  export samples_list=$(ls -R *.f* 2> /dev/null | grep -v .txt | grep -v .txt.gz | grep -v uniq | shuf | awk '{gsub(/\n/," "); print}' | awk -F"/" '{print $NF}' | awk '!a[$0]++' )
+  if [[ "$(wc -l ../samples_list* 2> /dev/null | awk '{if(max<$1){max=$1;line=$1}}END{print line}')"  -lt 1 ]]; then
+    export samples_list=$(ls -R *.f* 2> /dev/null | grep -v .txt | grep -v .txt.gz | grep -v uniq | shuf | awk '{gsub(/\n/," "); print}' | awk -F"/" '{print $NF}' | awk '!a[$0]++' )
+  fi
 fi
 cd ../
 
