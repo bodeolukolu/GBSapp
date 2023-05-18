@@ -436,7 +436,7 @@ if [[ "$string" == false ]]; then
     sleep 5
   fi
 
-  if [[ "$(wc -l ../samples_list* 2> /dev/null | awk '{if(max<$1){max=$1;line=$1}}END{print line}')"  -lt 1 ]]; then
+  if [[ "$(wc -l samples_list* 2> /dev/null | awk '{if(max<$1){max=$1;line=$1}}END{print line}')"  -lt 1 ]]; then
     echo $samples_list | awk -F' ' '{ for (i=1;i<=NF;i+=1) print $i }' | awk '{gsub(/\.R2.f/,"_R2.f");}1' | grep -v _R2.f | grep -v _uniq.fasta | grep -v _uniq_R1.fasta | grep -v _uniq_R2.fasta | \
     grep -v _uniq.hold.fasta | grep -v _uniq_R1.hold.fasta | grep -v _uniq_R2.hold.fasta | grep -v fq.gz | \
     awk '{gsub(/_R1.fastq/,".fastq"); gsub(/\.R1.fastq/,".fastq"); gsub(/_R1.fq/,".fq"); gsub(/\.R1.fq/,".fq"); print}' > samples_list_node_1.txt
@@ -549,7 +549,7 @@ if [[ "$string" == true ]]; then
     printf "walkaway=true \n\n" > walkaway.txt
     printf "GBSapp_dir=${GBSapp_dir}\n" > fetchdir.txt
     printf "projdir=${projdir}" >> fetchdir.txt
-    if [[ "$(wc -l ../samples_list* 2> /dev/null | awk '{if(max<$1){max=$1;line=$1}}END{print line}')"  -lt 1 ]]; then
+    if [[ "$(wc -l samples_list* 2> /dev/null | awk '{if(max<$1){max=$1;line=$1}}END{print line}')"  -lt 1 ]]; then
       echo $samples_list | awk -F' ' '{ for (i=1;i<=NF;i+=1) print $i }' | awk '{gsub(/\.R2.f/,"_R2.f");}1' | grep -v _R2.f | grep -v _uniq_R1.fasta | grep -v _uniq_R2.fasta | grep -v _uniq_R1.hold.fasta | grep -v fq.gz | \
       awk '{gsub(/_R1.fastq/,".fastq"); gsub(/\.R1.fastq/,".fastq"); gsub(/_R1.fq/,".fq"); gsub(/\.R1.fq/,".fq"); print}' > samples_list_node_1.txt
     fi
@@ -663,8 +663,8 @@ if [[ "$string" == true ]]; then
     printf "#""!""/bin/bash \n#SBATCH -c ${thread_node} \n\n" > cluster_header.sh
     printf "walkaway=true \n\n" > walkaway.txt
     if [[ "$n_nodes" -gt 1 ]]; then
-      if [[ "$(wc -l ../samples_list* 2> /dev/null | awk '{if(max<$1){max=$1;line=$1}}END{print line}')"  -lt 1 ]]; then
-        rm ../samples_list*
+      if [[ "$(wc -l samples_list* 2> /dev/null | awk '{if(max<$1){max=$1;line=$1}}END{print line}')"  -lt 1 ]]; then
+        rm samples_list*
       fi
       for i in $(seq 1 "$n_nodes"); do
         echo $samples_list | awk -F' ' -v pos=$i -v skip=$n_nodes '{ for (i=pos;i<=NF;i+=skip) print $i }' | awk '{gsub(/\.R2.f/,"_R2.f");}1' | grep -v _R2.f | grep -v _uniq_R1.fasta | grep -v _uniq_R2.fasta | \
@@ -721,7 +721,7 @@ if [[ "$string" == true ]]; then
         done
       fi
     else
-      if [[ "$(wc -l ../samples_list* 2> /dev/null | awk '{if(max<$1){max=$1;line=$1}}END{print line}')"  -lt 1 ]]; then
+      if [[ "$(wc -l samples_list* 2> /dev/null | awk '{if(max<$1){max=$1;line=$1}}END{print line}')"  -lt 1 ]]; then
         echo $samples_list | awk -F' ' '{ for (i=1;i<=NF;i+=1) print $i }' | awk '{gsub(/\.R2.f/,"_R2.f");}1' | grep -v _R2.f | grep -v _uniq_R1.fasta | grep -v _uniq_R2.fasta | grep -v _uniq_R1.hold.fasta | grep -v fq.gz | \
         awk '{gsub(/_R1.fastq/,".fastq"); gsub(/.R1.fastq/,".fastq"); gsub(/_R1.fq/,".fq"); gsub(/.R1.fq/,".fq"); print}' > samples_list_node_1.txt
       fi
