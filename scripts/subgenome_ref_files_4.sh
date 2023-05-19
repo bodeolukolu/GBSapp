@@ -3449,6 +3449,7 @@ main () {
           $GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" IndexFeatureFile -I $i &&
     			$GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" LeftAlignAndTrimVariants -R ${projdir}/refgenomes/$refg -V $i -O ${i%.vcf}0.vcf --split-multi-allelics  --dont-trim-alleles --keep-original-ac &&
     			# large_numerous_chrom &>> ${projdir}/log.out &&
+          $bcftools norm -m -any $i > ${i%.vcf}0.vcf
     			awk '!/^##/' ${i%.vcf}0.vcf | awk '{gsub(/^#/,""); print $0}' > ${i%.vcf}trim.vcf &&
     			awk -v file=${i%.vcf} 'BEGIN{getline f;}NR%100000==2{x=file"1x_rawSPLIT"++i".vcf";a[i]=x;print f>x;}{print > x}' ${i%.vcf}trim.vcf & PID=$!
     		  wait $PID
@@ -3483,9 +3484,10 @@ main () {
           wait
           awk -v pat="0/0:0,0:0" -v samz1="$samz1" 'gsub(pat,pat) < samz1' $i | awk -v pat="./.:0,0:0"  -v samz2="$samz2" 'gsub(pat,pat) < samz2' > ${i}.tmp &&
           mv ${i}.tmp ${i}  &&
-          $GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" IndexFeatureFile -I $i &&
-    			$GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" LeftAlignAndTrimVariants -R ${projdir}/refgenomes/$refg -V $i -O ${i%.vcf}0.vcf --split-multi-allelics  --dont-trim-alleles --keep-original-ac &&
-    			# large_numerous_chrom &>> ${projdir}/log.out &&
+          # $GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" IndexFeatureFile -I $i &&
+    			# $GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" LeftAlignAndTrimVariants -R ${projdir}/refgenomes/$refg -V $i -O ${i%.vcf}0.vcf --split-multi-allelics  --dont-trim-alleles --keep-original-ac &&
+    			# # large_numerous_chrom &>> ${projdir}/log.out &&
+          $bcftools norm -m -any $i > ${i%.vcf}0.vcf
     			awk '!/^##/' ${i%.vcf}0.vcf | awk '{gsub(/^#/,""); print $0}' > ${i%.vcf}trim.vcf &&
     			awk -v file=${i%.vcf} 'BEGIN{getline f;}NR%100000==2{x=file"2x_rawSPLIT"++i".vcf";a[i]=x;print f>x;}{print > x}' ${i%.vcf}trim.vcf & PID=$!
     			wait $PID
@@ -3520,10 +3522,10 @@ main () {
           wait
           awk -v pat="0/0/0/0:0,0:0" -v samz1="$samz1" 'gsub(pat,pat) < samz1' $i | awk -v pat="./././.:0,0:0"  -v samz2="$samz2" 'gsub(pat,pat) < samz2' > ${i}.tmp &&
           mv ${i}.tmp ${i} &&
-          $GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" IndexFeatureFile -I $i &&
-    			$GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" LeftAlignAndTrimVariants -R ${projdir}/refgenomes/$refg -V $i -O ${i%.vcf}0.vcf --split-multi-allelics  --dont-trim-alleles --keep-original-ac &&
-    			# large_numerous_chrom &>> ${projdir}/log.out &&
-    			awk '!/^##/' ${i%.vcf}0.vcf | awk '{gsub(/^#/,""); print $0}' > ${i%.vcf}trim.vcf &&
+          # $GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" IndexFeatureFile -I $i &&
+    			# $GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" LeftAlignAndTrimVariants -R ${projdir}/refgenomes/$refg -V $i -O ${i%.vcf}0.vcf --split-multi-allelics  --dont-trim-alleles --keep-original-ac &&
+    			# # large_numerous_chrom &>> ${projdir}/log.out &&
+    			awk '!/^##/' $i | awk '{gsub(/^#/,""); print $0}' > ${i%.vcf}trim.vcf &&
     			awk -v file=${i%.vcf} 'BEGIN{getline f;}NR%100000==2{x=file"4x_rawSPLIT"++i".vcf";a[i]=x;print f>x;}{print > x}' ${i%.vcf}trim.vcf & PID=$!
     			wait $PID
     			rm "${i%.vcf}"0.vcf* "${i%.vcf}"trim.vcf* &&
@@ -3557,10 +3559,10 @@ main () {
           wait
           awk -v pat="0/0/0/0/0/0:0,0:0" -v samz1="$samz1" 'gsub(pat,pat) < samz1' $i | awk -v pat="./././././.:0,0:0"  -v samz2="$samz2" 'gsub(pat,pat) < samz2' > ${i}.tmp &&
           mv ${i}.tmp ${i} &&
-          $GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" IndexFeatureFile -I $i &&
-    			$GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" LeftAlignAndTrimVariants -R ${projdir}/refgenomes/$refg -V $i -O ${i%.vcf}0.vcf --split-multi-allelics  --dont-trim-alleles --keep-original-ac &&
-    			# large_numerous_chrom &>> ${projdir}/log.out &&
-    			awk '!/^##/' ${i%.vcf}0.vcf | awk '{gsub(/^#/,""); print $0}' > ${i%.vcf}trim.vcf &&
+          # $GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" IndexFeatureFile -I $i &&
+    			# $GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" LeftAlignAndTrimVariants -R ${projdir}/refgenomes/$refg -V $i -O ${i%.vcf}0.vcf --split-multi-allelics  --dont-trim-alleles --keep-original-ac &&
+    			# # large_numerous_chrom &>> ${projdir}/log.out &&
+    			awk '!/^##/' $i | awk '{gsub(/^#/,""); print $0}' > ${i%.vcf}trim.vcf &&
     			awk -v file=${i%.vcf} 'BEGIN{getline f;}NR%100000==2{x=file"6x_rawSPLIT"++i".vcf";a[i]=x;print f>x;}{print > x}' ${i%.vcf}trim.vcf & PID=$!
     			wait $PID
           rm "${i%.vcf}"0.vcf* "${i%.vcf}"trim.vcf* &&
@@ -3594,10 +3596,10 @@ main () {
           wait
           awk -v pat="0/0/0/0/0/0/0/0:0,0:0" -v samz1="$samz1" 'gsub(pat,pat) < samz1' $i | awk -v pat="./././././././.:0,0:0"  -v samz2="$samz2" 'gsub(pat,pat) < samz2' > ${i}.tmp &&
           mv ${i}.tmp ${i} &&
-          $GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" IndexFeatureFile -I $i &&
-    			$GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" LeftAlignAndTrimVariants -R ${projdir}/refgenomes/$refg -V $i -O ${i%.vcf}0.vcf --split-multi-allelics  --dont-trim-alleles --keep-original-ac &&
-    			# large_numerous_chrom &>> ${projdir}/log.out &&
-    			awk '!/^##/' ${i%.vcf}0.vcf | awk '{gsub(/^#/,""); print $0}' > ${i%.vcf}trim.vcf &&
+          # $GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" IndexFeatureFile -I $i &&
+    			# $GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" LeftAlignAndTrimVariants -R ${projdir}/refgenomes/$refg -V $i -O ${i%.vcf}0.vcf --split-multi-allelics  --dont-trim-alleles --keep-original-ac &&
+    			# # large_numerous_chrom &>> ${projdir}/log.out &&
+    			awk '!/^##/' $i | awk '{gsub(/^#/,""); print $0}' > ${i%.vcf}trim.vcf &&
     			awk -v file=${i%.vcf} 'BEGIN{getline f;}NR%100000==2{x=file"8x_rawSPLIT"++i".vcf";a[i]=x;print f>x;}{print > x}' ${i%.vcf}trim.vcf & PID=$!
           wait $PID
           rm "${i%.vcf}"0.vcf* "${i%.vcf}"trim.vcf* &&
@@ -3626,7 +3628,7 @@ main () {
   		vcfdose=${v%_DP*}; vcfdose=${vcfdose#*_}; out=$(ls *${vcfdose}_raw.vcf)
   		for raw in $out; do
   			grep '^#' $raw  > ${raw%_raw.vcf}.vcf
-  			awk 'FNR==NR{a[$1,$2]=$0;next}{if(b=a[$1,$2]){print b}}' $raw $v >> ${raw%_raw.vcf}.vcf
+  			awk 'FNR==NR{a[$1,$2]=$0;next}{if(b=a[$1,$2]){print b}}' $raw <(awk '{print $1"\t"$2}' $v | awk '!seen[$0] {print} {++seen[$0]}') >> ${raw%_raw.vcf}.vcf
   		done
   	done
   	wait
@@ -4865,7 +4867,7 @@ main () {
 
   			vcfdose=${i%_rd*}; vcfdose=${vcfdose#*_}
   			zcat ../../snpcall/*${vcfdose}.vcf.gz | grep '^#' | awk -v n="$n" '{gsub(n,"");gsub(/chr/,"Chr");}1' > ${i%.txt}_header.vcf &&
-  			awk 'FNR==NR{a[$1,$2]=$0;next}{if(b=a[$1,$2]){print b}}' <(zcat ../../snpcall/*${vcfdose}.vcf.gz | grep -v '^#' | awk -v n="$n" '{gsub(n,"");gsub(/chr/,"Chr");}1') <(awk -v n="$n" '{gsub(n,"");gsub(/chr/,"Chr"); print $2"\t"$3}' $i) | \
+  			awk 'FNR==NR{a[$1,$2]=$0;next}{if(b=a[$1,$2]){print b}}' <(zcat ../../snpcall/*${vcfdose}.vcf.gz | grep -v '^#' | awk -v n="$n" '{gsub(n,"");gsub(/chr/,"Chr");}1') <(awk -v n="$n" '{gsub(n,"");gsub(/chr/,"Chr"); print $2"\t"$3}' $i | awk '!seen[$0] {print} {++seen[$0]}') | \
         sort -Vk1,1 -Vk2,2 | cat "${i%.txt}"_header.vcf - > ${i%_dose.txt}.vcf &&
   			$bcftools view -s "$arr2" ${i%_dose.txt}.vcf > tmp.vcf && mv tmp.vcf ${i%_dose.txt}.vcf &&
 
@@ -4894,18 +4896,10 @@ main () {
           wait
         fi
 
-        awk -F"\t" '!seen[$1"\t"$2]++' ${i%_dose.txt}.vcf > ${i%_dose.txt}_noMultiallelic.vcf &&
-        mv ${i%_dose.txt}_noMultiallelic.vcf ${i%_dose.txt}.vcf &&
-        gzip "${i%_dose.txt}".vcf &&
-        awk -F"\t" '!seen[$1]++' "${i%.txt}".txt > "${i%.txt}"_noMultiallelic.txt &&
-        mv "${i%.txt}"_noMultiallelic.txt "${i%.txt}".txt &&
-        if [[ "$ploidy" -le 2 ]]; then
-          awk -F"\t" '!seen[$1]++' "${i%_dose.txt}".hmp.txt > "${i%_dose.txt}"_noMultiallelic.hmp.txt &&
-          mv "${i%_dose.txt}"_noMultiallelic.hmp.txt "${i%_dose.txt}".hmp.txt &&
-          wait
-        fi
-        awk -F"\t" '!seen[$1]++' "${i%_dose.txt}"_binary.txt > "${i%_dose.txt}"_binary_noMultiallelic.txt &&
-        mv "${i%_dose.txt}"_binary_noMultiallelic.txt "${i%_dose.txt}"_binary.txt &&
+        $bcftools norm -m -any  "${i%_dose.txt}".vcf > "${i%_dose.txt}"_split_Multiallelic.vcf &&
+        mv "${i%_dose.txt}".vcf "${i%_dose.txt}"_nosplit_Multiallelic.vcf &&
+        gzip "${i%_dose.txt}""${i%_dose.txt}"_nosplit_Multiallelic.vcf &&
+        gzip "${i%_dose.txt}""${i%_dose.txt}"_split_Multiallelic.vcf &&
         mv ${i%.txt}_AR_metric.txt ${i%_dose.txt}_AR_metric.txt
         mv ${i%.txt}_AR_mean.txt ${i%_dose.txt}_AR_mean.txt
         find . -type f -empty -delete
