@@ -3676,11 +3676,12 @@ for snpfilter_dir in */; do (
       fi
 
       $bcftools norm -m -any  "${i%_dose.txt}".vcf > "${i%_dose.txt}"_split_Multiallelic.vcf &&
+      gzip "${i%_dose.txt}"_split_Multiallelic.vcf &&
       mv "${i%_dose.txt}".vcf "${i%_dose.txt}"_nosplit_Multiallelic.vcf &&
-      gzip "${i%_dose.txt}""${i%_dose.txt}"_nosplit_Multiallelic.vcf &&
-      gzip "${i%_dose.txt}""${i%_dose.txt}"_split_Multiallelic.vcf &&
+      gzip "${i%_dose.txt}"_nosplit_Multiallelic.vcf &&
       mv ${i%.txt}_AR_metric.txt ${i%_dose.txt}_AR_metric.txt
       mv ${i%.txt}_AR_mean.txt ${i%_dose.txt}_AR_mean.txt
+      rm "${i%_dose.txt}"_nosplit_Multiallelic.vcf
       find . -type f -empty -delete
 		done
 		wait
