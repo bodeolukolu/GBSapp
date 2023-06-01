@@ -1062,7 +1062,7 @@ if [[ "$samples_list" == "samples_list_node_1.txt" ]]; then
 		else
 			if [[ "$(ls ${projdir}/snpcall/${pop}_${ploidy}x_${selchr}_raw.vcf* 2> /dev/null | wc -l)" -eq 0 ]]; then
 				echo $Get_Chromosome | tr ',' '\n' | awk '{print "SN:"$1}' | awk 'NR==FNR{a[$1];next}$2 in a{print $0}' - ${projdir}/refgenomes/${ref1%.fasta}.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $2":1-"$3}' > ${projdir}/refgenomes/${ref1%.fasta}.list
-				$GATK --java-options "$Xmx2 -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$threads" HaplotypeCaller -R ${projdir}/refgenomes/$ref1 -L ${projdir}/refgenomes/${ref1%.fasta}.list ${input} -ploidy $ploidy -O ${projdir}/snpcall/${pop}_${ploidy}x_raw.vcf.gz --max-reads-per-alignment-start 0 --minimum-mapping-quality $minmapq --dont-use-soft-clipped-bases $dont_use_softclip --max-num-haplotypes-in-population $((ploidy * maxHaplotype)) &&
+				$GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ${projdir}/refgenomes/$ref1 -L ${projdir}/refgenomes/${ref1%.fasta}.list ${input} -ploidy $ploidy -O ${projdir}/snpcall/${pop}_${ploidy}x_raw.vcf.gz --max-reads-per-alignment-start 0 --minimum-mapping-quality $minmapq --dont-use-soft-clipped-bases $dont_use_softclip --max-num-haplotypes-in-population $((ploidy * maxHaplotype)) &&
 				cd ../snpcall
 				gunzip ${pop}_${ploidy}x_raw.vcf.gz &&
 				wait
@@ -1137,35 +1137,38 @@ if [[ "$joint_calling" == false ]]; then
 						Get2_Chromosome=$(echo $Get2_Chromosome | awk -v i=$i '{gsub(i,"");}1')
 					done
 				fi
+
+
 				for selchr in $Get2_Chromosome; do (
           export TILEDB_DISABLE_FILE_LOCKING=1
           if [[ -z "$interval_list" ]]; then
-  					$GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" GenomicsDBImport ${input} -L ${selchr} --genomicsdb-workspace-path ${pop}_${ploidy}x_${selchr}_raw --genomicsdb-shared-posixfs-optimizations true --batch-size 50 --merge-input-intervals &&
+  					$GATK --java-options "$Xmx1 -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$loopthreads" GenomicsDBImport ${input} -L ${selchr} --genomicsdb-workspace-path ${pop}_${ploidy}x_${selchr}_raw --genomicsdb-shared-posixfs-optimizations true --batch-size 50 --merge-input-intervals &&
   					wait
           else
             cat ${projdir}/${interval_list} | grep $selchr > ${projdir}/variant_intervals_${selchr}.list &&
-            $GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" GenomicsDBImport ${input} -L ${projdir}/variant_intervals_${selchr}.list --genomicsdb-workspace-path ${pop}_${ploidy}x_${selchr}_raw --genomicsdb-shared-posixfs-optimizations true --batch-size 50 --merge-input-intervals &&
+            $GATK --java-options "$Xmx1 -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$loopthreads" GenomicsDBImport ${input} -L ${projdir}/variant_intervals_${selchr}.list --genomicsdb-workspace-path ${pop}_${ploidy}x_${selchr}_raw --genomicsdb-shared-posixfs-optimizations true --batch-size 50 --merge-input-intervals &&
             rm ${projdir}/variant_intervals_${selchr}.list &&
             wait
           fi
           wait ) &
-      		if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
+      		if [[ $(jobs -r -p | wc -l) -ge $N ]]; then
       			wait
       		fi
 				done
+
 
 				for selchr in $Get2_Chromosome; do (
           export TILEDB_DISABLE_FILE_LOCKING=1
 					if test ! -f ${pop}_${ploidy}x_${selchr}_raw.vcf.gz; then
             if [[ -z "$interval_list" ]]; then
-  						$GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" GenotypeGVCFs -R ${projdir}/refgenomes/$ref1 -L ${selchr} -V gendb://${pop}_${ploidy}x_${selchr}_raw -O ${pop}_${ploidy}x_${selchr}_raw.hold.vcf.gz &&
+  						$GATK --java-options "$Xmx1 -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$loopthreads" GenotypeGVCFs -R ${projdir}/refgenomes/$ref1 -L ${selchr} -V gendb://${pop}_${ploidy}x_${selchr}_raw -O ${pop}_${ploidy}x_${selchr}_raw.hold.vcf.gz &&
   						rm -r ${pop}_${ploidy}x_${selchr}_raw &&
   						mv ${pop}_${ploidy}x_${selchr}_raw.hold.vcf.gz ${pop}_${ploidy}x_${selchr}_raw.vcf.gz &&
   						mv ${pop}_${ploidy}x_${selchr}_raw.hold.vcf.gz.tbi ${pop}_${ploidy}x_${selchr}_raw.vcf.gz.tbi &&
   						wait
             else
               cat ${projdir}/${interval_list} | grep $selchr > ${projdir}/variant_intervals_${selchr}.list &&
-              $GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" GenotypeGVCFs -R ${projdir}/refgenomes/$ref1 -L ${projdir}/variant_intervals_${selchr}.list -V gendb://${pop}_${ploidy}x_${selchr}_raw -O ${pop}_${ploidy}x_${selchr}_raw.hold.vcf.gz &&
+              $GATK --java-options "$Xmx1 -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$loopthreads" GenotypeGVCFs -R ${projdir}/refgenomes/$ref1 -L ${projdir}/variant_intervals_${selchr}.list -V gendb://${pop}_${ploidy}x_${selchr}_raw -O ${pop}_${ploidy}x_${selchr}_raw.hold.vcf.gz &&
               rm ${projdir}/variant_intervals_${selchr}.list &&
               rm -r ${pop}_${ploidy}x_${selchr}_raw &&
               mv ${pop}_${ploidy}x_${selchr}_raw.hold.vcf.gz ${pop}_${ploidy}x_${selchr}_raw.vcf.gz &&
@@ -1184,7 +1187,7 @@ if [[ "$joint_calling" == false ]]; then
 						sleep 5 && exit 1
 					fi
           wait ) &
-      		if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
+      		if [[ $(jobs -r -p | wc -l) -ge $N ]]; then
       			wait
       		fi
 				done
@@ -2881,13 +2884,13 @@ for snpfilter_dir in */; do (
 			zcat ../../snpcall/*${vcfdose}.vcf.gz | grep '^#' | awk -v n="$n" '{gsub(n,"");gsub(/chr/,"Chr");}1' > ${i%.txt}_header.vcf &&
       awk 'FNR==NR{a[$1,$2]=$0;next}{if(b=a[$1,$2]){print b}}' <(zcat ../../snpcall/*${vcfdose}.vcf.gz | grep -v '^#' | awk -v n="$n" '{gsub(n,"");gsub(/chr/,"Chr");}1') <(awk -v n="$n" '{gsub(n,"");gsub(/chr/,"Chr");print $2"\t"$3}' $i | awk '!seen[$0] {print} {++seen[$0]}') | \
       sort -Vk1,1 -Vk2,2 | cat ${i%.txt}_header.vcf - > ${i%_dose.txt}.vcf &&
+      rm ${i%.txt}_header.vcf &&
       $bcftools view -s "$arr2" "${i%_dose.txt}".vcf > tmp.vcf && mv tmp.vcf ${i%_dose.txt}.vcf &&
 
 			grep -v '^##' ${i%_dose.txt}.vcf | awk '{gsub(/#CHROM/,"CHROM");}1' > ${i%_dose.txt}_tmp.vcf &&
 			Rscript "${GBSapp_dir}"/scripts/R/recode_vcf.R "${i%_dose.txt}_tmp.vcf" "$i" "${i%.txt}_AR_metric.txt" "${ploidy}x" "$darr" "${GBSapp_dir}/tools/R" &&
-			grep '^##' ${i%.txt}_header.vcf | cat - <(awk '{gsub(/CHROM/,"#CHROM");}1' dose_temp.vcf) | \
+			grep '^##' ${i%_dose.txt}.vcf | cat - <(awk '{gsub(/CHROM/,"#CHROM");}1' dose_temp.vcf) | \
       awk '{gsub(/0,0:.:.:./,"0,0:.:."); gsub(/0,0:.:.:./,"0,0:.:."); gsub(/0,0:.:.:./,"0,0:.:."); gsub(/0,0:.:.:./,"0,0:.:."); gsub(/0,0:.:.:./,"0,0:.:."); }1' > ${i%_dose.txt}.vcf &&
-      rm {i%.txt}_header.vcf
 			mv AR_temp.txt ${i%.txt}_AR_metric.txt
 			rm ${i%_dose.txt}_tmp.vcf dose_temp.vcf
 
@@ -2903,13 +2906,15 @@ for snpfilter_dir in */; do (
         wait
       fi
 
-      $bcftools norm -m -any  "${i%_dose.txt}".vcf > "${i%_dose.txt}"_split_Multiallelic.vcf &&
-      gzip "${i%_dose.txt}"_split_Multiallelic.vcf &&
+      if [[ "$ploidy" -eq 1 ]] || [[ "$ploidy" -eq 2 ]]; then
+        $bcftools norm -m -any  "${i%_dose.txt}".vcf > "${i%_dose.txt}"_split_Multiallelic.vcf &&
+        gzip "${i%_dose.txt}"_split_Multiallelic.vcf &&
+        wait
+      fi
       mv "${i%_dose.txt}".vcf "${i%_dose.txt}"_nosplit_Multiallelic.vcf &&
       gzip "${i%_dose.txt}"_nosplit_Multiallelic.vcf &&
       mv ${i%.txt}_AR_metric.txt ${i%_dose.txt}_AR_metric.txt
       mv ${i%.txt}_AR_mean.txt ${i%_dose.txt}_AR_mean.txt
-      rm "${i%_dose.txt}"_nosplit_Multiallelic.vcf
       find . -type f -empty -delete
 		done
 		wait
@@ -3417,7 +3422,7 @@ if [[ "$samples_list" == "samples_list_node_1.txt" ]] && [[ -d "snpfilter" ]]; t
 	rm steps.txt 2> /dev/null
 	mv ${projdir}/GBSapp_run_node_1.sh ${projdir}/GBSapp_run_node_1_done.sh 2> /dev/null
 	mv ${projdir}/GBSapp_run_node.sh ${projdir}/GBSapp_run_node_done.sh 2> /dev/null
-  if [[ "$biallelic" == "true" ]]; then mv snpfilter snpfilter_biallelic; fi
+  if [[ "$biallelic" == true ]]; then mv snpfilter snpfilter_biallelic; fi
 else
 	touch Analysis_Complete_${samples_list}
 fi
