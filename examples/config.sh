@@ -11,10 +11,22 @@ subsample_WGS_in_silico_qRRS=false
 # Variant calling
 ###################################################
 ploidy=6
+# Variant calling with haploid subgenome(s)
+# Anchored to ref1 for loci conserved across all subgenomes
 ref1=TF.fasta
 ref2=TL.fasta
 ploidy_ref1=4
 ploidy_ref2=2
+# Variant calling with haplotype-resolved reference genome
+# Anchored to haplome_ref1 for loci conserved across all haplomes
+haplome_ref1=IbA.fasta
+haplome_ref2=IbB.fasta
+# Variant calling with pan-genomes
+# Anchored to pangenome_ref1 for loci conserved across all haplomes
+pangenome_ref1=TF.fasta
+pangenome_ref2=TL.fasta
+pangenome_specific=true
+# exclue or limit variant calling to specific chromosomes
 Get_Chromosome=TF_Chr01,TF_Chr02
 Exclude_Chromosome=TF_Chr00,TL_Chr00
 
@@ -23,14 +35,16 @@ Exclude_Chromosome=TF_Chr00,TL_Chr00
 p1=M9
 p2=M19
 biallelic=false
-genotype_missingness=0.1,0.2,0.3
-sample_missingness=0.1,0.2,0.3
+genotype_missingness=1
+sample_missingness=1
 exclude_samples=S1,S2,S3
+select_samples=pop.txt
 minRD_2x=6
 minRD_4x=25
 minRD_6x=45
 pseg=0.001
 maf=0.05
+filtered_vcf=false
 
 # Advanced_parameters
 ###################################################
@@ -51,3 +65,4 @@ joint_calling=false
 keep_gVCF=false
 RE1=TGCAT
 RE2=CATG
+filter_ExcHet=false

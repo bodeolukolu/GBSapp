@@ -123,14 +123,20 @@ Using a text editor, save a file containing any of the following variables as 'c
 |Variable      |Default       |Usage         |Input         |required/Optional|
 |:-------------|:-------------|:-------------|:-------------|:----------------|
 |ploidy|na|value = 1,2,4,6, or 8|integer|Required|
-|ref1|na|reference genome as .fasta file. Anchor when subgenomes/haplomes/pan-genomes are specified |integer|Optional|
+|ref1|na|reference subgenome as .fasta file. Anchor-genome when other subgenomes specified |integer|Optional|
 |ref2|na|2nd reference genome as .fasta file|integer|Optional|
 |ref3|na|3rd reference genome as .fasta file|integer|Optional|
 |ref4|na|4th reference genome as .fasta file|integer|Optional|
-|ploidy_ref1|na|ploid level for subgenome 1|integer|Required|
-|ploidy_ref2|na|ploid level for subgenome 2, only specify for subgenome specific variants|integer|Required|
-|ploidy_ref3|na|ploid level for subgenome 3, only specify for subgenome specific variants|integer|Required|
-|ploidy_ref4|na|ploid level for subgenome 4, only specify for subgenome specific variants|integer|Required|
+|ploidy_ref1|na|ploidy-level for subgenome 1|integer|Optional|
+|ploidy_ref2|na|ploidy-level for subgenome 2, only specify for subgenome specific variants|integer|Optional|
+|ploidy_ref3|na|ploidy-level for subgenome 3, only specify for subgenome specific variants|integer|Optional|
+|ploidy_ref4|na|ploidy-level for subgenome 4, only specify for subgenome specific variants|integer|Optional|
+|haplome_ref1|na|reference haplome as .fasta file. Anchor-haplome when other haplomes are specified |integer|Optional|
+|haplome_ref2|na|2nd reference haplome as .fasta file|integer|Optional|
+|pangenome_ref1|na|reference genome as .fasta file. Anchor-genome when other genomes are specified |integer|Optional|
+|pangenome_ref2|na|2nd reference pan-genome as .fasta file|integer|Optional|
+|pangenome_ref2|na|2nd reference pan-genome as .fasta file|integer|Optional|
+|pangenome_specific|false|variant call from pan-genome specific read|true or false|Optional|
 |Get_Chromosome|na|variant calling on specific chromosomes, scaffolds,and contigs|comma delimited string(s)|optional|
 |Exclude_Chromosome|na|variant calling to exclude specific chromosomes, scaffolds,and contigs|comma delimited string(s)|optional|
 
@@ -143,9 +149,10 @@ Using a text editor, save a file containing any of the following variables as 'c
 |p1|na|maternal parent (specified only for biparental populations)|string|Optional|
 |p2|na|paternal parent (specified only for biparental populations)|string|Optional|
 |biallelic|false|filter to output only biallelic variants|string|Optional|
-|genotype_missingness|0.2|maximum proportion of missing genotypes allowed per sample|comma delimited decimal number(s)|Optional|
-|sample_missingness|0.2|maximum proportion of missing samples allowed per variant|comma delimited decimal number(s)|Optional|
+|genotype_missingness|1|maximum proportion of missing genotypes allowed per sample|comma delimited decimal number(s)|Optional|
+|sample_missingness|1|maximum proportion of missing samples allowed per variant|comma delimited decimal number(s)|Optional|
 |exclude_samples|na|sample IDs to be exclude from filtered variant data set|comma delimited string(s)|Optional|
+|select_samples|na|limit variant filtering to samples IDs in file delimited by newline|filename|Optional|
 |minRD_1x|2|minimum read depth threshold|integer|Optional|
 |minRD_2x|6|minimum read depth threshold|integer|Optional|
 |minRD_4x|25|minimum read depth threshold|integer|Optional|
@@ -153,6 +160,7 @@ Using a text editor, save a file containing any of the following variables as 'c
 |minRD_8x|100|minimum read depth threshold|integer|Optional|
 |pseg|0.001|p-value threshold for chi-square test of segregation distortion|decimal number|Optional|
 |maf|0.02|minor allele frequency threshold|decimal number|Optional|
+|filtered_vcf|false|generate filtered vcf file|string|Optional|
 
 
 
@@ -172,6 +180,7 @@ Using a text editor, save a file containing any of the following variables as 'c
 |keep_gVCF|false|keep sample gVCF files, if additional samples will be included for future joint calling)|string|Optional|
 |RE1|NA|sequence motif at start of R1 reads|string|Optional|
 |RE2|NA|sequence motif at start of R2 reads|string|Optional|
+|filter_ExcHet|false|test and filter for excess heterozygosity|string|Optional|
 
 **Note: na indicates that variable is user-defined or hard-coded/computed intuitively, as well as a function of ploidy.*
 
@@ -191,26 +200,40 @@ lib_type=RRS
 ### Variant calling
 ###################################################
 ploidy=6
+# Variant calling with haploid subgenome(s)
+# Anchored to ref1 for loci conserved across all subgenomes
 ref1=TF.fasta
 ref2=TL.fasta
 ploidy_ref1=4
 ploidy_ref2=2
+# Variant calling with haplotype-resolved reference genome
+# Anchored to haplome_ref1 for loci conserved across all haplomes
+haplome_ref1=IbA.fasta
+haplome_ref2=IbB.fasta
+# Variant calling with pan-genomes
+# Anchored to pangenome_ref1 for loci conserved across all haplomes
+pangenome_ref1=TF.fasta
+pangenome_ref2=TL.fasta
+pangenome_specific=true
+# exclue or limit variant calling to specific chromosomes
 Get_Chromosome=TF_Chr01,TF_Chr02
-Exclude_Chromosome=TF_Chr00,TF_Chr00
+Exclude_Chromosome=TF_Chr00,TL_Chr00
 
 
 ### SNP-filtering:
 ####################################################
 p1=Beauregard
 p2=Tanzania
-genotype_missingness=0.1,0.2,0.3
-sample_missingness=0.1,0.2,0.3
+genotype_missingness=1
+sample_missingness=1
 exclude_samples=S1,S2,S3
+select_samples=pop.txt
 minRD_2x=6
 minRD_4x=25
 minRD_6x=45
 pseg=0.001
 maf=0.05
+filtered_vcf=false
 
 ### Advanced parameters
 ###################################################
@@ -227,6 +250,7 @@ joint_calling=false
 keep_gVCF=false
 RE1=TGCAT
 RE2=CATG
+filter_ExcHet=false
 ```
 
 Alternatively, a configuration file (outlined below) specifying only the ploidy level is sufficient to run GBSapp.

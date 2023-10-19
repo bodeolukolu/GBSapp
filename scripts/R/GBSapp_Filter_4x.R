@@ -30,6 +30,13 @@ libdir <- args[8]
 pseg <- args[9]
 hap <- args[10]
 bial <- args[11]
+if (args[12] == "NULL") {
+  select_id_list <- NULL
+} else {
+  select_id_list <- read.table(paste("../../",args[12],sep=""), header=T, sep="\t", check.names=FALSE,stringsAsFactors=FALSE)
+  select_id_list <- as.vector(select_id_list[,1])
+  select_id_list <- paste(select_id_list, "_GT", sep="")
+}
 gmissingness <- as.numeric(gmissingness)
 smissingness <- as.numeric(smissingness)
 minRD <- as.numeric(minRD)
@@ -42,6 +49,7 @@ if(bial == "false"){bial <-""}
 
 .libPaths( c( .libPaths(), libdir) )
 library(ggplot2)
+library(reshape2)
 
 ####################################################################################################################
 ####################################################################################################################
@@ -51,7 +59,16 @@ subgenome_1[, 5:(((ncol(subgenome_1)-4)/2)+4)] <- lapply(5:(((ncol(subgenome_1)-
 subgenome_1[,(((ncol(subgenome_1)-4)/2)+5):ncol(subgenome_1)] <- lapply(subgenome_1[,(((ncol(subgenome_1)-4)/2)+5):ncol(subgenome_1)], gsub, pattern = "|", replacement = "/", fixed = TRUE)
 subgenome_1[][subgenome_1[] <= "./././."] <- NA
 RD_snpfiltering <- function(){
-  #remove samples theat you want to exclude from the analysis
+  #select samples that you want to exclude from the analysis
+  if (length(select_id_list) > 0) {
+    select_id_GT <- select_id_list
+    select_id_DP <- gsub("_GT", "_DP", select_id_list)
+    select_id <- c(select_id_DP, select_id_GT)
+    id <- names(subgenome_1); idx <- names(subgenome_1)[1:4]
+    keep_id <- intersect(id,select_id)
+    subgenome_1 <- subgenome_1[,c(idx,keep_id)]
+  }
+  #remove samples that you want to exclude from the analysis
   if (length(remove_id_list) > 0) {
     remove_id_GT <- remove_id_list
     remove_id_DP <- gsub("_GT", "_DP", remove_id_list)
@@ -1077,6 +1094,39 @@ final_summary <- function(){
     xlab(paste("Chromosomes/Pseudomolecule (",sum," total variants)",sep=""))
   ggsave(filename=paste(pop,"_4x","_variants_chromosome_rd",rd+1,".tiff",sep=""), plot=plot, width=7.5, height= 5, dpi=300, compression = "lzw")
   
+  
+  miss_heat <- subset(sumfreq, select=-c(2:5))
+  miss_heat <- subset(miss_heat, select=-c(pvalue))
+  miss_heat$percent <- (apply(miss_heat, 1, function(x) sum(is.na(x))))/(ncol(miss_heat)-1)*100
+  miss_heat <- miss_heat[order(miss_heat$percent),]
+  miss_heat <- subset(miss_heat, select=-c(percent))
+  miss_heat <- as.data.frame(t(miss_heat))
+  miss_heat$percent <- (apply(miss_heat, 1, function(x) sum(is.na(x))))/(ncol(miss_heat)-1)*100
+  miss_heat <- subset(miss_heat, select=-c(1))
+  miss_heat <- miss_heat[order(miss_heat$percent),]
+  miss_heat <- subset(miss_heat, select=-c(percent))
+  miss_heat <- as.data.frame(t(miss_heat))
+  miss_heat$SNP <- row.names(miss_heat)
+  miss_heat <- miss_heat[,c(ncol(miss_heat),1:ncol(miss_heat)-1)]
+  miss_heat <- melt(miss_heat,id="SNP")
+  names(miss_heat) <- c("SNP","samples","Genotype")
+  miss_heat <- as.data.frame(apply(miss_heat, 2, function(x)gsub('\\s+', '',x)))
+  miss_heat$Genotype[miss_heat$Genotype >= "0"] <- "Called_genotype"
+  miss_heat <- replace(miss_heat, is.na(miss_heat), "Missing")
+  size <- as.numeric(ncol(sumfreq))
+  miss_heat <- data.frame(miss_heat)
+  plot <- ggplot(miss_heat, aes(x = SNP, y = samples, fill = Genotype)) +
+    geom_tile() +
+    scale_fill_manual(values = c('cornflowerblue','tomato')) +
+    theme(axis.text.x=element_blank(), axis.text.y=element_blank(), axis.ticks.x=element_blank(), axis.ticks.y=element_blank()) +
+    geom_hline(yintercept = ((ncol(sumfreq)-5)/4)*1, lty=10, color="white") +
+    geom_hline(yintercept = ((ncol(sumfreq)-5)/4)*2, lty=10, color="white") +
+    geom_hline(yintercept = ((ncol(sumfreq)-5)/4)*3, lty=10, color="white") +
+    geom_vline(xintercept = (nrow(sumfreq)/4)*1, lty=10, color="white") +
+    geom_vline(xintercept = (nrow(sumfreq)/4)*2, lty=10, color="white") +
+    geom_vline(xintercept = (nrow(sumfreq)/4)*3, lty=10, color="white")
+  ggsave(filename=paste(pop,"_4x","_Heatmap_missing_rate_rd",rd+1,".tiff",sep=""), plot=plot, width=5, height= 5, dpi=300, compression = "lzw")
+  
   sumfreq <- subset(sumfreq, select=-c(1:5))
   sumfreq <- subset(sumfreq, select=-c(pvalue))
   SNP <- sumfreq
@@ -1105,14 +1155,12 @@ final_summary <- function(){
   ggsave(filename=paste(pop,"_4x","_sample_missing_rate_rd",rd+1,".tiff",sep=""), plot=plot, width=5, height= 5, dpi=300, compression = "lzw")
 
   subgenome_noSDmaf <- read.table(paste(pop,"_4x","_rd",rd+1,"_noSDbinary.txt",sep=""), header=T, sep="\t",stringsAsFactors=FALSE, check.names = FALSE)
-  subgenome_noSDmaf$freq0000 <-rowSums(subgenome_noSDmaf == "0/0/0/0", na.rm = TRUE)
-  subgenome_noSDmaf$freq0001 <-rowSums(subgenome_noSDmaf == "0/0/0/1", na.rm = TRUE)
-  subgenome_noSDmaf$freq0011 <-rowSums(subgenome_noSDmaf == "0/0/1/1", na.rm = TRUE)
-  subgenome_noSDmaf$freq0111 <-rowSums(subgenome_noSDmaf == "0/1/1/1", na.rm = TRUE)
-  subgenome_noSDmaf$freq1111 <-rowSums(subgenome_noSDmaf == "1/1/1/1", na.rm = TRUE)
-  subgenome_noSDmaf$freq0 <- subgenome_noSDmaf$freq0000*4 + subgenome_noSDmaf$freq0001*3 + subgenome_noSDmaf$freq0011*2 + subgenome_noSDmaf$freq0111*1
-  subgenome_noSDmaf$freq1 <- subgenome_noSDmaf$freq0001*1 + subgenome_noSDmaf$freq0011*2  + subgenome_noSDmaf$freq0111*3  + subgenome_noSDmaf$freq1111*4
-  subgenome_noSDmaf <- subset(subgenome_noSDmaf, select=-c(freq0000,freq0001,freq0011,freq0111,freq1111))
+  
+  subgenome_noSDmaf$freq0 <- (rowSums(subgenome_noSDmaf == "0/0/0/0", na.rm = TRUE))*4 + (rowSums(subgenome_noSDmaf == "0/0/0/1", na.rm = TRUE))*3 + 
+    (rowSums(subgenome_noSDmaf == "0/0/1/1", na.rm = TRUE))*2 + (rowSums(subgenome_noSDmaf == "0/1/1/1", na.rm = TRUE))*1
+  subgenome_noSDmaf$freq1 <- (rowSums(subgenome_noSDmaf == "0/0/0/1", na.rm = TRUE))*1 + (rowSums(subgenome_noSDmaf == "0/0/1/1", na.rm = TRUE))*2 + 
+    (rowSums(subgenome_noSDmaf == "0/1/1/1", na.rm = TRUE))*3 + (rowSums(subgenome_noSDmaf == "1/1/1/1", na.rm = TRUE))*4
+  
   maxn <- function(n) function(x) order(x, decreasing = TRUE)[n]
   subgenome_noSDmaf$min <- apply(subgenome_noSDmaf[,(ncol(subgenome_noSDmaf)-1):ncol(subgenome_noSDmaf)], 1, function(x)x[maxn(2)(x)])
   subgenome_noSDmaf$sum <- rowSums(subgenome_noSDmaf[,c("freq0","freq1")], na.rm=TRUE)

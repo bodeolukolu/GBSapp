@@ -56,8 +56,24 @@ fi
 if [ -z "$keep_gVCF" ]; then
 	export keep_gVCF=false
 fi
+if [ -z "$filter_ExcHet" ]; then
+  filter_ExcHet=false
+fi
+if [ -z "$filtered_vcf" ]; then
+  filtered_vcf=false
+fi
 mkdir -p "${projdir}"/tmp
 export TMPDIR="${projdir}"/tmp
+
+if [[ "$haplome_ref1" ]]; then export ref1=$haplome_ref1; fi
+if [[ "$haplome_ref2" ]]; then export ref2=$haplome_ref2; fi
+if [[ "$pangenome_ref1" ]]; then export ref1=$pangenome_ref1; fi
+if [[ "$pangenome_ref2" ]]; then export ref2=$pangenome_ref2; fi
+if [[ "$pangenome_specific" == "true" ]]; then
+  export pangenome_specific=true
+  export ploidy_ref1=$ploidy
+  export ploidy_ref2=$ploidy
+fi
 
 
 main () {
@@ -349,9 +365,11 @@ echo -e "${blue}\n##############################################################
 main () {
 	cd $projdir
 	cd samples
-  if [[ "$(ls -A *.f* 2> /dev/null | wc -l)" -eq 0 ]] || [[ "$(ls -A ./preprocess/alignment/*sam* | wc -l)" -gt 0 ]]; then
-    :> filename_reformatted.txt
-    :> flushed_reads.txt
+  if [[ "$(ls -A *.f* 2> /dev/null | wc -l)" -eq 0 ]] || [[ "$(ls -A ./preprocess/alignment/*sam* 2> /dev/null | wc -l)" -gt 0 ]]; then
+    if [[ ! -d "pe" ]] && [[ ! -d "se" ]]; then
+      :> filename_reformatted.txt
+      :> flushed_reads.txt
+    fi
   fi
   if test ! -f filename_reformatted.txt; then
 		if [ -d "se" ]; then
@@ -686,13 +704,13 @@ main () {
 	mkdir -p alignment_summaries
 	mkdir -p ./alignment_summaries/copy_number
 
-	if [[ "$samples_list" == "samples_list_node_1.txt" ]] && [[ "$(ls -A ./samples/*.f* 2> /dev/null | wc -l)" -gt 0 ]] && [[ "$(ls -A ./preprocess/alignment/*sam* | wc -l)" -eq 0 ]]; then
+	if [[ "$samples_list" == "samples_list_node_1.txt" ]] && [[ "$(ls -A ./samples/*.f* 2> /dev/null | wc -l)" -gt 0 ]]; then
 		for i in samples_list_node_*.txt; do
 			:> ${i%.txt}_hold.txt
-			while read line; do
+			while IFS="" read -r line; do
 				sleep $((RANDOM % 2))
         ls -l ./samples/$line | awk '{print $5"\t"$9}' >> ${i%.txt}_hold.txt
-			done < $i
+			done < <(grep -v '_tmp.fa' $i | grep -v _R2.f | grep -v _uniq.fasta | grep -v _uniq_R1.fasta | grep -v _uniq_R2.fasta | grep -v _uniq.hold.fasta | grep -v _uniq_R1.hold.fasta | grep -v _uniq_R2.hold.fasta | grep -v fq.gz)
 			sort -nr -k1 ${i%.txt}_hold.txt | awk '{gsub(/.\/samples\//,""); print $2}' > $i
 			rm "${i%.txt}"_hold.txt
 		done
@@ -758,9 +776,10 @@ main () {
       sleep $((RANDOM % 2))
       if test ! -f ${projdir}/preprocess/alignment/${i%.f*}_redun.sam.gz && test ! -f ${projdir}/preprocess/${i%.f*}_${ref1%.f*}_precall.bam.bai; then
         if test ! -f ${i%.f*}_uniq.fasta.gz; then
-          cat ${i%.f*}_R1_uniq.txt.gz ${i%.f*}_R2_uniq.txt.gz | zcat | awk '{!seen[$0]++}END{for (i in seen) print seen[i], i}' | awk '{$1=$1};1' | \
-          awk '{print ">seq"NR"_pe-"$1"\n"$2}' | gzip > ${i%.f*}_uniq.fasta.gz&&
-          rm "${i%.f*}"_R1_uniq.txt.gz "${i%.f*}"_R2_uniq.txt.gz &&
+          cat ${i%.f*}_R1_uniq.txt.gz ${i%.f*}_R2_uniq.txt.gz | zcat | awk '{!seen[$0]++}END{for (i in seen) print seen[i], i}' | awk '{$1=$1};1' | gzip > ${i%.f*}_repeatn.txt.gz
+          repeatn=$(zcat ${i%.f*}_repeatn.txt.gz | awk '{print $1}' | sort -n | awk '{all[NR] = $1} END{print all[int(NR*0.999 - 0.5)]}')
+          zcat ${i%.f*}_repeatn.txt.gz | awk -v pat="$repeatn" '$1 < pat' | awk '{print ">seq"NR"_pe-"$1"\n"$2}' | gzip > ${i%.f*}_uniq.fasta.gz &&
+          rm "${i%.f*}"_R1_uniq.txt.gz "${i%.f*}"_R2_uniq.txt.gz ${i%.f*}_repeatn.txt.gz &&
           wait
         fi
       fi ) &
@@ -818,21 +837,23 @@ main () {
   if test ! -f ${projdir}/precall_done.txt && test ! -f ${projdir}/alignment_done; then
     while IFS="" read -r alignfq || [ -n "$alignfq" ]; do
       sleep $((RANDOM % 2))
-      if test ! -f ../preprocess/alignment/${alignfq%.f*}_redun.sam.gz; then
-          $ngm -r ../refgenomes/$ref1 --qry ${alignfq%.f*}_uniq.fasta.gz -o ../preprocess/alignment/${alignfq%.f*}_redun.sam -t $ngmthreads --topn 6 --strata 6 --affine &&
-          awk '/@HD/ || /@SQ/{print}' ../preprocess/alignment/${alignfq%.f*}_redun.sam 2> /dev/null > ../preprocess/alignment/${alignfq%.f*}_redun_head.sam
-          grep -v '^@' ../preprocess/alignment/${alignfq%.f*}_redun.sam 2> /dev/null | awk -F"\t" 'BEGIN{FS=OFS="\t"} {$11="*"; print $0}' | cat ../preprocess/alignment/${alignfq%.f*}_redun_head.sam - | gzip  > ../preprocess/alignment/${alignfq%.f*}_redun_${ref1%.f*}.sam.gz &&
-          rm ../preprocess/alignment/"${alignfq%.f*}"_redun.sam &&
-          cp -rn ../preprocess/alignment/${alignfq%.f*}_redun_${ref1%.f*}.sam.gz ${projdir}/preprocess/alignment/ &&
-          rm "${alignfq%.f*}"_uniq.fastq.gz ../preprocess/alignment/"${alignfq%.f*}"_redun_head.sam &&
-          wait
-          $ngm -r ../refgenomes/$ref2 --qry ${alignfq%.f*}_uniq.fasta.gz -o ../preprocess/alignment/${alignfq%.f*}_redun.sam -t $ngmthreads --topn 6 --strata 6 --affine &&
-          awk '/@HD/ || /@SQ/{print}' ../preprocess/alignment/${alignfq%.f*}_redun.sam 2> /dev/null > ../preprocess/alignment/${alignfq%.f*}_redun_head.sam
-          grep -v '^@' ../preprocess/alignment/${alignfq%.f*}_redun.sam 2> /dev/null | awk -F"\t" 'BEGIN{FS=OFS="\t"} {$11="*"; print $0}' | cat ../preprocess/alignment/${alignfq%.f*}_redun_head.sam - | gzip  > ../preprocess/alignment/${alignfq%.f*}_redun_${ref2%.f*}.sam.gz &&
-          rm ../preprocess/alignment/"${alignfq%.f*}"_redun.sam &&
-          cp -rn ../preprocess/alignment/${alignfq%.f*}_redun_${ref2%.f*}.sam.gz ${projdir}/preprocess/alignment/ &&
-          rm "${alignfq%.f*}"_uniq.fastq.gz ../preprocess/alignment/"${alignfq%.f*}"_redun_head.sam &&
-          wait
+      if test ! -f ../preprocess/alignment/${alignfq%.f*}_redun_${ref1%.f*}.sam.gz; then
+        $ngm -r ../refgenomes/$ref1 --qry ${alignfq%.f*}_uniq.fasta.gz -o ../preprocess/alignment/${alignfq%.f*}_redun.sam -t $ngmthreads --topn 8 --strata 8 --affine &&
+        awk '/@HD/ || /@SQ/{print}' ../preprocess/alignment/${alignfq%.f*}_redun.sam 2> /dev/null > ../preprocess/alignment/${alignfq%.f*}_redun_head.sam
+        grep -v '^@' ../preprocess/alignment/${alignfq%.f*}_redun.sam 2> /dev/null | awk -F"\t" 'BEGIN{FS=OFS="\t"} {$11="*"; print $0}' | cat ../preprocess/alignment/${alignfq%.f*}_redun_head.sam - | gzip  > ../preprocess/alignment/${alignfq%.f*}_redun_${ref1%.f*}.sam.gz &&
+        rm ../preprocess/alignment/"${alignfq%.f*}"_redun.sam &&
+        cp -rn ../preprocess/alignment/${alignfq%.f*}_redun_${ref1%.f*}.sam.gz ${projdir}/preprocess/alignment/ &&
+        rm "${alignfq%.f*}"_uniq.fastq.gz ../preprocess/alignment/"${alignfq%.f*}"_redun_head.sam &&
+        wait
+      fi
+      if test ! -f ../preprocess/alignment/${alignfq%.f*}_redun_${ref2%.f*}.sam.gz; then
+        $ngm -r ../refgenomes/$ref2 --qry ${alignfq%.f*}_uniq.fasta.gz -o ../preprocess/alignment/${alignfq%.f*}_redun.sam -t $ngmthreads --topn 8 --strata 8 --affine &&
+        awk '/@HD/ || /@SQ/{print}' ../preprocess/alignment/${alignfq%.f*}_redun.sam 2> /dev/null > ../preprocess/alignment/${alignfq%.f*}_redun_head.sam
+        grep -v '^@' ../preprocess/alignment/${alignfq%.f*}_redun.sam 2> /dev/null | awk -F"\t" 'BEGIN{FS=OFS="\t"} {$11="*"; print $0}' | cat ../preprocess/alignment/${alignfq%.f*}_redun_head.sam - | gzip  > ../preprocess/alignment/${alignfq%.f*}_redun_${ref2%.f*}.sam.gz &&
+        rm ../preprocess/alignment/"${alignfq%.f*}"_redun.sam &&
+        cp -rn ../preprocess/alignment/${alignfq%.f*}_redun_${ref2%.f*}.sam.gz ${projdir}/preprocess/alignment/ &&
+        rm "${alignfq%.f*}"_uniq.fastq.gz ../preprocess/alignment/"${alignfq%.f*}"_redun_head.sam &&
+        wait
       fi
     done < <( cat ${projdir}/${samples_list} )
   fi
@@ -936,8 +957,10 @@ main () {
         if [[ "$paralogs" == true ]] && [[ "$uniquely_mapped" == true ]]; then
           awk '/@HD/ || /@SQ/{print}' <(zcat ./alignment/${i%.f*}_redun_${ref1%.f*}.sam.gz 2> /dev/null) > ${i%.f*}_${ref1%.f*}_${ref2%.f*}_heading.sam &&
           $samtools view -F4 ${i%.f*}_del_${ref1%.f*}_${ref2%.f*}.sam | grep -v '^@' | awk '$3 != "*"' 2> /dev/null | awk '$6 != "*"' 2> /dev/null | \
+          awk '!h[$1] { g[$1]=$0 } { h[$1]++ } END { for(k in g) print h[k], g[k] }' | tr " " "\t" | tr '\r' '\n' | awk '$1==1 || $1<=6{print $0}' | awk '{$1=""}1' | awk '$1=$1' | tr " " "\t" | \
           awk -F '\t' 'BEGIN{OFS="\t"} {if ($5 == 0) {print $0}}' 2> /dev/null | awk -F '\t' 'BEGIN{OFS="\t"} {if ($5 == 0) {$5=60}}1' > ${i%.f*}_${ref1%.f*}_${ref2%.f*}_uniqeq.sam
           $samtools view -F4 ${i%.f*}_del_${ref1%.f*}_${ref2%.f*}.sam | grep -v '^@' | awk '$3 != "*"' 2> /dev/null | awk '$6 != "*"' 2> /dev/null | \
+          awk '!h[$1] { g[$1]=$0 } { h[$1]++ } END { for(k in g) print h[k], g[k] }' | tr " " "\t" | tr '\r' '\n' | awk '$1==1 || $1<=6{print $0}' | awk '{$1=""}1' | awk '$1=$1' | tr " " "\t" | \
           awk -F '\t' 'BEGIN{OFS="\t"} {if ($5 > 0) {print $0}}' 2> /dev/null | cat - ${i%.f*}_${ref1%.f*}_${ref2%.f*}_uniqeq.sam | \
           awk '{gsub(/_pe-/,"_pe-\t",$1);}1' | awk '{print $2"\t"$0}' | awk '{$2=$3=""}1' | tr -s " " | tr " " "\t" | \
           awk -v min=$minmapq -F '\t' 'BEGIN{OFS="\t"} {if ($5 >= min) {print $0}}' > ${i%.f*}_${ref1%.f*}_${ref2%.f*}_uniq.sam &&
@@ -948,7 +971,7 @@ main () {
           awk '/@HD/ || /@SQ/{print}' <(zcat ./alignment/${i%.f*}_redun_${ref1%.f*}.sam.gz 2> /dev/null) > ${i%.f*}_${ref1%.f*}_${ref2%.f*}_heading.sam &&
           $samtools view -F4 ${i%.f*}_del_${ref1%.f*}_${ref2%.f*}.sam | grep -v '^@' | awk '$3 != "*"' 2> /dev/null | awk '$6 != "*"' 2> /dev/null | \
           awk '!h[$1] { g[$1]=$0 } { h[$1]++ } END { for(k in g) print h[k], g[k] }' | tr " " "\t" | tr '\r' '\n' | \
-          awk '$1==1{print $0}' | awk '{print $2}' > ${i%.f*}_${ref1%.f*}_${ref2%.f*}_uniqsingle.sam &&
+          awk '$1==1 || $1>6{print $0}' | awk '{print $2}' > ${i%.f*}_${ref1%.f*}_${ref2%.f*}_uniqsingle.sam &&
           $samtools view -F4 ${i%.f*}_del_${ref1%.f*}_${ref2%.f*}.sam | grep -v '^@' | awk '$3 != "*"' 2> /dev/null | awk '$6 != "*"' 2> /dev/null | \
           awk -F '\t' 'NR==FNR{a[$0];next} !($1 in a)' ${i%.f*}_${ref1%.f*}_${ref2%.f*}_uniqsingle.sam - | awk -F '\t' 'BEGIN{OFS="\t"} {if ($5 == 0) {$5=60}}1' | \
           awk '{gsub(/_pe-/,"_pe-\t",$1);}1' | awk '{print $2"\t"$0}' | awk '{$2=$3=""}1' | tr -s " " | tr " " "\t" | \
@@ -960,8 +983,8 @@ main () {
 
         awk '{while ($1-- > 0) print $0}' ${i%.f*}_${ref1%.f*}_${ref2%.f*}_uniq.sam | awk '{print "seq"NR"_"$0}' | tr -s ' ' | tr ' ' '\t' > ${i%.f*}_${ref1%.f*}_${ref2%.f*}.sam &&
         rm ${i%.f*}_${ref1%.f*}_${ref2%.f*}_uniq.sam &&
-        awk '{print $4}' ${i%.f*}_${ref1%.f*}_${ref2%.f*}.sam | awk '{printf "%d00\n", $1/100}' | paste - ${i%.f*}_${ref1%.f*}_${ref2%.f*}.sam | shuf | \
-        awk -v max="$downsample" 'a[$1$4]++ < max' | awk '{$1=""}1' | awk '{$1=$1};1' | tr -s " " | tr " " "\t" | awk '{$11=$10}1' | \
+        awk '{print $4}' ${i%.f*}_${ref1%.f*}_${ref2%.f*}.sam | awk '{printf "%d00\n", $1/100}' | paste - ${i%.f*}_${ref1%.f*}_${ref2%.f*}.sam | \
+        shuf | awk -v max="$downsample" 'a[$1$4]++ < max' | awk '{$1=""}1' | awk '{$1=$1};1' | tr -s " " | tr " " "\t" | awk '{$11=$10}1' | \
         awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$11); print}' | cat ${i%.f*}_${ref1%.f*}_${ref2%.f*}_heading.sam - > ${i%.f*}_${ref1%.f*}_${ref2%.f*}_downsample.sam &&
         :> ${i%.f*}_${ref1%.f*}_${ref2%.f*}.sam &&
         mv ${i%.f*}_${ref1%.f*}_${ref2%.f*}_downsample.sam ${i%.f*}_${ref1%.f*}_${ref2%.f*}.sam &&
@@ -1013,8 +1036,10 @@ main () {
             if [[ "$paralogs" == true ]] && [[ "$uniquely_mapped" == true ]]; then
               awk '/@HD/ || /@SQ/{print}' <(zcat ./alignment/${i%.f*}_redun_${ref1%.f*}.sam.gz 2> /dev/null) > ${i%.f*}_${ref1%.f*}_heading.sam &&
               $samtools view -F4 ${i%.f*}_del_${ref1%.f*}.sam | grep -v '^@' | awk '$3 != "*"' 2> /dev/null | awk '$6 != "*"' 2> /dev/null | \
+              awk '!h[$1] { g[$1]=$0 } { h[$1]++ } END { for(k in g) print h[k], g[k] }' | tr " " "\t" | tr '\r' '\n' | awk '$1==1 || $1<=6{print $0}' | awk '{$1=""}1' | awk '$1=$1' | tr " " "\t" | \
               awk -F '\t' 'BEGIN{OFS="\t"} {if ($5 == 0) {print $0}}' 2> /dev/null | awk -F '\t' 'BEGIN{OFS="\t"} {if ($5 == 0) {$5=60}}1' > ${i%.f*}_${ref1%.f*}_uniqeq.sam
               $samtools view -F4 ${i%.f*}_del_${ref1%.f*}.sam | grep -v '^@' | awk '$3 != "*"' 2> /dev/null | awk '$6 != "*"' 2> /dev/null | \
+              awk '!h[$1] { g[$1]=$0 } { h[$1]++ } END { for(k in g) print h[k], g[k] }' | tr " " "\t" | tr '\r' '\n' | awk '$1==1 || $1<=6{print $0}' | awk '{$1=""}1' | awk '$1=$1' | tr " " "\t" | \
               awk -F '\t' 'BEGIN{OFS="\t"} {if ($5 > 0) {print $0}}' 2> /dev/null | cat - ${i%.f*}_${ref1%.f*}_uniqeq.sam | \
               awk '{gsub(/_pe-/,"_pe-\t",$1);}1' | awk '{print $2"\t"$0}' | awk '{$2=$3=""}1' | tr -s " " | tr " " "\t" | \
               awk -v min=$minmapq -F '\t' 'BEGIN{OFS="\t"} {if ($5 >= min) {print $0}}' > ${i%.f*}_${ref1%.f*}_uniq.sam &&
@@ -1025,7 +1050,7 @@ main () {
               awk '/@HD/ || /@SQ/{print}' <(zcat ./alignment/${i%.f*}_redun_${ref1%.f*}.sam.gz 2> /dev/null) > ${i%.f*}_${ref1%.f*}_heading.sam &&
               $samtools view -F4 ${i%.f*}_del_${ref1%.f*}.sam | grep -v '^@' | awk '$3 != "*"' 2> /dev/null | awk '$6 != "*"' 2> /dev/null | \
               awk '!h[$1] { g[$1]=$0 } { h[$1]++ } END { for(k in g) print h[k], g[k] }' | tr " " "\t" | tr '\r' '\n' | \
-              awk '$1==1{print $0}' | awk '{print $2}' > ${i%.f*}_${ref1%.f*}_uniqsingle.sam &&
+              awk '$1==1 || $1>6{print $0}' | awk '{print $2}' > ${i%.f*}_${ref1%.f*}_uniqsingle.sam &&
               $samtools view -F4 ${i%.f*}_del_${ref1%.f*}.sam | grep -v '^@' | awk '$3 != "*"' 2> /dev/null | awk '$6 != "*"' 2> /dev/null | \
               awk -F '\t' 'NR==FNR{a[$0];next} !($1 in a)' ${i%.f*}_${ref1%.f*}_uniqsingle.sam - | awk -F '\t' 'BEGIN{OFS="\t"} {if ($5 == 0) {$5=60}}1' | \
               awk '{gsub(/_pe-/,"_pe-\t",$1);}1' | awk '{print $2"\t"$0}' | awk '{$2=$3=""}1' | tr -s " " | tr " " "\t" | \
@@ -1037,8 +1062,8 @@ main () {
 
             awk '{while ($1-- > 0) print $0}' ${i%.f*}_${ref1%.f*}_uniq.sam | awk '{print "seq"NR"_"$0}' | tr -s ' ' | tr ' ' '\t' > ${i%.f*}_${ref1%.f*}.sam &&
             rm ${i%.f*}_${ref1%.f*}_uniq.sam &&
-            awk '{print $4}' ${i%.f*}_${ref1%.f*}.sam | awk '{printf "%d00\n", $1/100}' | paste - ${i%.f*}_${ref1%.f*}.sam | shuf | \
-            awk -v max="$downsample" 'a[$1$4]++ < max' | awk '{$1=""}1' | awk '{$1=$1};1' | tr -s " " | tr " " "\t" | awk '{$11=$10}1' | \
+            awk '{print $4}' ${i%.f*}_${ref1%.f*}.sam | awk '{printf "%d00\n", $1/100}' | paste - ${i%.f*}_${ref1%.f*}.sam | \
+            shuf | awk -v max="$downsample" 'a[$1$4]++ < max' | awk '{$1=""}1' | awk '{$1=$1};1' | tr -s " " | tr " " "\t" | awk '{$11=$10}1' | \
             awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$11); print}' | cat ${i%.f*}_${ref1%.f*}_heading.sam - > ${i%.f*}_${ref1%.f*}_downsample.sam &&
             :> ${i%.f*}_${ref1%.f*}.sam &&
             mv ${i%.f*}_${ref1%.f*}_downsample.sam ${i%.f*}_${ref1%.f*}.sam &&
@@ -1092,8 +1117,10 @@ main () {
             if [[ "$paralogs" == true ]] && [[ "$uniquely_mapped" == true ]]; then
               awk '/@HD/ || /@SQ/{print}' <(zcat ./alignment/${i%.f*}_redun_${ref2%.f*}.sam.gz 2> /dev/null) > ${i%.f*}_${ref2%.f*}_heading.sam &&
               $samtools view -F4 ${i%.f*}_del_${ref2%.f*}.sam | grep -v '^@' | awk '$3 != "*"' 2> /dev/null | awk '$6 != "*"' 2> /dev/null | \
+              awk '!h[$1] { g[$1]=$0 } { h[$1]++ } END { for(k in g) print h[k], g[k] }' | tr " " "\t" | tr '\r' '\n' | awk '$1==1 || $1<=6{print $0}' | awk '{$1=""}1' | awk '$1=$1' | tr " " "\t" | \
               awk -F '\t' 'BEGIN{OFS="\t"} {if ($5 == 0) {print $0}}' 2> /dev/null | awk -F '\t' 'BEGIN{OFS="\t"} {if ($5 == 0) {$5=60}}1' > ${i%.f*}_${ref2%.f*}_uniqeq.sam
               $samtools view -F4 ${i%.f*}_del_${ref2%.f*}.sam | grep -v '^@' | awk '$3 != "*"' 2> /dev/null | awk '$6 != "*"' 2> /dev/null | \
+              awk '!h[$1] { g[$1]=$0 } { h[$1]++ } END { for(k in g) print h[k], g[k] }' | tr " " "\t" | tr '\r' '\n' | awk '$1==1 || $1<=6{print $0}' | awk '{$1=""}1' | awk '$1=$1' | tr " " "\t" | \
               awk -F '\t' 'BEGIN{OFS="\t"} {if ($5 > 0) {print $0}}' 2> /dev/null | cat - ${i%.f*}_${ref2%.f*}_uniqeq.sam | \
               awk '{gsub(/_pe-/,"_pe-\t",$1);}1' | awk '{print $2"\t"$0}' | awk '{$2=$3=""}1' | tr -s " " | tr " " "\t" | \
               awk -v min=$minmapq -F '\t' 'BEGIN{OFS="\t"} {if ($5 >= min) {print $0}}' > ${i%.f*}_${ref2%.f*}_uniq.sam &&
@@ -1104,7 +1131,7 @@ main () {
               awk '/@HD/ || /@SQ/{print}' <(zcat ./alignment/${i%.f*}_redun_${ref2%.f*}.sam.gz 2> /dev/null) > ${i%.f*}_${ref2%.f*}_heading.sam &&
               $samtools view -F4 ${i%.f*}_del_${ref2%.f*}.sam | grep -v '^@' | awk '$3 != "*"' 2> /dev/null | awk '$6 != "*"' 2> /dev/null | \
               awk '!h[$1] { g[$1]=$0 } { h[$1]++ } END { for(k in g) print h[k], g[k] }' | tr " " "\t" | tr '\r' '\n' | \
-              awk '$1==1{print $0}' | awk '{print $2}' > ${i%.f*}_${ref2%.f*}_uniqsingle.sam &&
+              awk '$1==1 || $1>6{print $0}' | awk '{print $2}' > ${i%.f*}_${ref2%.f*}_uniqsingle.sam &&
               $samtools view -F4 ${i%.f*}_del_${ref2%.f*}.sam | grep -v '^@' | awk '$3 != "*"' 2> /dev/null | awk '$6 != "*"' 2> /dev/null | \
               awk -F '\t' 'NR==FNR{a[$0];next} !($1 in a)' ${i%.f*}_${ref2%.f*}_uniqsingle.sam - | awk -F '\t' 'BEGIN{OFS="\t"} {if ($5 == 0) {$5=60}}1' | \
               awk '{gsub(/_pe-/,"_pe-\t",$1);}1' | awk '{print $2"\t"$0}' | awk '{$2=$3=""}1' | tr -s " " | tr " " "\t" | \
@@ -1116,8 +1143,8 @@ main () {
 
             awk '{while ($1-- > 0) print $0}' ${i%.f*}_${ref2%.f*}_uniq.sam | awk '{print "seq"NR"_"$0}' | tr -s ' ' | tr ' ' '\t' > ${i%.f*}_${ref2%.f*}.sam &&
             rm ${i%.f*}_${ref2%.f*}_uniq.sam &&
-            awk '{print $4}' ${i%.f*}_${ref2%.f*}.sam | awk '{printf "%d00\n", $1/100}' | paste - ${i%.f*}_${ref2%.f*}.sam | shuf | \
-            awk -v max="$downsample" 'a[$1$4]++ < max' | awk '{$1=""}1' | awk '{$1=$1};1' | tr -s " " | tr " " "\t" | awk '{$11=$10}1' | \
+            awk '{print $4}' ${i%.f*}_${ref2%.f*}.sam | awk '{printf "%d00\n", $1/100}' | paste - ${i%.f*}_${ref2%.f*}.sam | \
+            shuf | awk -v max="$downsample" 'a[$1$4]++ < max' | awk '{$1=""}1' | awk '{$1=$1};1' | tr -s " " | tr " " "\t" | awk '{$11=$10}1' | \
             awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$11); print}' | cat ${i%.f*}_${ref2%.f*}_heading.sam - > ${i%.f*}_${ref2%.f*}_downsample.sam &&
             :> ${i%.f*}_${ref2%.f*}.sam &&
             mv ${i%.f*}_${ref2%.f*}_downsample.sam ${i%.f*}_${ref2%.f*}.sam &&
@@ -1218,12 +1245,20 @@ main () {
     fi
     cd ${projdir}/alignment_summaries
     printf "Sample\tGenome_Coverage(percentage)\n" > summary_genomecov.txt
-    genome_size=$(awk '{print $3}' ../refgenomes/${ref1%.f*}.dict | awk '{gsub(/LN:/,"");}1' | awk '{s+=$1}END{print s}')
-    for i in ../preprocess/*bam; do
-      cov=$($bedtools genomecov -ibam $i -bga | awk -v pat=$genome_size '{s+=$4}END{print (s/pat)*100}')
-      printf "${i%_*_*}\t$cov\n"  | awk '{gsub(/..\/preprocess\/processed\//,"");}1' >> summary_genomecov.txt
-    done
+    genome_size1=$(awk '{print $3}' ../refgenomes/${ref1%.f*}.dict | awk '{gsub(/LN:/,"");}1' | awk '{s+=$1}END{print s}')
+    genome_size2=$(awk '{print $3}' ../refgenomes/${ref2%.f*}.dict | awk '{gsub(/LN:/,"");}1' | awk '{s+=$1}END{print s}')
+    while IFS="" read -r i || [ -n "$i" ]; do
+      for j in ../preprocess/${i%.fastq.gz}_${ref1%.f*}*_precall.bam; do
+        cov=$($bedtools genomecov -ibam $j -bga | awk '{print ($4>1)? 1 : $4}' | awk -v pat=$genome_size1 '{s+=$1}END{print (s/pat)*100}')
+        printf "${j%_*_*}\t$cov\n"  | awk '{gsub(/..\/preprocess\//,"");}1' >> summary_genomecov.txt
+      done
+      for j in ../preprocess/${i%.fastq.gz}_${ref2%.f*}_precall.bam; do
+        cov=$($bedtools genomecov -ibam $j -bga | awk '{print ($4>1)? 1 : $4}' | awk -v pat=$genome_size2 '{s+=$1}END{print (s/pat)*100}')
+        printf "${j%_*_*}\t$cov\n"  | awk '{gsub(/..\/preprocess\//,"");}1' >> summary_genomecov.txt
+      done
+    done < <(cat ${projdir}/samples_list_node_*)
     wait && touch ${projdir}/alignment_summary_done.txt
+
   fi
 }
 cd $projdir
@@ -1265,6 +1300,7 @@ main () {
 
   cd ${projdir}
   :> ${projdir}/compress_done.txt
+  :> ${projdir}/precall_done_${samples_list}
 
   if [[ "$samples_list" == "samples_list_node_1.txt" ]]; then
     mkdir -p ${projdir}/preprocess/processed &&
@@ -1302,7 +1338,7 @@ main () {
 		  for i in *_${ref1%.f*}_${ref2%.f*}_precall.bam; do
 		    k="${j} ${i}"; input="${input} ${k}"
 		  done
-      Get2_Chromosome=$(awk 'NR>1{print $2,"\t",$3}' ${projdir}/refgenomes/${ref1%.f*}.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $0}' | sort -k2,2 -n | awk '{print $1}' | awk -v pat=${ref1%.f*} '$0 ~ pat' )
+      Get2_Chromosome=$(awk 'NR>1{print $2,"\t",$3}' ${projdir}/refgenomes/${ref1%.f*}.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $0}' | sort -k2,2 -nr | awk '{print $1}' | awk -v pat=${ref1%.f*} '$0 ~ pat' )
 			if [[ -n "$Exclude_Chromosome" ]]; then
 				for i in $(echo "$Exclude_Chromosome" | tr ',' '\n'); do
 					Get2_Chromosome=$(echo $Get2_Chromosome | awk -v i=$i '{gsub(i,"");}1')
@@ -1339,13 +1375,14 @@ main () {
         fi
 				wait
 		    cd ../snpcall
-		    grep -h '^#' ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_*_raw.vcf | awk '!visited[$0]++' | awk '!/^##GATKCommandLine/' > vcf_header.txt
-		    cat ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_*_raw.vcf | awk '!/^#/' > all.vcf
-		    cat vcf_header.txt all.vcf > ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_raw.vcf
-		    rm vcf_header.txt all.vcf *.vcf.gz.tb* ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_*_raw.vcf 2> /dev/null
+		    grep -h '^#' ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_*_raw.vcf | awk '!visited[$0]++' | awk '!/^##GATKCommandLine/' > vcf_header.txt &&
+		    cat ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_*_raw.vcf | awk '!/^#/' > all.vcf &&
+		    cat vcf_header.txt all.vcf > ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_raw.vcf &&
+		    rm vcf_header.txt all.vcf *.vcf.gz.tb* ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_*_raw.vcf 2> /dev/null &&
+        wait
 		  else
 				if [[ "$(ls ${projdir}/snpcall/${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_${selchr}_raw.vcf* 2> /dev/null | wc -l)" -eq 0 ]]; then
-			    echo $Get_Chromosome | tr ',' '\n' | awk '{print "SN:"$1}' | awk 'NR==FNR{a[$1];next}$2 in a{print $0}' - ${projdir}/refgenomes/${ref1%.f*}.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $2":1-"$3}' > ${projdir}/refgenomes/${ref1%.f*}.list
+			    echo $Get_Chromosome | tr ',' '\n' | awk '{print "SN:"$1}' | awk 'NR==FNR{a[$1];next}$2 in a{print $0}' - ${projdir}/refgenomes/${ref1%.f*}.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $2":1-"$3}' > ${projdir}/refgenomes/${ref1%.f*}.list &&
 			    $GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ${projdir}/refgenomes/$ref1 -L ${projdir}/refgenomes/${ref1%.f*}.list ${input}-ploidy $ploidy -O ${projdir}/snpcall/${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_raw.vcf.gz --max-reads-per-alignment-start 0 --minimum-mapping-quality $minmapq --dont-use-soft-clipped-bases $dont_use_softclip --max-num-haplotypes-in-population $((ploidy * maxHaplotype)) &&
 			    cd ../snpcall
 			    gunzip ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_raw.vcf &&
@@ -1357,13 +1394,13 @@ main () {
 
 		  ######################
 
-		  if [[ "$ploidy_ref1" ]]; then
+		  if [[ "$ploidy_ref1" ]] || [[ "$pangenome_specific" == "true" ]]; then
         echo -e "${magenta}- performing SNP calling on subgenome-1 ${white}\n"
   		  j=-I; input=""; k=""
   		  for i in *_${ref1%.f*}_precall.bam; do
   		    k="${j} ${i}"; input="${input} ${k}"
   		  done
-  		  Get2_Chromosome=$(awk 'NR>1{print $2,"\t",$3}' ${projdir}/refgenomes/${ref1%.f*}.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $0}' | sort -k2,2 -n | awk '{print $1}' | awk -v pat=${ref1%.f*} '$0 ~ pat' )
+  		  Get2_Chromosome=$(awk 'NR>1{print $2,"\t",$3}' ${projdir}/refgenomes/${ref1%.f*}.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $0}' | sort -k2,2 -nr | awk '{print $1}' | awk -v pat=${ref1%.f*} '$0 ~ pat' )
   			if [[ -n "$Exclude_Chromosome" ]]; then
   				for i in $(echo "$Exclude_Chromosome" | tr ',' '\n'); do
   					Get2_Chromosome=$(echo $Get2_Chromosome | awk -v i=$i '{gsub(i,"");}1')
@@ -1400,13 +1437,14 @@ main () {
           fi
   				wait
   		    cd ../snpcall
-  		    grep -h '^#' ${pop}_${ref1%.f*}_${ploidy_ref1}x_*_raw.vcf | awk '!visited[$0]++' | awk '!/^##GATKCommandLine/' > vcf_header.txt
-  		    cat ${pop}_${ref1%.f*}_${ploidy_ref1}x_*_raw.vcf | awk '!/^#/' > all.vcf
-  		    cat vcf_header.txt all.vcf > ${pop}_${ref1%.f*}_${ploidy_ref1}x_raw.vcf
-  		    rm vcf_header.txt all.vcf *.vcf.gz.tb* ${pop}_${ref1%.f*}_${ploidy_ref1}x_*_raw.vcf 2> /dev/null
+  		    grep -h '^#' ${pop}_${ref1%.f*}_${ploidy_ref1}x_*_raw.vcf | awk '!visited[$0]++' | awk '!/^##GATKCommandLine/' > vcf_header.txt &&
+  		    cat ${pop}_${ref1%.f*}_${ploidy_ref1}x_*_raw.vcf | awk '!/^#/' > all.vcf &&
+  		    cat vcf_header.txt all.vcf > ${pop}_${ref1%.f*}_${ploidy_ref1}x_raw.vcf &&
+  		    rm vcf_header.txt all.vcf *.vcf.gz.tb* ${pop}_${ref1%.f*}_${ploidy_ref1}x_*_raw.vcf 2> /dev/null &&
+          wait
   		  else
   				if [[ "$(ls ${projdir}/snpcall/${pop}_${ref1%.f*}_${ploidy_ref1}x_${selchr}_raw.vcf* 2> /dev/null | wc -l)" -eq 0 ]]; then
-  			    echo $Get_Chromosome | tr ',' '\n' | awk -v pat=${ref1%.f*} '$0 ~ pat' | awk '{print "SN:"$1}' | awk 'NR==FNR{a[$1];next}$2 in a{print $0}' - ${projdir}/refgenomes/${ref1%.f*}.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $2":1-"$3}' > ${projdir}/refgenomes/${ref1%.f*}.list
+  			    echo $Get_Chromosome | tr ',' '\n' | awk -v pat=${ref1%.f*} '$0 ~ pat' | awk '{print "SN:"$1}' | awk 'NR==FNR{a[$1];next}$2 in a{print $0}' - ${projdir}/refgenomes/${ref1%.f*}.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $2":1-"$3}' > ${projdir}/refgenomes/${ref1%.f*}.list &&
   			    $GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ${projdir}/refgenomes/$ref1 -L ${projdir}/refgenomes/${ref1%.f*}.list ${input}-ploidy $ploidy -O ${projdir}/snpcall/${pop}_${ref1%.f*}_${ploidy_ref1}x_raw.vcf.gz --max-reads-per-alignment-start 0 --minimum-mapping-quality $minmapq --dont-use-soft-clipped-bases $dont_use_softclip --max-num-haplotypes-in-population $((ploidy_ref1 * maxHaplotype)) &&
   			    cd ../snpcall
   			    gunzip ${pop}_${ref1%.f*}_${ploidy_ref1}x_raw.vcf &&
@@ -1420,13 +1458,13 @@ main () {
 
 		  ######################
 
-		  if [[ "$ploidy_ref2" ]]; then
+		  if [[ "$ploidy_ref2" ]] || [[ "$pangenome_specific" == "true" ]]; then
         echo -e "${magenta}- performing SNP calling on subgenome-2 ${white}\n"
   		  j=-I; input=""; k=""
   		  for i in *_${ref2%.f*}_precall.bam; do
   		    k="${j} ${i}"; input="${input} ${k}"
   		  done
-  		  Get2_Chromosome=$(awk 'NR>1{print $2,"\t",$3}' ${projdir}/refgenomes/${ref2%.f*}.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $0}' | sort -k2,2 -n | awk '{print $1}' | awk -v pat=${ref2%.f*} '$0 ~ pat' )
+  		  Get2_Chromosome=$(awk 'NR>1{print $2,"\t",$3}' ${projdir}/refgenomes/${ref2%.f*}.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $0}' | sort -k2,2 -nr | awk '{print $1}' | awk -v pat=${ref2%.f*} '$0 ~ pat' )
   			if [[ -n "$Exclude_Chromosome" ]]; then
   				for i in $(echo "$Exclude_Chromosome" | tr ',' '\n'); do
   					Get2_Chromosome=$(echo $Get2_Chromosome | awk -v i=$i '{gsub(i,"");}1')
@@ -1463,13 +1501,14 @@ main () {
           fi
   				wait
   		    cd ../snpcall
-  		    grep -h '^#' ${pop}_${ref2%.f*}_${ploidy_ref2}x_*_raw.vcf | awk '!visited[$0]++' | awk '!/^##GATKCommandLine/' > vcf_header.txt
-  		    cat ${pop}_${ref2%.f*}_${ploidy_ref2}x_*_raw.vcf | awk '!/^#/' > all.vcf
-  		    cat vcf_header.txt all.vcf > ${pop}_${ref2%.f*}_${ploidy_ref2}x_raw.vcf
-  		    rm vcf_header.txt all.vcf *.vcf.gz.tb* ${pop}_${ref2%.f*}_${ploidy_ref2}x_*_raw.vcf 2> /dev/null
+  		    grep -h '^#' ${pop}_${ref2%.f*}_${ploidy_ref2}x_*_raw.vcf | awk '!visited[$0]++' | awk '!/^##GATKCommandLine/' > vcf_header.txt &&
+  		    cat ${pop}_${ref2%.f*}_${ploidy_ref2}x_*_raw.vcf | awk '!/^#/' > all.vcf &&
+  		    cat vcf_header.txt all.vcf > ${pop}_${ref2%.f*}_${ploidy_ref2}x_raw.vcf &&
+  		    rm vcf_header.txt all.vcf *.vcf.gz.tb* ${pop}_${ref2%.f*}_${ploidy_ref2}x_*_raw.vcf 2> /dev/null &&
+          wait
   		  else
   				if [[ "$(ls ${projdir}/snpcall/${pop}_${ref2%.f*}_${ploidy_ref2}x_${selchr}_raw.vcf* 2> /dev/null | wc -l)" -eq 0 ]]; then
-  			    echo $Get_Chromosome | tr ',' '\n' | awk -v pat=${ref2%.f*} '$0 ~ pat' | awk '{print "SN:"$1}' | awk 'NR==FNR{a[$1];next}$2 in a{print $0}' - ${projdir}/refgenomes/${ref2%.f*}.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $2":1-"$3}' > ${projdir}/refgenomes/${ref2%.f*}.list
+  			    echo $Get_Chromosome | tr ',' '\n' | awk -v pat=${ref2%.f*} '$0 ~ pat' | awk '{print "SN:"$1}' | awk 'NR==FNR{a[$1];next}$2 in a{print $0}' - ${projdir}/refgenomes/${ref2%.f*}.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $2":1-"$3}' > ${projdir}/refgenomes/${ref2%.f*}.list &&
   			    $GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ${projdir}/refgenomes/$ref2 -L ${projdir}/refgenomes/${ref2%.f*}.list ${input}-ploidy $ploidy -O ${projdir}/snpcall/${pop}_${ref2%.f*}_${ploidy_ref2}x_raw.vcf.gz --max-reads-per-alignment-start 0 --minimum-mapping-quality $minmapq --dont-use-soft-clipped-bases $dont_use_softclip --max-num-haplotypes-in-population $((ploidy_ref2 * maxHaplotype)) &&
   			    cd ../snpcall
   			    gunzip ${pop}_${ref2%.f*}_${ploidy_ref2}x_raw.vcf &&
@@ -1514,7 +1553,7 @@ main () {
 						wait
 					fi
 				fi
-				mv ${i%.f*}_${ref1%.f*}_${ref2%.f*}_precall.bam* ${projdir}/preprocess/processed/ 2> /dev/null
+				mv ${projdir}/preprocess/${i%.f*}_${ref1%.f*}_${ref2%.f*}_precall.bam* ${projdir}/preprocess/processed/ 2> /dev/null
         rm  ${i%.f*}_${ref1%.f*}_${ref2%.f*}_precall.bam* 2> /dev/null
         wait ) &
 				if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
@@ -1543,7 +1582,7 @@ main () {
 							k="${j} ${i}"; input="${input} ${k}"
 						done
 						if [[ -z "$Get_Chromosome" ]]; then
-              Get2_Chromosome=$(awk 'NR>1{print $2,"\t",$3}' ${projdir}/refgenomes/${ref1%.f*}.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $0}' | sort -k2,2 -n | awk '{print $1}' | awk -v pat=${ref1%.f*} '$0 ~ pat' )
+              Get2_Chromosome=$(awk 'NR>1{print $2,"\t",$3}' ${projdir}/refgenomes/${ref1%.f*}.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $0}' | sort -k2,2 -nr | awk '{print $1}' | awk -v pat=${ref1%.f*} '$0 ~ pat' )
 						else
 							Get2_Chromosome=$(echo $Get_Chromosome | tr ',' '\n')
 						fi
@@ -1569,6 +1608,7 @@ main () {
           		fi
 						done
             wait
+
 						for selchr in $Get2_Chromosome; do (
               export TILEDB_DISABLE_FILE_LOCKING=1
 							if test ! -f "${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_${selchr}_raw.vcf.gz"; then
@@ -1612,32 +1652,34 @@ main () {
 								wait
 							fi
 						done
-						grep -h '^#' ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_*_raw.vcf | awk '!visited[$0]++' | awk '!/^##GATKCommandLine/' > vcf_header.txt
-						cat ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_*_raw.vcf | awk '!/^#/' > all.vcf
-						cat vcf_header.txt all.vcf > ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_raw.vcf
-						rm vcf_header.txt all.vcf
-						rm ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_*_raw.vcf ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_*_raw.vcf.gz.tb* 2> /dev/null
-						$bcftools view -I ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_raw.vcf -O z -o ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_raw.vcf.gz
-						$bcftools index ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_raw.vcf.gz
+						grep -h '^#' ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_*_raw.vcf | awk '!visited[$0]++' | awk '!/^##GATKCommandLine/' > vcf_header.txt &&
+						cat ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_*_raw.vcf | awk '!/^#/' > all.vcf &&
+						cat vcf_header.txt all.vcf > ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_raw.vcf &&
+						rm vcf_header.txt all.vcf &&
+						rm ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_*_raw.vcf ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_*_raw.vcf.gz.tb* 2> /dev/null &&
+						$bcftools view -I ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_raw.vcf -O z -o ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_raw.vcf.gz &&
+						$bcftools index ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_raw.vcf.gz &&
 
-						$bcftools annotate -x FORMAT/PL ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_raw.vcf.gz > ../${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_raw_${dir%/}.vcf
+						$bcftools annotate -x FORMAT/PL ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_raw.vcf.gz > ../${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_raw_${dir%/}.vcf &&
 						cd ../
-						$bcftools view -I ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_raw_${dir%/}.vcf -O z -o ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_raw_${dir%/}.vcf.gz
-						$bcftools index ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_raw_${dir%/}.vcf.gz
+						$bcftools view -I ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_raw_${dir%/}.vcf -O z -o ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_raw_${dir%/}.vcf.gz &&
+						$bcftools index ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_raw_${dir%/}.vcf.gz &&
 						wait
 					done
 					wait
 
 					if [[ `ls -1 *cohorts*.vcf.gz 2>/dev/null | wc -l` -gt 1 ]]; then
-						$bcftools merge *cohorts*.vcf.gz --force-samples -m all > ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_raw.vcf
+						$bcftools merge *cohorts*.vcf.gz --force-samples -m all > ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_raw.vcf &&
+            wait
 					else
-						cp *cohorts*.vcf.gz ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_raw.vcf.gz
-						gunzip ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_raw.vcf.gz
+						cp *cohorts*.vcf.gz ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_raw.vcf.gz &&
+						gunzip ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_raw.vcf.gz &&
+            wait
 					fi
 
 					if [[ "$keep_gVCF" == true ]]; then
-						mkdir -p keep_gVCF
-						mv ./cohorts*/*.g.vcf ./keep_gVCF
+						mkdir -p keep_gVCF &&
+						mv ./cohorts*/*.g.vcf ./keep_gVCF &&
 						rm -r *cohorts*
 					else
 						rm -r cohorts*
@@ -1651,7 +1693,7 @@ main () {
 
 		######################
 
-    if [[ "$ploidy_ref1" ]]; then
+    if [[ "$ploidy_ref1" ]] || [[ "$pangenome_specific" == "true" ]]; then
       while [[ ! -f ${projdir}/precall_done_${samples_list} ]]; do
         sleep 300
       done
@@ -1686,7 +1728,7 @@ main () {
 						wait
 					fi
 				fi
-				mv ${i%.f*}_${ref1%.f*}_precall.bam* ${projdir}/preprocess/processed/ 2> /dev/null
+				mv ${projdir}/preprocess/${i%.f*}_${ref1%.f*}_precall.bam* ${projdir}/preprocess/processed/ 2> /dev/null
         rm ${i%.f*}_${ref1%.f*}_precall.bam*  2> /dev/null
         wait ) &
 				if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
@@ -1715,7 +1757,7 @@ main () {
 							k="${j} ${i}"; input="${input} ${k}"
 						done
 						if [[ -z "$Get_Chromosome" ]]; then
-							Get2_Chromosome=$(awk 'NR>1{print $2,"\t",$3}' ${projdir}/refgenomes/${ref1%.f*}.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $0}' | sort -k2,2 -n | awk '{print $1}' | awk -v pat=${ref1%.f*} '$0 ~ pat' )
+							Get2_Chromosome=$(awk 'NR>1{print $2,"\t",$3}' ${projdir}/refgenomes/${ref1%.f*}.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $0}' | sort -k2,2 -nr | awk '{print $1}' | awk -v pat=${ref1%.f*} '$0 ~ pat' )
 						else
 							Get2_Chromosome=$(echo $Get_Chromosome | tr ',' '\n')
 						fi
@@ -1742,6 +1784,7 @@ main () {
                 wait
               fi
 						done
+            wait
 
 
 						for selchr in $Get2_Chromosome; do (
@@ -1785,31 +1828,33 @@ main () {
 								wait
 							fi
 						done
-						grep -h '^#' ${pop}_${ref1%.f*}_${ploidy_ref1}x_*_raw.vcf | awk '!visited[$0]++' | awk '!/^##GATKCommandLine/' > vcf_header.txt
-						cat ${pop}_${ref1%.f*}_${ploidy_ref1}x_*_raw.vcf | awk '!/^#/' > all.vcf
-						cat vcf_header.txt all.vcf > ${pop}_${ref1%.f*}_${ploidy_ref1}x_raw.vcf
-						rm vcf_header.txt all.vcf
-						rm ${pop}_${ref1%.f*}_${ploidy_ref1}x_*_raw.vcf ${pop}_${ref1%.f*}_${ploidy_ref1}x_*_raw.vcf.gz.tb* 2> /dev/null
-						$bcftools view -I ${pop}_${ref1%.f*}_${ploidy_ref1}x_raw.vcf -O z -o ${pop}_${ref1%.f*}_${ploidy_ref1}x_raw.vcf.gz
-						$bcftools index ${pop}_${ref1%.f*}_${ploidy_ref1}x_raw.vcf.gz
+						grep -h '^#' ${pop}_${ref1%.f*}_${ploidy_ref1}x_*_raw.vcf | awk '!visited[$0]++' | awk '!/^##GATKCommandLine/' > vcf_header.txt &&
+						cat ${pop}_${ref1%.f*}_${ploidy_ref1}x_*_raw.vcf | awk '!/^#/' > all.vcf &&
+						cat vcf_header.txt all.vcf > ${pop}_${ref1%.f*}_${ploidy_ref1}x_raw.vcf &&
+						rm vcf_header.txt all.vcf &&
+						rm ${pop}_${ref1%.f*}_${ploidy_ref1}x_*_raw.vcf ${pop}_${ref1%.f*}_${ploidy_ref1}x_*_raw.vcf.gz.tb* 2> /dev/null &&
+						$bcftools view -I ${pop}_${ref1%.f*}_${ploidy_ref1}x_raw.vcf -O z -o ${pop}_${ref1%.f*}_${ploidy_ref1}x_raw.vcf.gz &&
+						$bcftools index ${pop}_${ref1%.f*}_${ploidy_ref1}x_raw.vcf.gz &&
 
-						$bcftools annotate -x FORMAT/PL ${pop}_${ref1%.f*}_${ploidy_ref1}x_raw.vcf.gz > ../${pop}_${ref1%.f*}_${ploidy_ref1}x_raw_${dir%/}.vcf
+						$bcftools annotate -x FORMAT/PL ${pop}_${ref1%.f*}_${ploidy_ref1}x_raw.vcf.gz > ../${pop}_${ref1%.f*}_${ploidy_ref1}x_raw_${dir%/}.vcf &&
 						cd ../
-						$bcftools view -I ${pop}_${ref1%.f*}_${ploidy_ref1}x_raw_${dir%/}.vcf -O z -o ${pop}_${ref1%.f*}_${ploidy_ref1}x_raw_${dir%/}.vcf.gz
-						$bcftools index ${pop}_${ref1%.f*}_${ploidy_ref1}x_raw_${dir%/}.vcf.gz
+						$bcftools view -I ${pop}_${ref1%.f*}_${ploidy_ref1}x_raw_${dir%/}.vcf -O z -o ${pop}_${ref1%.f*}_${ploidy_ref1}x_raw_${dir%/}.vcf.gz &&
+						$bcftools index ${pop}_${ref1%.f*}_${ploidy_ref1}x_raw_${dir%/}.vcf.gz &&
 						wait
 					done
 					wait
 					if [[ `ls -1 *cohorts*.vcf.gz 2>/dev/null | wc -l` -gt 1 ]]; then
-						$bcftools erge *cohorts*.vcf.gz --force-samples -m all > ${pop}_${ref1%.f*}_${ploidy_ref1}x_raw.vcf
+						$bcftools merge *cohorts*.vcf.gz --force-samples -m all > ${pop}_${ref1%.f*}_${ploidy_ref1}x_raw.vcf &&
+            wait
 					else
-						cp *cohorts*.vcf.gz ${pop}_${ref1%.f*}_${ploidy_ref1}x_raw.vcf.gz
-						gunzip ${pop}_${ref1%.f*}_${ploidy_ref1}x_raw.vcf.gz
+						cp *cohorts*.vcf.gz ${pop}_${ref1%.f*}_${ploidy_ref1}x_raw.vcf.gz &&
+						gunzip ${pop}_${ref1%.f*}_${ploidy_ref1}x_raw.vcf.gz &&
+            wait
 					fi
 
 					if [[ "$keep_gVCF" == true ]]; then
-						mkdir -p keep_gVCF
-						mv ./cohorts*/*.g.vcf ./keep_gVCF
+						mkdir -p keep_gVCF &&
+						mv ./cohorts*/*.g.vcf ./keep_gVCF &&
 						rm -r *cohorts*
 					else
 						rm -r cohorts*
@@ -1822,10 +1867,11 @@ main () {
     else
       printf "variant calling for subgenome 1 alone skipped" > "${projdir}/call1_${samples_list}"
     fi
+    wait
 
 		######################
 
-    if [[ "$ploidy_ref2" ]]; then
+    if [[ "$ploidy_ref2" ]] || [[ "$pangenome_specific" == "true" ]]; then
       while [[ ! -f ${projdir}/precall_done_${samples_list} ]]; do
         sleep 300
       done
@@ -1841,7 +1887,7 @@ main () {
 			while IFS="" read -r i || [ -n "$i" ]; do (
         sleep $((RANDOM % 2))
 				if [[ "$(ls ${projdir}/snpcall/${pop}_${ref2%.f*}_${ploidy_ref2}x_raw.vcf* 2> /dev/null | wc -l)" -eq 0 ]]; then
-					if test ! -f "${projdir}/snpcall/${i%.f*}_${ref2%.f*}.g.vcf" && test ! -f "${projdir}/snpcall/${i%.f*}_${ref2%.f*}.g.vcf.gz"; then
+					if test ! -f "${projdir}/snpcall/${i%.f*}_${ref2%.f*}.g.vcf"; then
 						if [[ -z "$Get_Chromosome" ]]; then
               if [[ -z "$interval_list_ref2" ]]; then
   							$GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ../refgenomes/$ref2 -I ${i%.f*}_${ref2%.f*}_precall.bam -ploidy $ploidy_ref2 -O ${projdir}/snpcall/${i%.f*}_${ref2%.f*}.hold.g.vcf.gz -ERC GVCF --max-reads-per-alignment-start 0 --minimum-mapping-quality $minmapq --dont-use-soft-clipped-bases $dont_use_softclip --max-num-haplotypes-in-population $((ploidy_ref2 * maxHaplotype)) &&
@@ -1855,14 +1901,14 @@ main () {
 							$GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ../refgenomes/$ref2 -L ../refgenomes/${ref2%.f*}.list -I ${i%.f*}_${ref2%.f*}_precall.bam -ploidy $ploidy_ref2 -O ${projdir}/snpcall/${i%.f*}_${ref2%.f*}.hold.g.vcf.gz -ERC GVCF --max-reads-per-alignment-start 0 --minimum-mapping-quality $minmapq --dont-use-soft-clipped-bases $dont_use_softclip --max-num-haplotypes-in-population $((ploidy_ref2 * maxHaplotype)) &&
 							wait
 						fi
-						mv "${projdir}/snpcall/${i%.f*}_${ref2%.f*}.hold.g.vcf.gz" "${projdir}/snpcall/${i%.f*}_${ref2%.f*}.g.vcf.gz" &&
-						rm "${projdir}/snpcall/${i%.f*}_${ref2%.f*}.hold.g.vcf.gz.tb*" 2> /dev/null &&
+            mv ${projdir}/snpcall/${i%.f*}_${ref2%.f*}.hold.g.vcf.gz ${projdir}/snpcall/${i%.f*}_${ref2%.f*}.g.vcf.gz &&
+						rm ${projdir}/snpcall/${i%.f*}_${ref2%.f*}.hold.g.vcf.gz.tb* 2> /dev/null &&
             gunzip ${projdir}/snpcall/${i%.f*}_${ref2%.f*}.g.vcf.gz &&
             $GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" IndexFeatureFile -I ${projdir}/snpcall/${i%.f*}_${ref2%.f*}.g.vcf &&
 						wait
 					fi
 				fi
-				mv ${i%.f*}_${ref2%.f*}_precall.bam* ${projdir}/preprocess/processed/ 2> /dev/null
+				mv ${projdir}/preprocess/${i%.f*}_${ref2%.f*}_precall.bam* ${projdir}/preprocess/processed/ 2> /dev/null
         rm  ${i%.f*}_${ref2%.f*}_precall.bam* 2> /dev/null
         wait ) &
 				if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
@@ -1891,7 +1937,7 @@ main () {
 							k="${j} ${i}"; input="${input} ${k}"
 						done
 						if [[ -z "$Get_Chromosome" ]]; then
-							Get2_Chromosome=$(awk 'NR>1{print $2,"\t",$3}' ${projdir}/refgenomes/${ref2%.f*}.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $0}' | sort -k2,2 -n | awk '{print $1}' | awk -v pat=${ref2%.f*} '$0 ~ pat')
+							Get2_Chromosome=$(awk 'NR>1{print $2,"\t",$3}' ${projdir}/refgenomes/${ref2%.f*}.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $0}' | sort -k2,2 -nr | awk '{print $1}' | awk -v pat=${ref2%.f*} '$0 ~ pat')
 						else
 							Get2_Chromosome=$(echo $Get_Chromosome | tr ',' '\n')
 						fi
@@ -1916,6 +1962,8 @@ main () {
                 wait
               fi
 						done
+            wait
+
 						for selchr in $Get2_Chromosome; do (
               export TILEDB_DISABLE_FILE_LOCKING=1
 							if test ! -f "${pop}_${ref2%.f*}_${ploidy_ref2}x_${selchr}_raw.vcf.gz"; then
@@ -1955,31 +2003,33 @@ main () {
 								wait
 							fi
 						done
-						grep -h '^#' ${pop}_${ref2%.f*}_${ploidy_ref2}x_*_raw.vcf | awk '!visited[$0]++' | awk '!/^##GATKCommandLine/' > vcf_header.txt
-						cat ${pop}_${ref2%.f*}_${ploidy_ref2}x_*_raw.vcf | awk '!/^#/' > all.vcf
-						cat vcf_header.txt all.vcf > ${pop}_${ref2%.f*}_${ploidy_ref2}x_raw.vcf
-						rm vcf_header.txt all.vcf
-						rm ${pop}_${ref2%.f*}_${ploidy_ref2}x_*_raw.vcf ${pop}_${ref2%.f*}_${ploidy_ref2}x_*_raw.vcf.gz.tb* 2> /dev/null
-						$bcftools view -I ${pop}_${ref2%.f*}_${ploidy_ref2}x_raw.vcf -O z -o ${pop}_${ref2%.f*}_${ploidy_ref2}x_raw.vcf.gz
-						$bcftools index ${pop}_${ref2%.f*}_${ploidy_ref2}x_raw.vcf.gz
+						grep -h '^#' ${pop}_${ref2%.f*}_${ploidy_ref2}x_*_raw.vcf | awk '!visited[$0]++' | awk '!/^##GATKCommandLine/' > vcf_header.txt &&
+						cat ${pop}_${ref2%.f*}_${ploidy_ref2}x_*_raw.vcf | awk '!/^#/' > all.vcf &&
+						cat vcf_header.txt all.vcf > ${pop}_${ref2%.f*}_${ploidy_ref2}x_raw.vcf &&
+						rm vcf_header.txt all.vcf &&
+						rm ${pop}_${ref2%.f*}_${ploidy_ref2}x_*_raw.vcf ${pop}_${ref2%.f*}_${ploidy_ref2}x_*_raw.vcf.gz.tb* 2> /dev/null &&
+						$bcftools view -I ${pop}_${ref2%.f*}_${ploidy_ref2}x_raw.vcf -O z -o ${pop}_${ref2%.f*}_${ploidy_ref2}x_raw.vcf.gz &&
+						$bcftools index ${pop}_${ref2%.f*}_${ploidy_ref2}x_raw.vcf.gz &&
 
-						$bcftools annotate -x FORMAT/PL ${pop}_${ref2%.f*}_${ploidy_ref2}x_raw.vcf.gz > ../${pop}_${ref2%.f*}_${ploidy_ref2}x_raw_${dir%/}.vcf
+						$bcftools annotate -x FORMAT/PL ${pop}_${ref2%.f*}_${ploidy_ref2}x_raw.vcf.gz > ../${pop}_${ref2%.f*}_${ploidy_ref2}x_raw_${dir%/}.vcf &&
 						cd ../
-						$bcftools view -I ${pop}_${ref2%.f*}_${ploidy_ref2}x_raw_${dir%/}.vcf -O z -o ${pop}_${ref2%.f*}_${ploidy_ref2}x_raw_${dir%/}.vcf.gz
-						$bcftools index ${pop}_${ref2%.f*}_${ploidy_ref2}x_raw_${dir%/}.vcf.gz
+						$bcftools view -I ${pop}_${ref2%.f*}_${ploidy_ref2}x_raw_${dir%/}.vcf -O z -o ${pop}_${ref2%.f*}_${ploidy_ref2}x_raw_${dir%/}.vcf.gz &&
+						$bcftools index ${pop}_${ref2%.f*}_${ploidy_ref2}x_raw_${dir%/}.vcf.gz &&
 						wait
 					done
 					wait
 					if [[ `ls -1 *cohorts*.vcf.gz 2>/dev/null | wc -l` -gt 1 ]]; then
-						$bcftools merge *cohorts*.vcf.gz --force-samples -m all > ${pop}_${ref2%.f*}_${ploidy_ref2}x_raw.vcf
+						$bcftools merge *cohorts*.vcf.gz --force-samples -m all > ${pop}_${ref2%.f*}_${ploidy_ref2}x_raw.vcf &&
+            wait
 					else
-						cp *cohorts*.vcf.gz ${pop}_${ref2%.f*}_${ploidy_ref2}x_raw.vcf.gz
-						gunzip ${pop}_${ref2%.f*}_${ploidy_ref2}x_raw.vcf.gz
+						cp *cohorts*.vcf.gz ${pop}_${ref2%.f*}_${ploidy_ref2}x_raw.vcf.gz &&
+						gunzip ${pop}_${ref2%.f*}_${ploidy_ref2}x_raw.vcf.gz &&
+            wait
 					fi
 
 					if [[ "$keep_gVCF" == true ]]; then
-						mkdir -p keep_gVCF
-						mv ./cohorts*/*.g.vcf ./keep_gVCF
+						mkdir -p keep_gVCF &&
+						mv ./cohorts*/*.g.vcf ./keep_gVCF &&
 						rm -r *cohorts*
 					else
 						rm -r cohorts*
@@ -1990,6 +2040,7 @@ main () {
 			fi
 			wait
     fi
+    wait
 
 		######################
 
@@ -2007,6 +2058,7 @@ main () {
 			rm -rf /tmp/${samples_list%.txt} 2> /dev/null
 			rm ${projdir}/queue_move_${samples_list%.txt}.txt
 		fi
+    wait
 
 		cd ${projdir}/preprocess/
 		# if [[ "$samples_list" == "samples_list_node_1.txt" ]]; then
@@ -2172,17 +2224,20 @@ if [[ "$ploidy" -eq 8 ]] || [[ "$ploidy_ref1" -eq 8 ]] || [[ "$ploidy_ref2" -eq 
 fi
 
 if [ -z $genotype_missingness ]; then
-	genotype_missingness=0.2
+	genotype_missingness=1
 else
 	genotype_missingness=$( echo $genotype_missingness | awk '{gsub(/,/," ")}1' )
 fi
 if [ -z $sample_missingness ]; then
-	sample_missingness=0.2
+	sample_missingness=1
 else
 	sample_missingness=$( echo $sample_missingness | awk '{gsub(/,/," ")}1' )
 fi
 if [ -z $exclude_samples ]; then
 	exclude_samples=NULL
+fi
+if [ -z $select_samples ]; then
+	select_samples=NULL
 fi
 if [ -z $minRD_1x ]; then
 	minRD_1x=2
@@ -2223,16 +2278,16 @@ if [[ "${file1xG}" -lt 1 ]]; then
 	if [[ "${file1xV}" -gt 0 ]]; then
     if test ! -f ${projdir}/vcf1x_trimmed.txt; then
   		for i in *_1x_raw.vcf; do
-        refg=${i#*_}; refg=${refg%%_*}.fasta
+        refg=${i%_1x_raw.vcf} && refg=${refg#*_} && refg=${refg%%_*}.fasta
         samz1=$(wc -l ${projdir}/samples_list_node_* | awk '{print $1}') && samz1=$((samz1*98)) && samz1=$((samz1/100)) &&
         samz2=$(wc -l ${projdir}/samples_list_node_* | awk '{print $1}') && samz2=$((samz2*80)) && samz2=$((samz2/100)) &&
         wait
         awk -v pat="0/0:0,0:0" -v samz1="$samz1" 'gsub(pat,pat) < samz1' $i | awk -v pat="./.:0,0:0"  -v samz2="$samz2" 'gsub(pat,pat) < samz2' > ${i}.tmp &&
         mv ${i}.tmp ${i} &&
-        # $GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" IndexFeatureFile -I $i &&
-  			# $GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" LeftAlignAndTrimVariants -R ${projdir}/refgenomes/$refg -V $i -O ${i%.vcf}0.vcf --split-multi-allelics  --dont-trim-alleles --keep-original-ac &&
-  			# # large_numerous_chrom &>> ${projdir}/log.out &&
-        $bcftools norm -m -any $i > ${i%.vcf}0.vcf
+        wait
+        $GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" IndexFeatureFile -I $i &&
+  			$GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" LeftAlignAndTrimVariants -R ${projdir}/refgenomes/$refg -V $i -O ${i%.vcf}0.vcf --split-multi-allelics  --dont-trim-alleles --keep-original-ac &&
+  			wait
   			awk '!/^##/' ${i%.vcf}0.vcf | awk '{gsub(/^#/,""); print $0}' > ${i%.vcf}trim.vcf &&
   			awk -v file=${i%.vcf} 'BEGIN{getline f;}NR%100000==2{x=file"1x_rawSPLIT"++i".vcf";a[i]=x;print f>x;}{print > x}' ${i%.vcf}trim.vcf & PID=$!
   		  wait $PID
@@ -2249,7 +2304,8 @@ if [[ "${file1xG}" -lt 1 ]]; then
       mv "${ptrimvcf}".tmp "${ptrimvcf}" &&
       wait
     done
-		Rscript "${GBSapp_dir}"/scripts/R/VCF_2_DP_GT.R "${pop}" 1x "${GBSapp_dir}/tools/R" "1" &&
+    wait
+		Rscript "${GBSapp_dir}"/scripts/R/VCF_2_DP_GT.R "${pop}" 1x "${GBSapp_dir}/tools/R" "1" "$filter_ExcHet" &&
     rm "${projdir}"/vcf1x_trimmed.txt 2> /dev/null &&
     wait
 	fi
@@ -2261,16 +2317,16 @@ if [[ "${file2xG}" -lt 1 ]]; then
 	if [[ "${file2xV}" -gt 0 ]]; then
     if test ! -f ${projdir}/vcf2x_trimmed.txt; then
   		for i in *_2x_raw.vcf; do
-        refg=${i#*_}; refg=${refg%%_*}.fasta
+        refg=${i%_2x_raw.vcf} && refg=${refg#*_} && refg=${refg%%_*}.fasta
         samz1=$(wc -l ${projdir}/samples_list_node_* | awk '{print $1}') && samz1=$((samz1*98)) && samz1=$((samz1/100)) &&
         samz2=$(wc -l ${projdir}/samples_list_node_* | awk '{print $1}') && samz2=$((samz2*80)) && samz2=$((samz2/100)) &&
         wait
         awk -v pat="0/0:0,0:0" -v samz1="$samz1" 'gsub(pat,pat) < samz1' $i | awk -v pat="./.:0,0:0"  -v samz2="$samz2" 'gsub(pat,pat) < samz2' > ${i}.tmp &&
         mv ${i}.tmp ${i}  &&
-        # $GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" IndexFeatureFile -I $i &&
-  			# $GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" LeftAlignAndTrimVariants -R ${projdir}/refgenomes/$refg -V $i -O ${i%.vcf}0.vcf --split-multi-allelics  --dont-trim-alleles --keep-original-ac &&
-  			# # large_numerous_chrom &>> ${projdir}/log.out &&
-        $bcftools norm -m -any $i > ${i%.vcf}0.vcf
+        wait
+        $GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" IndexFeatureFile -I $i &&
+  			$GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" LeftAlignAndTrimVariants -R ${projdir}/refgenomes/$refg -V $i -O ${i%.vcf}0.vcf --split-multi-allelics  --dont-trim-alleles --keep-original-ac &&
+  			wait
   			awk '!/^##/' ${i%.vcf}0.vcf | awk '{gsub(/^#/,""); print $0}' > ${i%.vcf}trim.vcf &&
   			awk -v file=${i%.vcf} 'BEGIN{getline f;}NR%100000==2{x=file"2x_rawSPLIT"++i".vcf";a[i]=x;print f>x;}{print > x}' ${i%.vcf}trim.vcf & PID=$!
   			wait $PID
@@ -2287,7 +2343,8 @@ if [[ "${file2xG}" -lt 1 ]]; then
       mv "${ptrimvcf}".tmp "${ptrimvcf}" &&
       wait
     done
-		Rscript "${GBSapp_dir}"/scripts/R/VCF_2_DP_GT.R "${pop}" 2x "${GBSapp_dir}/tools/R" "1" &&
+    wait
+		Rscript "${GBSapp_dir}"/scripts/R/VCF_2_DP_GT.R "${pop}" 2x "${GBSapp_dir}/tools/R" "1" "$filter_ExcHet" &&
     rm ${projdir}/vcf2x_trimmed.txt 2> /dev/null &&
     wait
 	fi
@@ -2299,16 +2356,17 @@ if [[ "${file4xG}" -lt 1 ]]; then
 	if [[ "${file4xV}" -gt 0 ]]; then
     if test ! -f ${projdir}/vcf4x_trimmed.txt; then
   		for i in *_4x_raw.vcf; do
-        refg=${i#*_}; refg=${refg%%_*}.fasta
+        refg=${i%_4x_raw.vcf} && refg=${refg#*_} && refg=${refg%%_*}.fasta
         samz1=$(wc -l ${projdir}/samples_list_node_* | awk '{print $1}') && samz1=$((samz1*98)) && samz1=$((samz1/100)) &&
         samz2=$(wc -l ${projdir}/samples_list_node_* | awk '{print $1}') && samz2=$((samz2*80)) && samz2=$((samz2/100)) &&
         wait
         awk -v pat="0/0/0/0:0,0:0" -v samz1="$samz1" 'gsub(pat,pat) < samz1' $i | awk -v pat="./././.:0,0:0"  -v samz2="$samz2" 'gsub(pat,pat) < samz2' > ${i}.tmp &&
         mv ${i}.tmp ${i} &&
-        # $GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" IndexFeatureFile -I $i &&
-  			# $GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" LeftAlignAndTrimVariants -R ${projdir}/refgenomes/$refg -V $i -O ${i%.vcf}0.vcf --split-multi-allelics  --dont-trim-alleles --keep-original-ac &&
-  			# # large_numerous_chrom &>> ${projdir}/log.out &&
-  			awk '!/^##/' $i | awk '{gsub(/^#/,""); print $0}' > ${i%.vcf}trim.vcf &&
+        wait
+        $GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" IndexFeatureFile -I $i &&
+  			$GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" LeftAlignAndTrimVariants -R ${projdir}/refgenomes/$refg -V $i -O ${i%.vcf}0.vcf --split-multi-allelics  --dont-trim-alleles --keep-original-ac &&
+  			wait
+  			awk '!/^##/' ${i%.vcf}0.vcf | awk '{gsub(/^#/,""); print $0}' > ${i%.vcf}trim.vcf &&
   			awk -v file=${i%.vcf} 'BEGIN{getline f;}NR%100000==2{x=file"4x_rawSPLIT"++i".vcf";a[i]=x;print f>x;}{print > x}' ${i%.vcf}trim.vcf & PID=$!
   			wait $PID
   			rm "${i%.vcf}"0.vcf* "${i%.vcf}"trim.vcf* &&
@@ -2324,7 +2382,8 @@ if [[ "${file4xG}" -lt 1 ]]; then
       mv "${ptrimvcf}".tmp "${ptrimvcf}" &&
       wait
     done
-		Rscript "${GBSapp_dir}"/scripts/R/VCF_2_DP_GT.R "${pop}" 4x "${GBSapp_dir}/tools/R" "1" &&
+    wait
+		Rscript "${GBSapp_dir}"/scripts/R/VCF_2_DP_GT.R "${pop}" 4x "${GBSapp_dir}/tools/R" "1" "$filter_ExcHet" &&
     rm ${projdir}/vcf4x_trimmed.txt 2> /dev/null &&
     wait
 	fi
@@ -2336,16 +2395,17 @@ if [[ "${file6xG}" -lt 1 ]]; then
 	if [[ "${file6xV}" -gt 0 ]]; then
     if test ! -f ${projdir}/vcf6x_trimmed.txt; then
   		for i in *_6x_raw.vcf; do
-        refg=${i#*_}; refg=${refg%%_*}.fasta
+        refg=${i%_6x_raw.vcf} && refg=${refg#*_} && refg=${refg%%_*}.fasta
         samz1=$(wc -l ${projdir}/samples_list_node_* | awk '{print $1}') && samz1=$((samz1*98)) && samz1=$((samz1/100)) &&
         samz2=$(wc -l ${projdir}/samples_list_node_* | awk '{print $1}') && samz2=$((samz2*80)) && samz2=$((samz2/100)) &&
         wait
         awk -v pat="0/0/0/0/0/0:0,0:0" -v samz1="$samz1" 'gsub(pat,pat) < samz1' $i | awk -v pat="./././././.:0,0:0"  -v samz2="$samz2" 'gsub(pat,pat) < samz2' > ${i}.tmp &&
         mv ${i}.tmp ${i} &&
-        # $GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" IndexFeatureFile -I $i &&
-  			# $GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" LeftAlignAndTrimVariants -R ${projdir}/refgenomes/$refg -V $i -O ${i%.vcf}0.vcf --split-multi-allelics  --dont-trim-alleles --keep-original-ac &&
-  			# # large_numerous_chrom &>> ${projdir}/log.out &&
-  			awk '!/^##/' $i | awk '{gsub(/^#/,""); print $0}' > ${i%.vcf}trim.vcf &&
+        wait
+        $GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" IndexFeatureFile -I $i &&
+  			$GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" LeftAlignAndTrimVariants -R ${projdir}/refgenomes/$refg -V $i -O ${i%.vcf}0.vcf --split-multi-allelics  --dont-trim-alleles --keep-original-ac &&
+  			wait
+  			awk '!/^##/' ${i%.vcf}0.vcf | awk '{gsub(/^#/,""); print $0}' > ${i%.vcf}trim.vcf &&
   			awk -v file=${i%.vcf} 'BEGIN{getline f;}NR%100000==2{x=file"6x_rawSPLIT"++i".vcf";a[i]=x;print f>x;}{print > x}' ${i%.vcf}trim.vcf & PID=$!
   			wait $PID
         rm "${i%.vcf}"0.vcf* "${i%.vcf}"trim.vcf* &&
@@ -2361,7 +2421,7 @@ if [[ "${file6xG}" -lt 1 ]]; then
       mv "${ptrimvcf}".tmp "${ptrimvcf}" &&
       wait
     done
-		Rscript "${GBSapp_dir}"/scripts/R/VCF_2_DP_GT.R "${pop}" 6x "${GBSapp_dir}/tools/R" "1" &&
+		Rscript "${GBSapp_dir}"/scripts/R/VCF_2_DP_GT.R "${pop}" 6x "${GBSapp_dir}/tools/R" "1" "$filter_ExcHet" &&
     rm ${projdir}/vcf6x_trimmed.txt 2> /dev/null &&
     wait
 	fi
@@ -2373,16 +2433,17 @@ if [[ "${file8xG}" -lt 1 ]]; then
 	if [[ "${file8xV}" -gt 0 ]]; then
     if test ! -f ${projdir}/vcf8x_trimmed.txt; then
   		for i in *_8x_raw.vcf; do
-        refg=${i#*_}; refg=${refg%%_*}.fasta
+        refg=${i%_8x_raw.vcf} && refg=${refg#*_} && refg=${refg%%_*}.fasta
         samz1=$(wc -l ${projdir}/samples_list_node_* | awk '{print $1}') && samz1=$((samz1*98)) && samz1=$((samz1/100)) &&
         samz2=$(wc -l ${projdir}/samples_list_node_* | awk '{print $1}') && samz2=$((samz2*80)) && samz2=$((samz2/100)) &&
         wait
         awk -v pat="0/0/0/0/0/0/0/0:0,0:0" -v samz1="$samz1" 'gsub(pat,pat) < samz1' $i | awk -v pat="./././././././.:0,0:0"  -v samz2="$samz2" 'gsub(pat,pat) < samz2' > ${i}.tmp &&
         mv ${i}.tmp ${i} &&
-        # $GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" IndexFeatureFile -I $i &&
-  			# $GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" LeftAlignAndTrimVariants -R ${projdir}/refgenomes/$refg -V $i -O ${i%.vcf}0.vcf --split-multi-allelics  --dont-trim-alleles --keep-original-ac &&
-  			# # large_numerous_chrom &>> ${projdir}/log.out &&
-  			awk '!/^##/' $i | awk '{gsub(/^#/,""); print $0}' > ${i%.vcf}trim.vcf &&
+        wait
+        $GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" IndexFeatureFile -I $i &&
+  			$GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" LeftAlignAndTrimVariants -R ${projdir}/refgenomes/$refg -V $i -O ${i%.vcf}0.vcf --split-multi-allelics  --dont-trim-alleles --keep-original-ac &&
+  			wait
+  			awk '!/^##/' ${i%.vcf}0.vcf | awk '{gsub(/^#/,""); print $0}' > ${i%.vcf}trim.vcf &&
   			awk -v file=${i%.vcf} 'BEGIN{getline f;}NR%100000==2{x=file"8x_rawSPLIT"++i".vcf";a[i]=x;print f>x;}{print > x}' ${i%.vcf}trim.vcf & PID=$!
         wait $PID
         rm "${i%.vcf}"0.vcf* "${i%.vcf}"trim.vcf* &&
@@ -2398,7 +2459,8 @@ if [[ "${file8xG}" -lt 1 ]]; then
       mv "${ptrimvcf}".tmp "${ptrimvcf}" &&
       wait
     done
-		Rscript "${GBSapp_dir}"/scripts/R/VCF_2_DP_GT.R "${pop}" 8x "${GBSapp_dir}/tools/R" "1" &&
+    wait
+		Rscript "${GBSapp_dir}"/scripts/R/VCF_2_DP_GT.R "${pop}" 8x "${GBSapp_dir}/tools/R" "1" "$filter_ExcHet" &&
     rm ${projdir}/vcf8x_trimmed.txt 2> /dev/null &&
     wait
 	fi
@@ -2411,7 +2473,10 @@ if [ -z "$(ls -A *x.vcf* 2>/dev/null)" ]; then
 		vcfdose=${v%_DP*}; vcfdose=${vcfdose#*_}; out=$(ls *${vcfdose}_raw.vcf)
 		for raw in $out; do
 			grep '^#' $raw  > ${raw%_raw.vcf}.vcf
-			awk 'FNR==NR{a[$1,$2]=$0;next}{if(b=a[$1,$2]){print b}}' $raw <(awk '{print $1"\t"$2}' $v | awk '!seen[$0] {print} {++seen[$0]}') >> ${raw%_raw.vcf}.vcf
+			awk 'FNR==NR{a[$1,$2]=$0;next}{if(b=a[$1,$2]){print b}}' $raw <(awk '{print $1"\t"$2}' $v | awk '!seen[$0] {print} {++seen[$0]}') >> ${raw%_raw.vcf}.vcf &&
+      $bcftools sort ${raw%_raw.vcf}.vcf | gzip > ${raw%_raw.vcf}.vcf.gz &&
+      rm ${raw%_raw.vcf}.vcf &&
+      wait
 		done
 	done
 	wait
@@ -2447,7 +2512,7 @@ for smiss in ${sample_missingness//,/ }; do
     		cd ${projdir}/snpfilter &&
     		cp -r 1x 1x_diversity_gmiss"${gmiss}"_smiss"${smiss}" &&
     		cd ./1x_diversity_gmiss"${gmiss}"_smiss"${smiss}" &&
-    		Rscript "${GBSapp_dir}"/scripts/R/GBSapp_Filter_diversity_1x.R $pop $gmiss $smiss $minRD_1x $exclude_samples "${GBSapp_dir}/tools/R" $maf $haplome_number $biallelic 2> /dev/null &&
+    		Rscript "${GBSapp_dir}"/scripts/R/GBSapp_Filter_diversity_1x.R $pop $gmiss $smiss $minRD_1x $exclude_samples "${GBSapp_dir}/tools/R" $maf $haplome_number $biallelic $select_samples 2> /dev/null &&
     		rm "${pop}"_1x_rawRD"${minRD_1x}"_DP_GT.txt "${pop}"_1x_DP_GT.txt "${pop}"_1x_rd"${minRD_1x}".txt 2> /dev/null &&
     		mkdir visualizations && mv ./*.tiff ./visualizations/ &&
         wait
@@ -2531,7 +2596,7 @@ for smiss in ${sample_missingness//,/ }; do
               mv ./consensus_seq_context/"${i%.f*}"_seqcontext.fasta.tmp ./consensus_seq_context/"${i%.f*}"_seqcontext.fasta 2> /dev/null &&
               while IFS="" read -r aln || [ -n "$aln" ]; do
     						awk -v aln="$aln" '$1 == aln {print}' ./consensus_seq_context/"${i%.f*}"_seqcontext.fasta | awk '{print ">seq-"NR"_"$1"\n"$2}' > ./consensus_seq_context/"${i%.f*}"_seqcontext.fasta.tmp &&
-                bash $mafft --localpair --maxiterate 1000 ./consensus_seq_context/"${i%.f*}"_seqcontext.fasta.tmp > ./consensus_seq_context/"${i%.f*}"_seqcontext.msf &&
+                bash $mafft --quiet --localpair --maxiterate 1000 ./consensus_seq_context/"${i%.f*}"_seqcontext.fasta.tmp > ./consensus_seq_context/"${i%.f*}"_seqcontext.msf &&
     						bash $consambig -sequence ./consensus_seq_context/"${i%.f*}"_seqcontext.msf -outseq ./consensus_seq_context/"${i%.f*}"_seqcontext.cons.tmp 2> /dev/null &&
     						awk -v aln="${i%.f*}~~~${aln}_locus" '{gsub(/EMBOSS_001/,aln);}1' ./consensus_seq_context/"${i%.f*}"_seqcontext.cons.tmp >> ./consensus_seq_context/"${i%.f*}"_seqcontext.cons &&
     						wait
@@ -2572,7 +2637,7 @@ for smiss in ${sample_missingness//,/ }; do
     		cd ${projdir}/snpfilter &&
     		cp -r 2x 2x_diversity_gmiss"${gmiss}"_smiss"${smiss}" &&
     		cd ./2x_diversity_gmiss"${gmiss}"_smiss"${smiss}" &&
-    		Rscript "${GBSapp_dir}"/scripts/R/GBSapp_Filter_diversity_2x.R $pop $gmiss $smiss $minRD_2x $exclude_samples "${GBSapp_dir}/tools/R" $maf $haplome_number $biallelic 2> /dev/null &&
+    		Rscript "${GBSapp_dir}"/scripts/R/GBSapp_Filter_diversity_2x.R $pop $gmiss $smiss $minRD_2x $exclude_samples "${GBSapp_dir}/tools/R" $maf $haplome_number $biallelic $select_samples 2> /dev/null &&
     		rm "${pop}"_2x_rawRD"${minRD_2x}"_DP_GT.txt "${pop}"_2x_DP_GT.txt "${pop}"_2x_rd"${minRD_2x}".txt 2> /dev/null &&
     		mkdir visualizations && mv ./*.tiff ./visualizations/ &&
         wait
@@ -2660,7 +2725,7 @@ for smiss in ${sample_missingness//,/ }; do
               mv ./consensus_seq_context/"${i%.f*}"_seqcontext.fasta.tmp ./consensus_seq_context/"${i%.f*}"_seqcontext.fasta 2> /dev/null &&
               while IFS="" read -r aln || [ -n "$aln" ]; do
     						awk -v aln="$aln" '$1 == aln {print}' ./consensus_seq_context/"${i%.f*}"_seqcontext.fasta | awk '{print ">seq-"NR"_"$1"\n"$2}' > ./consensus_seq_context/"${i%.f*}"_seqcontext.fasta.tmp &&
-                bash $mafft --localpair --maxiterate 1000 ./consensus_seq_context/"${i%.f*}"_seqcontext.fasta.tmp > ./consensus_seq_context/"${i%.f*}"_seqcontext.msf &&
+                bash $mafft --quiet --localpair --maxiterate 1000 ./consensus_seq_context/"${i%.f*}"_seqcontext.fasta.tmp > ./consensus_seq_context/"${i%.f*}"_seqcontext.msf &&
     						bash $consambig -sequence ./consensus_seq_context/"${i%.f*}"_seqcontext.msf -outseq ./consensus_seq_context/"${i%.f*}"_seqcontext.cons.tmp 2> /dev/null &&
     						awk -v aln="${i%.f*}~~~${aln}_locus" '{gsub(/EMBOSS_001/,aln);}1' ./consensus_seq_context/"${i%.f*}"_seqcontext.cons.tmp >> ./consensus_seq_context/"${i%.f*}"_seqcontext.cons &&
     						wait
@@ -2701,7 +2766,7 @@ for smiss in ${sample_missingness//,/ }; do
     		cd ${projdir}/snpfilter &&
     		cp -r 4x 4x_diversity_gmiss"${gmiss}"_smiss"${smiss}" &&
     		cd ./4x_diversity_gmiss"${gmiss}"_smiss"${smiss}" &&
-    		Rscript "${GBSapp_dir}"/scripts/R/GBSapp_Filter_diversity_4x.R $pop $gmiss $smiss $minRD_4x $exclude_samples "${GBSapp_dir}/tools/R" $maf $haplome_number $biallelic 2> /dev/null &&
+    		Rscript "${GBSapp_dir}"/scripts/R/GBSapp_Filter_diversity_4x.R $pop $gmiss $smiss $minRD_4x $exclude_samples "${GBSapp_dir}/tools/R" $maf $haplome_number $biallelic $select_samples 2> /dev/null &&
     		rm ${pop}_4x_rawRD${minRD_4x}_DP_GT.txt ${pop}_4x_DP_GT.txt ${pop}_4x_rd${minRD_4x}.txt 2> /dev/null &&
     		mkdir visualizations && mv ./*.tiff ./visualizations/ &&
         wait
@@ -2787,7 +2852,7 @@ for smiss in ${sample_missingness//,/ }; do
               mv ./consensus_seq_context/"${i%.f*}"_seqcontext.fasta.tmp ./consensus_seq_context/"${i%.f*}"_seqcontext.fasta 2> /dev/null &&
               while IFS="" read -r aln || [ -n "$aln" ]; do
     						awk -v aln="$aln" '$1 == aln {print}' ./consensus_seq_context/"${i%.f*}"_seqcontext.fasta | awk '{print ">seq-"NR"_"$1"\n"$2}' > ./consensus_seq_context/"${i%.f*}"_seqcontext.fasta.tmp &&
-                bash $mafft --localpair --maxiterate 1000 ./consensus_seq_context/"${i%.f*}"_seqcontext.fasta.tmp > ./consensus_seq_context/"${i%.f*}"_seqcontext.msf &&
+                bash $mafft --quiet --localpair --maxiterate 1000 ./consensus_seq_context/"${i%.f*}"_seqcontext.fasta.tmp > ./consensus_seq_context/"${i%.f*}"_seqcontext.msf &&
     						bash $consambig -sequence ./consensus_seq_context/"${i%.f*}"_seqcontext.msf -outseq ./consensus_seq_context/"${i%.f*}"_seqcontext.cons.tmp 2> /dev/null &&
     						awk -v aln="${i%.f*}~~~${aln}_locus" '{gsub(/EMBOSS_001/,aln);}1' ./consensus_seq_context/"${i%.f*}"_seqcontext.cons.tmp >> ./consensus_seq_context/"${i%.f*}"_seqcontext.cons &&
     						wait
@@ -2828,7 +2893,7 @@ for smiss in ${sample_missingness//,/ }; do
     		cd ${projdir}/snpfilter &&
     		cp -r 6x 6x_diversity_gmiss"${gmiss}"_smiss"${smiss}" &&
     		cd ./6x_diversity_gmiss"${gmiss}"_smiss"${smiss}" &&
-    		Rscript "${GBSapp_dir}"/scripts/R/GBSapp_Filter_diversity_6x.R $pop $gmiss $smiss $minRD_6x $exclude_samples "${GBSapp_dir}/tools/R" $maf $haplome_number $biallelic 2> /dev/null &&
+    		Rscript "${GBSapp_dir}"/scripts/R/GBSapp_Filter_diversity_6x.R $pop $gmiss $smiss $minRD_6x $exclude_samples "${GBSapp_dir}/tools/R" $maf $haplome_number $biallelic $select_samples 2> /dev/null &&
     		rm ${pop}_6x_rawRD${minRD_6x}_DP_GT.txt ${pop}_6x_DP_GT.txt ${pop}_6x_rd${minRD_6x}.txt 2> /dev/null &&
     		mkdir visualizations && mv ./*.tiff ./visualizations/ &&
         wait
@@ -2911,7 +2976,7 @@ for smiss in ${sample_missingness//,/ }; do
               mv ./consensus_seq_context/"${i%.f*}"_seqcontext.fasta.tmp ./consensus_seq_context/"${i%.f*}"_seqcontext.fasta 2> /dev/null &&
               while IFS="" read -r aln || [ -n "$aln" ]; do
     						awk -v aln="$aln" '$1 == aln {print}' ./consensus_seq_context/"${i%.f*}"_seqcontext.fasta | awk '{print ">seq-"NR"_"$1"\n"$2}' > ./consensus_seq_context/"${i%.f*}"_seqcontext.fasta.tmp &&
-                bash $mafft --localpair --maxiterate 1000 ./consensus_seq_context/"${i%.f*}"_seqcontext.fasta.tmp > ./consensus_seq_context/"${i%.f*}"_seqcontext.msf &&
+                bash $mafft --quiet --localpair --maxiterate 1000 ./consensus_seq_context/"${i%.f*}"_seqcontext.fasta.tmp > ./consensus_seq_context/"${i%.f*}"_seqcontext.msf &&
     						bash $consambig -sequence ./consensus_seq_context/"${i%.f*}"_seqcontext.msf -outseq ./consensus_seq_context/"${i%.f*}"_seqcontext.cons.tmp 2> /dev/null &&
     						awk -v aln="${i%.f*}~~~${aln}_locus" '{gsub(/EMBOSS_001/,aln);}1' ./consensus_seq_context/"${i%.f*}"_seqcontext.cons.tmp >> ./consensus_seq_context/"${i%.f*}"_seqcontext.cons &&
     						wait
@@ -2952,7 +3017,7 @@ for smiss in ${sample_missingness//,/ }; do
     		cd ${projdir}/snpfilter &&
     		cp -r 8x 8x_diversity_gmiss"${gmiss}"_smiss"${smiss}" &&
     		cd ./8x_diversity_gmiss"${gmiss}"_smiss"${smiss}" &&
-    		Rscript "${GBSapp_dir}"/scripts/R/GBSapp_Filter_diversity_8x.R $pop $gmiss $smiss $minRD_8x $exclude_samples "${GBSapp_dir}/tools/R" $maf $haplome_number $biallelic 2> /dev/null &&
+    		Rscript "${GBSapp_dir}"/scripts/R/GBSapp_Filter_diversity_8x.R $pop $gmiss $smiss $minRD_8x $exclude_samples "${GBSapp_dir}/tools/R" $maf $haplome_number $biallelic $select_samples 2> /dev/null &&
     		rm ${pop}_8x_rawRD${minRD_8x}_DP_GT.txt ${pop}_8x_DP_GT.txt ${pop}_8x_rd${minRD_8x}.txt 2> /dev/null &&
     		mkdir visualizations && mv ./*.tiff ./visualizations/ &&
         wait
@@ -3040,7 +3105,7 @@ for smiss in ${sample_missingness//,/ }; do
               mv ./consensus_seq_context/"${i%.f*}"_seqcontext.fasta.tmp ./consensus_seq_context/"${i%.f*}"_seqcontext.fasta 2> /dev/null &&
               while IFS="" read -r aln || [ -n "$aln" ]; do
     						awk -v aln="$aln" '$1 == aln {print}' ./consensus_seq_context/"${i%.f*}"_seqcontext.fasta | awk '{print ">seq-"NR"_"$1"\n"$2}' > ./consensus_seq_context/"${i%.f*}"_seqcontext.fasta.tmp &&
-                bash $mafft --localpair --maxiterate 1000 ./consensus_seq_context/"${i%.f*}"_seqcontext.fasta.tmp > ./consensus_seq_context/"${i%.f*}"_seqcontext.msf &&
+                bash $mafft --quiet --localpair --maxiterate 1000 ./consensus_seq_context/"${i%.f*}"_seqcontext.fasta.tmp > ./consensus_seq_context/"${i%.f*}"_seqcontext.msf &&
     						bash $consambig -sequence ./consensus_seq_context/"${i%.f*}"_seqcontext.msf -outseq ./consensus_seq_context/"${i%.f*}"_seqcontext.cons.tmp 2> /dev/null &&
     						awk -v aln="${i%.f*}~~~${aln}_locus" '{gsub(/EMBOSS_001/,aln);}1' ./consensus_seq_context/"${i%.f*}"_seqcontext.cons.tmp >> ./consensus_seq_context/"${i%.f*}"_seqcontext.cons &&
     						wait
@@ -3084,7 +3149,7 @@ for smiss in ${sample_missingness//,/ }; do
     		cd ${projdir}/snpfilter &&
     		cp -r 2x 2x_biparental_gmiss"${gmiss}"_smiss"${smiss}" &&
     		cd ./2x_biparental_gmiss"${gmiss}"_smiss"${smiss}" &&
-    		Rscript "${GBSapp_dir}"/scripts/R/GBSapp_Filter_2x.R "$pop" "$p1" "$p2" "$gmiss" "$smiss" "$minRD_2x" "$exclude_samples" "${GBSapp_dir}/tools/R" "$pseg" "$haplome_number" $biallelic 2> /dev/null &&
+    		Rscript "${GBSapp_dir}"/scripts/R/GBSapp_Filter_2x.R "$pop" "$p1" "$p2" "$gmiss" "$smiss" "$minRD_2x" "$exclude_samples" "${GBSapp_dir}/tools/R" "$pseg" "$haplome_number" $biallelic $select_samples 2> /dev/null &&
     		rm "${pop}"_2x_rawRD"${minRD_2x}"_DP_GT.txt "${pop}"_2x_DP_GT.txt "${pop}"_2x_rd"${minRD_2x}".txt 2> /dev/null &&
     		mkdir visualizations && mv ./*.tiff ./visualizations/ &&
         wait
@@ -3170,7 +3235,7 @@ for smiss in ${sample_missingness//,/ }; do
               mv ./consensus_seq_context/"${i%.f*}"_seqcontext.fasta.tmp ./consensus_seq_context/"${i%.f*}"_seqcontext.fasta 2> /dev/null &&
               while IFS="" read -r aln || [ -n "$aln" ]; do
     						awk -v aln="$aln" '$1 == aln {print}' ./consensus_seq_context/"${i%.f*}"_seqcontext.fasta | awk '{print ">seq-"NR"_"$1"\n"$2}' > ./consensus_seq_context/"${i%.f*}"_seqcontext.fasta.tmp &&
-                bash $mafft --localpair --maxiterate 1000 ./consensus_seq_context/"${i%.f*}"_seqcontext.fasta.tmp > ./consensus_seq_context/"${i%.f*}"_seqcontext.msf &&
+                bash $mafft --quiet --localpair --maxiterate 1000 ./consensus_seq_context/"${i%.f*}"_seqcontext.fasta.tmp > ./consensus_seq_context/"${i%.f*}"_seqcontext.msf &&
     						bash $consambig -sequence ./consensus_seq_context/"${i%.f*}"_seqcontext.msf -outseq ./consensus_seq_context/"${i%.f*}"_seqcontext.cons.tmp 2> /dev/null &&
     						awk -v aln="${i%.f*}~~~${aln}_locus" '{gsub(/EMBOSS_001/,aln);}1' ./consensus_seq_context/"${i%.f*}"_seqcontext.cons.tmp >> ./consensus_seq_context/"${i%.f*}"_seqcontext.cons &&
     						wait
@@ -3211,7 +3276,7 @@ for smiss in ${sample_missingness//,/ }; do
     		cd ${projdir}/snpfilter &&
     		cp -r 4x 4x_biparental_gmiss"${gmiss}"_smiss"${smiss}" &&
     		cd ./4x_biparental_gmiss"${gmiss}"_smiss"${smiss}" &&
-    		Rscript "${GBSapp_dir}"/scripts/R/GBSapp_Filter_4x.R "$pop" "$p1" "$p2" "$gmiss" "$smiss" "$minRD_4x" "$exclude_samples" "${GBSapp_dir}/tools/R" "$pseg" "$haplome_number" $biallelic 2> /dev/null &&
+    		Rscript "${GBSapp_dir}"/scripts/R/GBSapp_Filter_4x.R "$pop" "$p1" "$p2" "$gmiss" "$smiss" "$minRD_4x" "$exclude_samples" "${GBSapp_dir}/tools/R" "$pseg" "$haplome_number" $biallelic $select_samples 2> /dev/null &&
     		rm ${pop}_4x_rawRD${minRD_4x}_DP_GT.txt ${pop}_4x_DP_GT.txt ${pop}_4x_rd${minRD_4x}.txt 2> /dev/null &&
     		mkdir visualizations && mv ./*.tiff ./visualizations/ &&
         wait
@@ -3298,7 +3363,7 @@ for smiss in ${sample_missingness//,/ }; do
               mv ./consensus_seq_context/"${i%.f*}"_seqcontext.fasta.tmp ./consensus_seq_context/"${i%.f*}"_seqcontext.fasta 2> /dev/null &&
               while IFS="" read -r aln || [ -n "$aln" ]; do
     						awk -v aln="$aln" '$1 == aln {print}' ./consensus_seq_context/"${i%.f*}"_seqcontext.fasta | awk '{print ">seq-"NR"_"$1"\n"$2}' > ./consensus_seq_context/"${i%.f*}"_seqcontext.fasta.tmp &&
-                bash $mafft --localpair --maxiterate 1000 ./consensus_seq_context/"${i%.f*}"_seqcontext.fasta.tmp > ./consensus_seq_context/"${i%.f*}"_seqcontext.msf &&
+                bash $mafft --quiet --localpair --maxiterate 1000 ./consensus_seq_context/"${i%.f*}"_seqcontext.fasta.tmp > ./consensus_seq_context/"${i%.f*}"_seqcontext.msf &&
     						bash $consambig -sequence ./consensus_seq_context/"${i%.f*}"_seqcontext.msf -outseq ./consensus_seq_context/"${i%.f*}"_seqcontext.cons.tmp 2> /dev/null &&
     						awk -v aln="${i%.f*}~~~${aln}_locus" '{gsub(/EMBOSS_001/,aln);}1' ./consensus_seq_context/"${i%.f*}"_seqcontext.cons.tmp >> ./consensus_seq_context/"${i%.f*}"_seqcontext.cons &&
     						wait
@@ -3339,7 +3404,7 @@ for smiss in ${sample_missingness//,/ }; do
     		cd ${projdir}/snpfilter &&
     		cp -r 6x 6x_biparental_gmiss"${gmiss}"_smiss"${smiss}" &&
     		cd ./6x_biparental_gmiss"${gmiss}"_smiss"${smiss}" &&
-    		Rscript "${GBSapp_dir}"/scripts/R/GBSapp_Filter_6x.R "$pop" "$p1" "$p2" "$gmiss" "$smiss" "$minRD_6x" "$exclude_samples" "${GBSapp_dir}/tools/R" "$pseg" "$haplome_number" $biallelic 2> /dev/null &&
+    		Rscript "${GBSapp_dir}"/scripts/R/GBSapp_Filter_6x.R "$pop" "$p1" "$p2" "$gmiss" "$smiss" "$minRD_6x" "$exclude_samples" "${GBSapp_dir}/tools/R" "$pseg" "$haplome_number" $biallelic $select_samples 2> /dev/null &&
     		rm ${pop}_6x_rawRD${minRD_6x}_DP_GT.txt ${pop}_6x_DP_GT.txt ${pop}_6x_rd${minRD_6x}.txt 2> /dev/null &&
     		mkdir visualizations && mv ./*.tiff ./visualizations/ &&
         wait
@@ -3425,7 +3490,7 @@ for smiss in ${sample_missingness//,/ }; do
               mv ./consensus_seq_context/"${i%.f*}"_seqcontext.fasta.tmp ./consensus_seq_context/"${i%.f*}"_seqcontext.fasta 2> /dev/null &&
               while IFS="" read -r aln || [ -n "$aln" ]; do
     						awk -v aln="$aln" '$1 == aln {print}' ./consensus_seq_context/"${i%.f*}"_seqcontext.fasta | awk '{print ">seq-"NR"_"$1"\n"$2}' > ./consensus_seq_context/"${i%.f*}"_seqcontext.fasta.tmp &&
-                bash $mafft --localpair --maxiterate 1000 ./consensus_seq_context/"${i%.f*}"_seqcontext.fasta.tmp > ./consensus_seq_context/"${i%.f*}"_seqcontext.msf &&
+                bash $mafft --quiet --localpair --maxiterate 1000 ./consensus_seq_context/"${i%.f*}"_seqcontext.fasta.tmp > ./consensus_seq_context/"${i%.f*}"_seqcontext.msf &&
     						bash $consambig -sequence ./consensus_seq_context/"${i%.f*}"_seqcontext.msf -outseq ./consensus_seq_context/"${i%.f*}"_seqcontext.cons.tmp 2> /dev/null &&
     						awk -v aln="${i%.f*}~~~${aln}_locus" '{gsub(/EMBOSS_001/,aln);}1' ./consensus_seq_context/"${i%.f*}"_seqcontext.cons.tmp >> ./consensus_seq_context/"${i%.f*}"_seqcontext.cons &&
     						wait
@@ -3466,7 +3531,7 @@ for smiss in ${sample_missingness//,/ }; do
     		cd ${projdir}/snpfilter &&
     		cp -r 8x 8x_biparental_gmiss"${gmiss}"_smiss"${smiss}" &&
     		cd ./8x_biparental_gmiss"${gmiss}"_smiss"${smiss}" &&
-    		Rscript "${GBSapp_dir}"/scripts/R/GBSapp_Filter_8x.R "$pop" "$p1" "$p2" "$gmiss" "$smiss" "$minRD_8x" "$exclude_samples" "${GBSapp_dir}/tools/R" "$pseg" "$haplome_number" $biallelic 2> /dev/null &&
+    		Rscript "${GBSapp_dir}"/scripts/R/GBSapp_Filter_8x.R "$pop" "$p1" "$p2" "$gmiss" "$smiss" "$minRD_8x" "$exclude_samples" "${GBSapp_dir}/tools/R" "$pseg" "$haplome_number" $biallelic $select_samples 2> /dev/null &&
     		rm ${pop}_8x_rawRD${minRD_8x}_DP_GT.txt ${pop}_8x_DP_GT.txt ${pop}_8x_rd${minRD_8x}.txt 2> /dev/null &&
     		mkdir visualizations && mv ./*.tiff ./visualizations/ &&
         wait
@@ -3554,7 +3619,7 @@ for smiss in ${sample_missingness//,/ }; do
               mv ./consensus_seq_context/"${i%.f*}"_seqcontext.fasta.tmp ./consensus_seq_context/"${i%.f*}"_seqcontext.fasta 2> /dev/null &&
               while IFS="" read -r aln || [ -n "$aln" ]; do
     						awk -v aln="$aln" '$1 == aln {print}' ./consensus_seq_context/"${i%.f*}"_seqcontext.fasta | awk '{print ">seq-"NR"_"$1"\n"$2}' > ./consensus_seq_context/"${i%.f*}"_seqcontext.fasta.tmp &&
-                bash $mafft --localpair --maxiterate 1000 ./consensus_seq_context/"${i%.f*}"_seqcontext.fasta.tmp > ./consensus_seq_context/"${i%.f*}"_seqcontext.msf &&
+                bash $mafft --quiet --localpair --maxiterate 1000 ./consensus_seq_context/"${i%.f*}"_seqcontext.fasta.tmp > ./consensus_seq_context/"${i%.f*}"_seqcontext.msf &&
     						bash $consambig -sequence ./consensus_seq_context/"${i%.f*}"_seqcontext.msf -outseq ./consensus_seq_context/"${i%.f*}"_seqcontext.cons.tmp 2> /dev/null &&
     						awk -v aln="${i%.f*}~~~${aln}_locus" '{gsub(/EMBOSS_001/,aln);}1' ./consensus_seq_context/"${i%.f*}"_seqcontext.cons.tmp >> ./consensus_seq_context/"${i%.f*}"_seqcontext.cons &&
     						wait
@@ -3602,10 +3667,10 @@ find . -type f -empty -delete
 find . -type d -empty -delete
 for snpfilter_dir in */; do
 	cd $snpfilter_dir
-	smmiss_thresh=${snpfilter_dir#*smiss}
-	smmiss_thresh=${smmiss_thresh%*/}
-	smmiss_thresh=$((${smmiss_thresh#*.}*10))
-	awk -v smisst=$smmiss_thresh '(NR>1) && ($2 <= smisst)' sample_missing_rate* > retained_samples.txt 2> /dev/null
+	smmiss_thresh=${snpfilter_dir#*smiss} &&
+	smmiss_thresh=${smmiss_thresh%*/} &&
+	smmiss_thresh=$(echo "$smmiss_thresh * 100" | bc) &&
+	awk -v smisst=$smmiss_thresh '(NR>1) && ($2 <= smisst)' sample_missing_rate* > retained_samples.txt 2> /dev/null &&
 	cd ../
 done
 wait
@@ -3630,80 +3695,128 @@ ls ./*/*SD_1_G*G*.txt 2> /dev/null | xargs rm 2> /dev/null &&
 wait
 
 cd "$projdir"/snpfilter
-n="${ref1%.f*}_"
+export n="${ref1%.f*}"
 nother="${ref2%.f*}_"
-for snpfilter_dir in */; do (
-	if [ -d "$snpfilter_dir" ]; then
-		cd $snpfilter_dir
-		ploidydir=${snpfilter_dir:0:1}
+{
+  for snpfilter_dir in */; do
+    if [ -d "${projdir}/snpfilter/${snpfilter_dir}" ]; then
+      cd "${projdir}/snpfilter/${snpfilter_dir}"
+  		export ploidydir=${snpfilter_dir:0:1}
 
-		for i in *dose.txt; do
-			ARselect=${i%rd*}
-			ARfile=$(ls ../../snpcall/${ARselect}*AR.txt 2> /dev/null)
-      arr=$(cat ${projdir}/samples_list_node_* | awk '{gsub(/.fastq/,"\t.fastq");gsub(/.fq/,"\t.fq");}1' | awk '{print $1}' | tr '\n' ',' | awk '{gsub(/\t/,",");gsub(/ /,",");gsub(/^,/,"");gsub(/,$/,"");}1')
-      arr2=$(grep "CHROM" $i | awk '{$1=$2=$3=$4=$5=""}1' | tr -s ' ' | awk '{gsub(/ pvalue/,"");}1' | awk '{gsub(/\t/,",");gsub(/ /,",");gsub(/^,/,"");gsub(/,$/,"");}1')
-      darr=$(echo ${arr[@]},${arr2[@]} | tr ',' '\n' | sort | uniq -u | tr '\n' ',' | awk '{gsub(/\t/,",");gsub(/ /,",");gsub(/^,/,"");gsub(/,$/,"");}1')
+  		for i in $(ls *dose.txt); do
+        if [[ "$filtered_vcf" == "true" ]]; then
+          export ARselect=$( echo $i | awk -v FS='rd' '{print $1}') &&
+          export ARfile=$(ls ../../snpcall/${ARselect}*AR.txt 2> /dev/null) &&
+          export arr=$(cat ${projdir}/samples_list_node_* | awk '{gsub(/.fastq/,"\t.fastq");gsub(/.fq/,"\t.fq");}1' | awk '{print $1}' | tr '\n' ',' | awk '{gsub(/\t/,",");gsub(/ /,",");gsub(/^,/,"");gsub(/,$/,"");}1') &&
+          export arr2=$(grep "CHROM" $i | awk '{$1=$2=$3=$4=$5=""}1' | tr -s ' ' | awk '{gsub(/ pvalue/,"");}1' | awk '{gsub(/\t/,",");gsub(/ /,",");gsub(/^,/,"");gsub(/,$/,"");}1') &&
+          export darr=$(echo ${arr[@]},${arr2[@]} | tr ',' '\n' | sort | uniq -u | tr '\n' ',' | awk '{gsub(/\t/,",");gsub(/ /,",");gsub(/^,/,"");gsub(/,$/,"");}1') &&
+          export darr2=$(echo ${arr[@]},${arr2[@]} | tr ',' '\n' | sort | uniq -u | awk '!/^$/' | awk '{print $1"_AR"}' | tr '\n' ',' | awk '{gsub(/\t/,",");gsub(/ /,",");gsub(/^,/,"");gsub(/,$/,"");}1') &&
+          echo $darr | tr ',' '\n' > darr.txt
+          echo $darr2 | tr ',' '\n' > darr2.txt
+          if [[ "$(wc -l darr.txt)" -eq 0 ]]; then printf "999_999_999\n"; fi
+          if [[ "$(wc -l darr2.txt)" -eq 0 ]]; then printf "999_999_999\n"; fi
+          wait
 
-			Rscript "${GBSapp_dir}"/scripts/R/heterozygote_vs_allele_ratio.R "$i" "$ARfile" "${ploidydir}x" "2" "$darr" "${GBSapp_dir}/tools/R"
-			awk 'FNR==NR{a[$1,$2]=$0;next}{if(b=a[$2,$3]){print b}}' $ARfile $i | awk '{gsub(/NA/,"na"); print $1"_"$2"\t"$0}' | \
-			awk -v n="$n" '{gsub(n,""); gsub(/CHROM_POS/,"SNP");}1' > ${i%.txt}_AR_metric.txt
+          Rscript "${GBSapp_dir}"/scripts/R/heterozygote_vs_allele_ratio.R "$i" "$ARfile" "${ploidydir}x" "1" "darr2.txt" "${GBSapp_dir}/tools/R" &&
+          awk 'FNR==NR{a[$1,$2]=$0;next}{if(b=a[$2,$3]){print b}}' $ARfile $i | awk '{gsub(/NA/,"na"); print $1"_"$2"\t"$0}' | \
+          awk -v pat1="${n}_Chr" -v pat2="${n}_chr" '{gsub(pat1,"Chr");gsub(pat2,"Chr");gsub(/CHROM_POS/,"SNP");}1' > ${i%.txt}_AR_metric.txt &&
+          wait
 
-			vcfdose=${i%_rd*}; vcfdose=${vcfdose#*_}
-			zcat ../../snpcall/*${vcfdose}.vcf.gz | grep '^#' | awk -v n="$n" '{gsub(n,"");gsub(/chr/,"Chr");}1' > ${i%.txt}_header.vcf &&
-			awk 'FNR==NR{a[$1,$2]=$0;next}{if(b=a[$1,$2]){print b}}' <(zcat ../../snpcall/*${vcfdose}.vcf.gz | grep -v '^#' | awk -v n="$n" '{gsub(n,"");gsub(/chr/,"Chr");}1') <(awk -v n="$n" '{gsub(n,"");gsub(/chr/,"Chr"); print $2"\t"$3}' $i | awk '!seen[$0] {print} {++seen[$0]}') | \
-      sort -Vk1,1 -Vk2,2 | cat "${i%.txt}"_header.vcf - > ${i%_dose.txt}.vcf &&
-      rm ${i%.txt}_header.vcf &&
-			$bcftools view -s "$arr2" ${i%_dose.txt}.vcf > tmp.vcf && mv tmp.vcf ${i%_dose.txt}.vcf &&
+          if test ! -f $projdir/split_done.txt; then
+            export vcfdose=${i%_rd*}; vcfdose=${vcfdose#*_} &&
+            gunzip $projdir/snpcall/*x.vcf.gz 2> /dev/null &&
+            wait
+            for split in $projdir/snpcall/*${vcfdose}.vcf; do
+              refg=${split%_*} && refg=${refg##*/} && refg=${refg#*_} && refg=${refg%%_*}.fasta
+            	$GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" IndexFeatureFile -I $split &&
+            	$GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" LeftAlignAndTrimVariants -R ${projdir}/refgenomes/$refg -V $split -O ${split%.vcf}_split.vcf --split-multi-allelics  --dont-trim-alleles --keep-original-ac &&
+            	gzip $split &&
+              $bcftools view -I ${split%.vcf}_split.vcf -O z -o ${split%.vcf}_split.vcf.gz &&
+              $bcftools index ${split%.vcf}_split.vcf.gz &&
+              :> $projdir/split_done.txt &&
+              wait
+            done
+            wait
+          fi
+          if [[ "$(ls $projdir/snpcall/*_split.vcf.gz  2> /dev/null | wc -l)" -gt 1 ]]; then
+            $bcftools merge $projdir/snpcall/*_split.vcf.gz --force-samples -m all > ${i%rd*}split.vcf &&
+            gzip ${i%rd*}split.vcf &&
+            wait
+          else
+            for k in $projdir/snpcall/*_split.vcf.gz; do cp $k ./${i%rd*}split.vcf.gz; wait; done
+          fi
+          wait
 
-			grep -v '^##' ${i%_dose.txt}.vcf | awk '{gsub(/#CHROM/,"CHROM");}1' > ${i%_dose.txt}_tmp.vcf &&
-			Rscript "${GBSapp_dir}"/scripts/R/recode_vcf.R "${i%_dose.txt}_tmp.vcf" "$i" "${i%.txt}_AR_metric.txt" "${ploidydir}x" "$darr" "${GBSapp_dir}/tools/R" &&
-			grep '^##' ${i%_dose.txt}.vcf | cat - <(awk '{gsub(/CHROM/,"#CHROM");}1' dose_temp.vcf) | \
-      awk '{gsub(/0,0:.:.:./,"0,0:.:."); gsub(/0,0:.:.:./,"0,0:.:."); gsub(/0,0:.:.:./,"0,0:.:."); gsub(/0,0:.:.:./,"0,0:.:."); gsub(/0,0:.:.:./,"0,0:.:."); }1' > ${i%_dose.txt}.vcf &&
-      mv AR_temp.txt "${i%.txt}"_AR_metric.txt
-			rm ${i%_dose.txt}_tmp.vcf dose_temp.vcf
+          for i in *dose*; do
+            awk -v pat1="${n}_Chr" -v pat2="${n}_chr" '{gsub(pat1,"Chr");gsub(pat2,"Chr");gsub(/chr/,"Chr");}1' $i > ${i%.txt}_hold.txt &&
+            mv "${i%.txt}"_hold.txt $i &&
+            wait
+          done
+          wait
+          zcat ${i%rd*}split.vcf.gz | grep '^#' | awk -v pat1="${n}_Chr" -v pat2="${n}_chr" '{gsub(pat1,"Chr");gsub(pat2,"Chr");gsub(/chr/,"Chr");}1' > ${i%.txt}_header.vcf &&
+          awk 'FNR==NR{a[$1,$2]=$0;next}{if(b=a[$2,$3]){print b}}' <(zcat ${i%rd*}split.vcf.gz | grep -v '^#' | awk -v pat1="${n}_Chr" -v pat2="${n}_chr" '{gsub(pat1,"Chr");gsub(pat2,"Chr");gsub(/chr/,"Chr");}1') <(awk '!seen[$0] {print} {++seen[$0]}' $i) | \
+          sort -Vk1,1 -Vk2,2 | cat ${i%.txt}_header.vcf - > ${i%_dose.txt}.vcf &&
+          rm ${i%.txt}_header.vcf 2> /dev/null &&
+          rm ${i%rd*}split.vcf.gz 2> /dev/null &&
 
-      if [[ "$ploidydir" == "${ploidy}"x ]]; then
-        awk -v pat="${nother}_Chr" '$0 !~ pat' "${i%_dose.txt}".vcf > "${i%_dose.txt}"_tmp.vcf
-        mv "${i%_dose.txt}"_tmp.vcf "${i%_dose.txt}".vcf &&
+          grep '^##' ${i%_dose.txt}.vcf > ${i%.txt}_header.vcf
+          grep -v '^##' ${i%_dose.txt}.vcf | awk '{gsub(/#CHROM/,"CHROM");}1' > ${i%_dose.txt}_tmp.vcf &&
+          rm ${i%_dose.txt}.vcf 2> /dev/null &&
+          Rscript "${GBSapp_dir}"/scripts/R/recode_vcf.R "${i%_dose.txt}_tmp.vcf" "$i" "${i%.txt}_AR_metric.txt" "${ploidy}x" "darr.txt" "$filter_ExcHet" "${GBSapp_dir}/tools/R" &&
+          cat <(grep '^##' ${i%.txt}_header.vcf) <(awk '{gsub(/CHROM/,"#CHROM");}1' dose_temp.vcf) | \
+          awk '{gsub(/0,0:.:.:./,"0,0:.:."); gsub(/0,0:.:.:./,"0,0:.:."); gsub(/0,0:.:.:./,"0,0:.:."); gsub(/0,0:.:.:./,"0,0:.:."); gsub(/0,0:.:.:./,"0,0:.:."); }1' > ${i%_dose.txt}.vcf &&
+          mv AR_temp.txt ${i%.txt}_AR_metric.txt 2> /dev/null &&
+          rm ${i%.txt}_header.vcf 2> /dev/null &&
+          rm ${i%_dose.txt}_tmp.vcf dose_temp.vcf 2> /dev/null &&
+          wait
+
+          grep -v 'CHROM' ${i%.txt}_AR_metric.txt | awk -F'\t' '{$1=$2=$3=$4=$5=""}1' | awk -F'\t' '{gsub(/na/,"0");}1' | \
+          awk '{gsub(/\t/," ");}1' | awk '{gsub(/-/,"");}1' | awk '{gsub(/ /,",");}1' | awk '{gsub(/0,/,",");}1' | awk '{gsub(/,0$/,",");}1' | \
+          awk -F',' -v OFS=',' -v OFMT='%0.3g' '{s=0; numFields=0; for(i=2; i<=NF;i++){if(length($i)){s+=$i; numFields++}} print (numFields ? s/numFields : 0)}' | \
+          cat <(printf "Allele_ratio_mean\n") - | paste <(awk '{print $1"\t"$2"\t"$3}' ${i%.txt}_AR_metric.txt) - > ${i%.txt}_AR_mean.txt &&
+
+          if [[ "$biallelic" == "false" ]]; then
+            mv "${i%_dose.txt}".vcf "${i%_dose.txt}"_split_Multiallelic.vcf &&
+            gzip "${i%_dose.txt}"_split_Multiallelic.vcf &&
+            wait
+          fi
+          if [[ "$biallelic" == "true" ]]; then
+            mv "${i%_dose.txt}".vcf "${i%_dose.txt}"_biallelic.vcf &&
+            gzip "${i%_dose.txt}"_biallelic.vcf &&
+            wait
+          fi
+        else
+          for i in *dose*; do
+            awk -v pat1="${n}_Chr" -v pat2="${n}_chr" '{gsub(pat1,"Chr");gsub(pat2,"Chr");gsub(/chr/,"Chr");}1' $i > ${i%.txt}_hold.txt &&
+            mv "${i%.txt}"_hold.txt $i &&
+            wait
+          done
+        fi
         wait
-      fi
 
-			grep -v 'CHROM' ${i%.txt}_AR_metric.txt | awk -F'\t' '{$1=$2=$3=$4=$5=""}1' | awk -F'\t' '{gsub(/na/,"0");}1' | \
-			awk '{gsub(/\t/," ");}1' | awk '{gsub(/-/,"");}1' | awk '{gsub(/ /,",");}1' | awk '{gsub(/0,/,",");}1' | awk '{gsub(/,0$/,",");}1' | \
-			awk -F',' -v OFS=',' -v OFMT='%0.3g' '{s=0; numFields=0; for(i=2; i<=NF;i++){if(length($i)){s+=$i; numFields++}} print (numFields ? s/numFields : 0)}' | \
-			cat <(printf "Allele_ratio_mean\n") - | paste <(awk '{print $1"\t"$2"\t"$3}' ${i%.txt}_AR_metric.txt) - > ${i%.txt}_AR_mean.txt &&
+        if [[ "$ploidy" -le 2 ]]; then
+          Rscript "${GBSapp_dir}"/scripts/R/hapmap_format.R "$i" "${GBSapp_dir}/tools/R" &&
+          mv outfile.hmp.txt "${i%_dose.txt}.hmp.txt" &&
+          wait
+        fi
 
-      if [[ "$ploidy" -le 2 ]]; then
-        Rscript "${GBSapp_dir}"/scripts/R/hapmap_format.R "$i" "${GBSapp_dir}/tools/R" &&
-        mv outfile.hmp.txt "${i%_dose.txt}.hmp.txt" &&
-        wait
-      fi
+        mv ${i%.txt}_AR_metric.txt ${i%_dose.txt}_AR_metric.txt 2> /dev/null &&
+        mv ${i%.txt}_AR_mean.txt ${i%_dose.txt}_AR_mean.txt 2> /dev/null &&
+        find . -type f -empty -delete
+  		done
+  		wait
 
-      if [[ "$ploidy" -eq 1 ]] || [[ "$ploidy" -eq 2 ]]; then
-        $bcftools norm -m -any  "${i%_dose.txt}".vcf > "${i%_dose.txt}"_split_Multiallelic.vcf &&
-        gzip "${i%_dose.txt}"_split_Multiallelic.vcf &&
-        wait
-      fi
-      mv "${i%_dose.txt}".vcf "${i%_dose.txt}"_nosplit_Multiallelic.vcf &&
-      gzip "${i%_dose.txt}"_nosplit_Multiallelic.vcf &&
-      mv ${i%.txt}_AR_metric.txt ${i%_dose.txt}_AR_metric.txt
-      mv ${i%.txt}_AR_mean.txt ${i%_dose.txt}_AR_mean.txt
-      find . -type f -empty -delete
-		done
-		wait
-
-    for i in *dose*; do
-      awk -v n="$n" '{gsub(n,""); print $0}' $i > ${i%.txt}_hold.txt &&
-      mv "${i%.txt}"_hold.txt $i &&
-      wait
-    done
+      rm *tmp.vcf *header.vcf darr.txt darr2.txt 2> /dev/null &&
+  		wait
+  	fi
     wait
-		cd "$projdir"/snpfilter
-	fi ) &
-  if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
-    wait
-  fi
-done
+  done
+  wait
+} & PID_genvcf=$!
+wait $PID_genvcf
+wait
+rm ${projdir}/snpcall/*_split.vcf* 2> /dev/null &&
+rm $projdir/split_done.txt &&
 wait
 
 }

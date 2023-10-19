@@ -195,6 +195,20 @@ main &>> ./log.out
 
 
 main () {
+echo -e "${blue}\n############################################## \n- installing R-package: reshape2  ${blue}\n##############################################${white}"
+  mkdir -p R
+  cd ./R
+  R -e 'install.packages("reshape2", dependencies = TRUE, repos="http://cran.r-project.org", lib="./")'
+}
+dirtool=./R/reshape2
+if [ -d $dirtool ]; then
+  :
+else
+  echo -e "${magenta}- Performing installation of R-package: reshape2 ${white}"
+  main &>> ./log.out
+fi
+
+main () {
 echo -e "${blue}\n############################################## \n- installing R-package: ggplot2  ${blue}\n##############################################${white}"
   mkdir -p R
   cd ./R

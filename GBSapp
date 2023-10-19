@@ -123,6 +123,7 @@ echo -e "${yellow}\t- Contact:	Bode Olukolu <bolukolu@utk.edu> ${white}"
 echo -e "${white}\n##################################################################################\n"
 
 rm steps.txt 2> /dev/null
+rmdir se pe 2> /dev/null
 if test -f input_steps.txt; then cp input_steps.txt steps.txt; fi
 
 cat config.sh | grep -v '^samples_list=' > config_temp.sh
@@ -397,11 +398,33 @@ awk '{gsub(/ /,""); print}' config.sh > unixformat.sh
 mv unixformat.sh config.sh
 awk '{ sub("\r$",""); print}' config.sh > unixformat.sh
 mv unixformat.sh config.sh
-string="$(awk '/ref/&&/=/&&/.fa/ {print}' config.sh | wc -l)"
+
+string="$(awk '/^ref/&&/=/&&/.fa/ {print}' config.sh | wc -l)"
+string_hap="$(awk '/^haplome_ref/&&/=/&&/.fa/ {print}' config.sh | wc -l)"
+string_pan="$(awk '/^pangenome_ref/&&/=/&&/.fa/ {print}' config.sh | wc -l)"
+if [[ "$string" > 0 ]] && [[ "$string_hap" > 0 ]]; then
+  echo -e "${magenta}\n- You cannot specify both haploid/subgenome(s) and haplotype-resolved reference genome. ${white}\n"
+  exit 1
+fi
+if [[ "$string" > 0 ]] && [[ "$string_pan" > 0 ]]; then
+  echo -e "${magenta}\n- You cannot specify both haploid/subgenome(s) and pangenomes reference genome. ${white}\n"
+  exit 1
+fi
+if [[ "$string_pan" > 0 ]] && [[ "$string_hap" > 0 ]]; then
+  echo -e "${magenta}\n- You cannot specify both pangenomes and haplotype-resolved reference genome. ${white}\n"
+  exit 1
+fi
+
 if [[ "$string" -eq 0 ]]; then
 string=1
 fi
 string3=${GBSapp_dir}/scripts/subgenome_ref_files_${string}.sh
+if [[ "$string_pan" > 0 ]]; then
+  string3=${GBSapp_dir}/scripts/subgenome_ref_files_${string_pan}.sh
+fi
+if [[ "$string_hap" > 0 ]]; then
+  string3=${GBSapp_dir}/scripts/subgenome_ref_files_${string_hap}.sh
+fi
 
 cd $projdir
 printf "#""!""/bin/bash \n\n" > header.txt
