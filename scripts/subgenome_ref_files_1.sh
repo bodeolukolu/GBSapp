@@ -1069,7 +1069,7 @@ if [[ "$samples_list" == "samples_list_node_1.txt" ]]; then
 			cd ../snpcall
 			grep -h '^#' ${pop}_${ploidy}x_*_raw.vcf | awk '!visited[$0]++' | awk '!/^##GATKCommandLine/' > vcf_header.txt &&
 			cat ${pop}_${ploidy}x_*_raw.vcf | awk '!/^#/' > all.vcf &&
-			cat vcf_header.txt all.vcf > ${pop}_${ploidy}x_raw.vcf
+			cat vcf_header.txt all.vcf > $${pop}_${ref1%.f*}_${ploidy}x_raw.vcf
 			rm vcf_header.txt all.vcf *.vcf.gz.tb* ${pop}_${ploidy}x_*_raw.vcf 2> /dev/null &&
       wait
 		else
