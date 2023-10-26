@@ -75,7 +75,7 @@ main () {
 	  export N=$((threads/2))
 	  export ram1=$(($totalk/$N))
 	else
-	  export N=1 && export loopthreads=threads
+	  export N=1 && export loopthreads=$threads
     export ram1=$totalk
 	fi
   export ngmthreads=$(echo "$totalk*0.000001" | bc)
