@@ -527,11 +527,11 @@ main () {
 			done
 
       :> length_distribution.txt
-      for lenfile in *_length_distribution.txt; do
+      for lenfile in $(ls *_length_distribution.txt); do
         cat $lenfile >> length_distribution.txt
       done
   		wait
-      rm *_length_distribution.txt
+      rm *_length_distribution.txt 2> /dev/null
       awk '{print length($0)}' length_distribution.txt | awk '$1>=64' | sort -n > tmp.txt && :> length_distribution.txt &&
       mv tmp.txt length_distribution.txt &&
 			export max_seqread_len=$(awk '{all[NR] = $0} END{print all[int(NR*0.95 - 0.5)]}' length_distribution.txt)
@@ -719,7 +719,13 @@ main () {
 if [[ "$samples_list" == "samples_list_node_1.txt" ]]; then
 	time main &>> ${projdir}/log.out
 fi
-
+if [[ "$(ls ${projdir}/samples_list_node_* | wc -l)" -lt 5 ]]; then
+  export p1=""
+  export p2=""
+fi
+if [[ "$(ls ${projdir}/samples_list_node_* | wc -l)" -lt 100 ]]; then
+  maf=0
+fi
 
 
 ######################################################################################################################################################
@@ -2279,11 +2285,14 @@ if [[ "${file1xG}" -lt 1 ]]; then
     if test ! -f ${projdir}/vcf1x_trimmed.txt; then
   		for i in *_1x_raw.vcf; do
         refg=${i%_1x_raw.vcf} && refg=${refg#*_} && refg=${refg%%_*}.fasta
-        samz1=$(wc -l ${projdir}/samples_list_node_* | awk '{print $1}') && samz1=$((samz1*98)) && samz1=$((samz1/100)) &&
-        samz2=$(wc -l ${projdir}/samples_list_node_* | awk '{print $1}') && samz2=$((samz2*80)) && samz2=$((samz2/100)) &&
-        wait
-        awk -v pat="0/0:0,0:0" -v samz1="$samz1" 'gsub(pat,pat) < samz1' $i | awk -v pat="./.:0,0:0"  -v samz2="$samz2" 'gsub(pat,pat) < samz2' > ${i}.tmp &&
-        mv ${i}.tmp ${i} &&
+        if [[ "$(ls ${projdir}/samples_list_node_* | wc -l)" -ge 100 ]]; then
+          samz1=$(wc -l ${projdir}/samples_list_node_* | awk '{print $1}') && samz1=$((samz1*98)) && samz1=$((samz1/100)) &&
+          samz2=$(wc -l ${projdir}/samples_list_node_* | awk '{print $1}') && samz2=$((samz2*80)) && samz2=$((samz2/100)) &&
+          wait
+          awk -v pat="0/0:0,0:0" -v samz1="$samz1" 'gsub(pat,pat) < samz1' $i | awk -v pat="./.:0,0:0"  -v samz2="$samz2" 'gsub(pat,pat) < samz2' > ${i}.tmp &&
+          mv ${i}.tmp ${i} &&
+          wait
+        fi
         wait
         $GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" IndexFeatureFile -I $i &&
   			$GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" LeftAlignAndTrimVariants -R ${projdir}/refgenomes/$refg -V $i -O ${i%.vcf}0.vcf --split-multi-allelics  --dont-trim-alleles --keep-original-ac &&
@@ -2296,14 +2305,17 @@ if [[ "${file1xG}" -lt 1 ]]; then
   		done
       :> ${projdir}/vcf1x_trimmed.txt
     fi
-    samz1=$(wc -l ${projdir}/samples_list_node_* | awk '{print $1}') && samz1=$((samz1*98)) && samz1=$((samz1/100)) &&
-    samz2=$(wc -l ${projdir}/samples_list_node_* | awk '{print $1}') && samz2=$((samz2*80)) && samz2=$((samz2/100)) &&
-    wait
-    for ptrimvcf in *rawSPLIT*.vcf; do
-      awk -v pat="0:0,0:0" -v samz1="$samz1" 'gsub(pat,pat) < samz1' $ptrimvcf | awk -v pat=".:0,0:0"  -v samz2="$samz2" 'gsub(pat,pat) < samz2' > ${ptrimvcf}.tmp &&
-      mv "${ptrimvcf}".tmp "${ptrimvcf}" &&
+    if [[ "$(ls ${projdir}/samples_list_node_* | wc -l)" -ge 100 ]]; then
+      samz1=$(wc -l ${projdir}/samples_list_node_* | awk '{print $1}') && samz1=$((samz1*98)) && samz1=$((samz1/100)) &&
+      samz2=$(wc -l ${projdir}/samples_list_node_* | awk '{print $1}') && samz2=$((samz2*80)) && samz2=$((samz2/100)) &&
       wait
-    done
+      for ptrimvcf in *rawSPLIT*.vcf; do
+        awk -v pat="0:0,0:0" -v samz1="$samz1" 'gsub(pat,pat) < samz1' $ptrimvcf | awk -v pat=".:0,0:0"  -v samz2="$samz2" 'gsub(pat,pat) < samz2' > ${ptrimvcf}.tmp &&
+        mv "${ptrimvcf}".tmp "${ptrimvcf}" &&
+        wait
+      done
+      wait
+    fi
     wait
 		Rscript "${GBSapp_dir}"/scripts/R/VCF_2_DP_GT.R "${pop}" 1x "${GBSapp_dir}/tools/R" "1" "$filter_ExcHet" &&
     rm "${projdir}"/vcf1x_trimmed.txt 2> /dev/null &&
@@ -2318,11 +2330,14 @@ if [[ "${file2xG}" -lt 1 ]]; then
     if test ! -f ${projdir}/vcf2x_trimmed.txt; then
   		for i in *_2x_raw.vcf; do
         refg=${i%_2x_raw.vcf} && refg=${refg#*_} && refg=${refg%%_*}.fasta
-        samz1=$(wc -l ${projdir}/samples_list_node_* | awk '{print $1}') && samz1=$((samz1*98)) && samz1=$((samz1/100)) &&
-        samz2=$(wc -l ${projdir}/samples_list_node_* | awk '{print $1}') && samz2=$((samz2*80)) && samz2=$((samz2/100)) &&
-        wait
-        awk -v pat="0/0:0,0:0" -v samz1="$samz1" 'gsub(pat,pat) < samz1' $i | awk -v pat="./.:0,0:0"  -v samz2="$samz2" 'gsub(pat,pat) < samz2' > ${i}.tmp &&
-        mv ${i}.tmp ${i}  &&
+        if [[ "$(ls ${projdir}/samples_list_node_* | wc -l)" -ge 100 ]]; then
+          samz1=$(wc -l ${projdir}/samples_list_node_* | awk '{print $1}') && samz1=$((samz1*98)) && samz1=$((samz1/100)) &&
+          samz2=$(wc -l ${projdir}/samples_list_node_* | awk '{print $1}') && samz2=$((samz2*80)) && samz2=$((samz2/100)) &&
+          wait
+          awk -v pat="0/0:0,0:0" -v samz1="$samz1" 'gsub(pat,pat) < samz1' $i | awk -v pat="./.:0,0:0"  -v samz2="$samz2" 'gsub(pat,pat) < samz2' > ${i}.tmp &&
+          mv ${i}.tmp ${i}  &&
+          wait
+        fi
         wait
         $GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" IndexFeatureFile -I $i &&
   			$GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" LeftAlignAndTrimVariants -R ${projdir}/refgenomes/$refg -V $i -O ${i%.vcf}0.vcf --split-multi-allelics  --dont-trim-alleles --keep-original-ac &&
@@ -2335,14 +2350,17 @@ if [[ "${file2xG}" -lt 1 ]]; then
   		done
       :> ${projdir}/vcf2x_trimmed.txt
     fi
-    samz1=$(wc -l ${projdir}/samples_list_node_* | awk '{print $1}') && samz1=$((samz1*98)) && samz1=$((samz1/100)) &&
-    samz2=$(wc -l ${projdir}/samples_list_node_* | awk '{print $1}') && samz2=$((samz2*80)) && samz2=$((samz2/100)) &&
-    wait
-    for ptrimvcf in *rawSPLIT*.vcf; do
-      awk -v pat="0/0:0,0:0" -v samz1="$samz1" 'gsub(pat,pat) < samz1' $ptrimvcf | awk -v pat="./.:0,0:0"  -v samz2="$samz2" 'gsub(pat,pat) < samz2' > ${ptrimvcf}.tmp &&
-      mv "${ptrimvcf}".tmp "${ptrimvcf}" &&
+    if [[ "$(ls ${projdir}/samples_list_node_* | wc -l)" -ge 100 ]]; then
+      samz1=$(wc -l ${projdir}/samples_list_node_* | awk '{print $1}') && samz1=$((samz1*98)) && samz1=$((samz1/100)) &&
+      samz2=$(wc -l ${projdir}/samples_list_node_* | awk '{print $1}') && samz2=$((samz2*80)) && samz2=$((samz2/100)) &&
       wait
-    done
+      for ptrimvcf in *rawSPLIT*.vcf; do
+        awk -v pat="0/0:0,0:0" -v samz1="$samz1" 'gsub(pat,pat) < samz1' $ptrimvcf | awk -v pat="./.:0,0:0"  -v samz2="$samz2" 'gsub(pat,pat) < samz2' > ${ptrimvcf}.tmp &&
+        mv "${ptrimvcf}".tmp "${ptrimvcf}" &&
+        wait
+      done
+      wait
+    fi
     wait
 		Rscript "${GBSapp_dir}"/scripts/R/VCF_2_DP_GT.R "${pop}" 2x "${GBSapp_dir}/tools/R" "1" "$filter_ExcHet" &&
     rm ${projdir}/vcf2x_trimmed.txt 2> /dev/null &&
@@ -2357,11 +2375,14 @@ if [[ "${file4xG}" -lt 1 ]]; then
     if test ! -f ${projdir}/vcf4x_trimmed.txt; then
   		for i in *_4x_raw.vcf; do
         refg=${i%_4x_raw.vcf} && refg=${refg#*_} && refg=${refg%%_*}.fasta
-        samz1=$(wc -l ${projdir}/samples_list_node_* | awk '{print $1}') && samz1=$((samz1*98)) && samz1=$((samz1/100)) &&
-        samz2=$(wc -l ${projdir}/samples_list_node_* | awk '{print $1}') && samz2=$((samz2*80)) && samz2=$((samz2/100)) &&
-        wait
-        awk -v pat="0/0/0/0:0,0:0" -v samz1="$samz1" 'gsub(pat,pat) < samz1' $i | awk -v pat="./././.:0,0:0"  -v samz2="$samz2" 'gsub(pat,pat) < samz2' > ${i}.tmp &&
-        mv ${i}.tmp ${i} &&
+        if [[ "$(ls ${projdir}/samples_list_node_* | wc -l)" -ge 100 ]]; then
+          samz1=$(wc -l ${projdir}/samples_list_node_* | awk '{print $1}') && samz1=$((samz1*98)) && samz1=$((samz1/100)) &&
+          samz2=$(wc -l ${projdir}/samples_list_node_* | awk '{print $1}') && samz2=$((samz2*80)) && samz2=$((samz2/100)) &&
+          wait
+          awk -v pat="0/0/0/0:0,0:0" -v samz1="$samz1" 'gsub(pat,pat) < samz1' $i | awk -v pat="./././.:0,0:0"  -v samz2="$samz2" 'gsub(pat,pat) < samz2' > ${i}.tmp &&
+          mv ${i}.tmp ${i} &&
+          wait
+        fi
         wait
         $GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" IndexFeatureFile -I $i &&
   			$GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" LeftAlignAndTrimVariants -R ${projdir}/refgenomes/$refg -V $i -O ${i%.vcf}0.vcf --split-multi-allelics  --dont-trim-alleles --keep-original-ac &&
@@ -2374,14 +2395,17 @@ if [[ "${file4xG}" -lt 1 ]]; then
   		done
       :> ${projdir}/vcf4x_trimmed.txt
     fi
-    samz1=$(wc -l ${projdir}/samples_list_node_* | awk '{print $1}') && samz1=$((samz1*98)) && samz1=$((samz1/100)) &&
-    samz2=$(wc -l ${projdir}/samples_list_node_* | awk '{print $1}') && samz2=$((samz2*80)) && samz2=$((samz2/100)) &&
-    wait
-    for ptrimvcf in *rawSPLIT*.vcf; do
-      awk -v pat="0/0/0/0:0,0:0" -v samz1="$samz1" 'gsub(pat,pat) < samz1' $ptrimvcf | awk -v pat="./././.:0,0:0"  -v samz2="$samz2" 'gsub(pat,pat) < samz2' > ${ptrimvcf}.tmp &&
-      mv "${ptrimvcf}".tmp "${ptrimvcf}" &&
+    if [[ "$(ls ${projdir}/samples_list_node_* | wc -l)" -ge 100 ]]; then
+      samz1=$(wc -l ${projdir}/samples_list_node_* | awk '{print $1}') && samz1=$((samz1*98)) && samz1=$((samz1/100)) &&
+      samz2=$(wc -l ${projdir}/samples_list_node_* | awk '{print $1}') && samz2=$((samz2*80)) && samz2=$((samz2/100)) &&
       wait
-    done
+      for ptrimvcf in *rawSPLIT*.vcf; do
+        awk -v pat="0/0/0/0:0,0:0" -v samz1="$samz1" 'gsub(pat,pat) < samz1' $ptrimvcf | awk -v pat="./././.:0,0:0"  -v samz2="$samz2" 'gsub(pat,pat) < samz2' > ${ptrimvcf}.tmp &&
+        mv "${ptrimvcf}".tmp "${ptrimvcf}" &&
+        wait
+      done
+      wait
+    fi
     wait
 		Rscript "${GBSapp_dir}"/scripts/R/VCF_2_DP_GT.R "${pop}" 4x "${GBSapp_dir}/tools/R" "1" "$filter_ExcHet" &&
     rm ${projdir}/vcf4x_trimmed.txt 2> /dev/null &&
@@ -2396,11 +2420,14 @@ if [[ "${file6xG}" -lt 1 ]]; then
     if test ! -f ${projdir}/vcf6x_trimmed.txt; then
   		for i in *_6x_raw.vcf; do
         refg=${i%_6x_raw.vcf} && refg=${refg#*_} && refg=${refg%%_*}.fasta
-        samz1=$(wc -l ${projdir}/samples_list_node_* | awk '{print $1}') && samz1=$((samz1*98)) && samz1=$((samz1/100)) &&
-        samz2=$(wc -l ${projdir}/samples_list_node_* | awk '{print $1}') && samz2=$((samz2*80)) && samz2=$((samz2/100)) &&
-        wait
-        awk -v pat="0/0/0/0/0/0:0,0:0" -v samz1="$samz1" 'gsub(pat,pat) < samz1' $i | awk -v pat="./././././.:0,0:0"  -v samz2="$samz2" 'gsub(pat,pat) < samz2' > ${i}.tmp &&
-        mv ${i}.tmp ${i} &&
+        if [[ "$(ls ${projdir}/samples_list_node_* | wc -l)" -ge 100 ]]; then
+          samz1=$(wc -l ${projdir}/samples_list_node_* | awk '{print $1}') && samz1=$((samz1*98)) && samz1=$((samz1/100)) &&
+          samz2=$(wc -l ${projdir}/samples_list_node_* | awk '{print $1}') && samz2=$((samz2*80)) && samz2=$((samz2/100)) &&
+          wait
+          awk -v pat="0/0/0/0/0/0:0,0:0" -v samz1="$samz1" 'gsub(pat,pat) < samz1' $i | awk -v pat="./././././.:0,0:0"  -v samz2="$samz2" 'gsub(pat,pat) < samz2' > ${i}.tmp &&
+          mv ${i}.tmp ${i} &&
+          wait
+        fi
         wait
         $GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" IndexFeatureFile -I $i &&
   			$GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" LeftAlignAndTrimVariants -R ${projdir}/refgenomes/$refg -V $i -O ${i%.vcf}0.vcf --split-multi-allelics  --dont-trim-alleles --keep-original-ac &&
@@ -2413,14 +2440,18 @@ if [[ "${file6xG}" -lt 1 ]]; then
   		done
       :> ${projdir}/vcf6x_trimmed.txt
     fi
-    samz1=$(wc -l ${projdir}/samples_list_node_* | awk '{print $1}') && samz1=$((samz1*98)) && samz1=$((samz1/100)) &&
-    samz2=$(wc -l ${projdir}/samples_list_node_* | awk '{print $1}') && samz2=$((samz2*80)) && samz2=$((samz2/100)) &&
-    wait
-    for ptrimvcf in *rawSPLIT*.vcf; do
-      awk -v pat="0/0/0/0/0/0:0,0:0" -v samz1="$samz1" 'gsub(pat,pat) < samz1' $ptrimvcf | awk -v pat="./././././.:0,0:0"  -v samz2="$samz2" 'gsub(pat,pat) < samz2' > ${ptrimvcf}.tmp &&
-      mv "${ptrimvcf}".tmp "${ptrimvcf}" &&
+    if [[ "$(ls ${projdir}/samples_list_node_* | wc -l)" -ge 100 ]]; then
+      samz1=$(wc -l ${projdir}/samples_list_node_* | awk '{print $1}') && samz1=$((samz1*98)) && samz1=$((samz1/100)) &&
+      samz2=$(wc -l ${projdir}/samples_list_node_* | awk '{print $1}') && samz2=$((samz2*80)) && samz2=$((samz2/100)) &&
       wait
-    done
+      for ptrimvcf in *rawSPLIT*.vcf; do
+        awk -v pat="0/0/0/0/0/0:0,0:0" -v samz1="$samz1" 'gsub(pat,pat) < samz1' $ptrimvcf | awk -v pat="./././././.:0,0:0"  -v samz2="$samz2" 'gsub(pat,pat) < samz2' > ${ptrimvcf}.tmp &&
+        mv "${ptrimvcf}".tmp "${ptrimvcf}" &&
+        wait
+      done
+      wait
+    fi
+    wait
 		Rscript "${GBSapp_dir}"/scripts/R/VCF_2_DP_GT.R "${pop}" 6x "${GBSapp_dir}/tools/R" "1" "$filter_ExcHet" &&
     rm ${projdir}/vcf6x_trimmed.txt 2> /dev/null &&
     wait
@@ -2434,11 +2465,14 @@ if [[ "${file8xG}" -lt 1 ]]; then
     if test ! -f ${projdir}/vcf8x_trimmed.txt; then
   		for i in *_8x_raw.vcf; do
         refg=${i%_8x_raw.vcf} && refg=${refg#*_} && refg=${refg%%_*}.fasta
-        samz1=$(wc -l ${projdir}/samples_list_node_* | awk '{print $1}') && samz1=$((samz1*98)) && samz1=$((samz1/100)) &&
-        samz2=$(wc -l ${projdir}/samples_list_node_* | awk '{print $1}') && samz2=$((samz2*80)) && samz2=$((samz2/100)) &&
-        wait
-        awk -v pat="0/0/0/0/0/0/0/0:0,0:0" -v samz1="$samz1" 'gsub(pat,pat) < samz1' $i | awk -v pat="./././././././.:0,0:0"  -v samz2="$samz2" 'gsub(pat,pat) < samz2' > ${i}.tmp &&
-        mv ${i}.tmp ${i} &&
+        if [[ "$(ls ${projdir}/samples_list_node_* | wc -l)" -ge 100 ]]; then
+          samz1=$(wc -l ${projdir}/samples_list_node_* | awk '{print $1}') && samz1=$((samz1*98)) && samz1=$((samz1/100)) &&
+          samz2=$(wc -l ${projdir}/samples_list_node_* | awk '{print $1}') && samz2=$((samz2*80)) && samz2=$((samz2/100)) &&
+          wait
+          awk -v pat="0/0/0/0/0/0/0/0:0,0:0" -v samz1="$samz1" 'gsub(pat,pat) < samz1' $i | awk -v pat="./././././././.:0,0:0"  -v samz2="$samz2" 'gsub(pat,pat) < samz2' > ${i}.tmp &&
+          mv ${i}.tmp ${i} &&
+          wait
+        fi
         wait
         $GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" IndexFeatureFile -I $i &&
   			$GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" LeftAlignAndTrimVariants -R ${projdir}/refgenomes/$refg -V $i -O ${i%.vcf}0.vcf --split-multi-allelics  --dont-trim-alleles --keep-original-ac &&
@@ -2451,14 +2485,17 @@ if [[ "${file8xG}" -lt 1 ]]; then
   		done
       :> ${projdir}/vcf8x_trimmed.txt
     fi
-    samz1=$(wc -l ${projdir}/samples_list_node_* | awk '{print $1}') && samz1=$((samz1*98)) && samz1=$((samz1/100)) &&
-    samz2=$(wc -l ${projdir}/samples_list_node_* | awk '{print $1}') && samz2=$((samz2*80)) && samz2=$((samz2/100)) &&
-    wait
-    for ptrimvcf in *rawSPLIT*.vcf; do
-      awk -v pat="0/0/0/0/0/0/0/0:0,0:0" -v samz1="$samz1" 'gsub(pat,pat) < samz1' $ptrimvcf | awk -v pat="./././././././.:0,0:0"  -v samz2="$samz2" 'gsub(pat,pat) < samz2' > ${ptrimvcf}.tmp &&
-      mv "${ptrimvcf}".tmp "${ptrimvcf}" &&
+    if [[ "$(ls ${projdir}/samples_list_node_* | wc -l)" -ge 100 ]]; then
+      samz1=$(wc -l ${projdir}/samples_list_node_* | awk '{print $1}') && samz1=$((samz1*98)) && samz1=$((samz1/100)) &&
+      samz2=$(wc -l ${projdir}/samples_list_node_* | awk '{print $1}') && samz2=$((samz2*80)) && samz2=$((samz2/100)) &&
       wait
-    done
+      for ptrimvcf in *rawSPLIT*.vcf; do
+        awk -v pat="0/0/0/0/0/0/0/0:0,0:0" -v samz1="$samz1" 'gsub(pat,pat) < samz1' $ptrimvcf | awk -v pat="./././././././.:0,0:0"  -v samz2="$samz2" 'gsub(pat,pat) < samz2' > ${ptrimvcf}.tmp &&
+        mv "${ptrimvcf}".tmp "${ptrimvcf}" &&
+        wait
+      done
+      wait
+    fi
     wait
 		Rscript "${GBSapp_dir}"/scripts/R/VCF_2_DP_GT.R "${pop}" 8x "${GBSapp_dir}/tools/R" "1" "$filter_ExcHet" &&
     rm ${projdir}/vcf8x_trimmed.txt 2> /dev/null &&
