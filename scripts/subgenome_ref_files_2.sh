@@ -403,6 +403,7 @@ main () {
           	wait
           fi
 				done
+        wait
 			fi
 		fi
 
@@ -423,6 +424,7 @@ main () {
           	wait
           fi
 				done
+        wait
 			fi
 		fi
 
@@ -450,6 +452,7 @@ main () {
           	wait
           fi
 				done
+        wait
 			fi
 		fi
 
@@ -478,6 +481,7 @@ main () {
           	wait
           fi
 				done
+        wait
 			fi
 		fi
 
@@ -525,10 +529,12 @@ main () {
           wait
         fi
 			done
+      wait
 
       :> length_distribution.txt
-      for lenfile in $(ls *_length_distribution.txt); do
-        cat $lenfile >> length_distribution.txt
+      for lenfile in $(find . -name "*_length_distribution.txt"); do
+        cat $lenfile >> length_distribution.txt &&
+        wait
       done
   		wait
       rm *_length_distribution.txt 2> /dev/null
@@ -536,6 +542,7 @@ main () {
       mv tmp.txt length_distribution.txt &&
 			export max_seqread_len=$(awk '{all[NR] = $0} END{print all[int(NR*0.95 - 0.5)]}' length_distribution.txt)
 			rm length_distribution.txt
+      wait
 
       for i in *.f*; do (
         if [[ "$i" == *"_uniq.fasta"* || "$i" == *"fq.gz"* ]]; then
@@ -583,6 +590,7 @@ main () {
           wait
         fi
       done
+      wait
 		fi
 		find . -type d -empty -delete
 		printf "Improvement in flushed reads already implemented""\n" > flushed_reads.txt
@@ -669,6 +677,7 @@ main () {
             wait
           fi
         done
+        wait
         printf "Improvement in flushed reads already implemented""\n" > flushed_reads.txt
       fi
     fi
@@ -719,11 +728,11 @@ main () {
 if [[ "$samples_list" == "samples_list_node_1.txt" ]]; then
 	time main &>> ${projdir}/log.out
 fi
-if [[ "$(ls ${projdir}/samples_list_node_* | wc -l)" -lt 5 ]]; then
+if [[ "$(cat ${projdir}/samples_list_node_* | wc -l)" -lt 5 ]]; then
   export p1=""
   export p2=""
 fi
-if [[ "$(ls ${projdir}/samples_list_node_* | wc -l)" -lt 100 ]]; then
+if [[ "$(cat ${projdir}/samples_list_node_* | wc -l)" -lt 50 ]]; then
   maf=0
 fi
 
@@ -2317,7 +2326,7 @@ if [[ "${file1xG}" -lt 1 ]]; then
       wait
     fi
     wait
-		Rscript "${GBSapp_dir}"/scripts/R/VCF_2_DP_GT.R "${pop}" 1x "${GBSapp_dir}/tools/R" "1" "$filter_ExcHet" &&
+		Rscript "${GBSapp_dir}"/scripts/R/VCF_2_DP_GT.R "${pop}" 1x "${GBSapp_dir}/tools/R" "1" "$filter_ExcHet" 2> /dev/null &&
     rm "${projdir}"/vcf1x_trimmed.txt 2> /dev/null &&
     wait
 	fi
@@ -2362,7 +2371,7 @@ if [[ "${file2xG}" -lt 1 ]]; then
       wait
     fi
     wait
-		Rscript "${GBSapp_dir}"/scripts/R/VCF_2_DP_GT.R "${pop}" 2x "${GBSapp_dir}/tools/R" "1" "$filter_ExcHet" &&
+		Rscript "${GBSapp_dir}"/scripts/R/VCF_2_DP_GT.R "${pop}" 2x "${GBSapp_dir}/tools/R" "1" "$filter_ExcHet" 2> /dev/null &&
     rm ${projdir}/vcf2x_trimmed.txt 2> /dev/null &&
     wait
 	fi
@@ -2407,7 +2416,7 @@ if [[ "${file4xG}" -lt 1 ]]; then
       wait
     fi
     wait
-		Rscript "${GBSapp_dir}"/scripts/R/VCF_2_DP_GT.R "${pop}" 4x "${GBSapp_dir}/tools/R" "1" "$filter_ExcHet" &&
+		Rscript "${GBSapp_dir}"/scripts/R/VCF_2_DP_GT.R "${pop}" 4x "${GBSapp_dir}/tools/R" "1" "$filter_ExcHet" 2> /dev/null &&
     rm ${projdir}/vcf4x_trimmed.txt 2> /dev/null &&
     wait
 	fi
@@ -2452,7 +2461,7 @@ if [[ "${file6xG}" -lt 1 ]]; then
       wait
     fi
     wait
-		Rscript "${GBSapp_dir}"/scripts/R/VCF_2_DP_GT.R "${pop}" 6x "${GBSapp_dir}/tools/R" "1" "$filter_ExcHet" &&
+		Rscript "${GBSapp_dir}"/scripts/R/VCF_2_DP_GT.R "${pop}" 6x "${GBSapp_dir}/tools/R" "1" "$filter_ExcHet" 2> /dev/null &&
     rm ${projdir}/vcf6x_trimmed.txt 2> /dev/null &&
     wait
 	fi
@@ -2497,7 +2506,7 @@ if [[ "${file8xG}" -lt 1 ]]; then
       wait
     fi
     wait
-		Rscript "${GBSapp_dir}"/scripts/R/VCF_2_DP_GT.R "${pop}" 8x "${GBSapp_dir}/tools/R" "1" "$filter_ExcHet" &&
+		Rscript "${GBSapp_dir}"/scripts/R/VCF_2_DP_GT.R "${pop}" 8x "${GBSapp_dir}/tools/R" "1" "$filter_ExcHet" 2> /dev/null &&
     rm ${projdir}/vcf8x_trimmed.txt 2> /dev/null &&
     wait
 	fi
