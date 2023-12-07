@@ -1594,22 +1594,32 @@ main () {
       genome_size1=$(awk '{print $3}' ../refgenomes/${ref1%.f*}.dict | awk '{gsub(/LN:/,"");}1' | awk '{s+=$1}END{print s}')
       genome_size2=$(awk '{print $3}' ../refgenomes/${ref2%.f*}.dict | awk '{gsub(/LN:/,"");}1' | awk '{s+=$1}END{print s}')
       genome_size3=$(awk '{print $3}' ../refgenomes/${ref3%.f*}.dict | awk '{gsub(/LN:/,"");}1' | awk '{s+=$1}END{print s}')
+
+      for j in ../preprocess/alignment/*_redun_${ref1%.f*}.sam.gz; do
+        $samtools view -bS <(zcat $j 2> /dev/null) | $samtools sort - > ${j%*.sam.gz}.bam
+        cov=$($bedtools genomecov -ibam ${j%*.sam.gz}.bam -bga | awk '{print ($4>1)? 1 : $4}' | awk -v pat=$genome_size1 '{s+=$1}END{print (s/pat)*100}')
+        printf "${j%_*_*}\t$cov\n"  | awk '{gsub(/..\/preprocess\/alignment\//,"");}1' >> summary_genomecov.txt
+        rm ${j%*.sam.gz}.bam 2> /dev/null
+      done
+
       while IFS="" read -r i || [ -n "$i" ]; do
-        for j in ../preprocess/${i%.fastq.gz}_${ref1%.f*}*_precall.bam; do
-          cov=$($bedtools genomecov -ibam $j -bga | awk '{print ($4>1)? 1 : $4}' | awk -v pat=$genome_size1 '{s+=$1}END{print (s/pat)*100}')
-          printf "${j%_*_*}\t$cov\n"  | awk '{gsub(/..\/preprocess\//,"");}1' >> summary_genomecov.txt
+        for j in ../preprocess/alignment/*_redun_${ref1%.f*}.sam.gz; do
+          $samtools view -bS <(zcat $j 2> /dev/null) | $samtools sort - > ${j%*.sam.gz}.bam
+          cov=$($bedtools genomecov -ibam ${j%*.sam.gz}.bam -bga | awk '{print ($4>1)? 1 : $4}' | awk -v pat=$genome_size1 '{s+=$1}END{print (s/pat)*100}')
+          printf "${j%_*_*}_${ref1%.f*}\t$cov\n"  | awk '{gsub(/..\/preprocess\/alignment\//,"");}1' >> summary_genomecov.txt
+          rm ${j%*.sam.gz}.bam 2> /dev/null
         done
-        for j in ../preprocess/${i%.fastq.gz}_${ref2%.f*}_${ref3%.f*}_precall.bam; do
-          cov=$($bedtools genomecov -ibam $j -bga | awk '{print ($4>1)? 1 : $4}' | awk -v pat=$genome_size2 '{s+=$1}END{print (s/pat)*100}')
-          printf "${j%_*_*}\t$cov\n"  | awk '{gsub(/..\/preprocess\//,"");}1' >> summary_genomecov.txt
+        for j in ../preprocess/alignment/*_redun_${ref2%.f*}.sam.gz; do
+          $samtools view -bS <(zcat $j 2> /dev/null) | $samtools sort - > ${j%*.sam.gz}.bam
+          cov=$($bedtools genomecov -ibam ${j%*.sam.gz}.bam -bga | awk '{print ($4>1)? 1 : $4}' | awk -v pat=$genome_size2 '{s+=$1}END{print (s/pat)*100}')
+          printf "${j%_*_*}_${ref2%.f*}\t$cov\n"  | awk '{gsub(/..\/preprocess\/alignment\//,"");}1' >> summary_genomecov.txt
+          rm ${j%*.sam.gz}.bam 2> /dev/null
         done
-        for j in ../preprocess/${i%.fastq.gz}_${ref2%.f*}_precall.bam; do
-          cov=$($bedtools genomecov -ibam $j -bga | awk '{print ($4>1)? 1 : $4}' | awk -v pat=$genome_size2 '{s+=$1}END{print (s/pat)*100}')
-          printf "${j%_*_*}\t$cov\n"  | awk '{gsub(/..\/preprocess\//,"");}1' >> summary_genomecov.txt
-        done
-        for j in ../preprocess/${i%.fastq.gz}_${ref3%.f*}_precall.bam; do
-          cov=$($bedtools genomecov -ibam $j -bga | awk '{print ($4>1)? 1 : $4}' | awk -v pat=$genome_size3 '{s+=$1}END{print (s/pat)*100}')
-          printf "${j%_*_*}\t$cov\n"  | awk '{gsub(/..\/preprocess\//,"");}1' >> summary_genomecov.txt
+        for j in ../preprocess/alignment/*_redun_${ref3%.f*}.sam.gz; do
+          $samtools view -bS <(zcat $j 2> /dev/null) | $samtools sort - > ${j%*.sam.gz}.bam
+          cov=$($bedtools genomecov -ibam ${j%*.sam.gz}.bam -bga | awk '{print ($4>1)? 1 : $4}' | awk -v pat=$genome_size3 '{s+=$1}END{print (s/pat)*100}')
+          printf "${j%_*_*}_${ref3%.f*}\t$cov\n"  | awk '{gsub(/..\/preprocess\/alignment\//,"");}1' >> summary_genomecov.txt
+          rm ${j%*.sam.gz}.bam 2> /dev/null
         done
       done < <(cat ${projdir}/samples_list_node_*)
       wait && touch ${projdir}/alignment_summary_done.txt

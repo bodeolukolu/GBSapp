@@ -968,10 +968,16 @@ main () {
     cd ${projdir}/alignment_summaries
     printf "Sample\tGenome_Coverage(percentage)\n" > summary_genomecov.txt
     genome_size=$(awk '{print $3}' ../refgenomes/${ref1%.f*}.dict | awk '{gsub(/LN:/,"");}1' | awk '{s+=$1}END{print s}')
-    for i in ../preprocess/*bam; do
-      cov=$($bedtools genomecov -ibam $i -bga | awk '{print ($4>1)? 1 : $4}' | awk -v pat=$genome_size '{s+=$1}END{print (s/pat)*100}')
-      printf "${i%_*_*}\t$cov\n"  | awk '{gsub(/..\/preprocess\//,"");}1' >> summary_genomecov.txt
+    for i in ../preprocess/alignment/*_redun.sam.gz; do
+      $samtools view -bS <(zcat $i 2> /dev/null) | $samtools sort - > ${i%*_redun.sam.gz}.bam
+      cov=$($bedtools genomecov -ibam ${i%*_redun.sam.gz}.bam -bga | awk '{print ($4>1)? 1 : $4}' | awk -v pat=$genome_size '{s+=$1}END{print (s/pat)*100}')
+      printf "${i%*_redun.sam.gz}\t$cov\n"  | awk '{gsub(/..\/preprocess\/alignment\//,"");}1' >> summary_genomecov.txt
+      rm ${i%*_redun.sam.gz}.bam 2> /dev/null
     done
+    # for i in ../preprocess/*bam; do
+    #   cov=$($bedtools genomecov -ibam $i -bga | awk '{print ($4>1)? 1 : $4}' | awk -v pat=$genome_size '{s+=$1}END{print (s/pat)*100}')
+    #   printf "${i%_*_*}\t$cov\n"  | awk '{gsub(/..\/preprocess\//,"");}1' >> summary_genomecov.txt
+    # done
 		wait && touch ${projdir}/alignment_summary_done.txt
 	fi
 
@@ -1088,7 +1094,7 @@ if [[ "$samples_list" == "samples_list_node_1.txt" ]]; then
 			cd ../snpcall
 			grep -h '^#' ${pop}_${ploidy}x_*_raw.vcf | awk '!visited[$0]++' | awk '!/^##GATKCommandLine/' > vcf_header.txt &&
 			cat ${pop}_${ploidy}x_*_raw.vcf | awk '!/^#/' > all.vcf &&
-			cat vcf_header.txt all.vcf > $${pop}_${ref1%.f*}_${ploidy}x_raw.vcf
+			cat vcf_header.txt all.vcf > ${pop}_${ref1%.f*}_${ploidy}x_raw.vcf
 			rm vcf_header.txt all.vcf *.vcf.gz.tb* ${pop}_${ploidy}x_*_raw.vcf 2> /dev/null &&
       wait
 		else
