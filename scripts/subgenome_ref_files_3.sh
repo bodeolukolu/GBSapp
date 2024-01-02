@@ -3869,6 +3869,7 @@ main () {
           fi
 
           # Extract sequence context of variants
+          mv ${projdir}/preprocess/processed/*_precall.bam ${projdir}/preprocess/ 2> /dev/null
           if [[ "$lib_type" =~ "RRS" ]] || [[ "$lib_type" =~ "rrs" ]]; then
             if [[ -n "$RE1" ]] || [[ -n "$RE2" ]]; then
               awk '{print $1"\t"$2"\t"$3}' ${pop}_1x_rd${minRD_1x}_maf${maf}_dose.txt > snplist.txt &&
@@ -3888,7 +3889,7 @@ main () {
               mkdir -p seq_context_"${RE1}" &&
               while IFS="" read -r i || [ -n "$i" ]; do
                 sleep $((RANDOM % 2))
-                $samtools view ../../preprocess/processed/${i%.f*}_${ref1%.f*}_${ref2%.f*}_precall.bam 2> /dev/null | awk '{print $3"\t"$4"\t"$10}' | awk -v seq="^${RE1}" '$3 ~ seq' | awk '{$2=sprintf("%d00",$2/100)}1' > ./seq_context_${RE1}/${i%.f*}_seqcontext.tmp &&
+                $samtools view ../../preprocess/${i%.f*}_${ref1%.f*}_${ref2%.f*}_precall.bam 2> /dev/null | awk '{print $3"\t"$4"\t"$10}' | awk -v seq="^${RE1}" '$3 ~ seq' | awk '{$2=sprintf("%d00",$2/100)}1' > ./seq_context_${RE1}/${i%.f*}_seqcontext.tmp &&
                 awk -v pat="${ref1%.f*}_" '{gsub(pat,""); print $1":"$2"\t"$3}' ./seq_context_${RE1}/${i%.f*}_seqcontext.tmp | awk 'NR==FNR {a[$1]++; next} $1 in a' <(awk -v pat="${ref1%.f*}_" '{gsub(pat,"");}1' snplist_haps.txt) - > ./seq_context_${RE1}/${i%.f*}_seqcontext.txt &&
                 rm ./seq_context_"${RE1}"/${i%.f*}_seqcontext.tmp 2> /dev/null &&
                 wait
@@ -3898,7 +3899,7 @@ main () {
               mkdir -p seq_context_"${RE2}" &&
               while IFS="" read -r i || [ -n "$i" ]; do
                 sleep $((RANDOM % 2))
-                $samtools view ../../preprocess/processed/${i%.f*}_${ref1%.f*}_${ref2%.f*}_precall.bam 2> /dev/null | awk '{print $3"\t"$4"\t"$10}' | awk -v seq="^${RE2}" '$3 ~ seq' | awk '{$2=sprintf("%d00",$2/100)}1' > ./seq_context_${RE2}/${i%.f*}_seqcontext.tmp &&
+                $samtools view ../../preprocess/${i%.f*}_${ref1%.f*}_${ref2%.f*}_precall.bam 2> /dev/null | awk '{print $3"\t"$4"\t"$10}' | awk -v seq="^${RE2}" '$3 ~ seq' | awk '{$2=sprintf("%d00",$2/100)}1' > ./seq_context_${RE2}/${i%.f*}_seqcontext.tmp &&
                 awk -v pat="${ref1%.f*}_" '{gsub(pat,""); print $1":"$2"\t"$3}' ./seq_context_${RE2}/${i%.f*}_seqcontext.tmp | awk 'NR==FNR {a[$1]++; next} $1 in a' <(awk -v pat="${ref1%.f*}_" '{gsub(pat,"");}1' snplist_haps.txt) - > ./seq_context_${RE2}/${i%.f*}_seqcontext.txt &&
                 rm ./seq_context_"${RE2}"/${i%.f*}_seqcontext.tmp 2> /dev/null &&
                 wait
@@ -3994,6 +3995,7 @@ main () {
           fi
 
           # Extract sequence context of variants
+          mv ${projdir}/preprocess/processed/*_precall.bam ${projdir}/preprocess/ 2> /dev/null
           if [[ "$lib_type" =~ "RRS" ]] || [[ "$lib_type" =~ "rrs" ]]; then
             if [[ -n "$RE1" ]] || [[ -n "$RE2" ]]; then
               awk '{print $1"\t"$2"\t"$3}' ${pop}_2x_rd${minRD_2x}_maf${maf}_dose.txt > snplist.txt &&
@@ -4015,7 +4017,7 @@ main () {
               wait
               while IFS="" read -r i || [ -n "$i" ]; do
                 sleep $((RANDOM % 2))
-                $samtools view ../../preprocess/processed/${i%.f*}_${ref1%.f*}_${ref2%.f*}_precall.bam 2> /dev/null | awk '{print $3"\t"$4"\t"$10}' | awk -v seq="^${RE1}" '$3 ~ seq' | awk '{$2=sprintf("%d00",$2/100)}1' > ./seq_context_${RE1}/${i%.f*}_seqcontext.tmp &&
+                $samtools view ../../preprocess/${i%.f*}_${ref1%.f*}_${ref2%.f*}_precall.bam 2> /dev/null | awk '{print $3"\t"$4"\t"$10}' | awk -v seq="^${RE1}" '$3 ~ seq' | awk '{$2=sprintf("%d00",$2/100)}1' > ./seq_context_${RE1}/${i%.f*}_seqcontext.tmp &&
                 awk -v pat="${ref1%.f*}_" '{gsub(pat,""); print $1":"$2"\t"$3}' ./seq_context_${RE1}/${i%.f*}_seqcontext.tmp | awk 'NR==FNR {a[$1]++; next} $1 in a' <(awk -v pat="${ref1%.f*}_" '{gsub(pat,"");}1' snplist_haps.txt) - > ./seq_context_${RE1}/${i%.f*}_seqcontext.txt &&
                 rm ./seq_context_"${RE1}"/${i%.f*}_seqcontext.tmp 2> /dev/null &&
                 wait
@@ -4026,7 +4028,7 @@ main () {
               wait
               while IFS="" read -r i || [ -n "$i" ]; do
                 sleep $((RANDOM % 2))
-                $samtools view ../../preprocess/processed/${i%.f*}_${ref1%.f*}_${ref2%.f*}_precall.bam 2> /dev/null | awk '{print $3"\t"$4"\t"$10}' | awk -v seq="^${RE2}" '$3 ~ seq' | awk '{$2=sprintf("%d00",$2/100)}1' > ./seq_context_${RE2}/${i%.f*}_seqcontext.tmp &&
+                $samtools view ../../preprocess/${i%.f*}_${ref1%.f*}_${ref2%.f*}_precall.bam 2> /dev/null | awk '{print $3"\t"$4"\t"$10}' | awk -v seq="^${RE2}" '$3 ~ seq' | awk '{$2=sprintf("%d00",$2/100)}1' > ./seq_context_${RE2}/${i%.f*}_seqcontext.tmp &&
                 awk -v pat="${ref1%.f*}_" '{gsub(pat,""); print $1":"$2"\t"$3}' ./seq_context_${RE2}/${i%.f*}_seqcontext.tmp | awk 'NR==FNR {a[$1]++; next} $1 in a' <(awk -v pat="${ref1%.f*}_" '{gsub(pat,"");}1' snplist_haps.txt) - > ./seq_context_${RE2}/${i%.f*}_seqcontext.txt &&
                 rm ./seq_context_"${RE2}"/${i%.f*}_seqcontext.tmp 2> /dev/null &&
                 wait
@@ -4122,6 +4124,7 @@ main () {
           fi
 
           # Extract sequence context of variants
+          mv ${projdir}/preprocess/processed/*_precall.bam ${projdir}/preprocess/ 2> /dev/null
           if [[ "$lib_type" =~ "RRS" ]] || [[ "$lib_type" =~ "rrs" ]]; then
             if [[ -n "$RE1" ]] || [[ -n "$RE2" ]]; then
               awk '{print $1"\t"$2"\t"$3}' ${pop}_4x_rd${minRD_4x}_maf${maf}_dose.txt > snplist.txt &&
@@ -4142,7 +4145,7 @@ main () {
               wait
               while IFS="" read -r i || [ -n "$i" ]; do
                 sleep $((RANDOM % 2))
-                $samtools view ../../preprocess/processed/${i%.f*}_${ref1%.f*}_${ref2%.f*}_precall.bam 2> /dev/null | awk '{print $3"\t"$4"\t"$10}' | awk -v seq="^${RE1}" '$3 ~ seq' | awk '{$2=sprintf("%d00",$2/100)}1' > ./seq_context_${RE1}/${i%.f*}_seqcontext.tmp &&
+                $samtools view ../../preprocess/${i%.f*}_${ref1%.f*}_${ref2%.f*}_precall.bam 2> /dev/null | awk '{print $3"\t"$4"\t"$10}' | awk -v seq="^${RE1}" '$3 ~ seq' | awk '{$2=sprintf("%d00",$2/100)}1' > ./seq_context_${RE1}/${i%.f*}_seqcontext.tmp &&
                 awk -v pat="${ref1%.f*}_" '{gsub(pat,""); print $1":"$2"\t"$3}' ./seq_context_${RE1}/${i%.f*}_seqcontext.tmp | awk 'NR==FNR {a[$1]++; next} $1 in a' <(awk -v pat="${ref1%.f*}_" '{gsub(pat,"");}1' snplist_haps.txt) - > ./seq_context_${RE1}/${i%.f*}_seqcontext.txt &&
                 rm ./seq_context_${RE1}/${i%.f*}_seqcontext.tmp &&
                 wait
@@ -4153,7 +4156,7 @@ main () {
               wait
               while IFS="" read -r i || [ -n "$i" ]; do
                 sleep $((RANDOM % 2))
-                $samtools view ../../preprocess/processed/${i%.f*}_${ref1%.f*}_${ref2%.f*}_precall.bam 2> /dev/null | awk '{print $3"\t"$4"\t"$10}' | awk -v seq="^${RE2}" '$3 ~ seq' | awk '{$2=sprintf("%d00",$2/100)}1' > ./seq_context_${RE2}/${i%.f*}_seqcontext.tmp &&
+                $samtools view ../../preprocess/${i%.f*}_${ref1%.f*}_${ref2%.f*}_precall.bam 2> /dev/null | awk '{print $3"\t"$4"\t"$10}' | awk -v seq="^${RE2}" '$3 ~ seq' | awk '{$2=sprintf("%d00",$2/100)}1' > ./seq_context_${RE2}/${i%.f*}_seqcontext.tmp &&
                 awk -v pat="${ref1%.f*}_" '{gsub(pat,""); print $1":"$2"\t"$3}' ./seq_context_${RE2}/${i%.f*}_seqcontext.tmp | awk 'NR==FNR {a[$1]++; next} $1 in a' <(awk -v pat="${ref1%.f*}_" '{gsub(pat,"");}1' snplist_haps.txt) - > ./seq_context_${RE2}/${i%.f*}_seqcontext.txt &&
                 rm ./seq_context_${RE2}/${i%.f*}_seqcontext.tmp &&
                 wait
@@ -4249,6 +4252,7 @@ main () {
           fi
 
           # Extract sequence context of variants
+          mv ${projdir}/preprocess/processed/*_precall.bam ${projdir}/preprocess/ 2> /dev/null
           if [[ "$lib_type" =~ "RRS" ]] || [[ "$lib_type" =~ "rrs" ]]; then
             if [[ -n "$RE1" ]] || [[ -n "$RE2" ]]; then
               awk '{print $1"\t"$2"\t"$3}' ${pop}_6x_rd${minRD_6x}_maf${maf}_dose.txt > snplist.txt &&
@@ -4269,7 +4273,7 @@ main () {
               wait
               while IFS="" read -r i || [ -n "$i" ]; do
                 sleep $((RANDOM % 2))
-                $samtools view ../../preprocess/processed/${i%.f*}_${ref1%.f*}_${ref2%.f*}_precall.bam 2> /dev/null | awk '{print $3"\t"$4"\t"$10}' | awk -v seq="^${RE1}" '$3 ~ seq' | awk '{$2=sprintf("%d00",$2/100)}1' | \
+                $samtools view ../../preprocess/${i%.f*}_${ref1%.f*}_${ref2%.f*}_precall.bam 2> /dev/null | awk '{print $3"\t"$4"\t"$10}' | awk -v seq="^${RE1}" '$3 ~ seq' | awk '{$2=sprintf("%d00",$2/100)}1' | \
                 awk -v pat="${ref1%.f*}_" '{gsub(pat,""); print $1":"$2"\t"$3}' | awk 'NR==FNR {a[$1]++; next} $1 in a' <(awk -v pat="${ref1%.f*}_" '{gsub(pat,"");}1' snplist_haps.txt) - > ./seq_context_${RE1}/${i%.f*}_seqcontext.txt &&
                 wait
               done < <(cat ${projdir}/samples_list_node_*)
@@ -4278,7 +4282,7 @@ main () {
               mkdir -p seq_context_${RE2}
               while IFS="" read -r i || [ -n "$i" ]; do
                 sleep $((RANDOM % 2))
-                $samtools view ../../preprocess/processed/${i%.f*}_${ref1%.f*}_${ref2%.f*}_precall.bam 2> /dev/null | awk '{print $3"\t"$4"\t"$10}' | awk -v seq="^${RE2}" '$3 ~ seq' | awk '{$2=sprintf("%d00",$2/100)}1' | \
+                $samtools view ../../preprocess/${i%.f*}_${ref1%.f*}_${ref2%.f*}_precall.bam 2> /dev/null | awk '{print $3"\t"$4"\t"$10}' | awk -v seq="^${RE2}" '$3 ~ seq' | awk '{$2=sprintf("%d00",$2/100)}1' | \
                 awk -v pat="${ref1%.f*}_" '{gsub(pat,""); print $1":"$2"\t"$3}' | awk 'NR==FNR {a[$1]++; next} $1 in a' <(awk -v pat="${ref1%.f*}_" '{gsub(pat,"");}1' snplist_haps.txt) - > ./seq_context_${RE2}/${i%.f*}_seqcontext.txt &&
                 wait
               done < <(cat ${projdir}/samples_list_node_*)
@@ -4374,6 +4378,7 @@ main () {
           fi
 
           # Extract sequence context of variants
+          mv ${projdir}/preprocess/processed/*_precall.bam ${projdir}/preprocess/ 2> /dev/null
           if [[ "$lib_type" =~ "RRS" ]] || [[ "$lib_type" =~ "rrs" ]]; then
             if [[ -n "$RE1" ]] || [[ -n "$RE2" ]]; then
               awk '{print $1"\t"$2"\t"$3}' ${pop}_8x_rd${minRD_8x}_maf${maf}_dose.txt > snplist.txt &&
@@ -4395,7 +4400,7 @@ main () {
               wait
               while IFS="" read -r i || [ -n "$i" ]; do
                 sleep $((RANDOM % 2))
-                $samtools view ../../preprocess/processed/${i%.f*}_${ref1%.f*}_${ref2%.f*}_precall.bam 2> /dev/null | awk '{print $3"\t"$4"\t"$10}' | awk -v seq="^${RE1}" '$3 ~ seq' | awk '{$2=sprintf("%d00",$2/100)}1' > ./seq_context_${RE1}/${i%.f*}_seqcontext.tmp &&
+                $samtools view ../../preprocess/${i%.f*}_${ref1%.f*}_${ref2%.f*}_precall.bam 2> /dev/null | awk '{print $3"\t"$4"\t"$10}' | awk -v seq="^${RE1}" '$3 ~ seq' | awk '{$2=sprintf("%d00",$2/100)}1' > ./seq_context_${RE1}/${i%.f*}_seqcontext.tmp &&
                 awk -v pat="${ref1%.f*}_" '{gsub(pat,""); print $1":"$2"\t"$3}' ./seq_context_${RE1}/${i%.f*}_seqcontext.tmp | awk 'NR==FNR {a[$1]++; next} $1 in a' <(awk -v pat="${ref1%.f*}_" '{gsub(pat,"");}1' snplist_haps.txt) - > ./seq_context_${RE1}/${i%.f*}_seqcontext.txt &&
                 rm ./seq_context_${RE1}/${i%.f*}_seqcontext.tmp &&
                 wait
@@ -4406,7 +4411,7 @@ main () {
               wait
               while IFS="" read -r i || [ -n "$i" ]; do
                 sleep $((RANDOM % 2))
-                $samtools view ../../preprocess/processed/${i%.f*}_${ref1%.f*}_${ref2%.f*}_precall.bam 2> /dev/null | awk '{print $3"\t"$4"\t"$10}' | awk -v seq="^${RE2}" '$3 ~ seq' | awk '{$2=sprintf("%d00",$2/100)}1' > ./seq_context_${RE2}/${i%.f*}_seqcontext.tmp &&
+                $samtools view ../../preprocess/${i%.f*}_${ref1%.f*}_${ref2%.f*}_precall.bam 2> /dev/null | awk '{print $3"\t"$4"\t"$10}' | awk -v seq="^${RE2}" '$3 ~ seq' | awk '{$2=sprintf("%d00",$2/100)}1' > ./seq_context_${RE2}/${i%.f*}_seqcontext.tmp &&
                 awk -v pat="${ref1%.f*}_" '{gsub(pat,""); print $1":"$2"\t"$3}' ./seq_context_${RE2}/${i%.f*}_seqcontext.tmp | awk 'NR==FNR {a[$1]++; next} $1 in a' <(awk -v pat="${ref1%.f*}_" '{gsub(pat,"");}1' snplist_haps.txt) - > ./seq_context_${RE2}/${i%.f*}_seqcontext.txt &&
                 rm ./seq_context_${RE2}/${i%.f*}_seqcontext.tmp &&
                 wait
@@ -4506,6 +4511,7 @@ main () {
           fi
 
           # Extract sequence context of variants
+          mv ${projdir}/preprocess/processed/*_precall.bam ${projdir}/preprocess/ 2> /dev/null
           if [[ "$lib_type" =~ "RRS" ]] || [[ "$lib_type" =~ "rrs" ]]; then
             if [[ -n "$RE1" ]] || [[ -n "$RE2" ]]; then
               awk '{print $1"\t"$2"\t"$3}' ${pop}_2x_rd${minRD_2x}_noSDdose.txt > snplist.txt &&
@@ -4525,7 +4531,7 @@ main () {
               mkdir -p seq_context_"${RE1}" &&
               while IFS="" read -r i || [ -n "$i" ]; do
                 sleep $((RANDOM % 2))
-                $samtools view ../../preprocess/processed/${i%.f*}_${ref1%.f*}_${ref2%.f*}_precall.bam 2> /dev/null | awk '{print $3"\t"$4"\t"$10}' | awk -v seq="^${RE1}" '$3 ~ seq' | awk '{$2=sprintf("%d00",$2/100)}1' > ./seq_context_${RE1}/${i%.f*}_seqcontext.tmp &&
+                $samtools view ../../preprocess/${i%.f*}_${ref1%.f*}_${ref2%.f*}_precall.bam 2> /dev/null | awk '{print $3"\t"$4"\t"$10}' | awk -v seq="^${RE1}" '$3 ~ seq' | awk '{$2=sprintf("%d00",$2/100)}1' > ./seq_context_${RE1}/${i%.f*}_seqcontext.tmp &&
                 awk -v pat="${ref1%.f*}_" '{gsub(pat,""); print $1":"$2"\t"$3}' ./seq_context_${RE1}/${i%.f*}_seqcontext.tmp | awk 'NR==FNR {a[$1]++; next} $1 in a' <(awk -v pat="${ref1%.f*}_" '{gsub(pat,"");}1' snplist_haps.txt) - > ./seq_context_${RE1}/${i%.f*}_seqcontext.txt &&
                 rm ./seq_context_"${RE1}"/${i%.f*}_seqcontext.tmp 2> /dev/null &&
                 wait
@@ -4536,7 +4542,7 @@ main () {
               wait
               while IFS="" read -r i || [ -n "$i" ]; do
                 sleep $((RANDOM % 2))
-                $samtools view ../../preprocess/processed/${i%.f*}_${ref1%.f*}_${ref2%.f*}_precall.bam 2> /dev/null | awk '{print $3"\t"$4"\t"$10}' | awk -v seq="^${RE2}" '$3 ~ seq' | awk '{$2=sprintf("%d00",$2/100)}1' > ./seq_context_${RE2}/${i%.f*}_seqcontext.tmp &&
+                $samtools view ../../preprocess/${i%.f*}_${ref1%.f*}_${ref2%.f*}_precall.bam 2> /dev/null | awk '{print $3"\t"$4"\t"$10}' | awk -v seq="^${RE2}" '$3 ~ seq' | awk '{$2=sprintf("%d00",$2/100)}1' > ./seq_context_${RE2}/${i%.f*}_seqcontext.tmp &&
                 awk -v pat="${ref1%.f*}_" '{gsub(pat,""); print $1":"$2"\t"$3}' ./seq_context_${RE2}/${i%.f*}_seqcontext.tmp | awk 'NR==FNR {a[$1]++; next} $1 in a' <(awk -v pat="${ref1%.f*}_" '{gsub(pat,"");}1' snplist_haps.txt) - > ./seq_context_${RE2}/${i%.f*}_seqcontext.txt &&
                 rm ./seq_context_"${RE2}"/${i%.f*}_seqcontext.tmp 2> /dev/null &&
                 wait
@@ -4633,6 +4639,7 @@ main () {
           fi
 
           # Extract sequence context of variants
+          mv ${projdir}/preprocess/processed/*_precall.bam ${projdir}/preprocess/ 2> /dev/null
           if [[ "$lib_type" =~ "RRS" ]] || [[ "$lib_type" =~ "rrs" ]]; then
             if [[ -n "$RE1" ]] || [[ -n "$RE2" ]]; then
               awk '{print $1"\t"$2"\t"$3}' ${pop}_4x_rd${minRD_4x}_noSDdose.txt > snplist.txt &&
@@ -4653,7 +4660,7 @@ main () {
               wait
               while IFS="" read -r i || [ -n "$i" ]; do
                 sleep $((RANDOM % 2))
-                $samtools view ../../preprocess/processed/${i%.f*}_${ref1%.f*}_${ref2%.f*}_precall.bam 2> /dev/null | awk '{print $3"\t"$4"\t"$10}' | awk -v seq="^${RE1}" '$3 ~ seq' | awk '{$2=sprintf("%d00",$2/100)}1' > ./seq_context_${RE1}/${i%.f*}_seqcontext.tmp &&
+                $samtools view ../../preprocess/${i%.f*}_${ref1%.f*}_${ref2%.f*}_precall.bam 2> /dev/null | awk '{print $3"\t"$4"\t"$10}' | awk -v seq="^${RE1}" '$3 ~ seq' | awk '{$2=sprintf("%d00",$2/100)}1' > ./seq_context_${RE1}/${i%.f*}_seqcontext.tmp &&
                 awk -v pat="${ref1%.f*}_" '{gsub(pat,""); print $1":"$2"\t"$3}' ./seq_context_${RE1}/${i%.f*}_seqcontext.tmp | awk 'NR==FNR {a[$1]++; next} $1 in a' <(awk -v pat="${ref1%.f*}_" '{gsub(pat,"");}1' snplist_haps.txt) - > ./seq_context_${RE1}/${i%.f*}_seqcontext.txt &&
                 rm ./seq_context_${RE1}/${i%.f*}_seqcontext.tmp &&
                 wait
@@ -4664,7 +4671,7 @@ main () {
               wait
               while IFS="" read -r i || [ -n "$i" ]; do
                 sleep $((RANDOM % 2))
-                $samtools view ../../preprocess/processed/${i%.f*}_${ref1%.f*}_${ref2%.f*}_precall.bam 2> /dev/null | awk '{print $3"\t"$4"\t"$10}' | awk -v seq="^${RE2}" '$3 ~ seq' | awk '{$2=sprintf("%d00",$2/100)}1' > ./seq_context_${RE2}/${i%.f*}_seqcontext.tmp &&
+                $samtools view ../../preprocess/${i%.f*}_${ref1%.f*}_${ref2%.f*}_precall.bam 2> /dev/null | awk '{print $3"\t"$4"\t"$10}' | awk -v seq="^${RE2}" '$3 ~ seq' | awk '{$2=sprintf("%d00",$2/100)}1' > ./seq_context_${RE2}/${i%.f*}_seqcontext.tmp &&
                 awk -v pat="${ref1%.f*}_" '{gsub(pat,""); print $1":"$2"\t"$3}' ./seq_context_${RE2}/${i%.f*}_seqcontext.tmp | awk 'NR==FNR {a[$1]++; next} $1 in a' <(awk -v pat="${ref1%.f*}_" '{gsub(pat,"");}1' snplist_haps.txt) - > ./seq_context_${RE2}/${i%.f*}_seqcontext.txt &&
                 rm ./seq_context_${RE2}/${i%.f*}_seqcontext.tmp &&
                 wait
@@ -4760,6 +4767,7 @@ main () {
           fi
 
           # Extract sequence context of variants
+          mv ${projdir}/preprocess/processed/*_precall.bam ${projdir}/preprocess/ 2> /dev/null
           if [[ "$lib_type" =~ "RRS" ]] || [[ "$lib_type" =~ "rrs" ]]; then
             if [[ -n "$RE1" ]] || [[ -n "$RE2" ]]; then
               awk '{print $1"\t"$2"\t"$3}' ${pop}_6x_rd${minRD_6x}_noSDdose.txt > snplist.txt &&
@@ -4780,7 +4788,7 @@ main () {
               mkdir -p seq_context_${RE1}
               while IFS="" read -r i || [ -n "$i" ]; do
                 sleep $((RANDOM % 2))
-                $samtools view ../../preprocess/processed/${i%.f*}_${ref1%.f*}_${ref2%.f*}_precall.bam 2> /dev/null | awk '{print $3"\t"$4"\t"$10}' | awk -v seq="^${RE1}" '$3 ~ seq' | awk '{$2=sprintf("%d00",$2/100)}1' > ./seq_context_${RE1}/${i%.f*}_seqcontext.tmp &&
+                $samtools view ../../preprocess/${i%.f*}_${ref1%.f*}_${ref2%.f*}_precall.bam 2> /dev/null | awk '{print $3"\t"$4"\t"$10}' | awk -v seq="^${RE1}" '$3 ~ seq' | awk '{$2=sprintf("%d00",$2/100)}1' > ./seq_context_${RE1}/${i%.f*}_seqcontext.tmp &&
                 awk -v pat="${ref1%.f*}_" '{gsub(pat,""); print $1":"$2"\t"$3}' ./seq_context_${RE1}/${i%.f*}_seqcontext.tmp | awk 'NR==FNR {a[$1]++; next} $1 in a' <(awk -v pat="${ref1%.f*}_" '{gsub(pat,"");}1' snplist_haps.txt) - > ./seq_context_${RE1}/${i%.f*}_seqcontext.txt &&
                 rm ./seq_context_${RE1}/${i%.f*}_seqcontext.tmp &&
                 wait
@@ -4791,7 +4799,7 @@ main () {
               wait
               while IFS="" read -r i || [ -n "$i" ]; do
                 sleep $((RANDOM % 2))
-                $samtools view ../../preprocess/processed/${i%.f*}_${ref1%.f*}_${ref2%.f*}_precall.bam 2> /dev/null | awk '{print $3"\t"$4"\t"$10}' | awk -v seq="^${RE2}" '$3 ~ seq' | awk '{$2=sprintf("%d00",$2/100)}1' > ./seq_context_${RE2}/${i%.f*}_seqcontext.tmp &&
+                $samtools view ../../preprocess/${i%.f*}_${ref1%.f*}_${ref2%.f*}_precall.bam 2> /dev/null | awk '{print $3"\t"$4"\t"$10}' | awk -v seq="^${RE2}" '$3 ~ seq' | awk '{$2=sprintf("%d00",$2/100)}1' > ./seq_context_${RE2}/${i%.f*}_seqcontext.tmp &&
                 awk -v pat="${ref1%.f*}_" '{gsub(pat,""); print $1":"$2"\t"$3}' ./seq_context_${RE2}/${i%.f*}_seqcontext.tmp | awk 'NR==FNR {a[$1]++; next} $1 in a' <(awk -v pat="${ref1%.f*}_" '{gsub(pat,"");}1' snplist_haps.txt) - > ./seq_context_${RE2}/${i%.f*}_seqcontext.txt &&
                 rm ./seq_context_${RE2}/${i%.f*}_seqcontext.tmp &&
                 wait
@@ -4888,6 +4896,7 @@ main () {
           fi
 
           # Extract sequence context of variants
+          mv ${projdir}/preprocess/processed/*_precall.bam ${projdir}/preprocess/ 2> /dev/null
           if [[ "$lib_type" =~ "RRS" ]] || [[ "$lib_type" =~ "rrs" ]]; then
             if [[ -n "$RE1" ]] || [[ -n "$RE2" ]]; then
               awk '{print $1"\t"$2"\t"$3}' ${pop}_8x_rd${minRD_8x}_noSDdose.txt > snplist.txt &&
@@ -4909,7 +4918,7 @@ main () {
               wait
               while IFS="" read -r i || [ -n "$i" ]; do
                 sleep $((RANDOM % 2))
-                $samtools view ../../preprocess/processed/${i%.f*}_${ref1%.f*}_${ref2%.f*}_precall.bam 2> /dev/null | awk '{print $3"\t"$4"\t"$10}' | awk -v seq="^${RE1}" '$3 ~ seq' | awk '{$2=sprintf("%d00",$2/100)}1' > ./seq_context_${RE1}/${i%.f*}_seqcontext.tmp &&
+                $samtools view ../../preprocess/${i%.f*}_${ref1%.f*}_${ref2%.f*}_precall.bam 2> /dev/null | awk '{print $3"\t"$4"\t"$10}' | awk -v seq="^${RE1}" '$3 ~ seq' | awk '{$2=sprintf("%d00",$2/100)}1' > ./seq_context_${RE1}/${i%.f*}_seqcontext.tmp &&
                 awk -v pat="${ref1%.f*}_" '{gsub(pat,""); print $1":"$2"\t"$3}' ./seq_context_${RE1}/${i%.f*}_seqcontext.tmp | awk 'NR==FNR {a[$1]++; next} $1 in a' <(awk -v pat="${ref1%.f*}_" '{gsub(pat,"");}1' snplist_haps.txt) - > ./seq_context_${RE1}/${i%.f*}_seqcontext.txt &&
                 rm ./seq_context_${RE1}/${i%.f*}_seqcontext.tmp &&
                 wait
@@ -4920,7 +4929,7 @@ main () {
               wait
               while IFS="" read -r i || [ -n "$i" ]; do
                 sleep $((RANDOM % 2))
-                $samtools view ../../preprocess/processed/${i%.f*}_${ref1%.f*}_${ref2%.f*}_precall.bam 2> /dev/null | awk '{print $3"\t"$4"\t"$10}' | awk -v seq="^${RE2}" '$3 ~ seq' | awk '{$2=sprintf("%d00",$2/100)}1' > ./seq_context_${RE2}/${i%.f*}_seqcontext.tmp &&
+                $samtools view ../../preprocess/${i%.f*}_${ref1%.f*}_${ref2%.f*}_precall.bam 2> /dev/null | awk '{print $3"\t"$4"\t"$10}' | awk -v seq="^${RE2}" '$3 ~ seq' | awk '{$2=sprintf("%d00",$2/100)}1' > ./seq_context_${RE2}/${i%.f*}_seqcontext.tmp &&
                 awk -v pat="${ref1%.f*}_" '{gsub(pat,""); print $1":"$2"\t"$3}' ./seq_context_${RE2}/${i%.f*}_seqcontext.tmp | awk 'NR==FNR {a[$1]++; next} $1 in a' <(awk -v pat="${ref1%.f*}_" '{gsub(pat,"");}1' snplist_haps.txt) - > ./seq_context_${RE2}/${i%.f*}_seqcontext.txt &&
                 rm ./seq_context_${RE2}/${i%.f*}_seqcontext.tmp &&
                 wait
@@ -4978,7 +4987,7 @@ main () {
     wait
   done
   wait
-
+  mv ${projdir}/preprocess/*_precall.bam ${projdir}/preprocess/processed/ 2> /dev/null
 
   cd ${projdir}/snpfilter/
   find . -type f -empty -delete
