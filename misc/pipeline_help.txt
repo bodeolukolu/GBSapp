@@ -1,0 +1,84 @@
+***showing pipeline help below: scroll through and q(quit) to exit pipeline help***
+
+**General parameters**
+
+|Variable      |Default       |Usage         |Input         |required/Optional|
+|:-------------|:-------------|:-------------|:-------------|:----------------|
+|threads|na|number of cores/processors|integer|Optional|
+|walkaway|true|run in walk-away or walk-through mode|true or false|Optional|
+|cluster|false|run on compute cluster node (default: slurm) or workstation|true or false|Optional|
+|nodes|1|number of nodes|integer|Optional|
+|samples_alt_dir|false|links samples in separate directory to project directory|true or false|Optional|
+|lib_type|RRS|RRS (reduced representation sequence e.g. GBS, ddRADseq, qRRS) or WGS (shotgun whole genome sequence)|string|Optional|
+|subsample_WGS_in_silico_qRRS|false|Fast alternative to variant calling on whole genome data|true or false|Optional|
+
+
+
+**Variant calling parameters**
+
+|Variable      |Default       |Usage         |Input         |required/Optional|
+|:-------------|:-------------|:-------------|:-------------|:----------------|
+|ploidy|na|value = 1,2,4,6, or 8|integer|Required|
+|ref1|na|reference subgenome as .fasta file. Anchor-genome when other subgenomes specified |integer|Optional|
+|ref2|na|2nd reference genome as .fasta file|integer|Optional|
+|ref3|na|3rd reference genome as .fasta file|integer|Optional|
+|ref4|na|4th reference genome as .fasta file|integer|Optional|
+|ploidy_ref1|na|ploidy-level for subgenome 1|integer|Optional|
+|ploidy_ref2|na|ploidy-level for subgenome 2, only specify for subgenome specific variants|integer|Optional|
+|ploidy_ref3|na|ploidy-level for subgenome 3, only specify for subgenome specific variants|integer|Optional|
+|ploidy_ref4|na|ploidy-level for subgenome 4, only specify for subgenome specific variants|integer|Optional|
+|haplome_ref1|na|reference haplome as .fasta file. Anchor-haplome when other haplomes are specified |integer|Optional|
+|haplome_ref2|na|2nd reference haplome as .fasta file|integer|Optional|
+|pangenome_ref1|na|reference genome as .fasta file. Anchor-genome when other genomes are specified |integer|Optional|
+|pangenome_ref2|na|2nd reference pan-genome as .fasta file|integer|Optional|
+|pangenome_ref2|na|2nd reference pan-genome as .fasta file|integer|Optional|
+|pangenome_specific|false|variant call from pan-genome specific read|true or false|Optional|
+|Get_Chromosome|na|variant calling on specific chromosomes, scaffolds,and contigs|comma delimited string(s)|optional|
+|Exclude_Chromosome|na|variant calling to exclude specific chromosomes, scaffolds,and contigs|comma delimited string(s)|optional|
+
+
+
+**Variant filtering parameters**
+
+|Variable      |Default       |Usage         |Input         |required/Optional|
+|:-------------|:-------------|:-------------|:-------------|:----------------|
+|p1|na|maternal parent (specified only for biparental populations)|string|Optional|
+|p2|na|paternal parent (specified only for biparental populations)|string|Optional|
+|biallelic|false|filter to output only biallelic variants|string|Optional|
+|genotype_missingness|1|maximum proportion of missing genotypes allowed per sample|comma delimited decimal number(s)|Optional|
+|sample_missingness|1|maximum proportion of missing samples allowed per variant|comma delimited decimal number(s)|Optional|
+|exclude_samples|na|sample IDs to be exclude from filtered variant data set|comma delimited string(s)|Optional|
+|select_samples|na|limit variant filtering to samples IDs in file delimited by newline|filename|Optional|
+|minRD_1x|2|minimum read depth threshold|integer|Optional|
+|minRD_2x|6|minimum read depth threshold|integer|Optional|
+|minRD_4x|25|minimum read depth threshold|integer|Optional|
+|minRD_6x|45|minimum read depth threshold|integer|Optional|
+|minRD_8x|100|minimum read depth threshold|integer|Optional|
+|pseg|0.001|p-value threshold for chi-square test of segregation distortion|decimal number|Optional|
+|maf|0.02|minor allele frequency threshold|decimal number|Optional|
+|filtered_vcf|false|generate filtered vcf file|string|Optional|
+
+
+
+**Advanced parameters**
+|Variable      |Default       |Usage         |Input         |required/Optional|
+|:-------------|:-------------|:-------------|:-------------|:----------------|
+|uniquely_mapped|true|include uniquely mapped for variant calling |string|Optional|
+|paralogs|false|include paralogs for variant calling |string|Optional|
+|minmapq|20|minimum mapping quality|integer|Optional|
+|downsample_2x|50|value for unbiased downsampling for 2x ploidy|integer|Optional|
+|downsample_4x|100|value for unbiased downsampling for 4x ploidy|integer|Optional|
+|downsample_6x|150|value for unbiased downsampling for 6x ploidy|integer|Optional|
+|downsample_8x|200|value for unbiased downsampling for 8x ploidy|integer|Optional|
+|maxHaplotype|128|maximum number of haplotypes per haploid genome across population(increase for polyploids/high heterozygosity/high background mutational load)|integer|Optional|
+|use_softclip|false|use soft-clipped bases for variant calling|string|Optional|
+|joint_calling|false| cohort calling will be performed if set to false|string|Optional|
+|keep_gVCF|false|keep sample gVCF files, if additional samples will be included for future joint calling)|string|Optional|
+|RE1|NA|sequence motif at start of R1 reads|string|Optional|
+|RE2|NA|sequence motif at start of R2 reads|string|Optional|
+|filter_ExcHet|false|test and filter for excess heterozygosity|string|Optional|
+
+**Note: na indicates that variable is user-defined or hard-coded/computed intuitively, as well as a function of ploidy.*
+
+
+***press q(quit) to exit pipeline help***

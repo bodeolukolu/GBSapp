@@ -36,6 +36,11 @@ if [[ "$1" == "-h" || "$1" == "--help" ]]; then
   echo -e "${white}\t\t--help, -h\t\tprint help message"
   echo -e "${white}\t\tinstall\t\t\tsoftware dependencies"
   echo -e "${white}\t\tproj_dir\t\tspecify absolute or relative path to project directory\n"
+  echo -e "${magenta}- Do you want to view pipeline help? ${white}"
+  read -p "- y(YES) or n(NO)? " -n 1 -r
+  if [[ $REPLY =~ ^[Yy]$ ]]; then
+    cat ./misc/pipeline_help.txt | less
+  fi
   exit 0
 fi
 if [[ "$1" == "install" ]]; then
