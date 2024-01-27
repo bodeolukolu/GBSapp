@@ -39,7 +39,7 @@ if [[ "$1" == "-h" || "$1" == "--help" ]]; then
   echo -e "${magenta}- Do you want to view pipeline help? ${white}"
   read -p "- y(YES) or n(NO)? " -n 1 -r
   if [[ $REPLY =~ ^[Yy]$ ]]; then
-    less $GBSapp_dir/misc/pipeline_help.txt
+    awk '{gsub(/\|/," | ");}1' $GBSapp_dir/misc/pipeline_help.txt | less
   fi
   exit 0
 fi
