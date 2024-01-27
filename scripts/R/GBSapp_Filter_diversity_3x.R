@@ -286,7 +286,7 @@ RD_snpfiltering <- function() {
   sum <- sum(as.numeric(Chrfreq$Freq), na.rm = TRUE)
   Chrfreq <- subset(Chrfreq, Freq > 0.05)
   props <- 100/sum
-  plot <- ggplot(data=Chrfreq, aes(x=Chrfreq, y=Freq)) +
+  plot <- ggplot(data=Chrfreq, aes(x=CHROM, y=Freq)) +
     geom_bar(stat='identity', color="darkblue", fill="cornflowerblue") +
     scale_y_continuous(name=paste("Number of Variants"), sec.axis = sec_axis(~.*props, name="Percentage (%)")) +
     geom_text(aes(label=Freq), vjust=-0.3, size=3.5)+
