@@ -657,10 +657,10 @@ pop_struc <- function() {
         if( method=="Vitezica" && ploidy>2)
           stop("Change method to 'Slater' for ploidies higher than 2 for marker-based non-additive relationship matrix")
         
-        if(class(SNPmatrix)!="matrix"){
-          cat("SNPmatrix class is:",class(SNPmatrix),"\n")
-          stop("SNPmatrix class must be matrix. Please verify it.")
-        }
+        # if(class(SNPmatrix)!="matrix"){
+        #   cat("SNPmatrix class is:",class(SNPmatrix),"\n")
+        #   stop("SNPmatrix class must be matrix. Please verify it.")
+        # }
         
         if(!ratio){
           if( ploidy > 20 | (ploidy %% 2) != 0)
@@ -1016,9 +1016,9 @@ var_density <- function() {
     chroms <- subset(chroms, Freq >= 50)
     map <- map[(map[,colnames(map)=="Chromosome"]) %in% chroms$Var1,]
   }
-  CMplot(map,type="p",plot.type="d",bin.size=1e6,chr.den.col=c("darkgreen", "yellow", "red"),file="tiff",memo="",dpi=300,
+  CMplot(map,type="p",plot.type="d",bin.size=1e6,chr.den.col=c("darkgreen", "yellow", "red"),file="tiff",dpi=300,
          main="variant genome distribution (1x)",file.output=TRUE,verbose=TRUE,width=9,height=6)
-  file.rename("SNP-Density.Col1.Col0.tiff","variant_genome_distribution_1x.tiff")
+  file.rename("Marker_Density.Trait1_Trait0.tiff","variant_genome_distribution_1x.tiff")
 }
 try(var_density(), silent = TRUE)
 
