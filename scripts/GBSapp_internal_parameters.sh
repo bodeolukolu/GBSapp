@@ -124,3 +124,16 @@ if [ -z "$bcftoolsout" ];then
 else
   $bcftools --version | head -n 3
 fi
+
+bedtoolsout=$($bedtools --version | head -n 3)
+if [ -z "$bedtoolsout" ];then
+  echo -e "${white}- bedtools installation within GBSapp is probably missing a dependency on host system ${white}"
+  echo -e "${white}- GBSapp will use host system bcftools installation ${white}"
+  if [[ "$cluster" == true ]]; then
+    module add bedtools
+  fi
+  export bedtools=bedtools
+  $bedtools --version | head -n 3
+else
+  $bedtools --version | head -n 3
+fi

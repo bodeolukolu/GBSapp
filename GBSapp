@@ -43,23 +43,35 @@ if [[ "$1" == "-h" || "$1" == "--help" ]]; then
   fi
   exit 0
 fi
+
+projdir="$( cd -- "$(dirname "$1 ")" >/dev/null 2>&1 ; pwd -P )/"
 if [[ "$1" == "install" ]]; then
   mkdir -p $GBSapp_dir/tools
   cd $GBSapp_dir/tools
   bash $GBSapp_dir/scripts/install.sh
   wait; exit 0
 fi
-
-projdir="$( cd -- "$(dirname "$1 ")" >/dev/null 2>&1 ; pwd -P )/"
-if [[ ! -d "$GBSapp_dir/tools" ]]; then
+if [[ ! -d "$GBSapp_dir/tools" ]] || [[ -z "$(ls -A $GBSapp_dir/tools)" ]]; then
   mkdir -p $GBSapp_dir/tools
   cd $GBSapp_dir/tools
   bash $GBSapp_dir/scripts/install.sh
 fi
-if [[ -d "$GBSapp_dir/tools" ]]; then
-  cd $GBSapp_dir/tools
-  bash $GBSapp_dir/scripts/install.sh
-fi
+
+cd $GBSapp_dir/tools
+if [ ! -d *NextGenMap* ]; then echo -e "${magenta}- NextGenMap is not installated or properly installed\n- Consider checking dependencies and re-running install command\n\n ${white}"; fi
+if [ ! -d bcftools* ]; then echo -e "${magenta}- bcftools is not installated or properly installed\n- Consider checking dependencies and re-running install command ${white}"; fi
+if [ ! -d bcftools* ]; then echo -e "${magenta}- else, GBSapp will attempt using the system-installed version of bcftools\n\n ${white}"; fi
+if [ ! -d bedtools* ]; then echo -e "${magenta}- bedtools is not installated or properly installed\n- Consider checking dependencies and re-running install command ${white}"; fi
+if [ ! -d bedtools* ]; then echo -e "${magenta}- else, GBSapp will attempt using the system-installed verion of bedtools\n\n ${white}"; fi
+if [ ! -d samtools* ]; then echo -e "${magenta}- samtools is not installated or properly installed\n- Consider checking dependencies and re-running install command ${white}"; fi
+if [ ! -d samtoolstools* ]; then echo -e "${magenta}- else, GBSapp will attempt using the system-installed verion of samtools\n\n ${white}"; fi
+if [ ! -f picard* ]; then echo -e "${magenta}- PICARD is not installated or properly installed\n- Consider re-running install command\n\n ${white}"; fi
+if [ ! -d jdk* ]; then echo -e "${magenta}- Java jdk8 is not installated or properly installed\n- Consider checking dependencies and re-running install command\n\n ${white}"; fi
+if [ ! -d EMBOSS* ]; then echo -e "${magenta}- EMBOSS is not installated or properly installed\n- Consider checking dependencies and re-running install command\n\n ${white}"; fi
+if [ ! -d gatk* ]; then echo -e "${magenta}- GATK is not installated or properly installed\n- Consider re-running install command\n\n ${white}"; fi
+if [ ! -d ./R/reshape2 ]; then echo -e "${magenta}- R-package reshape2 is not installated or properly installed\n- Consider checking dependencies and re-running install command\n\n ${white}"; fi
+if [ ! -d ./R/ggplot2 ]; then echo -e "${magenta}- R-package ggplot2 is not installated or properly installed\n- Consider checking dependencies and re-running install command\n\n ${white}"; fi
+if [ ! -d ./R/CMplot ]; then echo -e "${magenta}- R-package CMplot is not installated or properly installed\n- Consider checking dependencies and re-running install command\n\n ${white}"; fi
 
 
 # if [ "${GBSapp_dir:0:1}" = "." ]; then
