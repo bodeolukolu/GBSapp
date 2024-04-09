@@ -1,4 +1,5 @@
-***showing pipeline help below: scroll through and q(quit) to exit pipeline help***
+### Configuration
+Using a text editor, save a file containing any of the following variables as 'config.sh' file and include it in your project directory.
 
 **General parameters**
 
@@ -19,23 +20,21 @@
 |Variable      |Default       |Usage         |Input         |required/Optional|
 |:-------------|:-------------|:-------------|:-------------|:----------------|
 |ploidy|na|value = 1,2,4,6, or 8|integer|Required|
+|haplome_number|1|variant call using haplomes/pangenomes/subgenomes (haplome # typically = ploidy)|integer|Optional|
 |ref1|na|reference subgenome as .fasta file. Anchor-genome when other subgenomes specified |integer|Optional|
 |ref2|na|2nd reference genome as .fasta file|integer|Optional|
 |ref3|na|3rd reference genome as .fasta file|integer|Optional|
-|ref4|na|4th reference genome as .fasta file|integer|Optional|
 |ploidy_ref1|na|ploidy-level for subgenome 1|integer|Optional|
 |ploidy_ref2|na|ploidy-level for subgenome 2, only specify for subgenome specific variants|integer|Optional|
 |ploidy_ref3|na|ploidy-level for subgenome 3, only specify for subgenome specific variants|integer|Optional|
-|ploidy_ref4|na|ploidy-level for subgenome 4, only specify for subgenome specific variants|integer|Optional|
-|haplome_ref1|na|reference haplome as .fasta file. Anchor-haplome when other haplomes are specified |integer|Optional|
-|haplome_ref2|na|2nd reference haplome as .fasta file|integer|Optional|
-|pangenome_ref1|na|reference genome as .fasta file. Anchor-genome when other genomes are specified |integer|Optional|
-|pangenome_ref2|na|2nd reference pan-genome as .fasta file|integer|Optional|
-|pangenome_ref2|na|2nd reference pan-genome as .fasta file|integer|Optional|
-|pangenome_specific|false|variant call from pan-genome specific read|true or false|Optional|
+|haplome_ref|na|haplotype-resolved reference genome. number of haplomes typically = ploidy level) |integer|Optional|
+|pangenome_ref1|na|1st reference genome. Anchor-genome when other genomes are specified |integer|Optional|
+|pangenome_ref2|na|2nd reference pan-genome|integer|Optional|
 |Get_Chromosome|na|variant calling on specific chromosomes, scaffolds,and contigs|comma delimited string(s)|optional|
 |Exclude_Chromosome|na|variant calling to exclude specific chromosomes, scaffolds,and contigs|comma delimited string(s)|optional|
 
+**note: designate haplomes/pangenomes/subgenomes with single character prefix (alphabets: A-Z and a-z) in a single file*
+**note: for polyploids with variable ploidy of subgenomes (e.g. hexapploid: 4x + 2x), indicate ref2-ref3 and ploidy_ref2-ploidy_ref3 (i.e. multiple reference genome files)*
 
 
 **Variant filtering parameters**
@@ -64,7 +63,7 @@
 |Variable      |Default       |Usage         |Input         |required/Optional|
 |:-------------|:-------------|:-------------|:-------------|:----------------|
 |uniquely_mapped|true|include uniquely mapped for variant calling |string|Optional|
-|paralogs|false|include paralogs for variant calling |string|Optional|
+|paralogs|true|include paralogs for variant calling |string|Optional|
 |minmapq|20|minimum mapping quality|integer|Optional|
 |downsample_2x|50|value for unbiased downsampling for 2x ploidy|integer|Optional|
 |downsample_4x|100|value for unbiased downsampling for 4x ploidy|integer|Optional|
@@ -77,8 +76,7 @@
 |RE1|NA|sequence motif at start of R1 reads|string|Optional|
 |RE2|NA|sequence motif at start of R2 reads|string|Optional|
 |filter_ExcHet|false|test and filter for excess heterozygosity|string|Optional|
+|genomecov_est|false|compute genome coverage for each sample|string|Optional|
 
-**Note: na indicates that variable is user-defined or hard-coded/computed intuitively, as well as a function of ploidy.*
+**note: na indicates that variable is user-defined or hard-coded/computed intuitively, as well as a function of ploidy.*
 
-
-***press q(quit) to exit pipeline help***

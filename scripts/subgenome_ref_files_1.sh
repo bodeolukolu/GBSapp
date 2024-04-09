@@ -20,7 +20,7 @@ if [ -z "$biallelic" ]; then
 	export biallelic=false
 fi
 if [ -z "$paralogs" ]; then
-	export paralogs=false
+	export paralogs=true
 fi
 if [ -z "$uniquely_mapped" ]; then
 	export uniquely_mapped=true
@@ -33,6 +33,9 @@ if [ -z "$maxHaplotype" ]; then
 fi
 if [ -z "$haplome_number" ]; then
 	export haplome_number=1
+fi
+if [[ "$haplome_ref" ]]; then
+  export ref1=$haplome_ref
 fi
 if [ -z "$p2" ]; then
   if   [ "$p1" ]; then
@@ -59,7 +62,10 @@ if [ -z "$filter_ExcHet" ]; then
   filter_ExcHet=false
 fi
 if [ -z "$filtered_vcf" ]; then
-  filtered_vcf=false
+  filtered_vcf=true
+fi
+if [ -z "$genomecov_est" ]; then
+  genomecov_est=false
 fi
 mkdir -p "${projdir}"/tmp
 export TMPDIR="${projdir}"/tmp
@@ -252,7 +258,8 @@ else
       ref1=${ref%%.f*}.fasta
 		done
 	fi
-	awk '{ sub("\r$",""); print}' $ref1 | awk 'BEGIN{FS=" "}{if(!/>/){print toupper($0)}else{print $1}}' > ref.txt
+	awk '{ sub("\r$",""); print}' $ref1 | awk 'BEGIN{FS=" "}{if(!/>/){print toupper($0)}else{print $1}}' | \
+  awk '/>/{gsub(/a$/,"A");gsub(/b$/,"B");gsub(/c$/,"C");gsub(/d$/,"D");gsub(/e$/,"E");gsub(/f$/,"F");gsub(/g$/,"G");gsub(/h$/,"H");}1' > ref.txt
 	n=">${ref1%.f*}_"
 	awk '{ sub("\r$",""); print}' ref.txt | awk -v n="$n" '{gsub(n,">"); print}' | awk -v n="$n" '{gsub(/>/,n); print}' > $ref1
 	rm ref.txt
@@ -279,7 +286,6 @@ cd $projdir
 if [[ "$samples_list" == "samples_list_node_1.txt" ]]; then
 	time main 2>> ${projdir}/log.out
 fi
-
 
 
 echo -e "${blue}\n############################################################################## ${yellow}\n- Organizing sample fastq files \n${blue}##############################################################################${white}\n"
@@ -662,10 +668,6 @@ if [[ "$(cat ${projdir}/samples_list_node_* | wc -l)" -lt 50 ]]; then
 fi
 
 
-
-
-
-
 ######################################################################################################################################################
 echo -e "${blue}\n############################################################################## ${yellow}\n- Performing Read Alignments & Alignment Post-Processing\n${blue}##############################################################################${white}\n"
 
@@ -722,7 +724,7 @@ main () {
       sleep $((RANDOM % 2))
       if test ! -f ${projdir}/preprocess/alignment/${i%.f*}_redun.sam.gz && test ! -f ${projdir}/preprocess/${i%.f*}_${ref1%.f*}_precall.bam.bai; then
         if test ! -f ${i%.f*}_uniq.fasta.gz; then
-          cat ${i%.f*}_R1_uniq.txt.gz ${i%.f*}_R2_uniq.txt.gz | zcat | awk '{!seen[$0]++}END{for (i in seen) print seen[i], i}' | awk '{$1=$1};1' | gzip > ${i%.f*}_repeatn.txt.gz
+          cat ${i%.f*}_R1_uniq.txt.gz ${i%.f*}_R2_uniq.txt.gz | zcat | awk '{!seen[$0]++}END{for (i in seen) print seen[i], i}' | awk '{$1=$1};1' | gzip > ${i%.f*}_repeatn.txt.gz &&
           repeatn=$(zcat ${i%.f*}_repeatn.txt.gz | awk '{print $1}' | sort -n | awk '{all[NR] = $1} END{print all[int(NR*0.999 - 0.5)]}')
           zcat ${i%.f*}_repeatn.txt.gz | awk -v pat="$repeatn" '$1 < pat' | \
           awk '{gsub(/AAAAAAAAAA$/,"A~");gsub(/AAAAAAAAAA~/,"A~");gsub(/AAAAAAAAAA~/,"A~");gsub(/AAAAAAAAAA~/,"A~");gsub(/AAAAAAAAAA~/,"A~");gsub(/AAAAAAAAAA~/,"A~");gsub(/AAAAAAAAAA~/,"A~");gsub(/AAAAAAAAAA~/,"A~");gsub(/AAAAAAAAAA~/,"A~");gsub(/AAAAAAAAAA~/,"A~");gsub(/AAAAAAAAAA~/,"A~");gsub(/AAAAAAAAAA~/,"A~");gsub(/AAAAAAAAAA~/,"A~");gsub(/AAAAAAAAAA~/,"A~");}1' | \
@@ -790,15 +792,25 @@ main () {
 
   # Perform read alignments
   cd ${projdir}
+  if [[ "$haplome_number" ]]; then
+    max_value=0
+    for maxhap in ${haplome_number//,/ }; do
+      if [[ "$maxhap" -gt "$max_value" ]]; then max_value=$maxhap; fi
+    done
+    export tophap=$((max_value*8))
+  else
+    export tophap=8
+  fi
   if [[ $nodes -eq 1 ]]; then cd ${projdir}/samples/ ; fi
   if [[ $nodes -gt 1 ]] && test -f ${projdir}/GBSapp_run_node_1.sh; then cd /tmp/${samples_list%.txt}/samples/ ; fi
   if test ! -f ${projdir}/precall_done.txt && test ! -f ${projdir}/alignment_done; then
     while IFS="" read -r alignfq || [ -n "$alignfq" ]; do
       sleep $((RANDOM % 2))
       if test ! -f ../preprocess/alignment/${alignfq%.f*}_redun.sam.gz; then
-          $ngm -r ../refgenomes/$ref1 --qry ${alignfq%.f*}_uniq.fasta.gz -o ../preprocess/alignment/${alignfq%.f*}_redun.sam -R 20 -t $ngmthreads --topn 8 --strata 8 --affine &&
+          $ngm -r ../refgenomes/$ref1 --qry ${alignfq%.f*}_uniq.fasta.gz -o ../preprocess/alignment/${alignfq%.f*}_redun.sam -R 20 -t $ngmthreads --topn $tophap --strata 8 --affine &&
           awk '/@HD/ || /@SQ/{print}' ../preprocess/alignment/${alignfq%.f*}_redun.sam 2> /dev/null > ../preprocess/alignment/${alignfq%.f*}_redun_head.sam
-          grep -v '^@' ../preprocess/alignment/${alignfq%.f*}_redun.sam 2> /dev/null | awk -F"\t" 'BEGIN{FS=OFS="\t"} {$11="*"; print $0}' | cat ../preprocess/alignment/${alignfq%.f*}_redun_head.sam - | gzip  > ../preprocess/alignment/${alignfq%.f*}_redun.sam.gz &&
+          grep -v '^@' ../preprocess/alignment/${alignfq%.f*}_redun.sam 2> /dev/null | awk -F"\t" 'BEGIN{FS=OFS="\t"} {$11="*"; print $0}' | \
+          cat ../preprocess/alignment/${alignfq%.f*}_redun_head.sam - | gzip  > ../preprocess/alignment/${alignfq%.f*}_redun.sam.gz &&
           rm ../preprocess/alignment/"${alignfq%.f*}"_redun.sam &&
           cp -rn ../preprocess/alignment/${alignfq%.f*}_redun.sam.gz ${projdir}/preprocess/alignment/ &&
           rm "${alignfq%.f*}"_uniq.fastq.gz ../preprocess/alignment/"${alignfq%.f*}"_redun_head.sam &&
@@ -865,7 +877,6 @@ main () {
     fi
   fi
 
-
   while IFS="" read -r i || [ -n "$i" ]; do (
     # awk '/@HD/ || /@SQ/{print}' <(zcat ./alignment/${i%.f*}_redun.sam.gz 2> /dev/null) > ${i%.f*}_redun_head.sam
     # grep -v '^@' <(zcat ./alignment/${i%.f*}_redun.sam.gz 2> /dev/null) | awk -F"\t" 'BEGIN{FS=OFS="\t"} {$11="*"; print $0}' | cat ${i%.f*}_redun_head.sam - > ./alignment/${i%.f*}_redun.sam &&
@@ -882,61 +893,193 @@ main () {
     rm ${projdir}/alignment_summaries/copy_number/${i%.f*}_copy_number.txt ${projdir}/alignment_summaries/copy_number/${i%.f*}_plot.txt
     wait
 
-    if test ! -f ${projdir}/preprocess/${i%.f*}_${ref1%.f*}_precall.bam.bai; then
-      if [[ "$paralogs" == false ]] && [[ "$uniquely_mapped" == true ]]; then
-        awk '/@HD/ || /@SQ/{print}' <(zcat ./alignment/${i%.f*}_redun.sam.gz 2> /dev/null) > ${i%.f*}_heading.sam &&
-        $samtools view -F4 <(zcat ./alignment/${i%.f*}_redun.sam.gz 2> /dev/null) | grep -v '^@' | awk '$3 != "*"' 2> /dev/null | awk '$6 != "*"' 2> /dev/null | \
-        awk '!h[$1] { g[$1]=$0 } { h[$1]++ } END { for(k in g) print h[k], g[k] }' | tr " " "\t" | tr '\r' '\n' | awk '$1==1{print $0}' | \
-        awk '{$1=""}1' | awk '$1=$1' | tr " " "\t" | awk '{gsub(/_pe-/,"_pe-\t",$1);}1' | awk '{print $2"\t"$0}' | \
-        awk '{$2=$3=""}1' | tr -s " " | tr " " "\t" | awk -F '\t' 'BEGIN{OFS="\t"} {if ($5 == 0) {$5=60}}1' | \
-        awk -v min=$minmapq -F '\t' 'BEGIN{OFS="\t"} {if ($5 >= min) {print $0}}' > ${i%.f*}_uniq.sam &&
-        wait
-      fi
-      if [[ "$paralogs" == true ]] && [[ "$uniquely_mapped" == true ]]; then
-        awk '/@HD/ || /@SQ/{print}' <(zcat ./alignment/${i%.f*}_redun.sam.gz 2> /dev/null) > ${i%.f*}_heading.sam &&
-        $samtools view -F4 <(zcat ./alignment/${i%.f*}_redun.sam.gz 2> /dev/null) | grep -v '^@' | awk '$3 != "*"' 2> /dev/null | awk '$6 != "*"' 2> /dev/null | \
-        awk '!h[$1] { g[$1]=$0 } { h[$1]++ } END { for(k in g) print h[k], g[k] }' | tr " " "\t" | tr '\r' '\n' | awk '$1==1 || $1<=6{print $0}' | awk '{$1=""}1' | awk '$1=$1' | tr " " "\t" | \
-        awk -F '\t' 'BEGIN{OFS="\t"} {if ($5 == 0) {print $0}}' 2> /dev/null | awk -F '\t' 'BEGIN{OFS="\t"} {if ($5 == 0) {$5=60}}1' > ${i%.f*}_uniqeq.sam
-        $samtools view -F4 <(zcat ./alignment/${i%.f*}_redun.sam.gz 2> /dev/null) | grep -v '^@' | awk '$3 != "*"' 2> /dev/null | awk '$6 != "*"' 2> /dev/null | \
-        awk '!h[$1] { g[$1]=$0 } { h[$1]++ } END { for(k in g) print h[k], g[k] }' | tr " " "\t" | tr '\r' '\n' | awk '$1==1 || $1<=6{print $0}' | awk '{$1=""}1' | awk '$1=$1' | tr " " "\t" | \
-        awk -F '\t' 'BEGIN{OFS="\t"} {if ($5 > 0) {print $0}}' 2> /dev/null | cat - ${i%.f*}_uniqeq.sam | \
-        awk '{gsub(/_pe-/,"_pe-\t",$1);}1' | awk '{print $2"\t"$0}' | awk '{$2=$3=""}1' | tr -s " " | tr " " "\t" | \
-        awk -v min=$minmapq -F '\t' 'BEGIN{OFS="\t"} {if ($5 >= min) {print $0}}' > ${i%.f*}_uniq.sam &&
-        rm ${i%.f*}_uniqeq.sam &&
-        wait
-      fi
-      if [[ "$paralogs" == true ]] && [[ "$uniquely_mapped" == false ]]; then
-        awk '/@HD/ || /@SQ/{print}' <(zcat ./alignment/${i%.f*}_redun.sam.gz 2> /dev/null) > ${i%.f*}_heading.sam &&
-        $samtools view -F4 <(zcat ./alignment/${i%.f*}_redun.sam.gz 2> /dev/null) | grep -v '^@' | awk '$3 != "*"' 2> /dev/null | awk '$6 != "*"' 2> /dev/null | \
-        awk '!h[$1] { g[$1]=$0 } { h[$1]++ } END { for(k in g) print h[k], g[k] }' | tr " " "\t" | tr '\r' '\n' | \
-        awk '$1==1 || $1>6{print $0}' | awk '{print $2}' > ${i%.f*}_uniqsingle.sam &&
-        $samtools view -F4 <(zcat ./alignment/${i%.f*}_redun.sam.gz 2> /dev/null) | grep -v '^@' | awk '$3 != "*"' 2> /dev/null | awk '$6 != "*"' 2> /dev/null | \
-        awk -F '\t' 'NR==FNR{a[$0];next} !($1 in a)' ${i%.f*}_uniqsingle.sam - | awk -F '\t' 'BEGIN{OFS="\t"} {if ($5 == 0) {$5=60}}1' | \
-        awk '{gsub(/_pe-/,"_pe-\t",$1);}1' | awk '{print $2"\t"$0}' | awk '{$2=$3=""}1' | tr -s " " | tr " " "\t" | \
-        awk -v min=$minmapq -F '\t' 'BEGIN{OFS="\t"} {if ($5 >= min) {print $0}}' > ${i%.f*}_uniq.sam &&
-        rm ${i%.f*}_uniqsingle.sam &&
-        wait
-      fi
-      wait
 
-      awk '{while ($1-- > 0) print $0}' ${i%.f*}_uniq.sam | awk '{print "seq"NR"_"$0}' | tr -s ' ' | tr ' ' '\t' > ${i%.f*}_${ref1%.f*}.sam &&
-      rm ${i%.f*}_uniq.sam &&
-      awk '{print $4}' ${i%.f*}_${ref1%.f*}.sam | awk '{printf "%d00\n", $1/100}' | paste - ${i%.f*}_${ref1%.f*}.sam | \
-      shuf | awk -v max="$downsample" 'a[$1$4]++ < max' | awk '{$1=""}1' | awk '{$1=$1};1' | tr -s " " | tr " " "\t" | awk '{$11=$10}1' | \
-      awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$11); print}' | cat ${i%.f*}_heading.sam - > ${i%.f*}_${ref1%.f*}_downsample.sam &&
-      :> ${i%.f*}_${ref1%.f*}.sam &&
-      mv ${i%.f*}_${ref1%.f*}_downsample.sam ${i%.f*}_${ref1%.f*}.sam &&
-      rm ${i%.f*}_heading.sam
-      wait
+    if [[ "$haplome_ref" ]]; then
+    max_hap=0
+    for maxhap in ${haplome_number//,/ }; do if [[ "$maxhap" -gt "$max_hap" ]]; then max_hap=$maxhap; fi; done
+    min_hap=999
+    for minhap in ${haplome_number//,/ }; do if [[ "$minhap" -lt "$min_hap" ]]; then min_hap=$minhap; fi; done
+    export max_hap=$maxhap
+    export min_hap=$minhap
 
-      j="${i%.f*}_${ref1%.f*}.sam"
-      $java $Xmx2 -XX:ParallelGCThreads=$gthreads -Djava.io.tmpdir=${projdir}/preprocess/tmp -jar $picard SortSam I=$j O=${j%.sam*}.bam  SORT_ORDER=coordinate  VALIDATION_STRINGENCY=LENIENT TMP_DIR=${projdir}/preprocess/tmp && \
-      $java $Xmx2 -XX:ParallelGCThreads=$gthreads -jar $picard BuildBamIndex INPUT=${j%.sam*}.bam VALIDATION_STRINGENCY=LENIENT && \
-      $java $Xmx2 -XX:ParallelGCThreads=$gthreads -jar $picard AddOrReplaceReadGroups I=${j%.sam*}.bam O=${j%.sam*}_precall.bam RGLB=${i%.f*} RGPL=illumina RGPU=run RGSM=${i%.f*} VALIDATION_STRINGENCY=LENIENT && \
-      $samtools index ${j%.sam*}_precall.bam &&
-      rm $j ${j%.sam*}.bam ${j%.sam*}.bai &&
-      if [[ $nodes -gt 1 ]]; then cp /tmp/${samples_list%.txt}/preprocess/${j%.sam*}_precall.bam* ${projdir}/preprocess/; fi
-      wait
+      if test ! -f ${projdir}/preprocess/${i%.f*}_${ref1%.f*}_precall.bam.bai; then
+        if [[ "$paralogs" == false ]] && [[ "$uniquely_mapped" == true ]]; then
+          awk '/@HD/ || /@SQ/{print}' <(zcat ./alignment/${i%.f*}_redun.sam.gz 2> /dev/null) > ${i%.f*}_heading.sam &&
+          $samtools view -F4 <(zcat ./alignment/${i%.f*}_redun.sam.gz 2> /dev/null) | grep -v '^@' | awk '$3 != "*"' 2> /dev/null | awk '$6 != "*"' 2> /dev/null | \
+          awk -v min=$minmapq -F '\t' 'BEGIN{OFS="\t"} {if ($5 == 0 || $5 >= min) {print $0}}' | awk -F '\t' 'BEGIN{OFS="\t"} {print $1"_"substr($3,length($3),1)"\t"$0}' | \
+          awk '!h[$1] { g[$1]=$0 } { h[$1]++ } END { for(k in g) print h[k], g[k] }' | tr " " "\t" | tr '\r' '\n' | awk '$1==1{print $0}' | \
+          awk '{$1=$2=""}1' | awk '$1=$1' | tr " " "\t" | awk -F '\t' 'BEGIN{OFS="\t"} {print $1"_"substr($3,1,length($3)-1)"\t"$0}' > ${i%.f*}_uniq1.sam &&
+          awk '!h[$1] { g[$1]=$0 } { h[$1]++ } END { for(k in g) print h[k], g[k] }' ${i%.f*}_uniq1.sam | tr " " "\t" | tr '\r' '\n' | \
+          awk -v min=$min_hap -v max=$max_hap '$1>=min || $1<=max {print $0}' | awk '{$1=$2=""}1' | awk '$1=$1' | tr " " "\t" | cat ${i%.f*}_heading.sam - > ${i%.f*}_uniq2.sam &&
+          $samtools sort -@ $gthreads -T ${projdir}/preprocess/tmp ${i%.f*}_uniq2.sam > ${i%.f*}_uniq2.bam &&
+          rm ${i%.f*}_uniq1.sam ${i%.f*}_uniq2.sam &&
+          $samtools view ${i%.f*}_uniq2.bam -o ${i%.f*}_uniqsorted.sam &&
+          awk 'BEGIN{OFS="\t"} {print $1"_"$3"\t"$0}' ${i%.f*}_uniqsorted.sam | awk -F '\t' 'BEGIN{OFS="\t"}{print substr($1,1,length($1)-1)"\t"$0}' | awk '{$2=""}1' | \
+          awk '!seen[$1]++' | awk '{$1=""}1' | awk '$1=$1' | awk '{gsub(/_pe-/,"_pe-\t",$1);}1' | awk '{print $2"\t"$0}' | awk '{$2=$3=""}1' | tr -s " " | tr " " "\t" | \
+          awk -F '\t' 'BEGIN{OFS="\t"} {if ($5 == 0) {$5=60}}1' > ${i%.f*}_uniq.sam &&
+          rm ${i%.f*}_uniq2.bam ${i%.f*}_uniqsorted.sam &&
+          wait
+        fi
+
+        if [[ "$paralogs" == true ]] && [[ "$uniquely_mapped" == false ]]; then
+          awk '/@HD/ || /@SQ/{print}' <(zcat ./alignment/${i%.f*}_redun.sam.gz 2> /dev/null) > ${i%.f*}_heading.sam &&
+          $samtools view -F4 <(zcat ./alignment/${i%.f*}_redun.sam.gz 2> /dev/null) | grep -v '^@' | awk '$3 != "*"' 2> /dev/null | awk '$6 != "*"' 2> /dev/null | \
+          awk -v min=$minmapq -F '\t' 'BEGIN{OFS="\t"} {if ($5 == 0 || $5 >= min) {print $0}}' | awk -F '\t' 'BEGIN{OFS="\t"} {print $1"_"substr($3,length($3),1)"\t"$0}' | \
+          awk '!h[$1] { g[$1]=$0 } { h[$1]++ } END { for(k in g) print h[k], g[k] }' | tr " " "\t" | tr '\r' '\n' | awk '$1<=6{print $0}' | awk '{$1=$2=""}1' | \
+          awk '$1=$1' | tr " " "\t" | awk -F '\t' 'BEGIN{OFS="\t"} {if ($5 == 0) {print $0}}' 2> /dev/null | awk -F '\t' 'BEGIN{OFS="\t"} {if ($5 == 0) {$5=60}}1' | \
+          awk -F '\t' 'BEGIN{OFS="\t"} {print $1"_"$3"\t"$0}' | awk -F '\t' 'BEGIN{OFS="\t"} {$1=substr($1, 1, length($1)-1); print}' > ${i%.f*}_uniqeq1.sam &&
+          awk '!h[$1] { g[$1]=$0 } { h[$1]++ } END { for(k in g) print h[k], g[k] }' ${i%.f*}_uniqeq1.sam | tr " " "\t" | tr '\r' '\n' | \
+          awk -v min=$min_hap -v max=$((max_hap*6)) '$1>=min || $1<=max{print $0}' | awk '{$1=$2=""}1' | awk '$1=$1' | tr " " "\t" > ${i%.f*}_uniqeq2.sam &&
+          $samtools view -F4 <(zcat ./alignment/${i%.f*}_redun.sam.gz 2> /dev/null) | grep -v '^@' | awk '$3 != "*"' 2> /dev/null | awk '$6 != "*"' 2> /dev/null | \
+          awk -v min=$minmapq -F '\t' 'BEGIN{OFS="\t"} {if ($5 == 0 || $5 >= min) {print $0}}' | awk -F '\t' 'BEGIN{OFS="\t"} {print $1"_"substr($3,length($3),1)"\t"$0}' | \
+          awk '!h[$1] { g[$1]=$0 } { h[$1]++ } END { for(k in g) print h[k], g[k] }' | tr " " "\t" | tr '\r' '\n' | awk '$1<=6{print $0}' | awk '{$1=$2=""}1' | \
+          awk '$1=$1' | tr " " "\t" | awk -F '\t' 'BEGIN{OFS="\t"} {if ($5 > 0) {print $0}}' 2> /dev/null | awk -F '\t' 'BEGIN{OFS="\t"} {print $1"_"$3"\t"$0}' | \
+          awk -F '\t' 'BEGIN{OFS="\t"} {$1=substr($1, 1, length($1)-1); print}' > ${i%.f*}_uniq1.sam &&
+          awk '!h[$1] { g[$1]=$0 } { h[$1]++ } END { for(k in g) print h[k], g[k] }' ${i%.f*}_uniq1.sam | tr " " "\t" | tr '\r' '\n' | \
+          awk -v min=$min_hap -v max=$((max_hap*6)) '$1>=min || $1<=max{print $0}' | awk '{$1=$2=""}1' | awk '$1=$1' | tr " " "\t"  | cat - ${i%.f*}_uniqeq2.sam | \
+          cat ${i%.f*}_heading.sam - > ${i%.f*}_uniq2.sam &&
+          $samtools sort -@ $gthreads -T ${projdir}/preprocess/tmp ${i%.f*}_uniq2.sam > ${i%.f*}_uniq2.bam &&
+          rm ${i%.f*}_uniqeq1.sam ${i%.f*}_uniqeq2.sam ${i%.f*}_uniq1.sam ${i%.f*}_uniq2.sam &&
+          $samtools view ${i%.f*}_uniq2.bam -o ${i%.f*}_uniqsorted.sam &&
+          awk -F '\t' 'BEGIN{OFS="\t"} {print $1"_"substr($3,length($3),1)"\t"$0}' ${i%.f*}_uniqsorted.sam | awk -F '\t' 'BEGIN{OFS="\t"} {print +a[$1] "\t" $0; a[$1]++}' | \
+          awk '{if($1==0){print $0}}' | awk -F '\t' 'BEGIN{OFS="\t"}{print substr($2,1,length($2)-1)"\t"$0}' | awk '{$2=$3=""}1' | \
+          awk '!h[$1] { g[$1]=$0 } { h[$1]++ } END { for(k in g) print h[k], g[k] }' | awk -v min=$min_hap -v max=$max_hap '$1>=min || $1<=max {print $3}' > ${i%.f*}_uniq2.list &&
+          awk 'NR==FNR {a[$1]++; next} $1 in a' ${i%.f*}_uniq2.list ${i%.f*}_uniqsorted.sam | awk '{gsub(/_pe-/,"_pe-\t",$1);}1' | \
+          awk 'BEGIN{OFS="\t"} {print $2"\t"$0}' | awk '{$2=$3=""}1' | tr -s " " | tr " " "\t" > ${i%.f*}_uniq.sam &&
+          rm ${i%.f*}_uniq2.bam ${i%.f*}_uniqsorted.sam ${i%.f*}_uniq2.list &&
+          wait
+        fi
+        if [[ "$paralogs" == true ]] && [[ "$uniquely_mapped" == true ]]; then
+          awk '/@HD/ || /@SQ/{print}' <(zcat ./alignment/${i%.f*}_redun.sam.gz 2> /dev/null) > ${i%.f*}_heading.sam &&
+          $samtools view -F4 <(zcat ./alignment/${i%.f*}_redun.sam.gz 2> /dev/null) | grep -v '^@' | awk '$3 != "*"' 2> /dev/null | awk '$6 != "*"' 2> /dev/null | \
+          awk -v min=$minmapq -F '\t' 'BEGIN{OFS="\t"} {if ($5 == 0 || $5 >= min) {print $0}}' | awk -F '\t' 'BEGIN{OFS="\t"} {print $1"_"substr($3,length($3),1)"\t"$0}' | \
+          awk '!h[$1] { g[$1]=$0 } { h[$1]++ } END { for(k in g) print h[k], g[k] }' | tr " " "\t" | tr '\r' '\n' | awk '$1==1{print $0}' | \
+          awk '{$1=$2=""}1' | awk '$1=$1' | tr " " "\t" | awk -F '\t' 'BEGIN{OFS="\t"} {print $1"_"substr($3,1,length($3)-1)"\t"$0}' > ${i%.f*}_uniq1.sam &&
+          awk '!h[$1] { g[$1]=$0 } { h[$1]++ } END { for(k in g) print h[k], g[k] }' ${i%.f*}_uniq1.sam | tr " " "\t" | tr '\r' '\n' | \
+          awk -v min=$min_hap -v max=$max_hap '$1>=min || $1<=max {print $0}' | awk '{$1=$2=""}1' | awk '$1=$1' | tr " " "\t" | cat ${i%.f*}_heading.sam - > ${i%.f*}_uniq2.sam &&
+          $samtools sort -@ $gthreads -T ${projdir}/preprocess/tmp ${i%.f*}_uniq2.sam > ${i%.f*}_uniq2.bam &&
+          rm ${i%.f*}_uniq1.sam ${i%.f*}_uniq2.sam &&
+          $samtools view ${i%.f*}_uniq2.bam -o ${i%.f*}_uniqsorted.sam &&
+          awk 'BEGIN{OFS="\t"} {print $1"_"$3"\t"$0}' ${i%.f*}_uniqsorted.sam | awk -F '\t' 'BEGIN{OFS="\t"}{print substr($1,1,length($1)-1)"\t"$0}' | awk '{$2=""}1' | \
+          awk '!seen[$1]++' | awk '{$1=""}1' | awk '$1=$1' | awk '{gsub(/_pe-/,"_pe-\t",$1);}1' | awk '{print $2"\t"$0}' | awk '{$2=$3=""}1' | tr -s " " | tr " " "\t" | \
+          awk -F '\t' 'BEGIN{OFS="\t"} {if ($5 == 0) {$5=60}}1' > ${i%.f*}_uniqpart.sam &&
+          rm ${i%.f*}_uniq2.bam ${i%.f*}_uniqsorted.sam &&
+          wait
+          awk '/@HD/ || /@SQ/{print}' <(zcat ./alignment/${i%.f*}_redun.sam.gz 2> /dev/null) > ${i%.f*}_heading.sam &&
+          $samtools view -F4 <(zcat ./alignment/${i%.f*}_redun.sam.gz 2> /dev/null) | grep -v '^@' | awk '$3 != "*"' 2> /dev/null | awk '$6 != "*"' 2> /dev/null | \
+          awk -v min=$minmapq -F '\t' 'BEGIN{OFS="\t"} {if ($5 == 0 || $5 >= min) {print $0}}' | awk -F '\t' 'BEGIN{OFS="\t"} {print $1"_"substr($3,length($3),1)"\t"$0}' | \
+          awk '!h[$1] { g[$1]=$0 } { h[$1]++ } END { for(k in g) print h[k], g[k] }' | tr " " "\t" | tr '\r' '\n' | awk '$1<=6{print $0}' | awk '{$1=$2=""}1' | \
+          awk '$1=$1' | tr " " "\t" | awk -F '\t' 'BEGIN{OFS="\t"} {if ($5 == 0) {print $0}}' 2> /dev/null | awk -F '\t' 'BEGIN{OFS="\t"} {if ($5 == 0) {$5=60}}1' | \
+          awk -F '\t' 'BEGIN{OFS="\t"} {print $1"_"$3"\t"$0}' | awk -F '\t' 'BEGIN{OFS="\t"} {$1=substr($1, 1, length($1)-1); print}' > ${i%.f*}_uniqeq1.sam &&
+          awk '!h[$1] { g[$1]=$0 } { h[$1]++ } END { for(k in g) print h[k], g[k] }' ${i%.f*}_uniqeq1.sam | tr " " "\t" | tr '\r' '\n' | \
+          awk -v min=$min_hap -v max=$((max_hap*6)) '$1>=min || $1<=max{print $0}' | awk '{$1=$2=""}1' | awk '$1=$1' | tr " " "\t" > ${i%.f*}_uniqeq2.sam &&
+          $samtools view -F4 <(zcat ./alignment/${i%.f*}_redun.sam.gz 2> /dev/null) | grep -v '^@' | awk '$3 != "*"' 2> /dev/null | awk '$6 != "*"' 2> /dev/null | \
+          awk -v min=$minmapq -F '\t' 'BEGIN{OFS="\t"} {if ($5 == 0 || $5 >= min) {print $0}}' | awk -F '\t' 'BEGIN{OFS="\t"} {print $1"_"substr($3,length($3),1)"\t"$0}' | \
+          awk '!h[$1] { g[$1]=$0 } { h[$1]++ } END { for(k in g) print h[k], g[k] }' | tr " " "\t" | tr '\r' '\n' | awk '$1<=6{print $0}' | awk '{$1=$2=""}1' | \
+          awk '$1=$1' | tr " " "\t" | awk -F '\t' 'BEGIN{OFS="\t"} {if ($5 > 0) {print $0}}' 2> /dev/null | awk -F '\t' 'BEGIN{OFS="\t"} {print $1"_"$3"\t"$0}' | \
+          awk -F '\t' 'BEGIN{OFS="\t"} {$1=substr($1, 1, length($1)-1); print}' > ${i%.f*}_uniq1.sam &&
+          awk '!h[$1] { g[$1]=$0 } { h[$1]++ } END { for(k in g) print h[k], g[k] }' ${i%.f*}_uniq1.sam | tr " " "\t" | tr '\r' '\n' | \
+          awk -v min=$min_hap -v max=$((max_hap*6)) '$1>=min || $1<=max{print $0}' | awk '{$1=$2=""}1' | awk '$1=$1' | tr " " "\t"  | cat - ${i%.f*}_uniqeq2.sam | \
+          cat ${i%.f*}_heading.sam - > ${i%.f*}_uniq2.sam &&
+          $samtools sort -@ $gthreads -T ${projdir}/preprocess/tmp ${i%.f*}_uniq2.sam > ${i%.f*}_uniq2.bam &&
+          rm ${i%.f*}_uniqeq1.sam ${i%.f*}_uniqeq2.sam ${i%.f*}_uniq1.sam ${i%.f*}_uniq2.sam &&
+          $samtools view ${i%.f*}_uniq2.bam -o ${i%.f*}_uniqsorted.sam &&
+          awk -F '\t' 'BEGIN{OFS="\t"} {print $1"_"substr($3,length($3),1)"\t"$0}' ${i%.f*}_uniqsorted.sam | awk -F '\t' 'BEGIN{OFS="\t"} {print +a[$1] "\t" $0; a[$1]++}' | \
+          awk '{if($1==0){print $0}}' | awk -F '\t' 'BEGIN{OFS="\t"}{print substr($2,1,length($2)-1)"\t"$0}' | awk '{$2=$3=""}1' | \
+          awk '!h[$1] { g[$1]=$0 } { h[$1]++ } END { for(k in g) print h[k], g[k] }' | awk -v min=$min_hap -v max=$max_hap '$1>=min || $1<=max {print $3}' > ${i%.f*}_uniq2.list
+          awk 'NR==FNR {a[$1]++; next} $1 in a' ${i%.f*}_uniq2.list ${i%.f*}_uniqsorted.sam | awk '{gsub(/_pe-/,"_pe-\t",$1);}1' | \
+          awk 'BEGIN{OFS="\t"} {print $2"\t"$0}' | awk '{$2=$3=""}1' | tr -s " " | tr " " "\t" > ${i%.f*}_uniqAll.sam &&
+          rm ${i%.f*}_uniq2.bam ${i%.f*}_uniqsorted.sam ${i%.f*}_uniq2.list &&
+          wait
+          cat ${i%.f*}_uniqpart.sam ${i%.f*}_uniqAll.sam | awk '!a[$0]++' > ${i%.f*}_uniq.sam &&
+          rm ${i%.f*}_uniqpart.sam ${i%.f*}_uniqAll.sam
+        fi
+        wait
+
+        awk '{while ($1-- > 0) print $0}' ${i%.f*}_uniq.sam | awk '{print "seq"NR"_"$0}' | tr -s ' ' | tr ' ' '\t' > ${i%.f*}_${ref1%.f*}.sam &&
+        rm ${i%.f*}_uniq.sam &&
+        awk '{print $4}' ${i%.f*}_${ref1%.f*}.sam | awk '{printf "%d00\n", $1/100}' | paste - ${i%.f*}_${ref1%.f*}.sam | \
+        shuf | awk -v max="$downsample" 'a[$1$4]++ < max' | awk '{$1=""}1' | awk '{$1=$1};1' | tr -s " " | tr " " "\t" | awk '{$11=$10}1' | \
+        awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$11); print}' | cat ${i%.f*}_heading.sam - > ${i%.f*}_${ref1%.f*}_downsample.sam &&
+        :> ${i%.f*}_${ref1%.f*}.sam &&
+        mv ${i%.f*}_${ref1%.f*}_downsample.sam ${i%.f*}_${ref1%.f*}.sam &&
+        rm ${i%.f*}_heading.sam
+        wait
+
+        j="${i%.f*}_${ref1%.f*}.sam"
+        $java $Xmx2 -XX:ParallelGCThreads=$gthreads -Djava.io.tmpdir=${projdir}/preprocess/tmp -jar $picard SortSam I=$j O=${j%.sam*}.bam  SORT_ORDER=coordinate  VALIDATION_STRINGENCY=LENIENT TMP_DIR=${projdir}/preprocess/tmp && \
+        $java $Xmx2 -XX:ParallelGCThreads=$gthreads -jar $picard BuildBamIndex INPUT=${j%.sam*}.bam VALIDATION_STRINGENCY=LENIENT && \
+        $java $Xmx2 -XX:ParallelGCThreads=$gthreads -jar $picard AddOrReplaceReadGroups I=${j%.sam*}.bam O=${j%.sam*}_precall.bam RGLB=${i%.f*} RGPL=illumina RGPU=run RGSM=${i%.f*} VALIDATION_STRINGENCY=LENIENT && \
+        $samtools index ${j%.sam*}_precall.bam &&
+        rm $j ${j%.sam*}.bam ${j%.sam*}.bai &&
+        if [[ $nodes -gt 1 ]]; then cp /tmp/${samples_list%.txt}/preprocess/${j%.sam*}_precall.bam* ${projdir}/preprocess/; fi
+        wait
+      fi
+    else
+      if test ! -f ${projdir}/preprocess/${i%.f*}_${ref1%.f*}_precall.bam.bai; then
+        if [[ "$paralogs" == false ]] && [[ "$uniquely_mapped" == true ]]; then
+          awk '/@HD/ || /@SQ/{print}' <(zcat ./alignment/${i%.f*}_redun.sam.gz 2> /dev/null) > ${i%.f*}_heading.sam &&
+          $samtools view -F4 <(zcat ./alignment/${i%.f*}_redun.sam.gz 2> /dev/null) | grep -v '^@' | awk '$3 != "*"' 2> /dev/null | awk '$6 != "*"' 2> /dev/null | \
+          awk -v min=$minmapq -F '\t' 'BEGIN{OFS="\t"} {if ($5 == 0 || $5 >= min) {print $0}}' | awk '!h[$1] { g[$1]=$0 } { h[$1]++ } END { for(k in g) print h[k], g[k] }' | \
+          tr " " "\t" | tr '\r' '\n' | awk '$1==1{print $0}' | awk '{$1=""}1' | awk '$1=$1' | tr " " "\t" | awk '{gsub(/_pe-/,"_pe-\t",$1);}1' | awk '{print $2"\t"$0}' | \
+          awk '{$2=$3=""}1' | tr -s " " | tr " " "\t" | awk -F '\t' 'BEGIN{OFS="\t"} {if ($5 == 0) {$5=60}}1' > ${i%.f*}_uniq.sam &&
+          wait
+        fi
+        if [[ "$paralogs" == true ]] && [[ "$uniquely_mapped" == true ]]; then
+          awk '/@HD/ || /@SQ/{print}' <(zcat ./alignment/${i%.f*}_redun.sam.gz 2> /dev/null) > ${i%.f*}_heading.sam &&
+          $samtools view -F4 <(zcat ./alignment/${i%.f*}_redun.sam.gz 2> /dev/null) | grep -v '^@' | awk '$3 != "*"' 2> /dev/null | awk '$6 != "*"' 2> /dev/null | \
+          awk -v min=$minmapq -F '\t' 'BEGIN{OFS="\t"} {if ($5 == 0 || $5 >= min) {print $0}}' | awk '!h[$1] { g[$1]=$0 } { h[$1]++ } END { for(k in g) print h[k], g[k] }' | \
+          tr " " "\t" | tr '\r' '\n' | awk '$1==1 || $1<=6{print $0}' | awk '{$1=""}1' | awk '$1=$1' | tr " " "\t" | \
+          awk -F '\t' 'BEGIN{OFS="\t"} {if ($5 == 0) {print $0}}' 2> /dev/null | awk -F '\t' 'BEGIN{OFS="\t"} {if ($5 == 0) {$5=60}}1' > ${i%.f*}_uniqeq.sam
+          $samtools view -F4 <(zcat ./alignment/${i%.f*}_redun.sam.gz 2> /dev/null) | grep -v '^@' | awk '$3 != "*"' 2> /dev/null | awk '$6 != "*"' 2> /dev/null | \
+          awk '!h[$1] { g[$1]=$0 } { h[$1]++ } END { for(k in g) print h[k], g[k] }' | tr " " "\t" | tr '\r' '\n' | awk '$1==1 || $1<=6{print $0}' | awk '{$1=""}1' | awk '$1=$1' | tr " " "\t" | \
+          awk -F '\t' 'BEGIN{OFS="\t"} {if ($5 > 0) {print $0}}' 2> /dev/null | cat - ${i%.f*}_uniqeq.sam | \
+          awk '{gsub(/_pe-/,"_pe-\t",$1);}1' | awk '{print $2"\t"$0}' | awk '{$2=$3=""}1' | tr -s " " | tr " " "\t" > ${i%.f*}_uniq.sam &&
+          rm ${i%.f*}_uniqeq.sam &&
+          wait
+        fi
+        if [[ "$paralogs" == true ]] && [[ "$uniquely_mapped" == false ]]; then
+          awk '/@HD/ || /@SQ/{print}' <(zcat ./alignment/${i%.f*}_redun.sam.gz 2> /dev/null) > ${i%.f*}_heading.sam &&
+          $samtools view -F4 <(zcat ./alignment/${i%.f*}_redun.sam.gz 2> /dev/null) | grep -v '^@' | awk '$3 != "*"' 2> /dev/null | awk '$6 != "*"' 2> /dev/null | \
+          awk -v min=$minmapq -F '\t' 'BEGIN{OFS="\t"} {if ($5 == 0 || $5 >= min) {print $0}}' | awk '!h[$1] { g[$1]=$0 } { h[$1]++ } END { for(k in g) print h[k], g[k] }' | \
+          tr " " "\t" | tr '\r' '\n' | awk '$1==1{print $0}' | awk '{$1=""}1' | awk '$1=$1' | tr " " "\t" | awk '{gsub(/_pe-/,"_pe-\t",$1);}1' | awk '{print $2"\t"$0}' | \
+          awk '{$2=$3=""}1' | tr -s " " | tr " " "\t" | awk -F '\t' 'BEGIN{OFS="\t"} {if ($5 == 0) {$5=60}}1' > ${i%.f*}_uniq.sampart &&
+          wait
+          $samtools view -F4 <(zcat ./alignment/${i%.f*}_redun.sam.gz 2> /dev/null) | grep -v '^@' | awk '$3 != "*"' 2> /dev/null | awk '$6 != "*"' 2> /dev/null | \
+          awk -v min=$minmapq -F '\t' 'BEGIN{OFS="\t"} {if ($5 == 0 || $5 >= min) {print $0}}' | awk '!h[$1] { g[$1]=$0 } { h[$1]++ } END { for(k in g) print h[k], g[k] }' | \
+          tr " " "\t" | tr '\r' '\n' | awk '$1==1 || $1<=6{print $0}' | awk '{$1=""}1' | awk '$1=$1' | tr " " "\t" | \
+          awk -F '\t' 'BEGIN{OFS="\t"} {if ($5 == 0) {print $0}}' 2> /dev/null | awk -F '\t' 'BEGIN{OFS="\t"} {if ($5 == 0) {$5=60}}1' > ${i%.f*}_uniqeq.sam
+          $samtools view -F4 <(zcat ./alignment/${i%.f*}_redun.sam.gz 2> /dev/null) | grep -v '^@' | awk '$3 != "*"' 2> /dev/null | awk '$6 != "*"' 2> /dev/null | \
+          awk '!h[$1] { g[$1]=$0 } { h[$1]++ } END { for(k in g) print h[k], g[k] }' | tr " " "\t" | tr '\r' '\n' | awk '$1==1 || $1<=6{print $0}' | awk '{$1=""}1' | awk '$1=$1' | tr " " "\t" | \
+          awk -F '\t' 'BEGIN{OFS="\t"} {if ($5 > 0) {print $0}}' 2> /dev/null | cat - ${i%.f*}_uniqeq.sam | \
+          awk '{gsub(/_pe-/,"_pe-\t",$1);}1' | awk '{print $2"\t"$0}' | awk '{$2=$3=""}1' | tr -s " " | tr " " "\t" > ${i%.f*}_uniqAll.sam &&
+          rm ${i%.f*}_uniqeq.sam &&
+          wait
+          awk 'NR==FNR{a[$0]=1;next}!a[$0]' ${i%.f*}_uniqpart.sam ${i%.f*}_uniqAll.sam > ${i%.f*}_uniq.sam &&
+          ${i%.f*}_uniqpart.sam ${i%.f*}_uniqAll.sam
+        fi
+        wait
+
+
+        awk '{while ($1-- > 0) print $0}' ${i%.f*}_uniq.sam | awk '{print "seq"NR"_"$0}' | tr -s ' ' | tr ' ' '\t' > ${i%.f*}_${ref1%.f*}.sam &&
+        rm ${i%.f*}_uniq.sam &&
+        awk '{print $4}' ${i%.f*}_${ref1%.f*}.sam | awk '{printf "%d00\n", $1/100}' | paste - ${i%.f*}_${ref1%.f*}.sam | \
+        shuf | awk -v max="$downsample" 'a[$1$4]++ < max' | awk '{$1=""}1' | awk '{$1=$1};1' | tr -s " " | tr " " "\t" | awk '{$11=$10}1' | \
+        awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$11); print}' | cat ${i%.f*}_heading.sam - > ${i%.f*}_${ref1%.f*}_downsample.sam &&
+        :> ${i%.f*}_${ref1%.f*}.sam &&
+        mv ${i%.f*}_${ref1%.f*}_downsample.sam ${i%.f*}_${ref1%.f*}.sam &&
+        rm ${i%.f*}_heading.sam
+        wait
+
+        j="${i%.f*}_${ref1%.f*}.sam"
+        $java $Xmx2 -XX:ParallelGCThreads=$gthreads -Djava.io.tmpdir=${projdir}/preprocess/tmp -jar $picard SortSam I=$j O=${j%.sam*}.bam  SORT_ORDER=coordinate  VALIDATION_STRINGENCY=LENIENT TMP_DIR=${projdir}/preprocess/tmp && \
+        $java $Xmx2 -XX:ParallelGCThreads=$gthreads -jar $picard BuildBamIndex INPUT=${j%.sam*}.bam VALIDATION_STRINGENCY=LENIENT && \
+        $java $Xmx2 -XX:ParallelGCThreads=$gthreads -jar $picard AddOrReplaceReadGroups I=${j%.sam*}.bam O=${j%.sam*}_precall.bam RGLB=${i%.f*} RGPL=illumina RGPU=run RGSM=${i%.f*} VALIDATION_STRINGENCY=LENIENT && \
+        $samtools index ${j%.sam*}_precall.bam &&
+        rm $j ${j%.sam*}.bam ${j%.sam*}.bai &&
+        if [[ $nodes -gt 1 ]]; then cp /tmp/${samples_list%.txt}/preprocess/${j%.sam*}_precall.bam* ${projdir}/preprocess/; fi
+        wait
+      fi
     fi
     ) &
     if [[ $(jobs -r -p | wc -l) -ge $prepN ]]; then
@@ -977,19 +1120,21 @@ main () {
 			rm ${projdir}/samples/metrics.txt ${projdir}/preprocess/metrics.txt &> /dev/null &&
       wait
 		fi
-    cd ${projdir}/alignment_summaries
-    printf "Sample\tGenome_Coverage(percentage)\n" > summary_genomecov.txt
-    genome_size=$(awk '{print $3}' ../refgenomes/${ref1%.f*}.dict | awk '{gsub(/LN:/,"");}1' | awk '{s+=$1}END{print s}')
-    for i in ../preprocess/alignment/*_redun.sam.gz; do
-      $samtools view -bS <(zcat $i 2> /dev/null) | $samtools sort - > ${i%*_redun.sam.gz}.bam
-      cov=$($bedtools genomecov -ibam ${i%*_redun.sam.gz}.bam -bga | awk '{print ($4>1)? 1 : $4}' | awk -v pat=$genome_size '{s+=$1}END{print (s/pat)*100}')
-      printf "${i%*_redun.sam.gz}\t$cov\n"  | awk '{gsub(/..\/preprocess\/alignment\//,"");}1' >> summary_genomecov.txt
-      rm ${i%*_redun.sam.gz}.bam 2> /dev/null
-    done
-    # for i in ../preprocess/*bam; do
-    #   cov=$($bedtools genomecov -ibam $i -bga | awk '{print ($4>1)? 1 : $4}' | awk -v pat=$genome_size '{s+=$1}END{print (s/pat)*100}')
-    #   printf "${i%_*_*}\t$cov\n"  | awk '{gsub(/..\/preprocess\//,"");}1' >> summary_genomecov.txt
-    # done
+    if [[ "$genomecov_est" == true ]]; then
+      cd ${projdir}/alignment_summaries
+      printf "Sample\tGenome_Coverage(percentage)\n" > summary_genomecov.txt
+      genome_size=$(awk '{print $3}' ../refgenomes/${ref1%.f*}.dict | awk '{gsub(/LN:/,"");}1' | awk '{s+=$1}END{print s}')
+      for i in ../preprocess/alignment/*_redun.sam.gz; do
+        $samtools view -bS <(zcat $i 2> /dev/null) | $samtools sort - > ${i%*_redun.sam.gz}.bam
+        cov=$($bedtools genomecov -ibam ${i%*_redun.sam.gz}.bam -bga | awk '{print ($4>1)? 1 : $4}' | awk -v pat=$genome_size '{s+=$1}END{print (s/pat)*100}')
+        printf "${i%*_redun.sam.gz}\t$cov\n"  | awk '{gsub(/..\/preprocess\/alignment\//,"");}1' >> summary_genomecov.txt
+        rm ${i%*_redun.sam.gz}.bam 2> /dev/null
+      done
+      # for i in ../preprocess/*bam; do
+      #   cov=$($bedtools genomecov -ibam $i -bga | awk '{print ($4>1)? 1 : $4}' | awk -v pat=$genome_size '{s+=$1}END{print (s/pat)*100}')
+      #   printf "${i%_*_*}\t$cov\n"  | awk '{gsub(/..\/preprocess\//,"");}1' >> summary_genomecov.txt
+      # done
+    fi
 		wait && touch ${projdir}/alignment_summary_done.txt
 	fi
 
@@ -2944,6 +3089,7 @@ find . -type f -empty -delete
 find . -type d -empty -delete
 for snpfilter_dir in */; do
 	cd $snpfilter_dir &&
+  mkdir -p visualizations && mv ./*.tiff ./visualizations/ &&
 	smmiss_thresh=${snpfilter_dir#*smiss} &&
 	smmiss_thresh=${smmiss_thresh%*/} &&
 	smmiss_thresh=$(echo "$smmiss_thresh * 100" | bc) &&
@@ -2980,8 +3126,8 @@ export n="${ref1%.f*}"
 {
   for snpfilter_dir in */; do
     if [ -d "${projdir}/snpfilter/${snpfilter_dir}" ]; then
-      cd "${projdir}/snpfilter/${snpfilter_dir}"
-      export ploidydir=${snpfilter_dir:0:1}
+      cd "${projdir}/snpfilter/${snpfilter_dir}" &&
+      export ploidydir=${snpfilter_dir:0:1} &&
 
   		for i in $(ls *dose.txt); do
         if [[ "$filtered_vcf" == "true" ]]; then
@@ -2991,10 +3137,11 @@ export n="${ref1%.f*}"
           export arr2=$(grep "CHROM" $i | awk '{$1=$2=$3=$4=$5=""}1' | tr -s ' ' | awk '{gsub(/ pvalue/,"");}1' | awk '{gsub(/\t/,",");gsub(/ /,",");gsub(/^,/,"");gsub(/,$/,"");}1') &&
           export darr=$(echo ${arr[@]},${arr2[@]} | tr ',' '\n' | sort | uniq -u | tr '\n' ',' | awk '{gsub(/\t/,",");gsub(/ /,",");gsub(/^,/,"");gsub(/,$/,"");}1') &&
           export darr2=$(echo ${arr[@]},${arr2[@]} | tr ',' '\n' | sort | uniq -u | awk '!/^$/' | awk '{print $1"_AR"}' | tr '\n' ',' | awk '{gsub(/\t/,",");gsub(/ /,",");gsub(/^,/,"");gsub(/,$/,"");}1') &&
-          echo $darr | tr ',' '\n' > darr.txt
-          echo $darr2 | tr ',' '\n' > darr2.txt
-          if [[ "$(wc -l darr.txt)" -eq 0 ]]; then printf "999_999_999\n"; fi
-          if [[ "$(wc -l darr2.txt)" -eq 0 ]]; then printf "999_999_999\n"; fi
+          echo $darr | tr ',' '\n' > darr.txt &&
+          echo $darr2 | tr ',' '\n' > darr2.txt &&
+          if [[ -s darr.txt ]]; then printf "999_999_999\n" > darr.txt; fi
+          wait
+          if [[ -s darr2.txt ]]; then printf "999_999_999\n" > darr2.txt; fi
           wait
 
     			Rscript "${GBSapp_dir}"/scripts/R/heterozygote_vs_allele_ratio.R "$i" "$ARfile" "${ploidydir}x" "1" "darr2.txt" "${GBSapp_dir}/tools/R" &&
@@ -3004,7 +3151,10 @@ export n="${ref1%.f*}"
 
           if test ! -f $projdir/split_done.txt; then
             export vcfdose=${i%_rd*}; vcfdose=${vcfdose#*_} &&
-            gunzip $projdir/snpcall/*x.vcf.gz 2> /dev/null &&
+            for gunv in $projdir/snpcall/*x.vcf.gz; do
+              gunzip $gunv &&
+              wait
+            done
             wait
             for split in $projdir/snpcall/*${vcfdose}.vcf; do
               refg=${split%_*} && refg=${refg##*/} && refg=${refg#*_} && refg=${refg%%_*}.fasta
@@ -3035,37 +3185,32 @@ export n="${ref1%.f*}"
           wait
           zcat ${i%rd*}split.vcf.gz | grep '^#' | awk -v pat1="${n}_Chr" -v pat2="${n}_chr" '{gsub(pat1,"Chr");gsub(pat2,"Chr");gsub(/chr/,"Chr");}1' > ${i%.txt}_header.vcf &&
           awk 'FNR==NR{a[$1,$2]=$0;next}{if(b=a[$2,$3]){print b}}' <(zcat ${i%rd*}split.vcf.gz | grep -v '^#' | awk -v pat1="${n}_Chr" -v pat2="${n}_chr" '{gsub(pat1,"Chr");gsub(pat2,"Chr");gsub(/chr/,"Chr");}1') <(awk '!seen[$0] {print} {++seen[$0]}' $i) | \
-          sort -Vk1,1 -Vk2,2 | cat ${i%.txt}_header.vcf - > ${i%_dose.txt}.vcf &&
+          sort -Vk1,1 -Vk2,2 | cat ${i%.txt}_header.vcf - > ${i%dose.txt}.vcf &&
           rm ${i%.txt}_header.vcf 2> /dev/null &&
           rm ${i%rd*}split.vcf.gz 2> /dev/null &&
 
-          grep '^##' ${i%_dose.txt}.vcf > ${i%.txt}_header.vcf &&
-          grep -v '^##' ${i%_dose.txt}.vcf | awk '{gsub(/#CHROM/,"CHROM");}1' > ${i%_dose.txt}_tmp.vcf &&
-          rm ${i%_dose.txt}.vcf &&
-          Rscript "${GBSapp_dir}"/scripts/R/recode_vcf.R "${i%_dose.txt}_tmp.vcf" "$i" "${i%.txt}_AR_metric.txt" "${ploidy}x" "darr.txt" "$filter_ExcHet" "${GBSapp_dir}/tools/R" &&
-          cat <(grep '^##' ${i%.txt}_header.vcf) <(awk '{gsub(/CHROM/,"#CHROM");}1' dose_temp.vcf) | \
-          awk '{gsub(/0,0:.:.:./,"0,0:.:."); gsub(/0,0:.:.:./,"0,0:.:."); gsub(/0,0:.:.:./,"0,0:.:."); gsub(/0,0:.:.:./,"0,0:.:."); gsub(/0,0:.:.:./,"0,0:.:."); }1' > ${i%_dose.txt}.vcf &&
-          mv AR_temp.txt ${i%.txt}_AR_metric.txt &&
-          rm ${i%.txt}_header.vcf 2> /dev/null &&
-          rm ${i%_dose.txt}_tmp.vcf dose_temp.vcf 2> /dev/null &&
+          # grep '^##' ${i%dose.txt}.vcf > ${i%.txt}_header.vcf &&
+          # grep -v '^##' ${i%dose.txt}.vcf | awk '{gsub(/#CHROM/,"CHROM");}1' > ${i%dose.txt}_tmp.vcf &&
+          # rm ${i%dose.txt}.vcf &&
+          # {
+          #   Rscript "${GBSapp_dir}"/scripts/R/recode_vcf.R "${i%dose.txt}_tmp.vcf" "$i" "${i%.txt}_AR_metric.txt" "${ploidy}x" "darr.txt" "$filter_ExcHet" "${GBSapp_dir}/tools/R"
+          # } & PID_AR=$!
+          # wait $PID_AR
+          # cat <(grep '^##' ${i%.txt}_header.vcf) <(awk '{gsub(/CHROM/,"#CHROM");}1' dose_temp.vcf) | \
+          # awk '{gsub(/0,0:.:.:./,"0,0:.:."); gsub(/0,0,0,0:.:.:./,"0,0:.:."); gsub(/0,0,0,0,0,0:.:.:./,"0,0:.:."); gsub(/0,0,0,0,0,0,0,0:.:.:./,"0,0:.:."); }1' 2> /dev/null > ${i%dose.txt}.vcf &&
+          # mv AR_temp.txt ${i%.txt}_AR_metric.txt &&
+          # rm ${i%.txt}_header.vcf 2> /dev/null &&
+          # rm ${i%dose.txt}_tmp.vcf dose_temp.vcf 2> /dev/null &&
+          # wait
+          #
+    			# grep -v 'CHROM' ${i%.txt}_AR_metric.txt | awk -F'\t' '{$1=$2=$3=$4=$5=""}1' | awk -F'\t' '{gsub(/na/,"0");}1' | \
+    			# awk '{gsub(/\t/," ");}1' | awk '{gsub(/-/,"");}1' | awk '{gsub(/ /,",");}1' | awk '{gsub(/0,/,",");}1' | awk '{gsub(/,0$/,",");}1' | \
+    			# awk -F',' -v OFS=',' -v OFMT='%0.3g' '{s=0; numFields=0; for(i=2; i<=NF;i++){if(length($i)){s+=$i; numFields++}} print (numFields ? s/numFields : 0)}' | \
+    			# cat <(printf "Allele_ratio_mean\n") - | paste <(awk '{print $1"\t"$2"\t"$3}' ${i%.txt}_AR_metric.txt) - > ${i%.txt}_AR_mean.txt &&
+          gzip "${i%dose.txt}".vcf 2> /dev/null &&
+          if ls *_.vcf.gz 1> /dev/null 2>&1; then mv ${i%dose.txt}.vcf.gz ${i%_dose.txt}.vcf.gz; fi
           wait
 
-    			grep -v 'CHROM' ${i%.txt}_AR_metric.txt | awk -F'\t' '{$1=$2=$3=$4=$5=""}1' | awk -F'\t' '{gsub(/na/,"0");}1' | \
-    			awk '{gsub(/\t/," ");}1' | awk '{gsub(/-/,"");}1' | awk '{gsub(/ /,",");}1' | awk '{gsub(/0,/,",");}1' | awk '{gsub(/,0$/,",");}1' | \
-    			awk -F',' -v OFS=',' -v OFMT='%0.3g' '{s=0; numFields=0; for(i=2; i<=NF;i++){if(length($i)){s+=$i; numFields++}} print (numFields ? s/numFields : 0)}' | \
-    			cat <(printf "Allele_ratio_mean\n") - | paste <(awk '{print $1"\t"$2"\t"$3}' ${i%.txt}_AR_metric.txt) - > ${i%.txt}_AR_mean.txt &&
-          wait
-
-          if [[ "$biallelic" == "false" ]]; then
-            mv "${i%_dose.txt}".vcf "${i%_dose.txt}"_split_Multiallelic.vcf &&
-            gzip "${i%_dose.txt}"_split_Multiallelic.vcf &&
-            wait
-          fi
-          if [[ "$biallelic" == "true" ]]; then
-            mv "${i%_dose.txt}".vcf "${i%_dose.txt}"_biallelic.vcf &&
-            gzip "${i%_dose.txt}"_biallelic.vcf &&
-            wait
-          fi
         else
           for i in *dose*; do
             awk -v pat1="${n}_Chr" -v pat2="${n}_chr" '{gsub(pat1,"Chr");gsub(pat2,"Chr"); print $0}' $i > ${i%.txt}_hold.txt &&
@@ -3077,13 +3222,15 @@ export n="${ref1%.f*}"
 
   			if [[ "$ploidy" -le 2 ]]; then
           Rscript "${GBSapp_dir}"/scripts/R/hapmap_format.R "$i" "${GBSapp_dir}/tools/R" &&
-          mv outfile.hmp.txt "${i%_dose.txt}.hmp.txt" &&
+          mv outfile.hmp.txt "${i%dose.txt}.hmp.txt" 2> /dev/null &&
           wait
         fi
 
-        mv ${i%.txt}_AR_metric.txt ${i%_dose.txt}_AR_metric.txt 2> /dev/null &&
-        mv ${i%.txt}_AR_mean.txt ${i%_dose.txt}_AR_mean.txt 2> /dev/null &&
+        mv ${i%.txt}_AR_metric.txt ${i%dose.txt}_AR_metric.txt 2> /dev/null &&
+        mv ${i%.txt}_AR_mean.txt ${i%dose.txt}_AR_mean.txt 2> /dev/null &&
         find . -type f -empty -delete
+        rm *AR*.txt 2> /dev/null &&
+        wait
   		done
   		wait
 
@@ -3582,12 +3729,16 @@ fi
 ######################################################################################################################################################
 cd ${projdir}
 if [[ "$samples_list" == "samples_list_node_1.txt" ]] && [[ -d "snpfilter" ]]; then
-	find ../ -size 0 -delete >/dev/null 2>&1
-	touch Analysis_Complete
-  ls *node*.txt | grep -v 'samples_list' | xargs rm 2> /dev/null
-	rm steps.txt 2> /dev/null
-	mv ${projdir}/GBSapp_run_node_1.sh ${projdir}/GBSapp_run_node_1_done.sh 2> /dev/null
-	mv ${projdir}/GBSapp_run_node.sh ${projdir}/GBSapp_run_node_done.sh 2> /dev/null
+	touch Analysis_Complete &&
+  find ../ -size 0 -delete >/dev/null 2>&1 &&
+  rm call*  2> /dev/null &&
+  ls ./snpfilter/*/*_plusSD.txt 2> /dev/null | xargs rm 2> /dev/null &&
+  ls ./snpfilter/*/*SD_1_G*G*.txt 2> /dev/null | xargs rm 2> /dev/null &&
+  ls *node*.txt | grep -v 'samples_list' | xargs rm 2> /dev/null &&
+	rm steps.txt 2> /dev/null &&
+	mv ${projdir}/GBSapp_run_node_1.sh ${projdir}/GBSapp_run_node_1_done.sh 2> /dev/null &&
+	mv ${projdir}/GBSapp_run_node.sh ${projdir}/GBSapp_run_node_done.sh 2> /dev/null &&
+  wait
   if [[ "$biallelic" == true ]]; then mv snpfilter snpfilter_biallelic; fi
 else
 	touch Analysis_Complete_${samples_list}

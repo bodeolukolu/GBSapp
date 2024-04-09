@@ -4,7 +4,7 @@
 </p>
 
 # Introduction
-GBSapp v2.0.1 is an automated pipeline for variant calling and filtering. The pipeline intuitively integrates existing/novel best practices, some of which can be controlled by user-defined parameters. It optimizes memory and speed at various steps of the pipeline, for example, a novel approach performs compression and decompression of unique reads before and after read alignment, respectively. Summary reports and visualizations allow for QC at each step of the pipeline.
+GBSapp v2.1 is an automated pipeline for variant calling and filtering. The pipeline intuitively integrates existing/novel best practices, some of which can be controlled by user-defined parameters. It optimizes memory and speed at various steps of the pipeline, for example, a novel approach performs compression and decompression of unique reads before and after read alignment, respectively. Summary reports and visualizations allow for QC at each step of the pipeline.
 
 For questions, bugs, and suggestions, please contact bolukolu@utk.edu.
 
@@ -12,9 +12,9 @@ For questions, bugs, and suggestions, please contact bolukolu@utk.edu.
 - Easy use and designed for biologist.
 - Dosage-based variant calling and filtering.
 - Fully-automated: “walk-away” and “walk-through” mode.
-- Allows for use of haploid genome, subgenomes/haplomes, and pan-genomes references.
+- Allows for use of haplomes (haplotype-resolved), subgenomes (haploid), and pan-genomes (haploid or haplotype-resolved) references.
 - Minimizes excess heterozygosity and allele dropout.
-- Variant calling implemented from 1x (haploid) to 8x (octoploid).
+- Variant calling implemented for any ploidy-level.
 - Input data: shotgun WGS, reduced representation sequence (e.g., OmeSeq-qRRS, GBS, ddRADseq), and multiplexed-PCR data.
 - Can subsample shotgun whole genome data for variant calling, i.e. in silico reduced representation sequencing (RRS).
 - Parallelization of job on multiple compute cluster nodes (spark cluster infrastructure not required).
@@ -28,7 +28,6 @@ For questions, bugs, and suggestions, please contact bolukolu@utk.edu.
 - Functions under-development:
   - calling microhaplotypes
   - estimating ploidy level and aneuploidy
-  - recoding genotypes for tri-allelic and tetra-allelic
 
 
 
@@ -123,23 +122,21 @@ Using a text editor, save a file containing any of the following variables as 'c
 |Variable      |Default       |Usage         |Input         |required/Optional|
 |:-------------|:-------------|:-------------|:-------------|:----------------|
 |ploidy|na|value = 1,2,4,6, or 8|integer|Required|
+|haplome_number|1|variant call using haplomes/pangenomes/subgenomes (haplome # typically = ploidy)|integer|Optional|
 |ref1|na|reference subgenome as .fasta file. Anchor-genome when other subgenomes specified |integer|Optional|
 |ref2|na|2nd reference genome as .fasta file|integer|Optional|
 |ref3|na|3rd reference genome as .fasta file|integer|Optional|
-|ref4|na|4th reference genome as .fasta file|integer|Optional|
 |ploidy_ref1|na|ploidy-level for subgenome 1|integer|Optional|
 |ploidy_ref2|na|ploidy-level for subgenome 2, only specify for subgenome specific variants|integer|Optional|
 |ploidy_ref3|na|ploidy-level for subgenome 3, only specify for subgenome specific variants|integer|Optional|
-|ploidy_ref4|na|ploidy-level for subgenome 4, only specify for subgenome specific variants|integer|Optional|
-|haplome_ref1|na|reference haplome as .fasta file. Anchor-haplome when other haplomes are specified |integer|Optional|
-|haplome_ref2|na|2nd reference haplome as .fasta file|integer|Optional|
-|pangenome_ref1|na|reference genome as .fasta file. Anchor-genome when other genomes are specified |integer|Optional|
-|pangenome_ref2|na|2nd reference pan-genome as .fasta file|integer|Optional|
-|pangenome_ref2|na|2nd reference pan-genome as .fasta file|integer|Optional|
-|pangenome_specific|false|variant call from pan-genome specific read|true or false|Optional|
+|haplome_ref|na|haplotype-resolved reference genome. number of haplomes typically = ploidy level) |integer|Optional|
+|pangenome_ref1|na|1st reference genome. Anchor-genome when other genomes are specified |integer|Optional|
+|pangenome_ref2|na|2nd reference pan-genome|integer|Optional|
 |Get_Chromosome|na|variant calling on specific chromosomes, scaffolds,and contigs|comma delimited string(s)|optional|
 |Exclude_Chromosome|na|variant calling to exclude specific chromosomes, scaffolds,and contigs|comma delimited string(s)|optional|
 
+**note: designate haplomes/pangenomes/subgenomes with single character prefix (alphabets: A-Z and a-z) in a single file*
+**note: for polyploids with variable ploidy of subgenomes (e.g. hexapploid: 4x + 2x), indicate ref2-ref3 and ploidy_ref2-ploidy_ref3 (i.e. multiple reference genome files)*
 
 
 **Variant filtering parameters**
@@ -168,7 +165,7 @@ Using a text editor, save a file containing any of the following variables as 'c
 |Variable      |Default       |Usage         |Input         |required/Optional|
 |:-------------|:-------------|:-------------|:-------------|:----------------|
 |uniquely_mapped|true|include uniquely mapped for variant calling |string|Optional|
-|paralogs|false|include paralogs for variant calling |string|Optional|
+|paralogs|true|include paralogs for variant calling |string|Optional|
 |minmapq|20|minimum mapping quality|integer|Optional|
 |downsample_2x|50|value for unbiased downsampling for 2x ploidy|integer|Optional|
 |downsample_4x|100|value for unbiased downsampling for 4x ploidy|integer|Optional|
@@ -181,14 +178,15 @@ Using a text editor, save a file containing any of the following variables as 'c
 |RE1|NA|sequence motif at start of R1 reads|string|Optional|
 |RE2|NA|sequence motif at start of R2 reads|string|Optional|
 |filter_ExcHet|false|test and filter for excess heterozygosity|string|Optional|
+|genomecov_est|false|compute genome coverage for each sample|string|Optional|
 
-**Note: na indicates that variable is user-defined or hard-coded/computed intuitively, as well as a function of ploidy.*
+**note: na indicates that variable is user-defined or hard-coded/computed intuitively, as well as a function of ploidy.*
 
 Below is an example of a configuration file:
 
 **config.sh**
 ```
-### General parameters
+# General_parameters
 ###################################################
 threads=16
 walkaway=true
@@ -196,10 +194,12 @@ cluster=true
 nodes=1
 samples_alt_dir=false
 lib_type=RRS
+subsample_WGS_in_silico_qRRS=false
 
-### Variant calling
+# Variant calling
 ###################################################
 ploidy=6
+haplome_number=6
 # Variant calling with haploid subgenome(s)
 # Anchored to ref1 for loci conserved across all subgenomes
 ref1=TF.fasta
@@ -208,22 +208,21 @@ ploidy_ref1=4
 ploidy_ref2=2
 # Variant calling with haplotype-resolved reference genome
 # Anchored to haplome_ref1 for loci conserved across all haplomes
-haplome_ref1=IbA.fasta
-haplome_ref2=IbB.fasta
+haplome_ref=Ib.fasta
 # Variant calling with pan-genomes
 # Anchored to pangenome_ref1 for loci conserved across all haplomes
-pangenome_ref1=TF.fasta
-pangenome_ref2=TL.fasta
-pangenome_specific=true
+pangenome_ref1=Ib1.fasta
+pangenome_ref2=Ib2.fasta
 # exclue or limit variant calling to specific chromosomes
 Get_Chromosome=TF_Chr01,TF_Chr02
 Exclude_Chromosome=TF_Chr00,TL_Chr00
+genomecov_est=false
 
-
-### SNP-filtering:
+# SNP-filtering:
 ####################################################
-p1=Beauregard
-p2=Tanzania
+p1=M9
+p2=M19
+biallelic=false
 genotype_missingness=1
 sample_missingness=1
 exclude_samples=S1,S2,S3
@@ -233,17 +232,21 @@ minRD_4x=25
 minRD_6x=45
 pseg=0.001
 maf=0.05
-filtered_vcf=false
+filtered_vcf=true
 
-### Advanced parameters
+# Advanced_parameters
 ###################################################
 uniquely_mapped=true
-paralogs=false
+paralogs=true
 minmapq=20
 downsample_2x=50
 downsample_4x=100
 downsample_6x=150
 downsample_8x=200
+variant_intervals=false
+interval_list=variant_intervals.list
+interval_list_ref1=variant_intervals_TF.list
+interval_list_ref2=variant_intervals_TL.list
 maxHaplotype=128
 use_softclip=false
 joint_calling=false

@@ -678,10 +678,10 @@ pop_struc <- function() {
         if( method=="Vitezica" && ploidy>2)
           stop("Change method to 'Slater' for ploidies higher than 2 for marker-based non-additive relationship matrix")
         
-        if(class(SNPmatrix)!="matrix"){
-          cat("SNPmatrix class is:",class(SNPmatrix),"\n")
-          stop("SNPmatrix class must be matrix. Please verify it.")
-        }
+        # if(class(SNPmatrix)!="matrix"){
+        #   cat("SNPmatrix class is:",class(SNPmatrix),"\n")
+        #   stop("SNPmatrix class must be matrix. Please verify it.")
+        # }
         
         if(!ratio){
           if( ploidy > 20 | (ploidy %% 2) != 0)

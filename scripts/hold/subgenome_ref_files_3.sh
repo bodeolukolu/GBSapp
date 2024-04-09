@@ -32,7 +32,9 @@ fi
 if [ -z "$maxHaplotype" ]; then
 	export maxHaplotype=128
 fi
-export haplome_number=1
+if [ -z "$haplome_number" ]; then
+	export haplome_number=1
+fi
 if [ -z "$p2" ]; then
   if   [ "$p1" ]; then
 	 export p2=$p1
@@ -60,15 +62,8 @@ fi
 if [ -z "$filtered_vcf" ]; then
   filtered_vcf=false
 fi
-if [ -z "$genomecov_est" ]; then
-  genomecov_est=false
-fi
 mkdir -p "${projdir}"/tmp
 export TMPDIR="${projdir}"/tmp
-
-if [[ "$pangenome_ref1" ]]; then export ref1=$pangenome_ref1; fi
-if [[ "$pangenome_ref2" ]]; then export ref2=$pangenome_ref2; fi
-if [[ "$pangenome_ref3" ]]; then export ref2=$pangenome_ref3; fi
 
 
 main () {
@@ -718,7 +713,7 @@ main () {
       sleep $((RANDOM % 2))
       if test ! -f ${projdir}/preprocess/alignment/${i%.f*}_redun.sam.gz && test ! -f ${projdir}/preprocess/${i%.f*}_${ref1%.f*}_precall.bam.bai; then
         if test ! -f ${i%.f*}_uniq.fasta.gz; then
-          cat ${i%.f*}_R1_uniq.txt.gz ${i%.f*}_R2_uniq.txt.gz | zcat | awk '{!seen[$0]++}END{for (i in seen) print seen[i], i}' | awk '{$1=$1};1' | gzip > ${i%.f*}_repeatn.txt.gz &&
+          cat ${i%.f*}_R1_uniq.txt.gz ${i%.f*}_R2_uniq.txt.gz | zcat | awk '{!seen[$0]++}END{for (i in seen) print seen[i], i}' | awk '{$1=$1};1' | gzip > ${i%.f*}_repeatn.txt.gz
           repeatn=$(zcat ${i%.f*}_repeatn.txt.gz | awk '{print $1}' | sort -n | awk '{all[NR] = $1} END{print all[int(NR*0.999 - 0.5)]}')
           zcat ${i%.f*}_repeatn.txt.gz | awk -v pat="$repeatn" '$1 < pat' | \
           awk '{gsub(/AAAAAAAAAA$/,"A~");gsub(/AAAAAAAAAA~/,"A~");gsub(/AAAAAAAAAA~/,"A~");gsub(/AAAAAAAAAA~/,"A~");gsub(/AAAAAAAAAA~/,"A~");gsub(/AAAAAAAAAA~/,"A~");gsub(/AAAAAAAAAA~/,"A~");gsub(/AAAAAAAAAA~/,"A~");gsub(/AAAAAAAAAA~/,"A~");gsub(/AAAAAAAAAA~/,"A~");gsub(/AAAAAAAAAA~/,"A~");gsub(/AAAAAAAAAA~/,"A~");gsub(/AAAAAAAAAA~/,"A~");gsub(/AAAAAAAAAA~/,"A~");}1' | \
@@ -1606,41 +1601,39 @@ main () {
         wait
 
       fi
-      if [[ "$genomecov_est" == true ]]; then
-        cd ${projdir}/alignment_summaries
-        printf "Sample\tGenome_Coverage(percentage)\n" > summary_genomecov.txt
-        genome_size1=$(awk '{print $3}' ../refgenomes/${ref1%.f*}.dict | awk '{gsub(/LN:/,"");}1' | awk '{s+=$1}END{print s}')
-        genome_size2=$(awk '{print $3}' ../refgenomes/${ref2%.f*}.dict | awk '{gsub(/LN:/,"");}1' | awk '{s+=$1}END{print s}')
-        genome_size3=$(awk '{print $3}' ../refgenomes/${ref3%.f*}.dict | awk '{gsub(/LN:/,"");}1' | awk '{s+=$1}END{print s}')
+      cd ${projdir}/alignment_summaries
+      printf "Sample\tGenome_Coverage(percentage)\n" > summary_genomecov.txt
+      genome_size1=$(awk '{print $3}' ../refgenomes/${ref1%.f*}.dict | awk '{gsub(/LN:/,"");}1' | awk '{s+=$1}END{print s}')
+      genome_size2=$(awk '{print $3}' ../refgenomes/${ref2%.f*}.dict | awk '{gsub(/LN:/,"");}1' | awk '{s+=$1}END{print s}')
+      genome_size3=$(awk '{print $3}' ../refgenomes/${ref3%.f*}.dict | awk '{gsub(/LN:/,"");}1' | awk '{s+=$1}END{print s}')
 
+      for j in ../preprocess/alignment/*_redun_${ref1%.f*}.sam.gz; do
+        $samtools view -bS <(zcat $j 2> /dev/null) | $samtools sort - > ${j%*.sam.gz}.bam
+        cov=$($bedtools genomecov -ibam ${j%*.sam.gz}.bam -bga | awk '{print ($4>1)? 1 : $4}' | awk -v pat=$genome_size1 '{s+=$1}END{print (s/pat)*100}')
+        printf "${j%_*_*}\t$cov\n"  | awk '{gsub(/..\/preprocess\/alignment\//,"");}1' >> summary_genomecov.txt
+        rm ${j%*.sam.gz}.bam 2> /dev/null
+      done
+
+      while IFS="" read -r i || [ -n "$i" ]; do
         for j in ../preprocess/alignment/*_redun_${ref1%.f*}.sam.gz; do
           $samtools view -bS <(zcat $j 2> /dev/null) | $samtools sort - > ${j%*.sam.gz}.bam
           cov=$($bedtools genomecov -ibam ${j%*.sam.gz}.bam -bga | awk '{print ($4>1)? 1 : $4}' | awk -v pat=$genome_size1 '{s+=$1}END{print (s/pat)*100}')
-          printf "${j%_*_*}\t$cov\n"  | awk '{gsub(/..\/preprocess\/alignment\//,"");}1' >> summary_genomecov.txt
+          printf "${j%_*_*}_${ref1%.f*}\t$cov\n"  | awk '{gsub(/..\/preprocess\/alignment\//,"");}1' >> summary_genomecov.txt
           rm ${j%*.sam.gz}.bam 2> /dev/null
         done
-
-        while IFS="" read -r i || [ -n "$i" ]; do
-          for j in ../preprocess/alignment/*_redun_${ref1%.f*}.sam.gz; do
-            $samtools view -bS <(zcat $j 2> /dev/null) | $samtools sort - > ${j%*.sam.gz}.bam
-            cov=$($bedtools genomecov -ibam ${j%*.sam.gz}.bam -bga | awk '{print ($4>1)? 1 : $4}' | awk -v pat=$genome_size1 '{s+=$1}END{print (s/pat)*100}')
-            printf "${j%_*_*}_${ref1%.f*}\t$cov\n"  | awk '{gsub(/..\/preprocess\/alignment\//,"");}1' >> summary_genomecov.txt
-            rm ${j%*.sam.gz}.bam 2> /dev/null
-          done
-          for j in ../preprocess/alignment/*_redun_${ref2%.f*}.sam.gz; do
-            $samtools view -bS <(zcat $j 2> /dev/null) | $samtools sort - > ${j%*.sam.gz}.bam
-            cov=$($bedtools genomecov -ibam ${j%*.sam.gz}.bam -bga | awk '{print ($4>1)? 1 : $4}' | awk -v pat=$genome_size2 '{s+=$1}END{print (s/pat)*100}')
-            printf "${j%_*_*}_${ref2%.f*}\t$cov\n"  | awk '{gsub(/..\/preprocess\/alignment\//,"");}1' >> summary_genomecov.txt
-            rm ${j%*.sam.gz}.bam 2> /dev/null
-          done
-          for j in ../preprocess/alignment/*_redun_${ref3%.f*}.sam.gz; do
-            $samtools view -bS <(zcat $j 2> /dev/null) | $samtools sort - > ${j%*.sam.gz}.bam
-            cov=$($bedtools genomecov -ibam ${j%*.sam.gz}.bam -bga | awk '{print ($4>1)? 1 : $4}' | awk -v pat=$genome_size3 '{s+=$1}END{print (s/pat)*100}')
-            printf "${j%_*_*}_${ref3%.f*}\t$cov\n"  | awk '{gsub(/..\/preprocess\/alignment\//,"");}1' >> summary_genomecov.txt
-            rm ${j%*.sam.gz}.bam 2> /dev/null
-          done
-        done < <(cat ${projdir}/samples_list_node_*)
-      fi
+        for j in ../preprocess/alignment/*_redun_${ref2%.f*}.sam.gz; do
+          $samtools view -bS <(zcat $j 2> /dev/null) | $samtools sort - > ${j%*.sam.gz}.bam
+          cov=$($bedtools genomecov -ibam ${j%*.sam.gz}.bam -bga | awk '{print ($4>1)? 1 : $4}' | awk -v pat=$genome_size2 '{s+=$1}END{print (s/pat)*100}')
+          printf "${j%_*_*}_${ref2%.f*}\t$cov\n"  | awk '{gsub(/..\/preprocess\/alignment\//,"");}1' >> summary_genomecov.txt
+          rm ${j%*.sam.gz}.bam 2> /dev/null
+        done
+        for j in ../preprocess/alignment/*_redun_${ref3%.f*}.sam.gz; do
+          $samtools view -bS <(zcat $j 2> /dev/null) | $samtools sort - > ${j%*.sam.gz}.bam
+          cov=$($bedtools genomecov -ibam ${j%*.sam.gz}.bam -bga | awk '{print ($4>1)? 1 : $4}' | awk -v pat=$genome_size3 '{s+=$1}END{print (s/pat)*100}')
+          printf "${j%_*_*}_${ref3%.f*}\t$cov\n"  | awk '{gsub(/..\/preprocess\/alignment\//,"");}1' >> summary_genomecov.txt
+          rm ${j%*.sam.gz}.bam 2> /dev/null
+        done
+      done < <(cat ${projdir}/samples_list_node_*)
       wait && touch ${projdir}/alignment_summary_done.txt
     fi
   }
@@ -5001,7 +4994,6 @@ main () {
   find . -type d -empty -delete
   for snpfilter_dir in */; do
   	cd $snpfilter_dir
-    mkdir -p visualizations && mv ./*.tiff ./visualizations/ &&
   	smmiss_thresh=${snpfilter_dir#*smiss} &&
   	smmiss_thresh=${smmiss_thresh%*/} &&
   	smmiss_thresh=$(echo "$smmiss_thresh * 100" | bc) &&
@@ -5037,8 +5029,8 @@ main () {
   {
     for snpfilter_dir in */; do
     	if [ -d "${projdir}/snpfilter/${snpfilter_dir}" ]; then
-    		cd "${projdir}/snpfilter/${snpfilter_dir}" &&
-    		ploidydir=${snpfilter_dir:0:1} &&
+    		cd "${projdir}/snpfilter/${snpfilter_dir}"
+    		ploidydir=${snpfilter_dir:0:1}
 
     		for i in $(ls *dose.txt); do
           if [[ "$filtered_vcf" == "true" ]]; then
@@ -5048,11 +5040,10 @@ main () {
             export arr2=$(grep "CHROM" $i | awk '{$1=$2=$3=$4=$5=""}1' | tr -s ' ' | awk '{gsub(/ pvalue/,"");}1' | awk '{gsub(/\t/,",");gsub(/ /,",");gsub(/^,/,"");gsub(/,$/,"");}1') &&
             export darr=$(echo ${arr[@]},${arr2[@]} | tr ',' '\n' | sort | uniq -u | tr '\n' ',' | awk '{gsub(/\t/,",");gsub(/ /,",");gsub(/^,/,"");gsub(/,$/,"");}1') &&
             export darr2=$(echo ${arr[@]},${arr2[@]} | tr ',' '\n' | sort | uniq -u | awk '!/^$/' | awk '{print $1"_AR"}' | tr '\n' ',' | awk '{gsub(/\t/,",");gsub(/ /,",");gsub(/^,/,"");gsub(/,$/,"");}1') &&
-            echo $darr | tr ',' '\n' > darr.txt &&
-            echo $darr2 | tr ',' '\n' > darr2.txt &&
-            if [[ -s darr.txt ]]; then printf "999_999_999\n" > darr.txt; fi
-            wait
-            if [[ -s darr2.txt ]]; then printf "999_999_999\n" > darr2.txt; fi
+            echo $darr | tr ',' '\n' > darr.txt
+            echo $darr2 | tr ',' '\n' > darr2.txt
+            if [[ "$(wc -l darr.txt)" -eq 0 ]]; then printf "999_999_999\n"; fi
+            if [[ "$(wc -l darr2.txt)" -eq 0 ]]; then printf "999_999_999\n"; fi
             wait
 
             Rscript "${GBSapp_dir}"/scripts/R/heterozygote_vs_allele_ratio.R "$i" "$ARfile" "${ploidydir}x" "1" "darr2.txt" "${GBSapp_dir}/tools/R" &&
@@ -5078,10 +5069,7 @@ main () {
             fi
             if [[ "$(ls $projdir/snpcall/*_split.vcf.gz  2> /dev/null | wc -l)" -gt 1 ]]; then
               $bcftools merge $projdir/snpcall/*_split.vcf.gz --force-samples -m all > ${i%rd*}split.vcf &&
-              for gunv in $projdir/snpcall/*x.vcf.gz; do
-                gunzip $gunv &&
-                wait
-              done
+              gzip ${i%rd*}split.vcf &&
               wait
             else
               for k in $projdir/snpcall/*_split.vcf.gz; do cp $k ./${i%rd*}split.vcf.gz; wait; done
@@ -5096,32 +5084,36 @@ main () {
             wait
             zcat ${i%rd*}split.vcf.gz | grep '^#' | awk -v pat1="${n}_Chr" -v pat2="${n}_chr" '{gsub(pat1,"Chr");gsub(pat2,"Chr");gsub(/chr/,"Chr");}1' > ${i%.txt}_header.vcf &&
             awk 'FNR==NR{a[$1,$2]=$0;next}{if(b=a[$2,$3]){print b}}' <(zcat ${i%rd*}split.vcf.gz | grep -v '^#' | awk -v pat1="${n}_Chr" -v pat2="${n}_chr" '{gsub(pat1,"Chr");gsub(pat2,"Chr");gsub(/chr/,"Chr");}1') <(awk '!seen[$0] {print} {++seen[$0]}' $i) | \
-            sort -Vk1,1 -Vk2,2 | cat ${i%.txt}_header.vcf - > ${i%dose.txt}.vcf &&
+            sort -Vk1,1 -Vk2,2 | cat ${i%.txt}_header.vcf - > ${i%_dose.txt}.vcf &&
             rm ${i%.txt}_header.vcf 2> /dev/null &&
             rm ${i%rd*}split.vcf.gz 2> /dev/null &&
 
-            # grep '^##' ${i%dose.txt}.vcf > ${i%.txt}_header.vcf &&
-            # grep -v '^##' ${i%dose.txt}.vcf | awk '{gsub(/#CHROM/,"CHROM");}1' > ${i%dose.txt}_tmp.vcf &&
-            # rm ${i%dose.txt}.vcf &&
-            # {
-            #   Rscript "${GBSapp_dir}"/scripts/R/recode_vcf.R "${i%dose.txt}_tmp.vcf" "$i" "${i%.txt}_AR_metric.txt" "${ploidy}x" "darr.txt" "$filter_ExcHet" "${GBSapp_dir}/tools/R"
-            # } & PID_AR=$!
-            # wait $PID_AR
-            # cat <(grep '^##' ${i%.txt}_header.vcf) <(awk '{gsub(/CHROM/,"#CHROM");}1' dose_temp.vcf) | \
-            # awk '{gsub(/0,0:.:.:./,"0,0:.:."); gsub(/0,0,0,0:.:.:./,"0,0:.:."); gsub(/0,0,0,0,0,0:.:.:./,"0,0:.:."); gsub(/0,0,0,0,0,0,0,0:.:.:./,"0,0:.:."); }1' 2> /dev/null > ${i%dose.txt}.vcf &&
-            # mv AR_temp.txt ${i%.txt}_AR_metric.txt &&
-            # rm ${i%.txt}_header.vcf 2> /dev/null &&
-            # rm ${i%dose.txt}_tmp.vcf dose_temp.vcf 2> /dev/null &&
-            # wait
-            #
-      			# grep -v 'CHROM' ${i%.txt}_AR_metric.txt | awk -F'\t' '{$1=$2=$3=$4=$5=""}1' | awk -F'\t' '{gsub(/na/,"0");}1' | \
-      			# awk '{gsub(/\t/," ");}1' | awk '{gsub(/-/,"");}1' | awk '{gsub(/ /,",");}1' | awk '{gsub(/0,/,",");}1' | awk '{gsub(/,0$/,",");}1' | \
-      			# awk -F',' -v OFS=',' -v OFMT='%0.3g' '{s=0; numFields=0; for(i=2; i<=NF;i++){if(length($i)){s+=$i; numFields++}} print (numFields ? s/numFields : 0)}' | \
-      			# cat <(printf "Allele_ratio_mean\n") - | paste <(awk '{print $1"\t"$2"\t"$3}' ${i%.txt}_AR_metric.txt) - > ${i%.txt}_AR_mean.txt &&
-            gzip "${i%dose.txt}".vcf 2> /dev/null &&
-            if ls *_.vcf.gz 1> /dev/null 2>&1; then mv ${i%dose.txt}.vcf.gz ${i%_dose.txt}.vcf.gz; fi
+            grep '^##' ${i%_dose.txt}.vcf > ${i%.txt}_header.vcf
+            grep -v '^##' ${i%_dose.txt}.vcf | awk '{gsub(/#CHROM/,"CHROM");}1' > ${i%_dose.txt}_tmp.vcf &&
+            rm ${i%_dose.txt}.vcf 2> /dev/null &&
+            Rscript "${GBSapp_dir}"/scripts/R/recode_vcf.R "${i%_dose.txt}_tmp.vcf" "$i" "${i%.txt}_AR_metric.txt" "${ploidy}x" "darr.txt" "$filter_ExcHet" "${GBSapp_dir}/tools/R" &&
+            cat <(grep '^##' ${i%.txt}_header.vcf) <(awk '{gsub(/CHROM/,"#CHROM");}1' dose_temp.vcf) | \
+            awk '{gsub(/0,0:.:.:./,"0,0:.:."); gsub(/0,0:.:.:./,"0,0:.:."); gsub(/0,0:.:.:./,"0,0:.:."); gsub(/0,0:.:.:./,"0,0:.:."); gsub(/0,0:.:.:./,"0,0:.:."); }1' > ${i%_dose.txt}.vcf &&
+            mv AR_temp.txt ${i%.txt}_AR_metric.txt 2> /dev/null &&
+            rm ${i%.txt}_header.vcf 2> /dev/null &&
+            rm ${i%_dose.txt}_tmp.vcf dose_temp.vcf 2> /dev/null &&
             wait
 
+            grep -v 'CHROM' ${i%.txt}_AR_metric.txt | awk -F'\t' '{$1=$2=$3=$4=$5=""}1' | awk -F'\t' '{gsub(/na/,"0");}1' | \
+            awk '{gsub(/\t/," ");}1' | awk '{gsub(/-/,"");}1' | awk '{gsub(/ /,",");}1' | awk '{gsub(/0,/,",");}1' | awk '{gsub(/,0$/,",");}1' | \
+            awk -F',' -v OFS=',' -v OFMT='%0.3g' '{s=0; numFields=0; for(i=2; i<=NF;i++){if(length($i)){s+=$i; numFields++}} print (numFields ? s/numFields : 0)}' | \
+            cat <(printf "Allele_ratio_mean\n") - | paste <(awk '{print $1"\t"$2"\t"$3}' ${i%.txt}_AR_metric.txt) - > ${i%.txt}_AR_mean.txt &&
+
+            if [[ "$biallelic" == "false" ]]; then
+              mv "${i%_dose.txt}".vcf "${i%_dose.txt}"_split_Multiallelic.vcf &&
+              gzip "${i%_dose.txt}"_split_Multiallelic.vcf &&
+              wait
+            fi
+            if [[ "$biallelic" == "true" ]]; then
+              mv "${i%_dose.txt}".vcf "${i%_dose.txt}"_biallelic.vcf &&
+              gzip "${i%_dose.txt}"_biallelic.vcf &&
+              wait
+            fi
           else
             for i in *dose*; do
               awk -v pat1="${n}_Chr" -v pat2="${n}_chr" '{gsub(pat1,"Chr");gsub(pat2,"Chr");gsub(/chr/,"Chr");}1' $i > ${i%.txt}_hold.txt &&
@@ -5133,15 +5125,13 @@ main () {
 
           if [[ "$ploidy" -le 2 ]]; then
             Rscript "${GBSapp_dir}"/scripts/R/hapmap_format.R "$i" "${GBSapp_dir}/tools/R" &&
-            mv outfile.hmp.txt "${i%dose.txt}.hmp.txt" 2> /dev/null &&
+            mv outfile.hmp.txt "${i%_dose.txt}.hmp.txt" &&
             wait
           fi
 
           mv ${i%.txt}_AR_metric.txt ${i%_dose.txt}_AR_metric.txt 2> /dev/null &&
           mv ${i%.txt}_AR_mean.txt ${i%_dose.txt}_AR_mean.txt 2> /dev/null &&
           find . -type f -empty -delete
-          rm *AR*.txt 2> /dev/null &&
-          wait
     		done
         wait
         rm *tmp.vcf *header.vcf darr.txt darr2.txt 2> /dev/null &&
@@ -5297,16 +5287,12 @@ main () {
   #####################################################################################################################################################
   cd ${projdir}
   if [[ "$samples_list" == "samples_list_node_1.txt" ]] && [[ -d "snpfilter" ]]; then
-    touch Analysis_Complete &&
-    find ../ -size 0 -delete >/dev/null 2>&1 &&
-    rm call*  2> /dev/null &&
-    ls ./snpfilter/*/*_plusSD.txt 2> /dev/null | xargs rm 2> /dev/null &&
-    ls ./snpfilter/*/*SD_1_G*G*.txt 2> /dev/null | xargs rm 2> /dev/null &&
-    ls *node*.txt | grep -v 'samples_list' | xargs rm 2> /dev/null &&
-  	rm steps.txt 2> /dev/null &&
-  	mv ${projdir}/GBSapp_run_node_1.sh ${projdir}/GBSapp_run_node_1_done.sh 2> /dev/null &&
-  	mv ${projdir}/GBSapp_run_node.sh ${projdir}/GBSapp_run_node_done.sh 2> /dev/null &&
-    wait
+  	find ../ -size 0 -delete >/dev/null 2>&1
+  	touch Analysis_Complete
+    ls *node*.txt | grep -v 'samples_list' | xargs rm 2> /dev/null
+    rm steps.txt 2> /dev/null
+    mv ${projdir}/GBSapp_run_node_1.sh ${projdir}/GBSapp_run_node_1_done.sh 2> /dev/null
+    mv ${projdir}/GBSapp_run_node.sh ${projdir}/GBSapp_run_node_done.sh 2> /dev/null
     if [[ "$biallelic" == "true" ]]; then mv snpfilter snpfilter_biallelic; fi
   else
   	touch Analysis_Complete_${samples_list}

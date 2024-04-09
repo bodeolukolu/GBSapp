@@ -63,7 +63,7 @@ if (ploidy == "2x"){
 }
 
 if (ploidy == "3x"){
-  AR$propHet <- (rowSums(ARAR[,5:(GTlen+4)] == "1" | AR[,5:(GTlen+4)] == "2" | AR[,5:(GTlen+4)] == "3", na.rm = TRUE)) / (GTlen - (apply(AR[,5:(GTlen+4)], 1, function(x) sum(is.na(x)))))
+  AR$propHet <- (rowSums(AR[,5:(GTlen+4)] == "1" | AR[,5:(GTlen+4)] == "2" | AR[,5:(GTlen+4)] == "3", na.rm = TRUE)) / (GTlen - (apply(AR[,5:(GTlen+4)], 1, function(x) sum(is.na(x)))))
   AR <- AR[,c(keepAR)]
   AR <- subset(AR, AR$propHet != 0)
   AR[,1:(ncol(AR)-1)][AR[,1:(ncol(AR)-1)] == 0] <- NA
@@ -100,7 +100,7 @@ if (ploidy == "3x"){
 }
 
 if (ploidy == "4x"){
-  AR$propHet <- (rowSums(ARAR[,5:(GTlen+4)] == "1" | AR[,5:(GTlen+4)] == "2" | AR[,5:(GTlen+4)] == "3", na.rm = TRUE)) / (GTlen - (apply(AR[,5:(GTlen+4)], 1, function(x) sum(is.na(x)))))
+  AR$propHet <- (rowSums(AR[,5:(GTlen+4)] == "1" | AR[,5:(GTlen+4)] == "2" | AR[,5:(GTlen+4)] == "3", na.rm = TRUE)) / (GTlen - (apply(AR[,5:(GTlen+4)], 1, function(x) sum(is.na(x)))))
   AR <- AR[,c(keepAR)]
   AR <- subset(AR, AR$propHet != 0)
   AR[,1:(ncol(AR)-1)][AR[,1:(ncol(AR)-1)] == 0] <- NA
