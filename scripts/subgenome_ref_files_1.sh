@@ -1120,7 +1120,7 @@ main () {
 			rm ${projdir}/samples/metrics.txt ${projdir}/preprocess/metrics.txt &> /dev/null &&
       wait
 		fi
-    if [[ "$genomecov_est" == true ]]; then
+    if [[ "$genomecov_est" == true ]] && [[ "$samples_list" == "samples_list_node_1.txt" ]]; then
       cd ${projdir}/alignment_summaries
       printf "Sample\tGenome_Coverage(percentage)\n" > summary_genomecov.txt
       genome_size=$(awk '{print $3}' ../refgenomes/${ref1%.f*}.dict | awk '{gsub(/LN:/,"");}1' | awk '{s+=$1}END{print s}')
