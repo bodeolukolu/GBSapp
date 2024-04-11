@@ -66,10 +66,6 @@ fi
 mkdir -p "${projdir}"/tmp
 export TMPDIR="${projdir}"/tmp
 
-if [[ "$pangenome_ref1" ]]; then export ref1=$pangenome_ref1; fi
-if [[ "$pangenome_ref2" ]]; then export ref2=$pangenome_ref2; fi
-if [[ "$pangenome_ref3" ]]; then export ref2=$pangenome_ref3; fi
-
 
 main () {
 	cd $projdir

@@ -129,9 +129,7 @@ Using a text editor, save a file containing any of the following variables as 'c
 |ploidy_ref1|na|ploidy-level for subgenome 1|integer|Optional|
 |ploidy_ref2|na|ploidy-level for subgenome 2, only specify for subgenome specific variants|integer|Optional|
 |ploidy_ref3|na|ploidy-level for subgenome 3, only specify for subgenome specific variants|integer|Optional|
-|haplome_ref|na|haplotype-resolved reference genome. number of haplomes typically = ploidy level) |integer|Optional|
-|pangenome_ref1|na|1st reference genome. Anchor-genome when other genomes are specified |integer|Optional|
-|pangenome_ref2|na|2nd reference pan-genome|integer|Optional|
+|genomes_ref|na|haplotype-resolved reference genome or pangenomes (# of haplomes typically = ploidy level) |integer|Optional|
 |Get_Chromosome|na|variant calling on specific chromosomes, scaffolds,and contigs|comma delimited string(s)|optional|
 |Exclude_Chromosome|na|variant calling to exclude specific chromosomes, scaffolds,and contigs|comma delimited string(s)|optional|
 
@@ -206,13 +204,9 @@ ref1=TF.fasta
 ref2=TL.fasta
 ploidy_ref1=4
 ploidy_ref2=2
-# Variant calling with haplotype-resolved reference genome
+# Variant calling with haplotype-resolved reference genome or pangenomes
 # Anchored to haplome_ref1 for loci conserved across all haplomes
-haplome_ref=Ib.fasta
-# Variant calling with pan-genomes
-# Anchored to pangenome_ref1 for loci conserved across all haplomes
-pangenome_ref1=Ib1.fasta
-pangenome_ref2=Ib2.fasta
+genomes_ref=Ib.fasta
 # exclue or limit variant calling to specific chromosomes
 Get_Chromosome=TF_Chr01,TF_Chr02
 Exclude_Chromosome=TF_Chr00,TL_Chr00

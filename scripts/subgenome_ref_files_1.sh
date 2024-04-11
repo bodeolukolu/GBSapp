@@ -34,8 +34,11 @@ fi
 if [ -z "$haplome_number" ]; then
 	export haplome_number=1
 fi
-if [[ "$haplome_ref" ]]; then
-  export ref1=$haplome_ref
+if [[ "$genome_ref" ]]; then
+  export genomes_ref=$genome_ref
+fi
+if [[ "$genomes_ref" ]]; then
+  export ref1=$genomes_ref
 fi
 if [ -z "$p2" ]; then
   if   [ "$p1" ]; then
@@ -894,7 +897,7 @@ main () {
     wait
 
 
-    if [[ "$haplome_ref" ]]; then
+    if [[ "$genomes_ref" ]]; then
     max_hap=0
     for maxhap in ${haplome_number//,/ }; do if [[ "$maxhap" -gt "$max_hap" ]]; then max_hap=$maxhap; fi; done
     min_hap=999

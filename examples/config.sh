@@ -13,18 +13,14 @@ subsample_WGS_in_silico_qRRS=false
 ploidy=6
 haplome_number=1,2,3,4,5,6
 # Variant calling with haploid subgenome(s)
-# Anchored to ref1 for loci conserved across all subgenomes
+# Anchored to ref1 for loci conserved across all subgenomes/pangenomes
 ref1=TF.fasta
 ref2=TL.fasta
 ploidy_ref1=4
 ploidy_ref2=2
-# Variant calling with haplotype-resolved reference genome
+# Variant calling with haplotype-resolved reference genome or pangenomes
 # Anchored to haplome_ref1 for loci conserved across all haplomes
-haplome_ref=Ib.fasta
-# Variant calling with pan-genomes
-# Anchored to pangenome_ref1 for loci conserved across all haplomes
-pangenome_ref1=Ib1.fasta
-pangenome_ref2=Ib2.fasta
+genomes_ref=Ib.fasta
 # exclue or limit variant calling to specific chromosomes
 Get_Chromosome=TF_Chr01,TF_Chr02
 Exclude_Chromosome=TF_Chr00,TL_Chr00
