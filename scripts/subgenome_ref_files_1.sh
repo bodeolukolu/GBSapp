@@ -1663,7 +1663,7 @@ if [[ "${file1xG}" -lt 1 ]]; then
     if test ! -f ${projdir}/vcf1x_trimmed.txt; then
   		for i in *_1x_raw.vcf; do
         refg=${i%_1x_raw.vcf} && refg=${refg#*_} && refg=${refg%%_*}.fasta
-        if [[ "$(ls ${projdir}/samples_list_node_* | wc -l)" -ge 100 ]]; then
+        if [[ "$(cat ${projdir}/samples_list_node_* | wc -l)" -ge 100 ]]; then
           samz1=$(wc -l ${projdir}/samples_list_node_* | awk '{print $1}') && samz1=$((samz1*98)) && samz1=$((samz1/100)) &&
           samz2=$(wc -l ${projdir}/samples_list_node_* | awk '{print $1}') && samz2=$((samz2*80)) && samz2=$((samz2/100)) &&
           wait
@@ -1683,7 +1683,7 @@ if [[ "${file1xG}" -lt 1 ]]; then
   		done
       :> ${projdir}/vcf1x_trimmed.txt
     fi
-    if [[ "$(ls ${projdir}/samples_list_node_* | wc -l)" -ge 100 ]]; then
+    if [[ "$(cat ${projdir}/samples_list_node_* | wc -l)" -ge 100 ]]; then
       samz1=$(wc -l ${projdir}/samples_list_node_* | awk '{print $1}') && samz1=$((samz1*98)) && samz1=$((samz1/100)) &&
       samz2=$(wc -l ${projdir}/samples_list_node_* | awk '{print $1}') && samz2=$((samz2*80)) && samz2=$((samz2/100)) &&
       wait
@@ -1695,7 +1695,7 @@ if [[ "${file1xG}" -lt 1 ]]; then
       wait
     fi
     wait
-		Rscript "${GBSapp_dir}"/scripts/R/VCF_2_DP_GT.R "${pop}" 1x "${GBSapp_dir}/tools/R" "1" "$filter_ExcHet" 2> /dev/null &&
+		Rscript "${GBSapp_dir}"/scripts/R/VCF_2_DP_GT.R "${pop}" 1x "${GBSapp_dir}/tools/R" "1" "$filter_ExcHet" &&
     rm "${projdir}"/vcf1x_trimmed.txt 2> /dev/null &&
     wait
 	fi
@@ -1708,7 +1708,7 @@ if [[ "${file2xG}" -lt 1 ]]; then
     if test ! -f ${projdir}/vcf2x_trimmed.txt; then
   		for i in *_2x_raw.vcf; do
         refg=${i%_2x_raw.vcf} && refg=${refg#*_} && refg=${refg%%_*}.fasta
-        if [[ "$(ls ${projdir}/samples_list_node_* | wc -l)" -ge 100 ]]; then
+        if [[ "$(cat ${projdir}/samples_list_node_* | wc -l)" -ge 100 ]]; then
           samz1=$(wc -l ${projdir}/samples_list_node_* | awk '{print $1}') && samz1=$((samz1*98)) && samz1=$((samz1/100)) &&
           samz2=$(wc -l ${projdir}/samples_list_node_* | awk '{print $1}') && samz2=$((samz2*80)) && samz2=$((samz2/100)) &&
           wait
@@ -1728,7 +1728,7 @@ if [[ "${file2xG}" -lt 1 ]]; then
   		done
       :> ${projdir}/vcf2x_trimmed.txt
     fi
-    if [[ "$(ls ${projdir}/samples_list_node_* | wc -l)" -ge 100 ]]; then
+    if [[ "$(cat ${projdir}/samples_list_node_* | wc -l)" -ge 100 ]]; then
       samz1=$(wc -l ${projdir}/samples_list_node_* | awk '{print $1}') && samz1=$((samz1*98)) && samz1=$((samz1/100)) &&
       samz2=$(wc -l ${projdir}/samples_list_node_* | awk '{print $1}') && samz2=$((samz2*80)) && samz2=$((samz2/100)) &&
       wait
@@ -1740,7 +1740,7 @@ if [[ "${file2xG}" -lt 1 ]]; then
       wait
     fi
     wait
-		Rscript "${GBSapp_dir}"/scripts/R/VCF_2_DP_GT.R "${pop}" 2x "${GBSapp_dir}/tools/R" "1" "$filter_ExcHet" 2> /dev/null &&
+		Rscript "${GBSapp_dir}"/scripts/R/VCF_2_DP_GT.R "${pop}" 2x "${GBSapp_dir}/tools/R" "1" "$filter_ExcHet" &&
     rm ${projdir}/vcf2x_trimmed.txt 2> /dev/null &&
     wait
 	fi
@@ -1753,7 +1753,7 @@ if [[ "${file4xG}" -lt 1 ]]; then
     if test ! -f ${projdir}/vcf4x_trimmed.txt; then
   		for i in *_4x_raw.vcf; do
         refg=${i%_4x_raw.vcf} && refg=${refg#*_} && refg=${refg%%_*}.fasta
-        if [[ "$(ls ${projdir}/samples_list_node_* | wc -l)" -ge 100 ]]; then
+        if [[ "$(cat ${projdir}/samples_list_node_* | wc -l)" -ge 100 ]]; then
           samz1=$(wc -l ${projdir}/samples_list_node_* | awk '{print $1}') && samz1=$((samz1*98)) && samz1=$((samz1/100)) &&
           samz2=$(wc -l ${projdir}/samples_list_node_* | awk '{print $1}') && samz2=$((samz2*80)) && samz2=$((samz2/100)) &&
           wait
@@ -1773,7 +1773,7 @@ if [[ "${file4xG}" -lt 1 ]]; then
   		done
       :> ${projdir}/vcf4x_trimmed.txt
     fi
-    if [[ "$(ls ${projdir}/samples_list_node_* | wc -l)" -ge 100 ]]; then
+    if [[ "$(cat ${projdir}/samples_list_node_* | wc -l)" -ge 100 ]]; then
       samz1=$(wc -l ${projdir}/samples_list_node_* | awk '{print $1}') && samz1=$((samz1*98)) && samz1=$((samz1/100)) &&
       samz2=$(wc -l ${projdir}/samples_list_node_* | awk '{print $1}') && samz2=$((samz2*80)) && samz2=$((samz2/100)) &&
       wait
@@ -1785,7 +1785,7 @@ if [[ "${file4xG}" -lt 1 ]]; then
       wait
     fi
     wait
-		Rscript "${GBSapp_dir}"/scripts/R/VCF_2_DP_GT.R "${pop}" 4x "${GBSapp_dir}/tools/R" "1" "$filter_ExcHet" 2> /dev/null &&
+		Rscript "${GBSapp_dir}"/scripts/R/VCF_2_DP_GT.R "${pop}" 4x "${GBSapp_dir}/tools/R" "1" "$filter_ExcHet" &&
     rm ${projdir}/vcf4x_trimmed.txt 2> /dev/null &&
     wait
 	fi
@@ -1798,7 +1798,7 @@ if [[ "${file6xG}" -lt 1 ]]; then
     if test ! -f ${projdir}/vcf6x_trimmed.txt; then
   		for i in *_6x_raw.vcf; do
         refg=${i%_6x_raw.vcf} && refg=${refg#*_} && refg=${refg%%_*}.fasta
-        if [[ "$(ls ${projdir}/samples_list_node_* | wc -l)" -ge 100 ]]; then
+        if [[ "$(cat ${projdir}/samples_list_node_* | wc -l)" -ge 100 ]]; then
           samz1=$(wc -l ${projdir}/samples_list_node_* | awk '{print $1}') && samz1=$((samz1*98)) && samz1=$((samz1/100)) &&
           samz2=$(wc -l ${projdir}/samples_list_node_* | awk '{print $1}') && samz2=$((samz2*80)) && samz2=$((samz2/100)) &&
           wait
@@ -1818,7 +1818,7 @@ if [[ "${file6xG}" -lt 1 ]]; then
   		done
       :> ${projdir}/vcf6x_trimmed.txt
     fi
-    if [[ "$(ls ${projdir}/samples_list_node_* | wc -l)" -ge 100 ]]; then
+    if [[ "$(cat ${projdir}/samples_list_node_* | wc -l)" -ge 100 ]]; then
       samz1=$(wc -l ${projdir}/samples_list_node_* | awk '{print $1}') && samz1=$((samz1*98)) && samz1=$((samz1/100)) &&
       samz2=$(wc -l ${projdir}/samples_list_node_* | awk '{print $1}') && samz2=$((samz2*80)) && samz2=$((samz2/100)) &&
       wait
@@ -1830,7 +1830,7 @@ if [[ "${file6xG}" -lt 1 ]]; then
       wait
     fi
     wait
-		Rscript "${GBSapp_dir}"/scripts/R/VCF_2_DP_GT.R "${pop}" 6x "${GBSapp_dir}/tools/R" "1" "$filter_ExcHet" 2> /dev/null &&
+		Rscript "${GBSapp_dir}"/scripts/R/VCF_2_DP_GT.R "${pop}" 6x "${GBSapp_dir}/tools/R" "1" "$filter_ExcHet" &&
     rm ${projdir}/vcf6x_trimmed.txt 2> /dev/null &&
     wait
 	fi
@@ -1843,7 +1843,7 @@ if [[ "${file8xG}" -lt 1 ]]; then
     if test ! -f ${projdir}/vcf8x_trimmed.txt; then
   		for i in *_8x_raw.vcf; do
         refg=${i%_8x_raw.vcf} && refg=${refg#*_} && refg=${refg%%_*}.fasta
-        if [[ "$(ls ${projdir}/samples_list_node_* | wc -l)" -ge 100 ]]; then
+        if [[ "$(cat ${projdir}/samples_list_node_* | wc -l)" -ge 100 ]]; then
           samz1=$(wc -l ${projdir}/samples_list_node_* | awk '{print $1}') && samz1=$((samz1*98)) && samz1=$((samz1/100)) &&
           samz2=$(wc -l ${projdir}/samples_list_node_* | awk '{print $1}') && samz2=$((samz2*80)) && samz2=$((samz2/100)) &&
           wait
@@ -1863,7 +1863,7 @@ if [[ "${file8xG}" -lt 1 ]]; then
   		done
       :> ${projdir}/vcf8x_trimmed.txt
     fi
-    if [[ "$(ls ${projdir}/samples_list_node_* | wc -l)" -ge 100 ]]; then
+    if [[ "$(cat ${projdir}/samples_list_node_* | wc -l)" -ge 100 ]]; then
       samz1=$(wc -l ${projdir}/samples_list_node_* | awk '{print $1}') && samz1=$((samz1*98)) && samz1=$((samz1/100)) &&
       samz2=$(wc -l ${projdir}/samples_list_node_* | awk '{print $1}') && samz2=$((samz2*80)) && samz2=$((samz2/100)) &&
       wait
@@ -1875,7 +1875,7 @@ if [[ "${file8xG}" -lt 1 ]]; then
       wait
     fi
     wait
-		Rscript "${GBSapp_dir}"/scripts/R/VCF_2_DP_GT.R "${pop}" 8x "${GBSapp_dir}/tools/R" "1" "$filter_ExcHet" 2> /dev/null &&
+		Rscript "${GBSapp_dir}"/scripts/R/VCF_2_DP_GT.R "${pop}" 8x "${GBSapp_dir}/tools/R" "1" "$filter_ExcHet" &&
     rm ${projdir}/vcf8x_trimmed.txt 2> /dev/null &&
     wait
 	fi
@@ -1928,8 +1928,8 @@ for smiss in ${sample_missingness//,/ }; do
     		cd ${projdir}/snpfilter &&
     		cp -r 1x 1x_diversity_gmiss"${gmiss}"_smiss"${smiss}" &&
     		cd ./1x_diversity_gmiss"${gmiss}"_smiss"${smiss}" &&
-    		Rscript "${GBSapp_dir}"/scripts/R/GBSapp_Filter_diversity_1x.R $pop $gmiss $smiss $minRD_1x $exclude_samples "${GBSapp_dir}/tools/R" $maf $haplome_number $biallelic $select_samples 2> /dev/null &&
-    		rm "${pop}"_1x_rawRD"${minRD_1x}"_DP_GT.txt "${pop}"_1x_DP_GT.txt "${pop}"_1x_rd"${minRD_1x}".txt 2> /dev/null &&
+    		Rscript "${GBSapp_dir}"/scripts/R/GBSapp_Filter_diversity_1x.R $pop $gmiss $smiss $minRD_1x $exclude_samples "${GBSapp_dir}/tools/R" $maf $haplome_number $biallelic $select_samples &&
+    		rm "${pop}"_1x_rawRD"${minRD_1x}"_DP_GT.txt "${pop}"_1x_DP_GT.txt "${pop}"_1x_rd"${minRD_1x}".txt &&
     		mkdir visualizations && mv ./*.tiff ./visualizations/ &&
         wait
 
@@ -2054,8 +2054,8 @@ for smiss in ${sample_missingness//,/ }; do
     		cd ${projdir}/snpfilter &&
     		cp -r 2x 2x_diversity_gmiss"${gmiss}"_smiss"${smiss}" &&
     		cd ./2x_diversity_gmiss"${gmiss}"_smiss"${smiss}" &&
-    		Rscript "${GBSapp_dir}"/scripts/R/GBSapp_Filter_diversity_2x.R $pop $gmiss $smiss $minRD_2x $exclude_samples "${GBSapp_dir}/tools/R" $maf $haplome_number $biallelic $select_samples 2> /dev/null &&
-    		rm "${pop}"_2x_rawRD"${minRD_2x}"_DP_GT.txt "${pop}"_2x_DP_GT.txt "${pop}"_2x_rd"${minRD_2x}".txt 2> /dev/null &&
+    		Rscript "${GBSapp_dir}"/scripts/R/GBSapp_Filter_diversity_2x.R $pop $gmiss $smiss $minRD_2x $exclude_samples "${GBSapp_dir}/tools/R" $maf $haplome_number $biallelic $select_samples &&
+    		rm "${pop}"_2x_rawRD"${minRD_2x}"_DP_GT.txt "${pop}"_2x_DP_GT.txt "${pop}"_2x_rd"${minRD_2x}".txt &&
     		mkdir visualizations && mv ./*.tiff ./visualizations/ &&
         wait
 
@@ -2184,7 +2184,7 @@ for smiss in ${sample_missingness//,/ }; do
     		cd ${projdir}/snpfilter &&
     		cp -r 4x 4x_diversity_gmiss"${gmiss}"_smiss"${smiss}" &&
     		cd ./4x_diversity_gmiss"${gmiss}"_smiss"${smiss}" &&
-    		Rscript "${GBSapp_dir}"/scripts/R/GBSapp_Filter_diversity_4x.R $pop $gmiss $smiss $minRD_4x $exclude_samples "${GBSapp_dir}/tools/R" $maf $haplome_number $biallelic $select_samples 2> /dev/null &&
+    		Rscript "${GBSapp_dir}"/scripts/R/GBSapp_Filter_diversity_4x.R $pop $gmiss $smiss $minRD_4x $exclude_samples "${GBSapp_dir}/tools/R" $maf $haplome_number $biallelic $select_samples &&
     		rm ${pop}_4x_rawRD${minRD_4x}_DP_GT.txt ${pop}_4x_DP_GT.txt ${pop}_4x_rd${minRD_4x}.txt 2> /dev/null &&
     		mkdir visualizations && mv ./*.tiff ./visualizations/ &&
         wait
@@ -2312,7 +2312,7 @@ for smiss in ${sample_missingness//,/ }; do
     		cd ${projdir}/snpfilter &&
     		cp -r 6x 6x_diversity_gmiss"${gmiss}"_smiss"${smiss}" &&
     		cd ./6x_diversity_gmiss"${gmiss}"_smiss"${smiss}" &&
-    		Rscript "${GBSapp_dir}"/scripts/R/GBSapp_Filter_diversity_6x.R $pop $gmiss $smiss $minRD_6x $exclude_samples "${GBSapp_dir}/tools/R" $maf $haplome_number $biallelic $select_samples 2> /dev/null &&
+    		Rscript "${GBSapp_dir}"/scripts/R/GBSapp_Filter_diversity_6x.R $pop $gmiss $smiss $minRD_6x $exclude_samples "${GBSapp_dir}/tools/R" $maf $haplome_number $biallelic $select_samples &&
     		rm ${pop}_6x_rawRD${minRD_6x}_DP_GT.txt ${pop}_6x_DP_GT.txt ${pop}_6x_rd${minRD_6x}.txt 2> /dev/null &&
     		mkdir visualizations && mv ./*.tiff ./visualizations/ &&
         wait
@@ -2437,7 +2437,7 @@ for smiss in ${sample_missingness//,/ }; do
     		cd ${projdir}/snpfilter &&
     		cp -r 8x 8x_diversity_gmiss"${gmiss}"_smiss"${smiss}" &&
     		cd ./8x_diversity_gmiss"${gmiss}"_smiss"${smiss}" &&
-    		Rscript "${GBSapp_dir}"/scripts/R/GBSapp_Filter_diversity_8x.R $pop $gmiss $smiss $minRD_8x $exclude_samples "${GBSapp_dir}/tools/R" $maf $haplome_number $biallelic $select_samples 2> /dev/null &&
+    		Rscript "${GBSapp_dir}"/scripts/R/GBSapp_Filter_diversity_8x.R $pop $gmiss $smiss $minRD_8x $exclude_samples "${GBSapp_dir}/tools/R" $maf $haplome_number $biallelic $select_samples &&
     		rm ${pop}_8x_rawRD${minRD_8x}_DP_GT.txt ${pop}_8x_DP_GT.txt ${pop}_8x_rd${minRD_8x}.txt 2> /dev/null &&
     		mkdir visualizations && mv ./*.tiff ./visualizations/ &&
         wait
@@ -2570,7 +2570,7 @@ for smiss in ${sample_missingness//,/ }; do
     		cd ${projdir}/snpfilter &&
     		cp -r 2x 2x_biparental_gmiss"${gmiss}"_smiss"${smiss}" &&
     		cd ./2x_biparental_gmiss"${gmiss}"_smiss"${smiss}" &&
-    		Rscript "${GBSapp_dir}"/scripts/R/GBSapp_Filter_2x.R "$pop" "$p1" "$p2" "$gmiss" "$smiss" "$minRD_2x" "$exclude_samples" "${GBSapp_dir}/tools/R" "$pseg" "$haplome_number" $biallelic $select_samples 2> /dev/null &&
+    		Rscript "${GBSapp_dir}"/scripts/R/GBSapp_Filter_2x.R "$pop" "$p1" "$p2" "$gmiss" "$smiss" "$minRD_2x" "$exclude_samples" "${GBSapp_dir}/tools/R" "$pseg" "$haplome_number" $biallelic $select_samples &&
     		rm "${pop}"_2x_rawRD"${minRD_2x}"_DP_GT.txt "${pop}"_2x_DP_GT.txt "${pop}"_2x_rd"${minRD_2x}".txt 2> /dev/null &&
     		mkdir visualizations && mv ./*.tiff ./visualizations/ &&
         wait
@@ -2698,7 +2698,7 @@ for smiss in ${sample_missingness//,/ }; do
     		cd ${projdir}/snpfilter &&
     		cp -r 4x 4x_biparental_gmiss"${gmiss}"_smiss"${smiss}" &&
     		cd ./4x_biparental_gmiss"${gmiss}"_smiss"${smiss}" &&
-    		Rscript "${GBSapp_dir}"/scripts/R/GBSapp_Filter_4x.R "$pop" "$p1" "$p2" "$gmiss" "$smiss" "$minRD_4x" "$exclude_samples" "${GBSapp_dir}/tools/R" "$pseg" "$haplome_number" $biallelic $select_samples 2> /dev/null &&
+    		Rscript "${GBSapp_dir}"/scripts/R/GBSapp_Filter_4x.R "$pop" "$p1" "$p2" "$gmiss" "$smiss" "$minRD_4x" "$exclude_samples" "${GBSapp_dir}/tools/R" "$pseg" "$haplome_number" $biallelic $select_samples &&
     		rm ${pop}_4x_rawRD${minRD_4x}_DP_GT.txt ${pop}_4x_DP_GT.txt ${pop}_4x_rd${minRD_4x}.txt 2> /dev/null &&
     		mkdir visualizations && mv ./*.tiff ./visualizations/ &&
         wait
@@ -2827,7 +2827,7 @@ for smiss in ${sample_missingness//,/ }; do
     		cd ${projdir}/snpfilter &&
     		cp -r 6x 6x_biparental_gmiss"${gmiss}"_smiss"${smiss}" &&
     		cd ./6x_biparental_gmiss"${gmiss}"_smiss"${smiss}" &&
-    		Rscript "${GBSapp_dir}"/scripts/R/GBSapp_Filter_6x.R "$pop" "$p1" "$p2" "$gmiss" "$smiss" "$minRD_6x" "$exclude_samples" "${GBSapp_dir}/tools/R" "$pseg" "$haplome_number" $biallelic $select_samples 2> /dev/null &&
+    		Rscript "${GBSapp_dir}"/scripts/R/GBSapp_Filter_6x.R "$pop" "$p1" "$p2" "$gmiss" "$smiss" "$minRD_6x" "$exclude_samples" "${GBSapp_dir}/tools/R" "$pseg" "$haplome_number" $biallelic $select_samples &&
     		rm ${pop}_6x_rawRD${minRD_6x}_DP_GT.txt ${pop}_6x_DP_GT.txt ${pop}_6x_rd${minRD_6x}.txt 2> /dev/null &&
     		mkdir visualizations && mv ./*.tiff ./visualizations/ &&
         wait
@@ -2955,7 +2955,7 @@ for smiss in ${sample_missingness//,/ }; do
     		cd ${projdir}/snpfilter &&
     		cp -r 8x 8x_biparental_gmiss"${gmiss}"_smiss"${smiss}" &&
     		cd ./8x_biparental_gmiss"${gmiss}"_smiss"${smiss}" &&
-    		Rscript "${GBSapp_dir}"/scripts/R/GBSapp_Filter_8x.R "$pop" "$p1" "$p2" "$gmiss" "$smiss" "$minRD_8x" "$exclude_samples" "${GBSapp_dir}/tools/R" "$pseg" "$haplome_number" $biallelic $select_samples 2> /dev/null &&
+    		Rscript "${GBSapp_dir}"/scripts/R/GBSapp_Filter_8x.R "$pop" "$p1" "$p2" "$gmiss" "$smiss" "$minRD_8x" "$exclude_samples" "${GBSapp_dir}/tools/R" "$pseg" "$haplome_number" $biallelic $select_samples &&
     		rm ${pop}_8x_rawRD${minRD_8x}_DP_GT.txt ${pop}_8x_DP_GT.txt ${pop}_8x_rd${minRD_8x}.txt 2> /dev/null &&
     		mkdir visualizations && mv ./*.tiff ./visualizations/ &&
         wait
@@ -3732,7 +3732,6 @@ fi
 ######################################################################################################################################################
 cd ${projdir}
 if [[ "$samples_list" == "samples_list_node_1.txt" ]] && [[ -d "snpfilter" ]]; then
-	touch Analysis_Complete &&
   find ../ -size 0 -delete >/dev/null 2>&1 &&
   rm call*  2> /dev/null &&
   ls ./snpfilter/*/*_plusSD.txt 2> /dev/null | xargs rm 2> /dev/null &&
@@ -3743,6 +3742,7 @@ if [[ "$samples_list" == "samples_list_node_1.txt" ]] && [[ -d "snpfilter" ]]; t
 	mv ${projdir}/GBSapp_run_node.sh ${projdir}/GBSapp_run_node_done.sh 2> /dev/null &&
   wait
   if [[ "$biallelic" == true ]]; then mv snpfilter snpfilter_biallelic; fi
+  touch Analysis_Complete
 else
 	touch Analysis_Complete_${samples_list}
 fi

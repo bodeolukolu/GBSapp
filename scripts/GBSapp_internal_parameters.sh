@@ -30,8 +30,9 @@ if [[ "$slurm_module" =~ "Module" ]]; then
 		if [[ "$pythonversion" =~ "Python 2" ]] || [[ "$pythonversion" =~ "Python 3" ]]; then
 			echo -e "${white}\n- Using $pythonversion\n ${white}"
 		fi
-		module unload R
-	  module add R
+		module unload R 2> /dev/null
+	  module add R 2> /dev/null
+		module add r 2> /dev/null
 	  Rversion=$((R --version) 2>&1)
 	  if [[ "$Rversion" =~ "R version" ]]; then
 	    echo -e "${white}\n- Using $Rversion\n ${white}"
@@ -137,3 +138,7 @@ if [ -z "$bedtoolsout" ];then
 else
   $bedtools --version | head -n 3
 fi
+
+cd $GBSapp_dir/tools/R
+Rscript ../../scripts/R/check_R_tools.R "${GBSapp_dir}/tools/R"
+cd $projdir

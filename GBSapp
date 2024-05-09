@@ -69,9 +69,7 @@ if [ ! -f picard* ]; then echo -e "${magenta}- PICARD is not installated or prop
 if [ ! -d jdk* ]; then echo -e "${magenta}- Java jdk8 is not installated or properly installed\n- Consider checking dependencies and re-running install command\n\n ${white}"; fi
 if [ ! -d EMBOSS* ]; then echo -e "${magenta}- EMBOSS is not installated or properly installed\n- Consider checking dependencies and re-running install command\n\n ${white}"; fi
 if [ ! -d gatk* ]; then echo -e "${magenta}- GATK is not installated or properly installed\n- Consider re-running install command\n\n ${white}"; fi
-if [ ! -d ./R/reshape2 ]; then echo -e "${magenta}- R-package reshape2 is not installated or properly installed\n- Consider checking dependencies and re-running install command\n\n ${white}"; fi
-if [ ! -d ./R/ggplot2 ]; then echo -e "${magenta}- R-package ggplot2 is not installated or properly installed\n- Consider checking dependencies and re-running install command\n\n ${white}"; fi
-if [ ! -d ./R/CMplot ]; then echo -e "${magenta}- R-package CMplot is not installated or properly installed\n- Consider checking dependencies and re-running install command\n\n ${white}"; fi
+
 
 
 # if [ "${GBSapp_dir:0:1}" = "." ]; then
@@ -482,7 +480,7 @@ if [[ "$string" == false ]]; then
     awk '{gsub(/_R1.fastq/,".fastq"); gsub(/\.R1.fastq/,".fastq"); gsub(/_R1.fq/,".fq"); gsub(/\.R1.fq/,".fq"); print}' > samples_list_node_1.txt
   fi
   printf "samples_list=samples_list_node_1.txt\n" >> config.sh
-  cat header.txt <(grep -v '^[[:space:]]*$' config.sh | awk '{gsub(/^/,"export "); gsub(/export #/,"#");}1') fetchdir.txt $string2 $string3 | awk '{ sub("\r$",""); print}' > GBSapp_run.sh
+  cat header.txt <(grep -v '^[[:space:]]*$' config.sh | awk '{gsub(/^/,"export "); gsub(/export #/,"#");}1') fetchdir.txt "$string2" "$string3" | awk '{ sub("\r$",""); print}' > GBSapp_run.sh
   rm header.txt fetchdir.txt
   echo -e "${magenta}- GBSapp is ready to submit job ${white}"
   echo -e "${magenta}- Do you want to continue? ${white}"
