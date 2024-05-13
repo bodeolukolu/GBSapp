@@ -18,6 +18,7 @@ main () {
   cd build/
   cmake ..
   make
+  cd ../../
 }
 dirtool=*NextGenMap*
 if [ -d $dirtool ]; then
@@ -33,7 +34,7 @@ main () {
   wget https://github.com/samtools/bcftools/releases/download/1.17/bcftools-1.17.tar.bz2 &&
   tar -xvf bcftools-1.17.tar.bz2;  cd bcftools-1.17; make
   rm ../bcftools-1.17.tar.bz2
-  cd ..
+  cd ../
 }
 dirtool=bcftools-1.17
 if [ -d $dirtool ]; then
@@ -49,7 +50,7 @@ main () {
   wget https://github.com/arq5x/bedtools2/releases/download/v2.29.1/bedtools-2.29.1.tar.gz &&
   tar -zxvf bedtools-2.29.1.tar.gz; cd bedtools2; make
   rm ../bedtools-2.29.1.tar.gz
-  cd ..
+  cd ../
 }
 dirtool=bedtools2
 if [ -d $dirtool ]; then
@@ -118,7 +119,7 @@ main () {
   cd EMBOSS-6.6.0/
   ./configure
   make
-  cd ..
+  cd ../
   rm emboss_6.6.0.orig.tar*
 }
 dirtool=EMBOSS*

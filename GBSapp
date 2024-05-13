@@ -129,7 +129,7 @@ if [ ! -d gatk* ]; then echo -e "${magenta}- GATK is not installated or properly
 ####################################################################################################################
 ####################################################################################################################
 
-cd $projdir
+cd "$projdir"
 echo -e "${white}\n##################################################################################\n"
 echo -e "${yellow}\t- Program:	GBSapp"
 echo -e "${yellow}\t- Version:	1.1"
@@ -185,7 +185,7 @@ fi
 ####################################################################################################################
 ####################################################################################################################
 ####################################################################################################################
-cd $projdir
+cd "$projdir"
 samples_alt_dir="$(grep samples_alt_dir config.sh)"
 samples_alt_dir=${samples_alt_dir//*=}
 free=$(df . | awk 'NR==2{print $4}')
@@ -216,7 +216,7 @@ else
 fi
 
 # Initial questions before running walkaway
-cd $projdir/samples
+cd "$projdir"/samples
 
 required=$(du -s . | awk '{print $1}') && required0=required
 if [[ "$(ls | head -n1)" =~ "gz" ]]; then  required0=$((required*5)); fi
@@ -241,7 +241,7 @@ if test ! -f "${projdir}/steps.txt"; then
 fi
 
 
-cd $projdir/samples
+cd "$projdir"/samples
 if [ -d "paired" ]; then
  mv paired pe
 fi
@@ -250,7 +250,7 @@ if [ -d "single" ]; then
 fi
 
 
-cd $projdir
+cd "$projdir"
 if [[ -d "./samples/pe" ]] || [[ -d "./samples/se" ]]; then
   if test ! -f "${projdir}/steps.txt"; then
     if test -f "./samples/filename_reformatted.txt" || test -f "./samples/flushed_reads.txt"; then
@@ -290,7 +290,7 @@ fi
 
 ####################################################################################################################
 # check if the job was previously submitted and interrupted
-cd $projdir
+cd "$projdir"
 n_nodes="$(grep nodes config.sh)"
 n_nodes=${nodes//*=}
 if [ -z "$n_nodes" ]; then
@@ -393,13 +393,13 @@ fi
 ####################################################################################################################
 
 main() {
-cd $projdir
+cd "$projdir"
 cd samples
 if [[ -d pe ]] || [[ -d se ]]; then
   export samples_list=$(ls -R ./*/*.f* 2> /dev/null | awk '{gsub(/.\/se\//,"");gsub(/.\/pe\//,"");}1' | sort | uniq | grep -v .txt | grep -v .txt.gz | grep -v uniq | shuf | awk '{gsub(/\n/," "); print}' | awk -F"/" '{print $NF}' | awk '!a[$0]++' )
 else
   if [[ "$(wc -l ../samples_list* 2> /dev/null | awk '{if(max<$1){max=$1;line=$1}}END{print line}')"  -lt 1 ]]; then
-    export samples_list=$(ls -R *.f* 2> /dev/null | grep -v .txt | grep -v .txt.gz | grep -v uniq | shuf | awk '{gsub(/\n/," "); print}' | awk -F"/" '{print $NF}' | awk '!a[$0]++' )
+    export samples_list=$(ls -R ./*.f* 2> /dev/null | grep -v .txt | grep -v .txt.gz | grep -v uniq | shuf | awk '{gsub(/\n/," "); print}' | awk -F"/" '{print $NF}' | awk '!a[$0]++' )
   fi
 fi
 cd ../
@@ -407,7 +407,7 @@ cd ../
 string="${GBSapp_dir}/scripts/GBSapp_internal_parameters.sh"
 string2=${string//'//'/'/'}
 
-cd $projdir
+cd "$projdir"
 
 awk '{gsub(/ /,""); print}' config.sh > unixformat.sh
 mv unixformat.sh config.sh
@@ -417,15 +417,15 @@ mv unixformat.sh config.sh
 string="$(awk '/^ref/&&/=/&&/.fa/ {print}' config.sh | wc -l)"
 string_hap="$(awk '/^haplome_ref/&&/=/&&/.fa/ {print}' config.sh | wc -l)"
 string_pan="$(awk '/^pangenome_ref/&&/=/&&/.fa/ {print}' config.sh | wc -l)"
-if [[ "$string" > 0 ]] && [[ "$string_hap" > 0 ]]; then
+if [[ "$string" -gt 0 ]] && [[ "$string_hap" > 0 ]]; then
   echo -e "${magenta}\n- You cannot specify both haploid/subgenome(s) and haplotype-resolved reference genome. ${white}\n"
   exit 1
 fi
-if [[ "$string" > 0 ]] && [[ "$string_pan" > 0 ]]; then
+if [[ "$string" -gt 0 ]] && [[ "$string_pan" > 0 ]]; then
   echo -e "${magenta}\n- You cannot specify both haploid/subgenome(s) and pangenomes reference genome. ${white}\n"
   exit 1
 fi
-if [[ "$string_pan" > 0 ]] && [[ "$string_hap" > 0 ]]; then
+if [[ "$string_pan" -gt 0 ]] && [[ "$string_hap" > 0 ]]; then
   echo -e "${magenta}\n- You cannot specify both pangenomes and haplotype-resolved reference genome. ${white}\n"
   exit 1
 fi
@@ -434,17 +434,17 @@ if [[ "$string" -eq 0 ]]; then
 string=1
 fi
 string3=${GBSapp_dir}/scripts/subgenome_ref_files_${string}.sh
-if [[ "$string_pan" > 0 ]]; then
+if [[ "$string_pan" -gt 0 ]]; then
   string3=${GBSapp_dir}/scripts/subgenome_ref_files_${string_pan}.sh
 fi
-if [[ "$string_hap" > 0 ]]; then
+if [[ "$string_hap" -gt 0 ]]; then
   string3=${GBSapp_dir}/scripts/subgenome_ref_files_${string_hap}.sh
 fi
 
-cd $projdir
+cd "$projdir"
 printf "#""!""/bin/bash \n\n" > header.txt
-printf "GBSapp_dir=${GBSapp_dir}\n" > fetchdir.txt
-printf "projdir=${projdir}" >> fetchdir.txt
+printf "GBSapp_dir=%s\n" "${GBSapp_dir}" > fetchdir.txt
+printf "projdir=%s\n" "${projdir}" >> fetchdir.txt
 
 string="$(grep walkaway config.sh)"
 string=${string//*=}
@@ -475,7 +475,7 @@ if [[ "$string" == false ]]; then
   fi
 
   if [[ "$(wc -l samples_list* 2> /dev/null | awk '{if(max<$1){max=$1;line=$1}}END{print line}')"  -lt 1 ]]; then
-    echo $samples_list | awk -F' ' '{ for (i=1;i<=NF;i+=1) print $i }' | awk '{gsub(/\.R2.f/,"_R2.f");}1' | grep -v _R2.f | grep -v _uniq.fasta | grep -v _uniq_R1.fasta | grep -v _uniq_R2.fasta | \
+    echo "$samples_list" | awk -F' ' '{ for (i=1;i<=NF;i+=1) print $i }' | awk '{gsub(/\.R2.f/,"_R2.f");}1' | grep -v _R2.f | grep -v _uniq.fasta | grep -v _uniq_R1.fasta | grep -v _uniq_R2.fasta | \
     grep -v _uniq.hold.fasta | grep -v _uniq_R1.hold.fasta | grep -v _uniq_R2.hold.fasta | grep -v fq.gz | \
     awk '{gsub(/_R1.fastq/,".fastq"); gsub(/\.R1.fastq/,".fastq"); gsub(/_R1.fq/,".fq"); gsub(/\.R1.fq/,".fq"); print}' > samples_list_node_1.txt
   fi
