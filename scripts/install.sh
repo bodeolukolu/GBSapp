@@ -137,7 +137,7 @@ main6 () {
   cd EMBOSS-6.6.0/
   ./configure --without-x
   make
-  cd ..
+  cd ../
   rm EMBOSS-6.6.0.tar
   cd $tools_dir
 }
