@@ -9,15 +9,19 @@ cyan=$'\e[1;36m'
 white=$'\e[0m'
 
 tools_dir=$(pwd)
-main () {
+main1 () {
   echo -e "${blue}\n############################################## ${yellow}\n- downloading and installing NGM ${blue}\n##############################################${white}"
+  wget http://www.cmake.org/files/v2.8/cmake-2.8.0-Linux-i386.tar.gz
+  tar -zxvf cmake-2.8.0-Linux-i386.tar.gz
+  rm cmake-2.8.0-Linux-i386.tar.gz
   wget https://github.com/Cibiv/NextGenMap/tarball/master -O NGM.tar.gz
   tar xvfz NGM.tar.gz; rm NGM.tar.gz
   cd Cibiv-NextGenMap*
   mkdir -p build/
   cd build/
-  cmake ..
+  ../../cmake-2.8.0-Linux-i386/bin/cmake ..
   make
+  rm -rf ../../cmake-2.8.0-Linux-i386/
   cd $tools_dir
 }
 dirtool=*NextGenMap*
@@ -25,14 +29,14 @@ if [ -d $dirtool ]; then
   :
 else
   echo -e "${magenta}- Performing installation of dependency (NextGenMap aligner: NGM) ${white}"
-  main &>> ./log.out
+  main1 &>> ./log.out
   if [ ! -d $dirtool ]; then
       echo -e "${magenta} NGM did not install properly ${white}"
   fi
 fi
 
 
-main () {
+main2 () {
   echo -e "${blue}\n############################################## ${yellow}\n- downloading and installing bcftools ${blue}\n##############################################${white}"
   wget https://github.com/samtools/bcftools/releases/download/1.17/bcftools-1.17.tar.bz2 &&
   tar -xvf bcftools-1.17.tar.bz2;  cd bcftools-1.17; make
@@ -44,33 +48,33 @@ if [ -d $dirtool ]; then
   :
 else
   echo -e "${magenta}- Performing installation of dependency (bcftools) ${white}"
-  main &>> ./log.out
+  main2 &>> ./log.out
   if [ ! -d $dirtool ]; then
       echo -e "${magenta} bcftools did not install properly ${white}"
   fi
 fi
 
 
-main () {
+main3 () {
   echo -e "${blue}\n############################################## ${yellow}\n- downloading and installing bedtools ${blue}\n##############################################${white}"
   wget https://github.com/arq5x/bedtools2/releases/download/v2.29.1/bedtools-2.29.1.tar.gz &&
   tar -zxvf bedtools-2.29.1.tar.gz; cd bedtools2; make
   rm ../bedtools-2.29.1.tar.gz
   cd $tools_dir
 }
-dirtool=bedtools2
+dirtool=bedtools*
 if [ -d $dirtool ]; then
   :
 else
   echo -e "${magenta}- Performing installation of dependency (bedtools) ${white}"
-  main &>> ./log.out
+  main3 &>> ./log.out
   if [ ! -d $dirtool ]; then
       echo -e "${magenta} bedtools did not install properly ${white}"
   fi
 fi
 
 
-main () {
+main4 () {
   echo -e "${blue}\n############################################## ${yellow}\n- downloading and installing samtools ${blue}\n##############################################${white}"
   wget https://github.com/samtools/samtools/releases/download/1.17/samtools-1.17.tar.bz2 &&
   tar -xvf samtools-1.17.tar.bz2;  cd samtools-1.17; make
@@ -82,14 +86,14 @@ if [ -d $dirtool ]; then
   :
 else
   echo -e "${magenta}- Performing installation of dependency (samtools) ${white}"
-  main &>> ./log.out
+  main4 &>> ./log.out
   if [ ! -d $dirtool ]; then
       echo -e "${magenta} samtools did not install properly ${white}"
   fi
 fi
 
 
-main () {
+main5 () {
   echo -e "${blue}\n############################################## ${yellow}\n- downloading PICARD tools ${blue}\n##############################################${white}"
   wget https://github.com/broadinstitute/picard/releases/download/2.25.6/picard.jar
   cd $tools_dir
@@ -99,7 +103,7 @@ if [ -f $dirtool ]; then
   :
 else
   echo -e "${magenta}- Performing installation of dependency (picard tools) ${white}"
-  main &>> ./log.out
+  main5 &>> ./log.out
   if [ ! -f $dirtool ]; then
       echo -e "${magenta} PICARD tools did not install properly ${white}"
   fi
@@ -112,7 +116,7 @@ main () {
   tar -xvf OpenJDK8U-jdk_x64_linux_hotspot_8u322b06.tar.gz; rm *tar.gz
   cd $tools_dir
 }
-dirtool=jdk*
+dirtool=*jdk*
 if [ -d $dirtool ]; then
   :
 else
@@ -123,14 +127,15 @@ else
   fi
 fi
 
-
-main () {
+main6 () {
   echo -e "${blue}\n############################################## \n- installiing Emboss ${blue}\n##############################################${white}"
-  wget ftp://emboss.open-bio.org/pub/EMBOSS/EMBOSS-6.6.0.tar.gz
+  wget -m 'ftp://emboss.open-bio.org/pub/EMBOSS/'
+  mv emboss.open-bio.org/pub/EMBOSS/EMBOSS-6.6.0.tar.gz ./
+  rm -rf emboss.open-bio.org/
   gunzip EMBOSS-6.6.0.tar.gz
   tar xvf EMBOSS-6.6.0.tar
   cd EMBOSS-6.6.0/
-  ./configure
+  ./configure --without-x
   make
   cd ..
   rm EMBOSS-6.6.0.tar
@@ -141,16 +146,15 @@ if [ -d $dirtool ]; then
   :
 else
   echo -e "${magenta}- Performing installation of dependency (EMBOSS)${white}"
-  main &>> ./log.out
+  main6 &>> ./log.out
   if [ ! -d $dirtool ]; then
       echo -e "${magenta} Emboss did not install properly ${white}"
   fi
 fi
 
 
-main () {
-  echo -e "${blue}\n############################################## \n- installiing mafft ${blue}\n##############################################${white}"
-  mkdir mafft
+main7 () {
+  echo -e "${blue}\n############################################## \n- installing mafft ${blue}\n##############################################${white}"
   wget https://mafft.cbrc.jp/alignment/software/mafft-7.505-without-extensions-src.tgz
   tar zxvf mafft-7.505-without-extensions-src.tgz
   rm mafft-7.505-without-extensions-src.tgz
@@ -163,19 +167,18 @@ main () {
   make install
   cd $tools_dir
 }
-dirtool=mafft
+dirtool=mafft-7.505-without-extensions
 if [ -d $dirtool ]; then
   :
 else
   echo -e "${magenta}- Performing installation of dependency (mafft)${white}"
-  main &>> ./log.out
+  main7 &>> ./log.out
   if [ ! -d $dirtool ]; then
       echo -e "${magenta} mafft did not install properly ${white}"
   fi
 fi
 
-
-main () {
+main8 () {
   echo -e "${green}\n############################################## \n- downloading GATK \n##############################################${white}"
   wget -O GATK4.2.6.1.zip "https://github.com/broadinstitute/gatk/releases/download/4.2.6.1/gatk-4.2.6.1.zip"
   unzip GATK4.2.6.1.zip
@@ -187,14 +190,14 @@ if [ -d $dirtool ]; then
   :
 else
   echo -e "${magenta}- Performing installation of dependency (GATK) ${white}"
-  main &>> ./log.out
+  main8 &>> ./log.out
   if [ ! -d $dirtool ]; then
       echo -e "${magenta} GATK did not install properly ${white}"
   fi
 fi
 
 
-main () {
+main0 () {
   if which R; then
     :
   else
@@ -209,7 +212,7 @@ main () {
   fi
 }
 echo -e "${white}\n############################################## ${orange}\n- check for R installation ${white}\n##############################################${white}" &>> ./log.out
-main &>> ./log.out
+main0 &>> ./log.out
 
 
 dirtool=R
@@ -223,7 +226,7 @@ else
 fi
 
 
-main () {
+main9 () {
   echo -e "${blue}\n############################################## \n- installing R-package: reshape2  ${blue}\n##############################################${white}"
   R -e 'install.packages("reshape2", dependencies = TRUE, repos="http://cran.r-project.org", lib="./")'
   cd $R_dir
@@ -233,7 +236,7 @@ if [ -d $dirtool ]; then
   :
 else
   echo -e "${magenta}- Performing installation of R-package: reshape2 ${white}"
-  main &>> ./log.out
+  main9 &>> ./log.out
   cd $R_dir
   if [ ! -d $dirtool ]; then
       echo -e "${magenta} R-package: reshape2 did not install properly ${white}"
@@ -241,16 +244,17 @@ else
 fi
 
 
-main () {
+main10 () {
   echo -e "${blue}\n############################################## \n- installing R-package: ggplot2  ${blue}\n##############################################${white}"
   R -e 'install.packages("ggplot2", dependencies = TRUE, repos="http://cran.r-project.org", lib="./")'
+  cd ../
 }
 dirtool=./ggplot2
 if [ -d $dirtool ]; then
   :
 else
   echo -e "${magenta}- Performing installation of R-package: ggplot2 ${white}"
-  main &>> ./log.out
+  main10 &>> ./log.out
   cd $R_dir
   if [ ! -d $dirtool ]; then
       echo -e "${magenta} R-package: ggplot2 did not install properly ${white}"
@@ -258,16 +262,17 @@ else
 fi
 
 
-main () {
+main11 () {
   echo -e "${blue}\n############################################## \n- installing R-package: CMplot  ${blue}\n##############################################${white}"
   R -e 'install.packages("CMplot", dependencies = TRUE, repos="http://cran.r-project.org", lib="./")'
+  cd ../
 }
 dirtool=./CMplot
 if [ -d $dirtool ]; then
   :
 else
   echo -e "${magenta}- Performing installation of R-package: CMplot ${white}"
-  main &>> ./log.out
+  main11 &>> ./log.out
   cd $R_dir
   if [ ! -d $dirtool ]; then
       echo -e "${magenta} R-package: CMplot did not install properly ${white}"

@@ -1695,7 +1695,7 @@ if [[ "${file1xG}" -lt 1 ]]; then
       wait
     fi
     wait
-		Rscript "${GBSapp_dir}"/scripts/R/VCF_2_DP_GT.R "${pop}" 1x "${GBSapp_dir}/tools/R" "1" "$filter_ExcHet" &&
+		Rscript "${GBSapp_dir}"/scripts/R/VCF_2_DP_GT.R "${pop}" 1x "${GBSapp_dir}/tools/R" "1" "$filter_ExcHet" 2> /dev/null &&
     rm "${projdir}"/vcf1x_trimmed.txt 2> /dev/null &&
     wait
 	fi
@@ -1740,7 +1740,7 @@ if [[ "${file2xG}" -lt 1 ]]; then
       wait
     fi
     wait
-		Rscript "${GBSapp_dir}"/scripts/R/VCF_2_DP_GT.R "${pop}" 2x "${GBSapp_dir}/tools/R" "1" "$filter_ExcHet" &&
+		Rscript "${GBSapp_dir}"/scripts/R/VCF_2_DP_GT.R "${pop}" 2x "${GBSapp_dir}/tools/R" "1" "$filter_ExcHet" 2> /dev/null &&
     rm ${projdir}/vcf2x_trimmed.txt 2> /dev/null &&
     wait
 	fi
@@ -1785,7 +1785,7 @@ if [[ "${file4xG}" -lt 1 ]]; then
       wait
     fi
     wait
-		Rscript "${GBSapp_dir}"/scripts/R/VCF_2_DP_GT.R "${pop}" 4x "${GBSapp_dir}/tools/R" "1" "$filter_ExcHet" &&
+		Rscript "${GBSapp_dir}"/scripts/R/VCF_2_DP_GT.R "${pop}" 4x "${GBSapp_dir}/tools/R" "1" "$filter_ExcHet" 2> /dev/null &&
     rm ${projdir}/vcf4x_trimmed.txt 2> /dev/null &&
     wait
 	fi
@@ -1830,7 +1830,7 @@ if [[ "${file6xG}" -lt 1 ]]; then
       wait
     fi
     wait
-		Rscript "${GBSapp_dir}"/scripts/R/VCF_2_DP_GT.R "${pop}" 6x "${GBSapp_dir}/tools/R" "1" "$filter_ExcHet" &&
+		Rscript "${GBSapp_dir}"/scripts/R/VCF_2_DP_GT.R "${pop}" 6x "${GBSapp_dir}/tools/R" "1" "$filter_ExcHet" 2> /dev/null &&
     rm ${projdir}/vcf6x_trimmed.txt 2> /dev/null &&
     wait
 	fi
@@ -1875,7 +1875,7 @@ if [[ "${file8xG}" -lt 1 ]]; then
       wait
     fi
     wait
-		Rscript "${GBSapp_dir}"/scripts/R/VCF_2_DP_GT.R "${pop}" 8x "${GBSapp_dir}/tools/R" "1" "$filter_ExcHet" &&
+		Rscript "${GBSapp_dir}"/scripts/R/VCF_2_DP_GT.R "${pop}" 8x "${GBSapp_dir}/tools/R" "1" "$filter_ExcHet" 2> /dev/null &&
     rm ${projdir}/vcf8x_trimmed.txt 2> /dev/null &&
     wait
 	fi
@@ -1928,9 +1928,9 @@ for smiss in ${sample_missingness//,/ }; do
     		cd ${projdir}/snpfilter &&
     		cp -r 1x 1x_diversity_gmiss"${gmiss}"_smiss"${smiss}" &&
     		cd ./1x_diversity_gmiss"${gmiss}"_smiss"${smiss}" &&
-    		Rscript "${GBSapp_dir}"/scripts/R/GBSapp_Filter_diversity_1x.R $pop $gmiss $smiss $minRD_1x $exclude_samples "${GBSapp_dir}/tools/R" $maf $haplome_number $biallelic $select_samples &&
+    		Rscript "${GBSapp_dir}"/scripts/R/GBSapp_Filter_diversity_1x.R $pop $gmiss $smiss $minRD_1x $exclude_samples "${GBSapp_dir}/tools/R" $maf $haplome_number $biallelic $select_samples 2> /dev/null &&
     		rm "${pop}"_1x_rawRD"${minRD_1x}"_DP_GT.txt "${pop}"_1x_DP_GT.txt "${pop}"_1x_rd"${minRD_1x}".txt &&
-    		mkdir visualizations && mv ./*.tiff ./visualizations/ &&
+    		mkdir visualizations && mv ./*.tiff ./visualizations/ 2> /dev/null &&
         wait
 
         if [[ "$variant_intervals" == true ]]; then
@@ -2054,9 +2054,9 @@ for smiss in ${sample_missingness//,/ }; do
     		cd ${projdir}/snpfilter &&
     		cp -r 2x 2x_diversity_gmiss"${gmiss}"_smiss"${smiss}" &&
     		cd ./2x_diversity_gmiss"${gmiss}"_smiss"${smiss}" &&
-    		Rscript "${GBSapp_dir}"/scripts/R/GBSapp_Filter_diversity_2x.R $pop $gmiss $smiss $minRD_2x $exclude_samples "${GBSapp_dir}/tools/R" $maf $haplome_number $biallelic $select_samples &&
+    		Rscript "${GBSapp_dir}"/scripts/R/GBSapp_Filter_diversity_2x.R $pop $gmiss $smiss $minRD_2x $exclude_samples "${GBSapp_dir}/tools/R" $maf $haplome_number $biallelic $select_samples 2> /dev/null &&
     		rm "${pop}"_2x_rawRD"${minRD_2x}"_DP_GT.txt "${pop}"_2x_DP_GT.txt "${pop}"_2x_rd"${minRD_2x}".txt &&
-    		mkdir visualizations && mv ./*.tiff ./visualizations/ &&
+    		mkdir visualizations && mv ./*.tiff ./visualizations/ 2> /dev/null &&
         wait
 
         if [[ "$variant_intervals" == true ]]; then
@@ -2184,9 +2184,9 @@ for smiss in ${sample_missingness//,/ }; do
     		cd ${projdir}/snpfilter &&
     		cp -r 4x 4x_diversity_gmiss"${gmiss}"_smiss"${smiss}" &&
     		cd ./4x_diversity_gmiss"${gmiss}"_smiss"${smiss}" &&
-    		Rscript "${GBSapp_dir}"/scripts/R/GBSapp_Filter_diversity_4x.R $pop $gmiss $smiss $minRD_4x $exclude_samples "${GBSapp_dir}/tools/R" $maf $haplome_number $biallelic $select_samples &&
+    		Rscript "${GBSapp_dir}"/scripts/R/GBSapp_Filter_diversity_4x.R $pop $gmiss $smiss $minRD_4x $exclude_samples "${GBSapp_dir}/tools/R" $maf $haplome_number $biallelic $select_samples 2> /dev/null &&
     		rm ${pop}_4x_rawRD${minRD_4x}_DP_GT.txt ${pop}_4x_DP_GT.txt ${pop}_4x_rd${minRD_4x}.txt 2> /dev/null &&
-    		mkdir visualizations && mv ./*.tiff ./visualizations/ &&
+    		mkdir visualizations && mv ./*.tiff ./visualizations/ 2> /dev/null &&
         wait
 
         if [[ "$variant_intervals" == true ]]; then
@@ -2312,9 +2312,9 @@ for smiss in ${sample_missingness//,/ }; do
     		cd ${projdir}/snpfilter &&
     		cp -r 6x 6x_diversity_gmiss"${gmiss}"_smiss"${smiss}" &&
     		cd ./6x_diversity_gmiss"${gmiss}"_smiss"${smiss}" &&
-    		Rscript "${GBSapp_dir}"/scripts/R/GBSapp_Filter_diversity_6x.R $pop $gmiss $smiss $minRD_6x $exclude_samples "${GBSapp_dir}/tools/R" $maf $haplome_number $biallelic $select_samples &&
+    		Rscript "${GBSapp_dir}"/scripts/R/GBSapp_Filter_diversity_6x.R $pop $gmiss $smiss $minRD_6x $exclude_samples "${GBSapp_dir}/tools/R" $maf $haplome_number $biallelic $select_samples 2> /dev/null &&
     		rm ${pop}_6x_rawRD${minRD_6x}_DP_GT.txt ${pop}_6x_DP_GT.txt ${pop}_6x_rd${minRD_6x}.txt 2> /dev/null &&
-    		mkdir visualizations && mv ./*.tiff ./visualizations/ &&
+    		mkdir visualizations && mv ./*.tiff ./visualizations/ 2> /dev/null &&
         wait
 
         if [[ "$variant_intervals" == true ]]; then
@@ -2437,9 +2437,9 @@ for smiss in ${sample_missingness//,/ }; do
     		cd ${projdir}/snpfilter &&
     		cp -r 8x 8x_diversity_gmiss"${gmiss}"_smiss"${smiss}" &&
     		cd ./8x_diversity_gmiss"${gmiss}"_smiss"${smiss}" &&
-    		Rscript "${GBSapp_dir}"/scripts/R/GBSapp_Filter_diversity_8x.R $pop $gmiss $smiss $minRD_8x $exclude_samples "${GBSapp_dir}/tools/R" $maf $haplome_number $biallelic $select_samples &&
+    		Rscript "${GBSapp_dir}"/scripts/R/GBSapp_Filter_diversity_8x.R $pop $gmiss $smiss $minRD_8x $exclude_samples "${GBSapp_dir}/tools/R" $maf $haplome_number $biallelic $select_samples 2> /dev/null &&
     		rm ${pop}_8x_rawRD${minRD_8x}_DP_GT.txt ${pop}_8x_DP_GT.txt ${pop}_8x_rd${minRD_8x}.txt 2> /dev/null &&
-    		mkdir visualizations && mv ./*.tiff ./visualizations/ &&
+    		mkdir visualizations && mv ./*.tiff ./visualizations/ 2> /dev/null &&
         wait
 
         if [[ "$variant_intervals" == true ]]; then
@@ -2570,9 +2570,9 @@ for smiss in ${sample_missingness//,/ }; do
     		cd ${projdir}/snpfilter &&
     		cp -r 2x 2x_biparental_gmiss"${gmiss}"_smiss"${smiss}" &&
     		cd ./2x_biparental_gmiss"${gmiss}"_smiss"${smiss}" &&
-    		Rscript "${GBSapp_dir}"/scripts/R/GBSapp_Filter_2x.R "$pop" "$p1" "$p2" "$gmiss" "$smiss" "$minRD_2x" "$exclude_samples" "${GBSapp_dir}/tools/R" "$pseg" "$haplome_number" $biallelic $select_samples &&
+    		Rscript "${GBSapp_dir}"/scripts/R/GBSapp_Filter_2x.R "$pop" "$p1" "$p2" "$gmiss" "$smiss" "$minRD_2x" "$exclude_samples" "${GBSapp_dir}/tools/R" "$pseg" "$haplome_number" $biallelic $select_samples 2> /dev/null &&
     		rm "${pop}"_2x_rawRD"${minRD_2x}"_DP_GT.txt "${pop}"_2x_DP_GT.txt "${pop}"_2x_rd"${minRD_2x}".txt 2> /dev/null &&
-    		mkdir visualizations && mv ./*.tiff ./visualizations/ &&
+    		mkdir visualizations && mv ./*.tiff ./visualizations/ 2> /dev/null &&
         wait
 
         if [[ "$variant_intervals" == true ]]; then
@@ -2698,9 +2698,9 @@ for smiss in ${sample_missingness//,/ }; do
     		cd ${projdir}/snpfilter &&
     		cp -r 4x 4x_biparental_gmiss"${gmiss}"_smiss"${smiss}" &&
     		cd ./4x_biparental_gmiss"${gmiss}"_smiss"${smiss}" &&
-    		Rscript "${GBSapp_dir}"/scripts/R/GBSapp_Filter_4x.R "$pop" "$p1" "$p2" "$gmiss" "$smiss" "$minRD_4x" "$exclude_samples" "${GBSapp_dir}/tools/R" "$pseg" "$haplome_number" $biallelic $select_samples &&
+    		Rscript "${GBSapp_dir}"/scripts/R/GBSapp_Filter_4x.R "$pop" "$p1" "$p2" "$gmiss" "$smiss" "$minRD_4x" "$exclude_samples" "${GBSapp_dir}/tools/R" "$pseg" "$haplome_number" $biallelic $select_samples 2> /dev/null &&
     		rm ${pop}_4x_rawRD${minRD_4x}_DP_GT.txt ${pop}_4x_DP_GT.txt ${pop}_4x_rd${minRD_4x}.txt 2> /dev/null &&
-    		mkdir visualizations && mv ./*.tiff ./visualizations/ &&
+    		mkdir visualizations && mv ./*.tiff ./visualizations/ 2> /dev/null &&
         wait
 
         if [[ "$variant_intervals" == true ]]; then
@@ -2827,9 +2827,9 @@ for smiss in ${sample_missingness//,/ }; do
     		cd ${projdir}/snpfilter &&
     		cp -r 6x 6x_biparental_gmiss"${gmiss}"_smiss"${smiss}" &&
     		cd ./6x_biparental_gmiss"${gmiss}"_smiss"${smiss}" &&
-    		Rscript "${GBSapp_dir}"/scripts/R/GBSapp_Filter_6x.R "$pop" "$p1" "$p2" "$gmiss" "$smiss" "$minRD_6x" "$exclude_samples" "${GBSapp_dir}/tools/R" "$pseg" "$haplome_number" $biallelic $select_samples &&
+    		Rscript "${GBSapp_dir}"/scripts/R/GBSapp_Filter_6x.R "$pop" "$p1" "$p2" "$gmiss" "$smiss" "$minRD_6x" "$exclude_samples" "${GBSapp_dir}/tools/R" "$pseg" "$haplome_number" $biallelic $select_samples 2> /dev/null &&
     		rm ${pop}_6x_rawRD${minRD_6x}_DP_GT.txt ${pop}_6x_DP_GT.txt ${pop}_6x_rd${minRD_6x}.txt 2> /dev/null &&
-    		mkdir visualizations && mv ./*.tiff ./visualizations/ &&
+    		mkdir visualizations && mv ./*.tiff ./visualizations/ 2> /dev/null &&
         wait
 
         if [[ "$variant_intervals" == true ]]; then
@@ -2955,9 +2955,9 @@ for smiss in ${sample_missingness//,/ }; do
     		cd ${projdir}/snpfilter &&
     		cp -r 8x 8x_biparental_gmiss"${gmiss}"_smiss"${smiss}" &&
     		cd ./8x_biparental_gmiss"${gmiss}"_smiss"${smiss}" &&
-    		Rscript "${GBSapp_dir}"/scripts/R/GBSapp_Filter_8x.R "$pop" "$p1" "$p2" "$gmiss" "$smiss" "$minRD_8x" "$exclude_samples" "${GBSapp_dir}/tools/R" "$pseg" "$haplome_number" $biallelic $select_samples &&
+    		Rscript "${GBSapp_dir}"/scripts/R/GBSapp_Filter_8x.R "$pop" "$p1" "$p2" "$gmiss" "$smiss" "$minRD_8x" "$exclude_samples" "${GBSapp_dir}/tools/R" "$pseg" "$haplome_number" $biallelic $select_samples 2> /dev/null &&
     		rm ${pop}_8x_rawRD${minRD_8x}_DP_GT.txt ${pop}_8x_DP_GT.txt ${pop}_8x_rd${minRD_8x}.txt 2> /dev/null &&
-    		mkdir visualizations && mv ./*.tiff ./visualizations/ &&
+    		mkdir visualizations && mv ./*.tiff ./visualizations/ 2> /dev/null &&
         wait
 
         if [[ "$variant_intervals" == true ]]; then
@@ -3092,7 +3092,8 @@ find . -type f -empty -delete
 find . -type d -empty -delete
 for snpfilter_dir in */; do
 	cd $snpfilter_dir &&
-  mkdir -p visualizations && mv ./*.tiff ./visualizations/ &&
+  mkdir -p visualizations &&
+  for tiff in ./*.tiff; do if [ -f "$tiff" ]; then mv ./*.tiff ./visualizations/; fi; done
 	smmiss_thresh=${snpfilter_dir#*smiss} &&
 	smmiss_thresh=${smmiss_thresh%*/} &&
 	smmiss_thresh=$(echo "$smmiss_thresh * 100" | bc) &&
@@ -3147,7 +3148,7 @@ export n="${ref1%.f*}"
           if [[ -s darr2.txt ]]; then printf "999_999_999\n" > darr2.txt; fi
           wait
 
-    			Rscript "${GBSapp_dir}"/scripts/R/heterozygote_vs_allele_ratio.R "$i" "$ARfile" "${ploidydir}x" "1" "darr2.txt" "${GBSapp_dir}/tools/R" &&
+    			Rscript "${GBSapp_dir}"/scripts/R/heterozygote_vs_allele_ratio.R "$i" "$ARfile" "${ploidydir}x" "1" "darr2.txt" "${GBSapp_dir}/tools/R" 2> /dev/null &&
     			awk 'FNR==NR{a[$1,$2]=$0;next}{if(b=a[$2,$3]){print b}}' $ARfile $i | awk '{gsub(/NA/,"na"); print $1"_"$2"\t"$0}' | \
     			awk -v pat1="${n}_Chr" -v pat2="${n}_chr" '{gsub(pat1,"Chr");gsub(pat2,"Chr");gsub(/CHROM_POS/,"SNP");}1' > ${i%.txt}_AR_metric.txt &&
           wait
@@ -3224,7 +3225,7 @@ export n="${ref1%.f*}"
         wait
 
   			if [[ "$ploidy" -le 2 ]]; then
-          Rscript "${GBSapp_dir}"/scripts/R/hapmap_format.R "$i" "${GBSapp_dir}/tools/R" &&
+          Rscript "${GBSapp_dir}"/scripts/R/hapmap_format.R "$i" "${GBSapp_dir}/tools/R" 2> /dev/null &&
           mv outfile.hmp.txt "${i%dose.txt}.hmp.txt" 2> /dev/null &&
           wait
         fi
@@ -3369,12 +3370,12 @@ for snpfilter_dir in */; do (
 	getrd=$( echo *dose.txt | awk  'BEGIN{OFS=FS="_rd"};{print $2}' | awk  'BEGIN{OFS=FS="_"};{print $1}' ) && \
 	if [[ $poptype == biparental ]]; then
 		cd ../"$snpfilter_dir"
-		Rscript "${GBSapp_dir}"/scripts/R/SNPaccuracy_biparental_ReadDepth.R $p1 $p2 $getrd "${GBSapp_dir}"/tools/R
+		Rscript "${GBSapp_dir}"/scripts/R/SNPaccuracy_biparental_ReadDepth.R $p1 $p2 $getrd "${GBSapp_dir}"/tools/R 2> /dev/null &&
 		wait
 	fi
 	if [[ $poptype == diversity ]]; then
 		cd ../"$snpfilter_dir"
-		Rscript "${GBSapp_dir}"/scripts/R/SNPaccuracy_diversity_ReadDepth.R $getrd "${GBSapp_dir}"/tools/R
+		Rscript "${GBSapp_dir}"/scripts/R/SNPaccuracy_diversity_ReadDepth.R $getrd "${GBSapp_dir}"/tools/R 2> /dev/null &&
 		wait
 	fi
 	wait

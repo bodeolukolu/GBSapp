@@ -296,7 +296,7 @@ This package has been developed as part of the [Genomic Tools for Sweetpotato Im
 **If GATK can't find python:**<br />
 ```
 - Make sure python v2.6 or greater is installed and then type the command below in terminal
-- $ sudo ln -sf /usr/bin/python3 /usr/bin/python
+- $ sudo ln -sf /usr/bin/python2 /usr/bin/python
 - or
 - If you are using python3
 - $ sudo apt update
@@ -318,7 +318,7 @@ While the installation of samtools and bcftools are automated, the installation 
 ```
 **If NextGenMap doesn't install properly:**<br />
 ```
-While the installation of samtools and bcftools are automated, the installation requires some dependencies:
+While the installation of NextGenMap (ngm) is automated, the installation requires some dependencies:
   $ sudo apt install cmake
 ```
 **Problem with amount of memory and/or processors/cores specified:**<br />
