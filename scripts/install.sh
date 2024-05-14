@@ -21,6 +21,7 @@ main1 () {
   cd build/
   ../../cmake-2.8.0-Linux-i386/bin/cmake ..
   make
+  rm -rf ../../cmake-2.8.0-Linux-i386/
   cd ../../
 }
 dirtool=*NextGenMap*
