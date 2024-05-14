@@ -9,14 +9,17 @@ cyan=$'\e[1;36m'
 white=$'\e[0m'
 
 
-main () {
+main1 () {
   echo -e "${blue}\n############################################## ${yellow}\n- downloading and installing NGM ${blue}\n##############################################${white}"
+  wget http://www.cmake.org/files/v2.8/cmake-2.8.0-Linux-i386.tar.gz
+  tar -zxvf cmake-2.8.0-Linux-i386.tar.gz
+  rm cmake-2.8.0-Linux-i386.tar.gz
   wget https://github.com/Cibiv/NextGenMap/tarball/master -O NGM.tar.gz
   tar xvfz NGM.tar.gz; rm NGM.tar.gz
   cd Cibiv-NextGenMap*
   mkdir -p build/
   cd build/
-  cmake ..
+  ../../cmake-2.8.0-Linux-i386/bin/cmake ..
   make
   cd ../../
 }
@@ -25,11 +28,11 @@ if [ -d $dirtool ]; then
   :
 else
   echo -e "${magenta}- Performing installation of dependency (NextGenMap aligner: NGM) ${white}"
-  main &>> ./log.out
+  main1 &>> ./log.out
 fi
 
 
-main () {
+main2 () {
   echo -e "${blue}\n############################################## ${yellow}\n- downloading and installing bcftools ${blue}\n##############################################${white}"
   wget https://github.com/samtools/bcftools/releases/download/1.17/bcftools-1.17.tar.bz2 &&
   tar -xvf bcftools-1.17.tar.bz2;  cd bcftools-1.17; make
@@ -41,27 +44,27 @@ if [ -d $dirtool ]; then
   :
 else
   echo -e "${magenta}- Performing installation of dependency (bcftools) ${white}"
-  main &>> ./log.out
+  main2 &>> ./log.out
 fi
 
 
-main () {
+main3 () {
   echo -e "${blue}\n############################################## ${yellow}\n- downloading and installing bedtools ${blue}\n##############################################${white}"
   wget https://github.com/arq5x/bedtools2/releases/download/v2.29.1/bedtools-2.29.1.tar.gz &&
   tar -zxvf bedtools-2.29.1.tar.gz; cd bedtools2; make
   rm ../bedtools-2.29.1.tar.gz
   cd ../
 }
-dirtool=bedtools2
+dirtool=bedtools*
 if [ -d $dirtool ]; then
   :
 else
   echo -e "${magenta}- Performing installation of dependency (bedtools) ${white}"
-  main &>> ./log.out
+  main3 &>> ./log.out
 fi
 
 
-main () {
+main4 () {
   echo -e "${blue}\n############################################## ${yellow}\n- downloading and installing samtools ${blue}\n##############################################${white}"
   wget https://github.com/samtools/samtools/releases/download/1.17/samtools-1.17.tar.bz2 &&
   tar -xvf samtools-1.17.tar.bz2;  cd samtools-1.17; make
@@ -73,11 +76,11 @@ if [ -d $dirtool ]; then
   :
 else
   echo -e "${magenta}- Performing installation of dependency (samtools) ${white}"
-  main &>> ./log.out
+  main4 &>> ./log.out
 fi
 
 
-main () {
+main5 () {
   echo -e "${blue}\n############################################## ${yellow}\n- downloading PICARD tools ${blue}\n##############################################${white}"
   wget https://github.com/broadinstitute/picard/releases/download/2.25.6/picard.jar
 }
@@ -86,7 +89,7 @@ if [ -f $dirtool ]; then
   :
 else
   echo -e "${magenta}- Performing installation of dependency (picard tools) ${white}"
-  main &>> ./log.out
+  main5 &>> ./log.out
 fi
 
 
@@ -95,7 +98,7 @@ main () {
   wget https://github.com/adoptium/temurin8-binaries/releases/download/jdk8u322-b06/OpenJDK8U-jdk_x64_linux_hotspot_8u322b06.tar.gz
   tar -xvf OpenJDK8U-jdk_x64_linux_hotspot_8u322b06.tar.gz; rm *tar.gz
 }
-dirtool=jdk*
+dirtool=*jdk*
 if [ -d $dirtool ]; then
   :
 else
@@ -103,37 +106,31 @@ else
   main &>> ./log.out
 fi
 
-dirtool=R
-if [ -d $dirtool ]; then
-  :
-else
-  mkdir ./R
-fi
 
-
-main () {
+main6 () {
   echo -e "${blue}\n############################################## \n- installiing Emboss ${blue}\n##############################################${white}"
-  wget http://debian.rub.de/ubuntu/pool/universe/e/emboss/emboss_6.6.0.orig.tar.gz
-  gunzip emboss_6.6.0.orig.tar.gz
-  tar xvf emboss_6.6.0.orig.tar
+  wget -m 'ftp://emboss.open-bio.org/pub/EMBOSS/'
+  mv emboss.open-bio.org/pub/EMBOSS/EMBOSS-6.6.0.tar.gz ./
+  rm -rf emboss.open-bio.org/
+  gunzip EMBOSS-6.6.0.tar.gz
+  tar xvf EMBOSS-6.6.0.tar
   cd EMBOSS-6.6.0/
-  ./configure
+  ./configure --without-x
   make
   cd ../
-  rm emboss_6.6.0.orig.tar*
+  rm EMBOSS-6.6.0.tar
 }
 dirtool=EMBOSS*
 if [ -d $dirtool ]; then
   :
 else
   echo -e "${magenta}- Performing installation of dependency (EMBOSS)${white}"
-  main &>> ./log.out
+  main6 &>> ./log.out
 fi
 
 
-main () {
-  echo -e "${blue}\n############################################## \n- installiing mafft ${blue}\n##############################################${white}"
-  mkdir mafft
+main7 () {
+  echo -e "${blue}\n############################################## \n- installing mafft ${blue}\n##############################################${white}"
   wget https://mafft.cbrc.jp/alignment/software/mafft-7.505-without-extensions-src.tgz
   tar zxvf mafft-7.505-without-extensions-src.tgz
   rm mafft-7.505-without-extensions-src.tgz
@@ -146,39 +143,33 @@ main () {
   make install
   cd ../../
 }
-dirtool=EMBOSS*
+dirtool=mafft-7.505-without-extensions
 if [ -d $dirtool ]; then
   :
 else
-  echo -e "${magenta}- Performing installation of dependency (EMBOSS)${white}"
-  main &>> ./log.out
+  echo -e "${magenta}- Performing installation of dependency (mafft)${white}"
+  main7 &>> ./log.out
 fi
 
 
-dirtool=R
-if [ -d $dirtool ]; then
-  :
-else
-  mkdir ./R
-fi
 
-
-main () {
+main8 () {
   echo -e "${green}\n############################################## \n- downloading GATK \n##############################################${white}"
-wget -O GATK4.2.6.1.zip "https://github.com/broadinstitute/gatk/releases/download/4.2.6.1/gatk-4.2.6.1.zip"
-unzip GATK4.2.6.1.zip
-rm GATK4.2.6.1.zip
+  wget -O GATK4.2.6.1.zip "https://github.com/broadinstitute/gatk/releases/download/4.2.6.1/gatk-4.2.6.1.zip"
+  unzip GATK4.2.6.1.zip
+  rm GATK4.2.6.1.zip
 }
 dirtool=gatk*
 if [ -d $dirtool ]; then
   :
 else
   echo -e "${magenta}- Performing installation of dependency (GATK) ${white}"
-  main &>> ./log.out
+  main8 &>> ./log.out
 fi
 
 
-main () {
+
+main0 () {
   echo -e "${white}\n############################################## ${orange}\n- check for R installation ${white}\n##############################################${white}"
   if R --version; then
     :
@@ -192,47 +183,50 @@ main () {
     fi
   fi
 }
-main &>> ./log.out
+main0 &>> ./log.out
 
 
-main () {
+main9 () {
 echo -e "${blue}\n############################################## \n- installing R-package: reshape2  ${blue}\n##############################################${white}"
   mkdir -p R
   cd ./R
   R -e 'install.packages("reshape2", dependencies = TRUE, repos="http://cran.r-project.org", lib="./")'
+  cd ../
 }
 dirtool=./R/reshape2
 if [ -d $dirtool ]; then
   :
 else
   echo -e "${magenta}- Performing installation of R-package: reshape2 ${white}"
-  main &>> ./log.out
+  main9 &>> ./log.out
 fi
 
-main () {
+main10 () {
 echo -e "${blue}\n############################################## \n- installing R-package: ggplot2  ${blue}\n##############################################${white}"
   mkdir -p R
   cd ./R
   R -e 'install.packages("ggplot2", dependencies = TRUE, repos="http://cran.r-project.org", lib="./")'
+  cd ../
 }
 dirtool=./R/ggplot2
 if [ -d $dirtool ]; then
   :
 else
   echo -e "${magenta}- Performing installation of R-package: ggplot2 ${white}"
-  main &>> ./log.out
+  main10 &>> ./log.out
 fi
 
-main () {
+main11 () {
 echo -e "${blue}\n############################################## \n- installing R-package: CMplot  ${blue}\n##############################################${white}"
   mkdir -p R
   cd ./R
   R -e 'install.packages("CMplot", dependencies = TRUE, repos="http://cran.r-project.org", lib="./")'
+  cd ../
 }
 dirtool=./R/CMplot
 if [ -d $dirtool ]; then
   :
 else
   echo -e "${magenta}- Performing installation of R-package: CMplot ${white}"
-  main &>> ./log.out
+  main11 &>> ./log.out
 fi
