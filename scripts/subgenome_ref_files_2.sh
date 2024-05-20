@@ -1620,16 +1620,21 @@ main () {
 							done
 						fi
 						for selchr in $Get2_Chromosome; do (
-              if  [[ ! -d ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_${selchr}_raw ]]; then
-                export TILEDB_DISABLE_FILE_LOCKING=1
-                if [[ -z "$interval_list" ]]; then
-                  $GATK --java-options "$Xmx1 -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$loopthreads" GenomicsDBImport ${input} -L ${selchr} --genomicsdb-workspace-path ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_${selchr}_raw --genomicsdb-shared-posixfs-optimizations true --batch-size 50 --merge-input-intervals &&
-    							wait
+              if [[ ! -f "${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_${selchr}_raw.vcf.gz.tbi" ]]; then
+                if [[ -f "${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_${selchr}_raw.hold.vcf.gz" ]]; then
+                  rm -rf ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_${selchr}_raw.hold.vcf.gz 2> /dev/null
                 else
-                  cat ${projdir}/${interval_list} | grep $selchr > ${projdir}/variant_intervals_${selchr}.list &&
-                  $GATK --java-options "$Xmx1 -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$loopthreads" GenomicsDBImport ${input} -L ${projdir}/variant_intervals_${selchr}.list --genomicsdb-workspace-path ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_${selchr}_raw --genomicsdb-shared-posixfs-optimizations true --batch-size 50 --merge-input-intervals &&
-    							rm ${projdir}/variant_intervals_${selchr}.list &&
-                  wait
+                  rm -rf ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_${selchr}_raw 2> /dev/null
+                  export TILEDB_DISABLE_FILE_LOCKING=1
+                  if [[ -z "$interval_list" ]]; then
+                    $GATK --java-options "$Xmx1 -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$loopthreads" GenomicsDBImport ${input} -L ${selchr} --genomicsdb-workspace-path ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_${selchr}_raw --genomicsdb-shared-posixfs-optimizations true --batch-size 50 --merge-input-intervals &&
+      							wait
+                  else
+                    cat ${projdir}/${interval_list} | grep $selchr > ${projdir}/variant_intervals_${selchr}.list &&
+                    $GATK --java-options "$Xmx1 -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$loopthreads" GenomicsDBImport ${input} -L ${projdir}/variant_intervals_${selchr}.list --genomicsdb-workspace-path ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_${selchr}_raw --genomicsdb-shared-posixfs-optimizations true --batch-size 50 --merge-input-intervals &&
+      							rm ${projdir}/variant_intervals_${selchr}.list &&
+                    wait
+                  fi
                 fi
               fi
               wait ) &
@@ -1640,27 +1645,25 @@ main () {
             wait
 
 						for selchr in $Get2_Chromosome; do (
-              if [[ ! -f ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_${selchr}_raw.vcf.gz.tbi ]]; then
-                export TILEDB_DISABLE_FILE_LOCKING=1
-  							if test ! -f "${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_${selchr}_raw.vcf.gz"; then
-                  if [[ -z "$interval_list" ]]; then
-                    $GATK --java-options "$Xmx1 -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$loopthreads"  GenotypeGVCFs -R ${projdir}/refgenomes/$ref1 -L ${selchr} -V gendb://${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_${selchr}_raw -O ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_${selchr}_raw.hold.vcf.gz && \
-    								rm -r ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_${selchr}_raw && \
-    								mv ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_${selchr}_raw.hold.vcf.gz ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_${selchr}_raw.vcf.gz
-    								mv ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_${selchr}_raw.hold.vcf.gz.tbi ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_${selchr}_raw.vcf.gz.tbi &&
-    								wait
-                  else
-                    cat ${projdir}/${interval_list} | grep $selchr > ${projdir}/variant_intervals_${selchr}.list &&
-                    $GATK --java-options "$Xmx1 -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$loopthreads"  GenotypeGVCFs -R ${projdir}/refgenomes/$ref1 -L ${projdir}/variant_intervals_${selchr}.list -V gendb://${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_${selchr}_raw -O ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_${selchr}_raw.hold.vcf.gz && \
-    								rm ${projdir}/variant_intervals_${selchr}.list &&
-                    rm -r ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_${selchr}_raw && \
-    								mv "${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_${selchr}_raw.hold.vcf.gz" "${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_${selchr}_raw.vcf.gz"
-    								mv "${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_${selchr}_raw.hold.vcf.gz.tbi" "${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_${selchr}_raw.vcf.gz.tbi" &&
-    								wait
-                  fi
-                  wait
-  							fi
-              fi
+              export TILEDB_DISABLE_FILE_LOCKING=1
+							if [[ ! -f "${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_${selchr}_raw.vcf.gz.tbi" ]]; then
+                if [[ -z "$interval_list" ]]; then
+                  $GATK --java-options "$Xmx1 -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$loopthreads"  GenotypeGVCFs -R ${projdir}/refgenomes/$ref1 -L ${selchr} -V gendb://${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_${selchr}_raw -O ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_${selchr}_raw.hold.vcf.gz && \
+  								rm -r ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_${selchr}_raw && \
+  								mv ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_${selchr}_raw.hold.vcf.gz ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_${selchr}_raw.vcf.gz
+  								mv ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_${selchr}_raw.hold.vcf.gz.tbi ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_${selchr}_raw.vcf.gz.tbi &&
+  								wait
+                else
+                  cat ${projdir}/${interval_list} | grep $selchr > ${projdir}/variant_intervals_${selchr}.list &&
+                  $GATK --java-options "$Xmx1 -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$loopthreads"  GenotypeGVCFs -R ${projdir}/refgenomes/$ref1 -L ${projdir}/variant_intervals_${selchr}.list -V gendb://${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_${selchr}_raw -O ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_${selchr}_raw.hold.vcf.gz && \
+  								rm ${projdir}/variant_intervals_${selchr}.list &&
+                  rm -r ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_${selchr}_raw && \
+  								mv "${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_${selchr}_raw.hold.vcf.gz" "${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_${selchr}_raw.vcf.gz"
+  								mv "${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_${selchr}_raw.hold.vcf.gz.tbi" "${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_${selchr}_raw.vcf.gz.tbi" &&
+  								wait
+                fi
+                wait
+							fi
               wait
 							if LC_ALL=C gzip -l ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_${selchr}_raw.vcf.gz | awk 'NR==2 {exit($2!=0)}'; then
 								:
@@ -1805,16 +1808,21 @@ main () {
 
 
 						for selchr in $Get2_Chromosome; do (
-              if [[ ! -d ${pop}_${ref1%.f*}_${ploidy_ref1}x_${selchr}_raw ]]; then
-                export TILEDB_DISABLE_FILE_LOCKING=1
-                if [[ -z "$interval_list_ref1" ]]; then
-                  $GATK --java-options "$Xmx1 -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$loopthreads" GenomicsDBImport ${input} -L ${selchr} --genomicsdb-workspace-path ${pop}_${ref1%.f*}_${ploidy_ref1}x_${selchr}_raw --genomicsdb-shared-posixfs-optimizations true --batch-size 50 --merge-input-intervals &&
-                  wait
+              if [[ ! -f "${pop}_${ref1%.f*}_${ploidy_ref1}x_${selchr}_raw.vcf.gz.tbi" ]]; then
+                if [[ -f "${pop}_${ref1%.f*}_${ploidy_ref1}x_${selchr}_raw.hold.vcf.gz" ]]; then
+                  rm -rf ${pop}_${ref1%.f*}_${ploidy_ref1}x_${selchr}_raw.hold.vcf.gz  2> /dev/null
                 else
-                  cat ${projdir}/${interval_list_ref1} | grep $selchr > ${projdir}/variant_intervals_${selchr}.list &&
-                  $GATK --java-options "$Xmx1 -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$loopthreads" GenomicsDBImport ${input} -L ${projdir}/variant_intervals_${selchr}.list --genomicsdb-workspace-path ${pop}_${ref1%.f*}_${ploidy_ref1}x_${selchr}_raw --genomicsdb-shared-posixfs-optimizations true --batch-size 50 --merge-input-intervals &&
-                  rm ${projdir}/variant_intervals_${selchr}.list &&
-                  wait
+                  rm -rf ${pop}_${ref1%.f*}_${ploidy_ref1}x_${selchr}_raw 2> /dev/null
+                  export TILEDB_DISABLE_FILE_LOCKING=1
+                  if [[ -z "$interval_list_ref1" ]]; then
+                    $GATK --java-options "$Xmx1 -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$loopthreads" GenomicsDBImport ${input} -L ${selchr} --genomicsdb-workspace-path ${pop}_${ref1%.f*}_${ploidy_ref1}x_${selchr}_raw --genomicsdb-shared-posixfs-optimizations true --batch-size 50 --merge-input-intervals &&
+                    wait
+                  else
+                    cat ${projdir}/${interval_list_ref1} | grep $selchr > ${projdir}/variant_intervals_${selchr}.list &&
+                    $GATK --java-options "$Xmx1 -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$loopthreads" GenomicsDBImport ${input} -L ${projdir}/variant_intervals_${selchr}.list --genomicsdb-workspace-path ${pop}_${ref1%.f*}_${ploidy_ref1}x_${selchr}_raw --genomicsdb-shared-posixfs-optimizations true --batch-size 50 --merge-input-intervals &&
+                    rm ${projdir}/variant_intervals_${selchr}.list &&
+                    wait
+                  fi
                 fi
               fi
               wait ) &
@@ -1826,26 +1834,24 @@ main () {
 
 
 						for selchr in $Get2_Chromosome; do (
-              if [[ ! -f ${pop}_${ref1%.f*}_${ploidy_ref1}x_${selchr}_raw.vcf.gz.tbi ]]; then
-                export TILEDB_DISABLE_FILE_LOCKING=1
-  							if test ! -f "${pop}_${ref1%.f*}_${ploidy_ref1}x_${selchr}_raw.vcf.gz"; then
-                  if [[ -z "$interval_list_ref1" ]]; then
-                    $GATK --java-options "$Xmx1 -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$loopthreads"  GenotypeGVCFs -R ${projdir}/refgenomes/$ref1 -L ${selchr} -V gendb://${pop}_${ref1%.f*}_${ploidy_ref1}x_${selchr}_raw -O ${pop}_${ref1%.f*}_${ploidy_ref1}x_${selchr}_raw.hold.vcf.gz && \
-    								rm -r ${pop}_${ref1%.f*}_${ploidy_ref1}x_${selchr}_raw && \
-    								mv ${pop}_${ref1%.f*}_${ploidy_ref1}x_${selchr}_raw.hold.vcf.gz ${pop}_${ref1%.f*}_${ploidy_ref1}x_${selchr}_raw.vcf.gz
-    								mv ${pop}_${ref1%.f*}_${ploidy_ref1}x_${selchr}_raw.hold.vcf.gz.tbi ${pop}_${ref1%.f*}_${ploidy_ref1}x_${selchr}_raw.vcf.gz.tbi &&
-    								wait
-                  else
-                    cat ${projdir}/${interval_list_ref1} | grep $selchr > ${projdir}/variant_intervals_${selchr}.list &&
-                    $GATK --java-options "$Xmx1 -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$loopthreads"  GenotypeGVCFs -R ${projdir}/refgenomes/$ref1 -L ${projdir}/variant_intervals_${selchr}.list -V gendb://${pop}_${ref1%.f*}_${ploidy_ref1}x_${selchr}_raw -O ${pop}_${ref1%.f*}_${ploidy_ref1}x_${selchr}_raw.hold.vcf.gz && \
-    								rm ${projdir}/variant_intervals_${selchr}.list &&
-                    rm -r ${pop}_${ref1%.f*}_${ploidy_ref1}x_${selchr}_raw && \
-    								mv ${pop}_${ref1%.f*}_${ploidy_ref1}x_${selchr}_raw.hold.vcf.gz ${pop}_${ref1%.f*}_${ploidy_ref1}x_${selchr}_raw.vcf.gz
-    								mv ${pop}_${ref1%.f*}_${ploidy_ref1}x_${selchr}_raw.hold.vcf.gz.tbi ${pop}_${ref1%.f*}_${ploidy_ref1}x_${selchr}_raw.vcf.gz.tbi &&
-    								wait
-                  fi
-  							fi
-              fi
+              export TILEDB_DISABLE_FILE_LOCKING=1
+							if [[ ! -f "${pop}_${ref1%.f*}_${ploidy_ref1}x_${selchr}_raw.vcf.gz.tbi" ]]; then
+                if [[ -z "$interval_list_ref1" ]]; then
+                  $GATK --java-options "$Xmx1 -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$loopthreads"  GenotypeGVCFs -R ${projdir}/refgenomes/$ref1 -L ${selchr} -V gendb://${pop}_${ref1%.f*}_${ploidy_ref1}x_${selchr}_raw -O ${pop}_${ref1%.f*}_${ploidy_ref1}x_${selchr}_raw.hold.vcf.gz && \
+  								rm -r ${pop}_${ref1%.f*}_${ploidy_ref1}x_${selchr}_raw && \
+  								mv ${pop}_${ref1%.f*}_${ploidy_ref1}x_${selchr}_raw.hold.vcf.gz ${pop}_${ref1%.f*}_${ploidy_ref1}x_${selchr}_raw.vcf.gz
+  								mv ${pop}_${ref1%.f*}_${ploidy_ref1}x_${selchr}_raw.hold.vcf.gz.tbi ${pop}_${ref1%.f*}_${ploidy_ref1}x_${selchr}_raw.vcf.gz.tbi &&
+  								wait
+                else
+                  cat ${projdir}/${interval_list_ref1} | grep $selchr > ${projdir}/variant_intervals_${selchr}.list &&
+                  $GATK --java-options "$Xmx1 -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$loopthreads"  GenotypeGVCFs -R ${projdir}/refgenomes/$ref1 -L ${projdir}/variant_intervals_${selchr}.list -V gendb://${pop}_${ref1%.f*}_${ploidy_ref1}x_${selchr}_raw -O ${pop}_${ref1%.f*}_${ploidy_ref1}x_${selchr}_raw.hold.vcf.gz && \
+  								rm ${projdir}/variant_intervals_${selchr}.list &&
+                  rm -r ${pop}_${ref1%.f*}_${ploidy_ref1}x_${selchr}_raw && \
+  								mv ${pop}_${ref1%.f*}_${ploidy_ref1}x_${selchr}_raw.hold.vcf.gz ${pop}_${ref1%.f*}_${ploidy_ref1}x_${selchr}_raw.vcf.gz
+  								mv ${pop}_${ref1%.f*}_${ploidy_ref1}x_${selchr}_raw.hold.vcf.gz.tbi ${pop}_${ref1%.f*}_${ploidy_ref1}x_${selchr}_raw.vcf.gz.tbi &&
+  								wait
+                fi
+							fi
 							if LC_ALL=C gzip -l ${pop}_${ref1%.f*}_${ploidy_ref1}x_${selchr}_raw.vcf.gz | awk 'NR==2 {exit($2!=0)}'; then
 								:
 							else
@@ -1991,16 +1997,21 @@ main () {
 							done
 						fi
 						for selchr in $Get2_Chromosome; do (
-              if [[ ! -d ${pop}_${ref2%.f*}_${ploidy_ref2}x_${selchr}_raw ]]; then
-                export TILEDB_DISABLE_FILE_LOCKING=1
-                if [[ -z "$interval_list_ref2" ]]; then
-                  $GATK --java-options "$Xmx1 -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$loopthreads" GenomicsDBImport ${input} -L ${selchr} --genomicsdb-workspace-path ${pop}_${ref2%.f*}_${ploidy_ref2}x_${selchr}_raw --genomicsdb-shared-posixfs-optimizations true --batch-size 50 --merge-input-intervals &&
-    							wait
+              if [[ ! -f "${pop}_${ref2%.f*}_${ploidy_ref2}x_${selchr}_raw.vcf.gz.tbi" ]]; then
+                if [[ -f "${pop}_${ref2%.f*}_${ploidy_ref2}x_${selchr}_raw.hold.vcf.gz" ]]; then
+                  rm -rf ${pop}_${ref2%.f*}_${ploidy_ref2}x_${selchr}_raw.hold.vcf.gz  2> /dev/null
                 else
-                  cat ${projdir}/${interval_list_ref2} | grep $selchr > ${projdir}/variant_intervals_${selchr}.list &&
-                  $GATK --java-options "$Xmx1 -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$loopthreads" GenomicsDBImport ${input} -L ${projdir}/variant_intervals_${selchr}.list --genomicsdb-workspace-path ${pop}_${ref2%.f*}_${ploidy_ref2}x_${selchr}_raw --genomicsdb-shared-posixfs-optimizations true --batch-size 50 --merge-input-intervals &&
-    							rm ${projdir}/variant_intervals_${selchr}.list &&
-                  wait
+                  rm -rf ${pop}_${ref2%.f*}_${ploidy_ref2}x_${selchr}_raw 2> /dev/null
+                  export TILEDB_DISABLE_FILE_LOCKING=1
+                  if [[ -z "$interval_list_ref2" ]]; then
+                    $GATK --java-options "$Xmx1 -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$loopthreads" GenomicsDBImport ${input} -L ${selchr} --genomicsdb-workspace-path ${pop}_${ref2%.f*}_${ploidy_ref2}x_${selchr}_raw --genomicsdb-shared-posixfs-optimizations true --batch-size 50 --merge-input-intervals &&
+      							wait
+                  else
+                    cat ${projdir}/${interval_list_ref2} | grep $selchr > ${projdir}/variant_intervals_${selchr}.list &&
+                    $GATK --java-options "$Xmx1 -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$loopthreads" GenomicsDBImport ${input} -L ${projdir}/variant_intervals_${selchr}.list --genomicsdb-workspace-path ${pop}_${ref2%.f*}_${ploidy_ref2}x_${selchr}_raw --genomicsdb-shared-posixfs-optimizations true --batch-size 50 --merge-input-intervals &&
+      							rm ${projdir}/variant_intervals_${selchr}.list &&
+                    wait
+                  fi
                 fi
               fi
               wait ) &
@@ -2011,24 +2022,23 @@ main () {
             wait
 
 						for selchr in $Get2_Chromosome; do (
-              if [[ ! -f ${pop}_${ref2%.f*}_${ploidy_ref2}x_${selchr}_raw.vcf.gz ]]; then
-                export TILEDB_DISABLE_FILE_LOCKING=1
-  							if test ! -f "${pop}_${ref2%.f*}_${ploidy_ref2}x_${selchr}_raw.vcf.gz"; then
-                  if [[ -z "$interval_list_ref2" ]]; then
-                    $GATK --java-options "$Xmx1 -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$loopthreads"  GenotypeGVCFs -R ${projdir}/refgenomes/$ref2 -L ${selchr} -V gendb://${pop}_${ref2%.f*}_${ploidy_ref2}x_${selchr}_raw -O ${pop}_${ref2%.f*}_${ploidy_ref2}x_${selchr}_raw.hold.vcf.gz && \
-    								rm -r ${pop}_${ref2%.f*}_${ploidy_ref2}x_${selchr}_raw && \
-    								mv ${pop}_${ref2%.f*}_${ploidy_ref2}x_${selchr}_raw.hold.vcf.gz ${pop}_${ref2%.f*}_${ploidy_ref2}x_${selchr}_raw.vcf.gz &&
-    								wait
-                  else
-                    cat ${projdir}/${interval_list_ref2} | grep $selchr > ${projdir}/variant_intervals_${selchr}.list &&
-                    $GATK --java-options "$Xmx1 -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$loopthreads"  GenotypeGVCFs -R ${projdir}/refgenomes/$ref2 -L ${projdir}/variant_intervals_${selchr}.list -V gendb://${pop}_${ref2%.f*}_${ploidy_ref2}x_${selchr}_raw -O ${pop}_${ref2%.f*}_${ploidy_ref2}x_${selchr}_raw.hold.vcf.gz && \
-    								rm ${projdir}/variant_intervals_${selchr}.list &&
-                    rm -r ${pop}_${ref2%.f*}_${ploidy_ref2}x_${selchr}_raw && \
-    								mv ${pop}_${ref2%.f*}_${ploidy_ref2}x_${selchr}_raw.hold.vcf.gz ${pop}_${ref2%.f*}_${ploidy_ref2}x_${selchr}_raw.vcf.gz &&
-    								wait
-                  fi
-  							fi
-              fi
+              export TILEDB_DISABLE_FILE_LOCKING=1
+							if [[ ! -f "${pop}_${ref2%.f*}_${ploidy_ref2}x_${selchr}_raw.vcf.gz.tbi" ]]; then
+                if [[ -z "$interval_list_ref2" ]]; then
+                  $GATK --java-options "$Xmx1 -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$loopthreads"  GenotypeGVCFs -R ${projdir}/refgenomes/$ref2 -L ${selchr} -V gendb://${pop}_${ref2%.f*}_${ploidy_ref2}x_${selchr}_raw -O ${pop}_${ref2%.f*}_${ploidy_ref2}x_${selchr}_raw.hold.vcf.gz && \
+  								rm -r ${pop}_${ref2%.f*}_${ploidy_ref2}x_${selchr}_raw && \
+  								mv ${pop}_${ref2%.f*}_${ploidy_ref2}x_${selchr}_raw.hold.vcf.gz ${pop}_${ref2%.f*}_${ploidy_ref2}x_${selchr}_raw.vcf.gz &&
+  								wait
+                else
+                  cat ${projdir}/${interval_list_ref2} | grep $selchr > ${projdir}/variant_intervals_${selchr}.list &&
+                  $GATK --java-options "$Xmx1 -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$loopthreads"  GenotypeGVCFs -R ${projdir}/refgenomes/$ref2 -L ${projdir}/variant_intervals_${selchr}.list -V gendb://${pop}_${ref2%.f*}_${ploidy_ref2}x_${selchr}_raw -O ${pop}_${ref2%.f*}_${ploidy_ref2}x_${selchr}_raw.hold.vcf.gz && \
+  								rm ${projdir}/variant_intervals_${selchr}.list &&
+                  rm -r ${pop}_${ref2%.f*}_${ploidy_ref2}x_${selchr}_raw && \
+  								mv ${pop}_${ref2%.f*}_${ploidy_ref2}x_${selchr}_raw.hold.vcf.gz ${pop}_${ref2%.f*}_${ploidy_ref2}x_${selchr}_raw.vcf.gz &&
+                  mv ${pop}_${ref2%.f*}_${ploidy_ref2}x_${selchr}_raw.hold.vcf.gz.tbi ${pop}_${ref2%.f*}_${ploidy_ref2}x_${selchr}_raw.vcf.gz.tbi &&
+  								wait
+                fi
+							fi
 							if LC_ALL=C gzip -l ${pop}_${ref2%.f*}_${ploidy_ref2}x_${selchr}_raw.vcf.gz | awk 'NR==2 {exit($2!=0)}'; then
 								:
 							else
@@ -2087,6 +2097,8 @@ main () {
 				fi
 			fi
 			wait
+    else
+      printf "variant calling for subgenome 2 alone skipped" > "${projdir}/call2_${samples_list}"
     fi
     wait
 
