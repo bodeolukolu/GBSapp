@@ -18,7 +18,7 @@ if [[ "$1" == "" ]]; then
   echo -e "${white}\t\t--version, -v\t\tprint software version"
   echo -e "${white}\t\t--help, -h\t\tprint help message"
   echo -e "${white}\t\tinstall\t\t\tsoftware dependencies"
-  echo -e "${white}\t\tproj_dir\t\tspecify absolute or relative path to project directory\n"
+  echo -e "${white}\t\tproj_dir\t\tto run job, specify absolute or relative path to project directory\n"
   exit 0
 fi
 if [[ "$1" == "-v" || "$1" == "--version" ]]; then
@@ -35,7 +35,7 @@ if [[ "$1" == "-h" || "$1" == "--help" ]]; then
   echo -e "${white}\t\t--version, -v\t\tprint software version"
   echo -e "${white}\t\t--help, -h\t\tprint help message"
   echo -e "${white}\t\tinstall\t\t\tsoftware dependencies"
-  echo -e "${white}\t\tproj_dir\t\tspecify absolute or relative path to project directory\n"
+  echo -e "${white}\t\tproj_dir\t\tto run job, specify absolute or relative path to project directory\n"
   echo -e "${magenta}- Do you want to view pipeline help? ${white}"
   read -p "- y(YES) or n(NO)? " -n 1 -r
   if [[ $REPLY =~ ^[Yy]$ ]]; then
@@ -287,6 +287,13 @@ else
   fi
 fi
 
+
+if [[ $projdir == *['!'@#\$%^\&*()_+]* ]]; then
+  echo -e "${magenta}- project directory name should be alphanumeric"
+  echo -e "${magenta}- rename project directory without special characters and resubmit job"
+  echo -e "${magenta}- GBSapp will quit in 5 seconds ${white}\n"
+  sleep 5; exit 0
+fi
 
 ####################################################################################################################
 # check if the job was previously submitted and interrupted

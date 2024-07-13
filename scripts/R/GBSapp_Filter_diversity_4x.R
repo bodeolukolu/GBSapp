@@ -427,12 +427,12 @@ rd_boxplot <- function() {
     subgenome_1_plots <- subgenome_1[c(5:(((ncol(subgenome_1)-4)/2)+4))]
     subgenome_1_plots[][subgenome_1_plots[]=="0"] <- NA
     subgenome_1_plots$no_missing <- apply(subgenome_1_plots, 1, function(x) sum(is.na(x)))
-    subgenome_1_plots <- subset(subgenome_1_plots, no_missing <= (ncol(subgenome_1_plots)-5)*gmissingness)
+    subgenome_1_plots <- subset(subgenome_1_plots, no_missing <= (ncol(subgenome_1)-5)*gmissingness)
     subgenome_1_plots <- subset(subgenome_1_plots, select=-c(no_missing))
     subgenome_1_plots[][subgenome_1_plots[] <= t] <- NA
     names(subgenome_1_plots) <- gsub(paste("_DP",sep=""), "", names(subgenome_1_plots))
     subgenome_1_plots$no_missing <- apply(subgenome_1_plots, 1, function(x) sum(is.na(x)))
-    subgenome_1_plots <- subset(subgenome_1_plots, no_missing <= (ncol(subgenome_1_plots)-5)*gmissingness)
+    subgenome_1_plots <- subset(subgenome_1_plots, no_missing <= (ncol(subgenome_1)-5)*gmissingness)
     subgenome_1_plots <- subset(subgenome_1_plots, select=c(-no_missing))
     subgenome_1_plots <- as.matrix(subgenome_1_plots)
     subgenome_1_plots <- as.data.frame(as.table(subgenome_1_plots))
