@@ -19,7 +19,7 @@ main1 () {
   cd Cibiv-NextGenMap*
   mkdir -p build/
   cd build/
-  ../../cmake-2.8.0-Linux-i386/bin/cmake ..
+  cmake ..
   make
   rm -rf ../../cmake-2.8.0-Linux-i386/
   cd $tools_dir
