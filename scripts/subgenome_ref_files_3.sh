@@ -23,6 +23,9 @@ fi
 if [ -z "$paralogs" ]; then
 	export paralogs=false
 fi
+if [ -z "$max_pseudoMol" ]; then
+	export max_pseudoMol=1000
+fi
 if [ -z "$uniquely_mapped" ]; then
 	export uniquely_mapped=true
 fi
@@ -153,7 +156,7 @@ else
 	reffilenames=($ref1 $ref2 $ref3)
 	for refg in "${reffilenames[@]}"; do
 		export ncontigscaffold=$(grep '>' $refg | wc -l)
-		if [[ $ncontigscaffold -gt 1000 ]]; then
+		if [[ $ncontigscaffold -gt $max_pseudoMol ]]; then
 			nfakechr=$((threads/2))
 			cat $refg | awk '/^>/{if(N>0) printf("\n"); ++N; printf("%s\t",$0);next;} {printf("%s",$0);}END{printf("\n");}' > panref0.txt
 			awk 'BEGIN{srand() }
@@ -192,41 +195,42 @@ else
 			rm Chr*
 		fi
 	done
+  wait
 
-	export ncontigscaffold=$(grep '>' $ref1 | wc -l)
-	if [[ $ncontigscaffold -gt 1000 ]]; then
-		mkdir split
-		for reffile in *.f*; do
-			awk -v reffile=${reffile%.f*} '/^>/{close("file.fasta"f);f++}{print $0 > "./split/file_"reffile"_"f}' "$reffile" & PID=$!
-		  wait $PID
-		done
-		cd split
-		export checksplit=$( wc -c file_* | head -n -1 | awk '($1 > 500000000 )' | wc -l )
-		if [[ "$checksplit" -gt 0 ]]; then
-			for i in file*; do
-				name=$(awk 'NR==1{print $1}' "$i" | awk '{gsub(/>/,""); print}')
-				awk 'NR>1{print $0}' $i > ${name}.fasta
-				count=$(wc -c ${name}.fasta | awk '{print $1}')
-				tr -d '\n' < "${name}".fasta | fold -w 100 |\
-				split -d -l 5000000
-				for outfile in x*; do
-					awk -v name="$name" -v outfile="$outfile" -i inplace 'BEGINFILE{print ">"name"_"outfile}{print}' $outfile
-					subgenome=${i%.fasta_*}; subgenome=${subgenome##file_}
-					mv $outfile ${subgenome}_${name}_${outfile}.txt
-				done
-			done
-			cd ../
-			for i in *.f*; do
-				mv $i ./old_"${i%.f*}_fasta.txt"
-				cat ./split/${i%.f*}_Chr* > $i
-			done
-			wait
-			rm -r split
-		else
-			cd ${projdir}/refgenomes
-			rm -r split
-		fi
-	fi
+  reffilenames=($ref1 $ref2 $ref3)
+  for refg in "${reffilenames[@]}"; do
+    mkdir split
+    awk '/^>/{close("file.fasta"f);f++}{print $0 > "./split/file"f}' "${refg}" & PID=$!
+    wait $PID
+    cd split
+    export checksplit=$(wc -c file* | grep -v 'total' | awk '($1 > 500000000 )' | wc -l)
+    if [[ "$checksplit" -gt 0 ]]; then
+      for i in file*; do
+        sleep $((RANDOM % 2))
+        name=$(awk 'NR==1{print $1}' "$i" | awk '{gsub(/>/,""); print}')
+        awk 'NR>1{print $0}' $i > ${name}.fasta
+        count=$(wc -c ${name}.fasta | awk '{print $1}')
+        tr -d '\n' < "${name}".fasta | fold -w 100 |\
+        split -d -l 5000000  & PID=$!
+        wait $PID
+        for outfile in x*; do
+          sleep $((RANDOM % 2))
+          awk -v name="$name" -v outfile="$outfile" -i inplace 'BEGINFILE{print ">"name"_"outfile}{print}' $outfile
+          mv $outfile ${name}_${outfile}.txt
+        done
+      done
+      cd ../
+      sleep $((RANDOM % 2))
+      mv $refg ./old_"${refg%.f*}_fasta.txt"
+      cat ./split/*Chr*.txt > $refg
+      wait
+      rm -rf split
+    else
+      cd ${projdir}/refgenomes
+      rm -rf split
+    fi
+  done
+  wait
 fi
 
 
@@ -729,7 +733,7 @@ main () {
           awk '{gsub(/AA~/,"~");gsub(/CC~/,"~");gsub(/GG~/,"~");gsub(/TT~/,"~");gsub(/~AA/,"~");gsub(/~CC/,"~");gsub(/~GG/,"~");gsub(/~TT/,"~");gsub(/AA~/,"~");gsub(/CC~/,"~");gsub(/GG~/,"~");gsub(/TT~/,"~");gsub(/~AA/,"~");gsub(/~CC/,"~");gsub(/~GG/,"~");gsub(/~TT/,"~");}1' | \
           awk '{gsub(/A~/,"~");gsub(/C~/,"~");gsub(/G~/,"~");gsub(/T~/,"~");gsub(/~A/,"~");gsub(/~C/,"~");gsub(/~G/,"~");gsub(/~T/,"~");gsub(/~/,"");}1' | \
           awk '{print ">seq"NR"_pe-"$1"\n"$2}' | gzip > ${i%.f*}_uniq.fasta.gz &&
-          rm "${i%.f*}"_R1_uniq.txt.gz "${i%.f*}"_R2_uniq.txt.gz ${i%.f*}_repeatn.txt.gz &&
+          rm "${i%.f*}"_R1_uniq.txt.gz "${i%.f*}"_R2_uniq.txt.gz ${i%.f*}_repeatn.txt.gz 2> /dev/null &&
           wait
         fi
       fi ) &

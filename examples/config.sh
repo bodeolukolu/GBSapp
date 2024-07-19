@@ -19,8 +19,7 @@ ref2=TL.fasta
 ploidy_ref1=4
 ploidy_ref2=2
 # Variant calling with haplotype-resolved reference genome or pangenomes
-# Anchored to haplome_ref1 for loci conserved across all haplomes
-genomes_ref=Ib.fasta
+hap_ref=Ib.fasta
 # exclue or limit variant calling to specific chromosomes
 Get_Chromosome=TF_Chr01,TF_Chr02
 Exclude_Chromosome=TF_Chr00,TL_Chr00
@@ -43,6 +42,7 @@ filtered_vcf=true
 
 # Advanced_parameters
 ###################################################
+max_pseudoMol=1000
 uniquely_mapped=true
 paralogs=true
 minmapq=20

@@ -22,6 +22,9 @@ fi
 if [ -z "$paralogs" ]; then
 	export paralogs=true
 fi
+if [ -z "$max_pseudoMol" ]; then
+	export max_pseudoMol=1000
+fi
 if [ -z "$uniquely_mapped" ]; then
 	export uniquely_mapped=true
 fi
@@ -34,11 +37,11 @@ fi
 if [ -z "$haplome_number" ]; then
 	export haplome_number=1
 fi
-if [[ "$genome_ref" ]]; then
-  export genomes_ref=$genome_ref
+if [[ "$hap_ref" ]]; then
+  export hap_ref=$genome_ref
 fi
-if [[ "$genomes_ref" ]]; then
-  export ref1=$genomes_ref
+if [[ "$hap_ref" ]]; then
+  export ref1=$hap_ref
 fi
 if [ -z "$p2" ]; then
   if   [ "$p1" ]; then
@@ -164,7 +167,7 @@ else
 		done
 	fi
 	export ncontigscaffold=$(grep '>' $ref1 | wc -l)
-	if [[ $ncontigscaffold -gt 1000 ]]; then
+	if [[ $ncontigscaffold -gt $max_pseudoMol ]]; then
 		nfakechr=$((threads/2))
 		cat $ref1 | awk '/^>/{if(N>0) printf("\n"); ++N; printf("%s\t",$0);next;} {printf("%s",$0);}END{printf("\n");}' > panref0.txt
 		awk 'BEGIN{srand() }
@@ -203,43 +206,40 @@ else
 		done
 		rm Chr*
 	fi
+  wait
 
 
-	export ncontigscaffold=$(grep '>' $ref1 | wc -l)
-	if [[ $ncontigscaffold -gt 1000 ]]; then
-		mkdir split
-		awk '/^>/{close("file.fasta"f);f++}{print $0 > "./split/file"f}' "${ref1}" & PID=$!
-		wait $PID
-		cd split
-		export checksplit=$(wc -c file* | head -n -1 | awk '($1 > 500000000 )' | wc -l)
-		if [[ "$checksplit" -gt 0 ]]; then
-			for i in file*; do
+	mkdir split
+	awk '/^>/{close("file.fasta"f);f++}{print $0 > "./split/file"f}' "${ref1}" & PID=$!
+	wait $PID
+	cd split
+	export checksplit=$(wc -c file* | grep -v 'total' | awk '($1 > 500000000 )' | wc -l)
+	if [[ "$checksplit" -gt 0 ]]; then
+		for i in file*; do
+			sleep $((RANDOM % 2))
+      name=$(awk 'NR==1{print $1}' "$i" | awk '{gsub(/>/,""); print}')
+			awk 'NR>1{print $0}' $i > ${name}.fasta
+			count=$(wc -c ${name}.fasta | awk '{print $1}')
+			tr -d '\n' < "${name}".fasta | fold -w 100 |\
+			split -d -l 5000000  & PID=$!
+		  wait $PID
+			for outfile in x*; do
 				sleep $((RANDOM % 2))
-        name=$(awk 'NR==1{print $1}' "$i" | awk '{gsub(/>/,""); print}')
-				awk 'NR>1{print $0}' $i > ${name}.fasta
-				count=$(wc -c ${name}.fasta | awk '{print $1}')
-				tr -d '\n' < "${name}".fasta | fold -w 100 |\
-				split -d -l 5000000  & PID=$!
-			  wait $PID
-				for outfile in x*; do
-					sleep $((RANDOM % 2))
-          awk -v name="$name" -v outfile="$outfile" -i inplace 'BEGINFILE{print ">"name"_"outfile}{print}' $outfile
-					mv $outfile ${name}_${outfile}.txt
-				done
+        awk -v name="$name" -v outfile="$outfile" -i inplace 'BEGINFILE{print ">"name"_"outfile}{print}' $outfile
+				mv $outfile ${name}_${outfile}.txt
 			done
-			cd ../
-			for i in *.f*; do
-				sleep $((RANDOM % 2))
-        mv $i ./old_"${i%.f*}_fasta.txt"
-				cat ./split/*Chr*.txt > $i
-			done
-			wait
-			rm -r split
-		else
-			cd ${projdir}/refgenomes
-			rm -r split
-		fi
+		done
+		cd ../
+		sleep $((RANDOM % 2))
+    mv $ref1 ./old_"${ref1%.f*}_fasta.txt"
+		cat ./split/*Chr*.txt > $ref1
+		wait
+		rm -rf split
+	else
+		cd ${projdir}/refgenomes
+		rm -rf split
 	fi
+  wait
 fi
 
 
@@ -742,7 +742,7 @@ main () {
   				awk '{gsub(/AA~/,"~");gsub(/CC~/,"~");gsub(/GG~/,"~");gsub(/TT~/,"~");gsub(/~AA/,"~");gsub(/~CC/,"~");gsub(/~GG/,"~");gsub(/~TT/,"~");gsub(/AA~/,"~");gsub(/CC~/,"~");gsub(/GG~/,"~");gsub(/TT~/,"~");gsub(/~AA/,"~");gsub(/~CC/,"~");gsub(/~GG/,"~");gsub(/~TT/,"~");}1' | \
   				awk '{gsub(/A~/,"~");gsub(/C~/,"~");gsub(/G~/,"~");gsub(/T~/,"~");gsub(/~A/,"~");gsub(/~C/,"~");gsub(/~G/,"~");gsub(/~T/,"~");gsub(/~/,"");}1' | \
           awk '{print ">seq"NR"_pe-"$1"\n"$2}' | gzip > ${i%.f*}_uniq.fasta.gz &&
-          rm "${i%.f*}"_R1_uniq.txt.gz "${i%.f*}"_R2_uniq.txt.gz ${i%.f*}_repeatn.txt.gz &&
+          rm "${i%.f*}"_R1_uniq.txt.gz "${i%.f*}"_R2_uniq.txt.gz ${i%.f*}_repeatn.txt.gz 2> /dev/null &&
           wait
         fi
       fi ) &
@@ -897,7 +897,7 @@ main () {
     wait
 
 
-    if [[ "$genomes_ref" ]]; then
+    if [[ "$hap_ref" ]]; then
     max_hap=0
     for maxhap in ${haplome_number//,/ }; do if [[ "$maxhap" -gt "$max_hap" ]]; then max_hap=$maxhap; fi; done
     min_hap=999
@@ -1536,7 +1536,7 @@ cd snpfilter
 #   cd snpcall
 #   export ncontigscaffold=$(grep '>' ${projdir}/refgenomes/${ref1%.fasta}_original.fasta &> /dev/null | wc -l)
 #   if [[ ! -f ./index_code.txt ]]; then
-#   	if [[ $ncontigscaffold -gt 3000 ]]; then
+#   	if [[ $ncontigscaffold -gt $max_pseudoMol ]]; then
 #   		echo -e "${magenta}- retrieving SNP positions based on contigs/scaffold annotation ${white}\n"
 #   		for nc in *_raw0.vcf; do
 #   			if [[ "${nc}" =~ "vcf" ]]; then

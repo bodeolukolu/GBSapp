@@ -294,6 +294,15 @@ if [[ $projdir == *['!'@#\$%^\&*()_+]* ]]; then
   echo -e "${magenta}- GBSapp will quit in 5 seconds ${white}\n"
   sleep 5; exit 0
 fi
+cd "$projdir"
+cd refgenomes
+for f in *.FASTA; do echo -e "${magenta}- changing upper case fasta extension to lower case"; mv $f ${f%.FASTA}.fasta; done
+for f in *.FA; do echo -e "${magenta}- changing upper case fasta extension to lower case"; mv $f ${f%.FA}.fa; done
+for f in *.FNA; do echo -e "${magenta}- changing upper case fasta extension to lower case"; mv $f ${f%.FNA}.fna; done
+for f in *.FAS; do echo -e "${magenta}- changing upper case fasta extension to lower case"; mv $f ${f%.FAS}.fas; done
+for f in *.FFN; do echo -e "${magenta}- changing upper case fasta extension to lower case"; mv $f ${f%.FFN}.ffn; done
+for f in *.FAA; do echo -e "${magenta}- changing upper case fasta extension to lower case"; mv $f ${f%.FAA}.faa; done
+
 
 ####################################################################################################################
 # check if the job was previously submitted and interrupted
@@ -422,18 +431,9 @@ awk '{ sub("\r$",""); print}' config.sh > unixformat.sh
 mv unixformat.sh config.sh
 
 string="$(awk '/^ref/&&/=/&&/.fa/ {print}' config.sh | wc -l)"
-string_hap="$(awk '/^haplome_ref/&&/=/&&/.fa/ {print}' config.sh | wc -l)"
-string_pan="$(awk '/^pangenome_ref/&&/=/&&/.fa/ {print}' config.sh | wc -l)"
-if [[ "$string" -gt 0 ]] && [[ "$string_hap" > 0 ]]; then
-  echo -e "${magenta}\n- You cannot specify both haploid/subgenome(s) and haplotype-resolved reference genome. ${white}\n"
-  exit 1
-fi
-if [[ "$string" -gt 0 ]] && [[ "$string_pan" > 0 ]]; then
-  echo -e "${magenta}\n- You cannot specify both haploid/subgenome(s) and pangenomes reference genome. ${white}\n"
-  exit 1
-fi
-if [[ "$string_pan" -gt 0 ]] && [[ "$string_hap" > 0 ]]; then
-  echo -e "${magenta}\n- You cannot specify both pangenomes and haplotype-resolved reference genome. ${white}\n"
+string_hap="$(awk '/^hap_ref/&&/=/&&/.fa/ {print}' config.sh | wc -l)"
+if [[ "$string" -gt 0 ]] && [[ "$string_hap" -gt 0 ]]; then
+  echo -e "${magenta}\n- You cannot specify both haploid and haplotype-resolved reference genome. ${white}\n"
   exit 1
 fi
 
@@ -441,10 +441,7 @@ if [[ "$string" -eq 0 ]]; then
 string=1
 fi
 string3=${GBSapp_dir}/scripts/subgenome_ref_files_${string}.sh
-if [[ "$string_pan" -gt 0 ]]; then
-  string3=${GBSapp_dir}/scripts/subgenome_ref_files_${string_pan}.sh
-fi
-if [[ "$string_hap" -gt 0 ]]; then
+if [[ "$string_hap" -eq 1 ]]; then
   string3=${GBSapp_dir}/scripts/subgenome_ref_files_${string_hap}.sh
 fi
 

@@ -122,19 +122,22 @@ Using a text editor, save a file containing any of the following variables as 'c
 |Variable      |Default       |Usage         |Input         |required/Optional|
 |:-------------|:-------------|:-------------|:-------------|:----------------|
 |ploidy|na|value = 1,2,4,6, or 8|integer|Required|
-|haplome_number|1|variant call using haplomes/pangenomes/subgenomes (haplome # typically = ploidy)|integer|Optional|
-|ref1|na|reference subgenome as .fasta file. Anchor-genome when other subgenomes specified |integer|Optional|
+|haplome_number|1|specify single value or range (comma delimited) up to maximum haplome i.e. ploidy level|integer|Optional|
+|ref1|na|reference subgenome as .fasta file. Anchor-genome when other pangenomes/subgenomes are specified |integer|Optional|
 |ref2|na|2nd reference genome as .fasta file|integer|Optional|
 |ref3|na|3rd reference genome as .fasta file|integer|Optional|
 |ploidy_ref1|na|ploidy-level for subgenome 1|integer|Optional|
 |ploidy_ref2|na|ploidy-level for subgenome 2, only specify for subgenome specific variants|integer|Optional|
 |ploidy_ref3|na|ploidy-level for subgenome 3, only specify for subgenome specific variants|integer|Optional|
-|genomes_ref|na|haplotype-resolved reference genome or pangenomes (# of haplomes typically = ploidy level) |integer|Optional|
+|hap_ref|na|haplotype-resolved reference genome (# of haplomes typically = ploidy level) |integer|Optional|
 |Get_Chromosome|na|variant calling on specific chromosomes, scaffolds,and contigs|comma delimited string(s)|optional|
 |Exclude_Chromosome|na|variant calling to exclude specific chromosomes, scaffolds,and contigs|comma delimited string(s)|optional|
 
-**note: designate haplomes/pangenomes/subgenomes with single character prefix (alphabets: A-Z and a-z) in a single file*
-**note: for polyploids with variable ploidy of subgenomes (e.g. hexapploid: 4x + 2x), indicate ref2-ref3 and ploidy_ref2-ploidy_ref3 (i.e. multiple reference genome files)*
+**note: haploid assemblies of pangenomes and subgenomes should be in individual fasta files (up to 3 fasta files)*
+**note: short prefix for pangenome/subgenome pseudomolecules should be unique (i.e. >TF_Chr01 and >TL_Chr01 fasta sequence header for Ipomoea trifida and I. triloba, respectively)*
+**note: for polyploids with variable ploidy of subgenomes specify ploidy of subgenomes (e.g. hexapploid: ploidy_ref1=4 and ploidy_ref2=2)*
+**note: reference haplotype-resolved assembly (hap_ref) should be a single fasta file and should be chromosome-level assembly*
+**note: designate chromosomes of haplotype-resolved/subgenome assemblies with single character suffix (alphabets: A-Z and a-z) e.g. Chr01A*
 
 
 **Variant filtering parameters**
@@ -162,6 +165,7 @@ Using a text editor, save a file containing any of the following variables as 'c
 **Advanced parameters**
 |Variable      |Default       |Usage         |Input         |required/Optional|
 |:-------------|:-------------|:-------------|:-------------|:----------------|
+|max_pseudoMol|1000|maximum # of pseudomolecules (scaffold/contig) before stitching into non-contiguous pseudo-chromosomes|integer|Optional|
 |uniquely_mapped|true|include uniquely mapped for variant calling |string|Optional|
 |paralogs|true|include paralogs for variant calling |string|Optional|
 |minmapq|20|minimum mapping quality|integer|Optional|
@@ -206,7 +210,7 @@ ploidy_ref1=4
 ploidy_ref2=2
 # Variant calling with haplotype-resolved reference genome or pangenomes
 # Anchored to haplome_ref1 for loci conserved across all haplomes
-genomes_ref=Ib.fasta
+hap_ref=Ib.fasta
 # exclue or limit variant calling to specific chromosomes
 Get_Chromosome=TF_Chr01,TF_Chr02
 Exclude_Chromosome=TF_Chr00,TL_Chr00
@@ -230,6 +234,7 @@ filtered_vcf=true
 
 # Advanced_parameters
 ###################################################
+max_pseudoMol=1000
 uniquely_mapped=true
 paralogs=true
 minmapq=20
