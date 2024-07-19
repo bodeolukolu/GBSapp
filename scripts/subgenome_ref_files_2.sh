@@ -139,6 +139,13 @@ echo -e "${blue}\n##############################################################
 main () {
 cd $projdir
 cd refgenomes
+for f in *.FASTA; do echo -e "${magenta}- changing upper case fasta extension to lower case"; mv $f ${f%.FASTA}.fasta; done
+for f in *.FA; do echo -e "${magenta}- changing upper case fasta extension to lower case"; mv $f ${f%.FA}.fa; done
+for f in *.FNA; do echo -e "${magenta}- changing upper case fasta extension to lower case"; mv $f ${f%.FNA}.fna; done
+for f in *.FAS; do echo -e "${magenta}- changing upper case fasta extension to lower case"; mv $f ${f%.FAS}.fas; done
+for f in *.FFN; do echo -e "${magenta}- changing upper case fasta extension to lower case"; mv $f ${f%.FFN}.ffn; done
+for f in *.FAA; do echo -e "${magenta}- changing upper case fasta extension to lower case"; mv $f ${f%.FAA}.faa; done
+
 for i in *.gz; do
 	gunzip $i >/dev/null 2>&1
 done
