@@ -76,6 +76,15 @@ fi
 mkdir -p "${projdir}"/tmp
 export TMPDIR="${projdir}"/tmp
 
+if [[ "${projdir##*/}" =~ ['!@#$%^&*()_+'] ]]; then
+  echo -e "${magenta}- the project directory is: ${projdir##*/}" > "${projdir}"/job_killed_error.txt
+  echo -e "${magenta}- project directory name should be alphanumeric" >> job_killed_error.txt
+  echo -e "${magenta}- rename project directory without special characters and resubmit job" >> "${projdir}"/job_killed_error.txt
+  echo -e "${magenta}- GBSapp will quit in 5 seconds ${white}\n" >> "${projdir}"/job_killed_error.txt
+  sleep 10
+  exit 0
+fi
+wait
 
 main () {
 	cd $projdir
@@ -146,12 +155,14 @@ echo -e "${blue}\n##############################################################
 main () {
 cd $projdir
 cd refgenomes
-for f in *.FASTA; do echo -e "${magenta}- changing upper case fasta extension to lower case"; mv $f ${f%.FASTA}.fasta; done
-for f in *.FA; do echo -e "${magenta}- changing upper case fasta extension to lower case"; mv $f ${f%.FA}.fa; done
-for f in *.FNA; do echo -e "${magenta}- changing upper case fasta extension to lower case"; mv $f ${f%.FNA}.fna; done
-for f in *.FAS; do echo -e "${magenta}- changing upper case fasta extension to lower case"; mv $f ${f%.FAS}.fas; done
-for f in *.FFN; do echo -e "${magenta}- changing upper case fasta extension to lower case"; mv $f ${f%.FFN}.ffn; done
-for f in *.FAA; do echo -e "${magenta}- changing upper case fasta extension to lower case"; mv $f ${f%.FAA}.faa; done
+for f in $(ls *.FASTA 2> /dev/null); do if [[ "$f" == *.FASTA ]]; then echo -e "${magenta}- changing upper case FASTA extension of reference genome(s) to lower case"; mv $f ${f%.FASTA}.fasta  2> /dev/null; fi; done
+for f in $(ls *.FA 2> /dev/null); do if [[ "$f" == *.FA ]]; then echo -e "${magenta}- changing upper case FA extension of reference genome(s) to lower case"; mv $f ${f%.FA}.fa  2> /dev/null; fi; done
+for f in $(ls *.FNA 2> /dev/null); do if [[ "$f" == *.FNA ]]; then echo -e "${magenta}- changing upper case FNA extension of reference genome(s) to lower case"; mv $f ${f%.FNA}.fna  2> /dev/null; fi; done
+for f in $(ls *.FAS 2> /dev/null); do if [[ "$f" == *.FAS ]]; then echo -e "${magenta}- changing upper case FAS extension of reference genome(s) to lower case"; mv $f ${f%.FAS}.fas  2> /dev/null; fi; done
+for f in $(ls *.FFN 2> /dev/null); do if [[ "$f" == *.FFN ]]; then echo -e "${magenta}- changing upper case FFN extension of reference genome(s) to lower case"; mv $f ${f%.FFN}.ffn  2> /dev/null; fi; done
+for f in $(ls *.FAA 2> /dev/null); do if [[ "$f" == *.FAA ]]; then echo -e "${magenta}- changing upper case FAA extension of reference genome(s) to lower case"; mv $f ${f%.FAA}.faa  2> /dev/null; fi; done
+wait
+
 
 for i in *.gz; do
 	sleep $((RANDOM % 2))

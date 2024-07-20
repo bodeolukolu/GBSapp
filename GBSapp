@@ -44,7 +44,7 @@ if [[ "$1" == "-h" || "$1" == "--help" ]]; then
   exit 0
 fi
 
-projdir="$( cd -- "$(dirname "$1 ")" >/dev/null 2>&1 ; pwd -P )/"
+export projdir="$( cd -- "$(dirname "$1 ")" >/dev/null 2>&1 ; pwd -P )/"
 if [[ "$1" == "install" ]]; then
   mkdir -p $GBSapp_dir/tools
   cd $GBSapp_dir/tools
@@ -60,16 +60,16 @@ fi
 cd $GBSapp_dir/tools
 if [ ! -d *NextGenMap* ]; then echo -e "${magenta}- NextGenMap is not installated or properly installed\n- Consider checking dependencies and re-running install command\n\n ${white}"; fi
 if [ ! -d bcftools* ]; then echo -e "${magenta}- bcftools is not installated or properly installed\n- Consider checking dependencies and re-running install command ${white}"; fi
-if [ ! -d bcftools* ]; then echo -e "${magenta}- else, GBSapp will attempt using the system-installed version of bcftools\n\n ${white}"; fi
+if [ ! -d bcftools* ]; then echo -e "${magenta}- in the meantime, GBSapp will attempt using the system-installed version of bcftools\n\n ${white}"; fi
 if [ ! -d bedtools* ]; then echo -e "${magenta}- bedtools is not installated or properly installed\n- Consider checking dependencies and re-running install command ${white}"; fi
-if [ ! -d bedtools* ]; then echo -e "${magenta}- else, GBSapp will attempt using the system-installed verion of bedtools\n\n ${white}"; fi
+if [ ! -d bedtools* ]; then echo -e "${magenta}- in the meantime, GBSapp will attempt using the system-installed version of bedtools\n\n ${white}"; fi
 if [ ! -d samtools* ]; then echo -e "${magenta}- samtools is not installated or properly installed\n- Consider checking dependencies and re-running install command ${white}"; fi
-if [ ! -d samtoolstools* ]; then echo -e "${magenta}- else, GBSapp will attempt using the system-installed verion of samtools\n\n ${white}"; fi
+if [ ! -d samtools* ]; then echo -e "${magenta}- in the meantime, GBSapp will attempt using the system-installed version of samtools\n\n ${white}"; fi
 if [ ! -f picard* ]; then echo -e "${magenta}- PICARD is not installated or properly installed\n- Consider re-running install command\n\n ${white}"; fi
 if [ ! -d jdk* ]; then echo -e "${magenta}- Java jdk8 is not installated or properly installed\n- Consider checking dependencies and re-running install command\n\n ${white}"; fi
 if [ ! -d EMBOSS* ]; then echo -e "${magenta}- EMBOSS is not installated or properly installed\n- Consider checking dependencies and re-running install command\n\n ${white}"; fi
 if [ ! -d gatk* ]; then echo -e "${magenta}- GATK is not installated or properly installed\n- Consider re-running install command\n\n ${white}"; fi
-
+wait
 
 
 # if [ "${GBSapp_dir:0:1}" = "." ]; then
@@ -159,6 +159,7 @@ if test ! -f "${projdir}/steps.txt"; then
     fi
   fi
 fi
+wait
 
 f=($(find . -maxdepth 1 -type f | wc -l))
 if test ! -f "${projdir}/steps.txt"; then
@@ -181,6 +182,7 @@ if [[ ! -f config.sh ]]; then
   echo -e "${magenta}- GBSapp will exist in 5 seconds ${white}"
   exit 1
 fi
+wait
 
 ####################################################################################################################
 ####################################################################################################################
@@ -214,6 +216,7 @@ else
 		ln -s $samples_alt_dir .
 	fi
 fi
+wait
 
 # Initial questions before running walkaway
 cd "$projdir"/samples
@@ -239,6 +242,7 @@ if test ! -f "${projdir}/steps.txt"; then
   	fi
   fi
 fi
+wait
 
 
 cd "$projdir"/samples
@@ -248,7 +252,7 @@ fi
 if [ -d "single" ]; then
  mv single se
 fi
-
+wait
 
 cd "$projdir"
 if [[ -d "./samples/pe" ]] || [[ -d "./samples/se" ]]; then
@@ -286,15 +290,28 @@ else
     fi
   fi
 fi
+wait
 
 
-if [[ $projdir == *['!'@#\$%^\&*()_+]* ]]; then
+if [[ "${projdir##*/}" =~ ['!@#$%^&*()_+'] ]]; then
+  echo -e "${magenta}- the project directory is: ${projdir##*/}"
   echo -e "${magenta}- project directory name should be alphanumeric"
   echo -e "${magenta}- rename project directory without special characters and resubmit job"
   echo -e "${magenta}- GBSapp will quit in 5 seconds ${white}\n"
-  sleep 5; exit 0
+  sleep 10
+  exit 0
 fi
+wait
 
+cd $projdir
+cd refgenomes
+for f in $(ls *.FASTA 2> /dev/null); do if [[ "$f" == *.FASTA ]]; then echo -e "${magenta}- changing upper case FASTA extension of reference genome(s) to lower case"; mv $f ${f%.FASTA}.fasta  2> /dev/null; fi; done
+for f in $(ls *.FA 2> /dev/null); do if [[ "$f" == *.FA ]]; then echo -e "${magenta}- changing upper case FA extension of reference genome(s) to lower case"; mv $f ${f%.FA}.fa  2> /dev/null; fi; done
+for f in $(ls *.FNA 2> /dev/null); do if [[ "$f" == *.FNA ]]; then echo -e "${magenta}- changing upper case FNA extension of reference genome(s) to lower case"; mv $f ${f%.FNA}.fna  2> /dev/null; fi; done
+for f in $(ls *.FAS 2> /dev/null); do if [[ "$f" == *.FAS ]]; then echo -e "${magenta}- changing upper case FAS extension of reference genome(s) to lower case"; mv $f ${f%.FAS}.fas  2> /dev/null; fi; done
+for f in $(ls *.FFN 2> /dev/null); do if [[ "$f" == *.FFN ]]; then echo -e "${magenta}- changing upper case FFN extension of reference genome(s) to lower case"; mv $f ${f%.FFN}.ffn  2> /dev/null; fi; done
+for f in $(ls *.FAA 2> /dev/null); do if [[ "$f" == *.FAA ]]; then echo -e "${magenta}- changing upper case FAA extension of reference genome(s) to lower case"; mv $f ${f%.FAA}.faa  2> /dev/null; fi; done
+wait
 
 ####################################################################################################################
 # check if the job was previously submitted and interrupted
