@@ -1182,7 +1182,7 @@ main () {
             fi
 
             if [[ "$paralogs" == false ]] && [[ "$uniquely_mapped" == true ]]; then
-              awk '/@HD/ || /@SQ/{print}' <(zcat ./alignment/${i%.f*}_redun_${ref1%.f*}.sam.gz 2> /dev/null) > ${i%.f*}_${ref2%.f*}_${ref3%.f*}_heading.sam &&
+              awk '/@HD/ || /@SQ/{print}' <(zcat ./alignment/${i%.f*}_redun_${ref2%.f*}.sam.gz 2> /dev/null) > ${i%.f*}_${ref2%.f*}_${ref3%.f*}_heading.sam &&
               $samtools view -F4 ${i%.f*}_del_${ref2%.f*}_${ref3%.f*}.sam | grep -v '^@' | awk '$3 != "*"' 2> /dev/null | awk '$6 != "*"' 2> /dev/null | \
               awk '!h[$1] { g[$1]=$0 } { h[$1]++ } END { for(k in g) print h[k], g[k] }' | tr " " "\t" | tr '\r' '\n' | awk '$1==1{print $0}' | \
               awk '{$1=""}1' | awk '$1=$1' | tr " " "\t" | awk '{gsub(/_pe-/,"_pe-\t",$1);}1' | awk '{print $2"\t"$0}' | \
@@ -1191,7 +1191,7 @@ main () {
               wait
             fi
             if [[ "$paralogs" == true ]] && [[ "$uniquely_mapped" == true ]]; then
-              awk '/@HD/ || /@SQ/{print}' <(zcat ./alignment/${i%.f*}_redun_${ref1%.f*}.sam.gz 2> /dev/null) > ${i%.f*}_${ref2%.f*}_${ref3%.f*}_heading.sam &&
+              awk '/@HD/ || /@SQ/{print}' <(zcat ./alignment/${i%.f*}_redun_${ref2%.f*}.sam.gz 2> /dev/null) > ${i%.f*}_${ref2%.f*}_${ref3%.f*}_heading.sam &&
               $samtools view -F4 ${i%.f*}_del_${ref2%.f*}_${ref3%.f*}.sam | grep -v '^@' | awk '$3 != "*"' 2> /dev/null | awk '$6 != "*"' 2> /dev/null | \
               awk '!h[$1] { g[$1]=$0 } { h[$1]++ } END { for(k in g) print h[k], g[k] }' | tr " " "\t" | tr '\r' '\n' | awk '$1==1 || $1<=6{print $0}' | awk '{$1=""}1' | awk '$1=$1' | tr " " "\t" | \
               awk -F '\t' 'BEGIN{OFS="\t"} {if ($5 == 0) {print $0}}' 2> /dev/null | awk -F '\t' 'BEGIN{OFS="\t"} {if ($5 == 0) {$5=60}}1' > ${i%.f*}_${ref2%.f*}_${ref3%.f*}_uniqeq.sam
@@ -1204,7 +1204,7 @@ main () {
               wait
             fi
             if [[ "$paralogs" == true ]] && [[ "$uniquely_mapped" == false ]]; then
-              awk '/@HD/ || /@SQ/{print}' <(zcat ./alignment/${i%.f*}_redun_${ref1%.f*}.sam.gz 2> /dev/null) > ${i%.f*}_${ref2%.f*}_${ref3%.f*}_heading.sam &&
+              awk '/@HD/ || /@SQ/{print}' <(zcat ./alignment/${i%.f*}_redun_${ref2%.f*}.sam.gz 2> /dev/null) > ${i%.f*}_${ref2%.f*}_${ref3%.f*}_heading.sam &&
               $samtools view -F4 ${i%.f*}_del_${ref2%.f*}_${ref3%.f*}.sam | grep -v '^@' | awk '$3 != "*"' 2> /dev/null | awk '$6 != "*"' 2> /dev/null | \
               awk '!h[$1] { g[$1]=$0 } { h[$1]++ } END { for(k in g) print h[k], g[k] }' | tr " " "\t" | tr '\r' '\n' | \
               awk '$1==1 || $1>6{print $0}' | awk '{print $2}' > ${i%.f*}_${ref2%.f*}_${ref3%.f*}_uniqsingle.sam &&
@@ -2248,9 +2248,9 @@ main () {
               if LC_ALL=C gzip -l ${pop}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${ploidy}x_${selchr}_raw.vcf.gz | awk 'NR==2 {exit($2!=0)}'; then
                 :
               else
-                rm ../cohorts*/${pop}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${ploidy}x_*_raw.vcf.gz*
-                rm ../cohorts*/${pop}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${ploidy}x_raw.vcf*
-                rm ../${pop}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${ploidy}x_raw_cohorts*.vcf*
+                rm ../cohorts*/${pop}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${ploidy}x_*_raw.vcf.gz* 2> /dev/null
+                rm ../cohorts*/${pop}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${ploidy}x_raw.vcf* 2> /dev/null
+                rm ../${pop}_${ref1%.f*}_${ref2%.f*}_${ref3%.f*}_${ploidy}x_raw_cohorts*.vcf* 2> /dev/null
                 echo -e "${magenta}- \n- SNP calling failed probably due to insufficient memory ${white}\n"
                 echo -e "${magenta}- \n- Exiting pipeline in 5 seconds ${white}\n"
                 sleep 5 && exit 1
@@ -2432,9 +2432,9 @@ main () {
                 if LC_ALL=C gzip -l ${pop}_${ref1%.f*}_${ref2%.f*}_${calcploidy}x_${selchr}_raw.vcf.gz | awk 'NR==2 {exit($2!=0)}'; then
                   :
                 else
-                  rm ../cohorts*/${pop}_${ref1%.f*}_${ref2%.f*}_${calcploidy}x_*_raw.vcf.gz*
-                  rm ../cohorts*/${pop}_${ref1%.f*}_${ref2%.f*}_${calcploidy}x_raw.vcf*
-                  rm ../${pop}_${ref1%.f*}_${ref2%.f*}_${calcploidy}x_raw_cohorts*.vcf*
+                  rm ../cohorts*/${pop}_${ref1%.f*}_${ref2%.f*}_${calcploidy}x_*_raw.vcf.gz* 2> /dev/null
+                  rm ../cohorts*/${pop}_${ref1%.f*}_${ref2%.f*}_${calcploidy}x_raw.vcf* 2> /dev/null
+                  rm ../${pop}_${ref1%.f*}_${ref2%.f*}_${calcploidy}x_raw_cohorts*.vcf* 2> /dev/null
                   echo -e "${magenta}- \n- SNP calling failed probably due to insufficient memory ${white}\n"
                   echo -e "${magenta}- \n- Exiting pipeline in 5 seconds ${white}\n"
                   sleep 5 && exit 1
@@ -2625,9 +2625,9 @@ main () {
                 if LC_ALL=C gzip -l ${pop}_${ref1%.f*}_${ref3%.f*}_${calcploidy}x_${selchr}_raw.vcf.gz | awk 'NR==2 {exit($2!=0)}'; then
                   :
                 else
-                  rm ../cohorts*/${pop}_${ref1%.f*}_${ref3%.f*}_${calcploidy}x_*_raw.vcf.gz*
-                  rm ../cohorts*/${pop}_${ref1%.f*}_${ref3%.f*}_${calcploidy}x_raw.vcf*
-                  rm ../${pop}_${ref1%.f*}_${ref3%.f*}_${calcploidy}x_raw_cohorts*.vcf*
+                  rm ../cohorts*/${pop}_${ref1%.f*}_${ref3%.f*}_${calcploidy}x_*_raw.vcf.gz* 2> /dev/null
+                  rm ../cohorts*/${pop}_${ref1%.f*}_${ref3%.f*}_${calcploidy}x_raw.vcf* 2> /dev/null
+                  rm ../${pop}_${ref1%.f*}_${ref3%.f*}_${calcploidy}x_raw_cohorts*.vcf* 2> /dev/null
                   echo -e "${magenta}- \n- SNP calling failed probably due to insufficient memory ${white}\n"
                   echo -e "${magenta}- \n- Exiting pipeline in 5 seconds ${white}\n"
                   sleep 5 && exit 1
@@ -2813,9 +2813,9 @@ main () {
                 if LC_ALL=C gzip -l ${pop}_${ref2%.f*}_${ref3%.f*}_${calcploidy}x_${selchr}_raw.vcf.gz | awk 'NR==2 {exit($2!=0)}'; then
                   :
                 else
-                  rm ../cohorts*/${pop}_${ref2%.f*}_${ref3%.f*}_${calcploidy}x_*_raw.vcf.gz*
-                  rm ../cohorts*/${pop}_${ref2%.f*}_${ref3%.f*}_${calcploidy}x_raw.vcf*
-                  rm ../${pop}_${ref2%.f*}_${ref3%.f*}_${calcploidy}x_raw_cohorts*.vcf*
+                  rm ../cohorts*/${pop}_${ref2%.f*}_${ref3%.f*}_${calcploidy}x_*_raw.vcf.gz* 2> /dev/null
+                  rm ../cohorts*/${pop}_${ref2%.f*}_${ref3%.f*}_${calcploidy}x_raw.vcf* 2> /dev/null
+                  rm ../${pop}_${ref2%.f*}_${ref3%.f*}_${calcploidy}x_raw_cohorts*.vcf* 2> /dev/null
                   echo -e "${magenta}- \n- SNP calling failed probably due to insufficient memory ${white}\n"
                   echo -e "${magenta}- \n- Exiting pipeline in 5 seconds ${white}\n"
                   sleep 5 && exit 1
@@ -2999,9 +2999,9 @@ main () {
   							if LC_ALL=C gzip -l ${pop}_${ref1%.f*}_${ploidy_ref1}x_${selchr}_raw.vcf.gz | awk 'NR==2 {exit($2!=0)}'; then
   								:
   							else
-  								rm ../cohorts*/${pop}_${ref1%.f*}_${ploidy_ref1}x_*_raw.vcf.gz*
-  								rm ../cohorts*/${pop}_${ref1%.f*}_${ploidy_ref1}x_raw.vcf*
-  								rm ../${pop}_${ref1%.f*}_${ploidy_ref1}x_raw_cohorts*.vcf
+  								rm ../cohorts*/${pop}_${ref1%.f*}_${ploidy_ref1}x_*_raw.vcf.gz* 2> /dev/null
+  								rm ../cohorts*/${pop}_${ref1%.f*}_${ploidy_ref1}x_raw.vcf* 2> /dev/null
+  								rm ../${pop}_${ref1%.f*}_${ploidy_ref1}x_raw_cohorts*.vcf 2> /dev/null
   								echo -e "${magenta}- \n- SNP calling failed probably due to insufficient memory ${white}\n"
   								echo -e "${magenta}- \n- Exiting pipeline in 5 seconds ${white}\n"
   								sleep 5 && exit 1
@@ -3167,6 +3167,8 @@ main () {
                       $GATK --java-options "$Xmx1 -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$loopthreads"  GenotypeGVCFs -R ${projdir}/refgenomes/$ref2 -L ${selchr} -V gendb://${pop}_${ref2%.f*}_${ploidy_ref2}x_${selchr}_raw -O ${pop}_${ref2%.f*}_${ploidy_ref2}x_${selchr}_raw.hold.vcf.gz && \
       								rm -r ${pop}_${ref2%.f*}_${ploidy_ref2}x_${selchr}_raw && \
       								mv ${pop}_${ref2%.f*}_${ploidy_ref2}x_${selchr}_raw.hold.vcf.gz ${pop}_${ref2%.f*}_${ploidy_ref2}x_${selchr}_raw.vcf.gz &&
+                      mv ${pop}_${ref2%.f*}_${ploidy_ref2}x_${selchr}_raw.hold.vcf.gz.tbi ${pop}_${ref2%.f*}_${ploidy_ref2}x_${selchr}_raw.vcf.gz.tbi &&
+
       								wait
                     else
                       cat ${projdir}/${interval_list_ref2} | grep $selchr > ${projdir}/variant_intervals_${selchr}.list &&
@@ -3174,6 +3176,7 @@ main () {
       								rm ${projdir}/variant_intervals_${selchr}.list &&
                       rm -r ${pop}_${ref2%.f*}_${ploidy_ref2}x_${selchr}_raw && \
       								mv ${pop}_${ref2%.f*}_${ploidy_ref2}x_${selchr}_raw.hold.vcf.gz ${pop}_${ref2%.f*}_${ploidy_ref2}x_${selchr}_raw.vcf.gz &&
+                      mv ${pop}_${ref2%.f*}_${ploidy_ref2}x_${selchr}_raw.hold.vcf.gz.tbi ${pop}_${ref2%.f*}_${ploidy_ref2}x_${selchr}_raw.vcf.gz.tbi &&
       								wait
                     fi
     							fi
@@ -3181,9 +3184,9 @@ main () {
   							if LC_ALL=C gzip -l ${pop}_${ref2%.f*}_${ploidy_ref2}x_${selchr}_raw.vcf.gz | awk 'NR==2 {exit($2!=0)}'; then
   								:
   							else
-  								rm ../cohorts*/${pop}_${ref2%.f*}_${ploidy_ref2}x_*_raw.vcf.gz*
-  								rm ../cohorts*/${pop}_${ref2%.f*}_${ploidy_ref2}x_raw.vcf*
-  								rm ../${pop}_${ref2%.f*}_${ploidy_ref2}x_raw_cohorts*.vcf*
+  								rm ../cohorts*/${pop}_${ref2%.f*}_${ploidy_ref2}x_*_raw.vcf.gz* 2> /dev/null
+  								rm ../cohorts*/${pop}_${ref2%.f*}_${ploidy_ref2}x_raw.vcf* 2> /dev/null
+  								rm ../${pop}_${ref2%.f*}_${ploidy_ref2}x_raw_cohorts*.vcf* 2> /dev/null
   								echo -e "${magenta}- \n- SNP calling failed probably due to insufficient memory ${white}\n"
   								echo -e "${magenta}- \n- Exiting pipeline in 5 seconds ${white}\n"
   								sleep 5 && exit 1
@@ -3349,6 +3352,7 @@ main () {
                       $GATK --java-options "$Xmx1 -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$loopthreads"  GenotypeGVCFs -R ${projdir}/refgenomes/$ref3 -L ${selchr} -V gendb://${pop}_${ref3%.f*}_${ploidy_ref3}x_${selchr}_raw -O ${pop}_${ref3%.f*}_${ploidy_ref3}x_${selchr}_raw.hold.vcf.gz && \
                       rm -r ${pop}_${ref3%.f*}_${ploidy_ref3}x_${selchr}_raw && \
                       mv ${pop}_${ref3%.f*}_${ploidy_ref3}x_${selchr}_raw.hold.vcf.gz ${pop}_${ref3%.f*}_${ploidy_ref3}x_${selchr}_raw.vcf.gz &&
+                      mv ${pop}_${ref3%.f*}_${ploidy_ref3}x_${selchr}_raw.hold.vcf.gz.tbi ${pop}_${ref3%.f*}_${ploidy_ref3}x_${selchr}_raw.vcf.gz.tbi &&
                       wait
                     else
                       cat ${projdir}/${interval_list_ref3} | grep $selchr > ${projdir}/variant_intervals_${selchr}.list &&
@@ -3356,6 +3360,7 @@ main () {
                       rm ${projdir}/variant_intervals_${selchr}.list &&
                       rm -r ${pop}_${ref3%.f*}_${ploidy_ref3}x_${selchr}_raw && \
                       mv ${pop}_${ref3%.f*}_${ploidy_ref3}x_${selchr}_raw.hold.vcf.gz ${pop}_${ref3%.f*}_${ploidy_ref3}x_${selchr}_raw.vcf.gz &&
+                      mv ${pop}_${ref3%.f*}_${ploidy_ref3}x_${selchr}_raw.hold.vcf.gz.tbi ${pop}_${ref3%.f*}_${ploidy_ref3}x_${selchr}_raw.vcf.gz.tbi &&
                       wait
                     fi
                   fi
@@ -3363,9 +3368,9 @@ main () {
                 if LC_ALL=C gzip -l ${pop}_${ref3%.f*}_${ploidy_ref3}x_${selchr}_raw.vcf.gz | awk 'NR==2 {exit($2!=0)}'; then
                   :
                 else
-                  rm ../cohorts*/${pop}_${ref3%.f*}_${ploidy_ref3}x_*_raw.vcf.gz*
-                  rm ../cohorts*/${pop}_${ref3%.f*}_${ploidy_ref3}x_raw.vcf*
-                  rm ../${pop}_${ref3%.f*}_${ploidy_ref3}x_raw_cohorts*.vcf*
+                  rm ../cohorts*/${pop}_${ref3%.f*}_${ploidy_ref3}x_*_raw.vcf.gz* 2> /dev/null
+                  rm ../cohorts*/${pop}_${ref3%.f*}_${ploidy_ref3}x_raw.vcf* 2> /dev/null
+                  rm ../${pop}_${ref3%.f*}_${ploidy_ref3}x_raw_cohorts*.vcf* 2> /dev/null
                   echo -e "${magenta}- \n- SNP calling failed probably due to insufficient memory ${white}\n"
                   echo -e "${magenta}- \n- Exiting pipeline in 5 seconds ${white}\n"
                   sleep 5 && exit 1
@@ -5118,8 +5123,8 @@ main () {
 
   cd "$projdir"/snpfilter
   export n="${ref1%.f*}"
-  nother1="${ref2%.f*}_"
-  nother2="${ref3%.f*}_"
+  export nother1="${ref2%.f*}_"
+  export nother2="${ref3%.f*}_"
 
   {
     for snpfilter_dir in */; do

@@ -23,21 +23,19 @@ export cluster=${cluster//*=}
 export slurm_module=$((module --version) 2>&1 | head -n1)
 
 if [[ "$slurm_module" =~ "Module" ]]; then
-	if [ "$cluster" == true ];then
-		module unload python
-		module add python
-		pythonversion=$((python --version) 2>&1)
-		if [[ "$pythonversion" =~ "Python 2" ]] || [[ "$pythonversion" =~ "Python 3" ]]; then
-			echo -e "${white}\n- Using $pythonversion\n ${white}"
-		fi
-		module unload R 2> /dev/null
-	  module add R 2> /dev/null
-		module add r 2> /dev/null
-	  Rversion=$((R --version) 2>&1)
-	  if [[ "$Rversion" =~ "R version" ]]; then
-	    echo -e "${white}\n- Using $Rversion\n ${white}"
-	  fi
+	module unload python
+	module add python
+	pythonversion=$((python --version) 2>&1)
+	if [[ "$pythonversion" =~ "Python 2" ]] || [[ "$pythonversion" =~ "Python 3" ]]; then
+		echo -e "${white}\n- Using $pythonversion\n ${white}"
 	fi
+	module unload R 2> /dev/null
+  module add R 2> /dev/null
+	module add r 2> /dev/null
+  Rversion=$((R --version) 2>&1)
+  if [[ "$Rversion" =~ "R version" ]]; then
+    echo -e "${white}\n- Using $Rversion\n ${white}"
+  fi
 fi
 
 Rversion=$((R --version) 2>&1)

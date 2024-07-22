@@ -1403,9 +1403,9 @@ if [[ "$joint_calling" == false ]]; then
 					if LC_ALL=C gzip -l ${pop}_${ploidy}x_${selchr}_raw.vcf.gz | awk 'NR==2 {exit($2!=0)}'; then
 						:
 					else
-						rm ../cohorts*/${pop}_${ploidy}x_*_raw.vcf.gz*
-						rm ../cohorts*/${pop}_${ploidy}x_raw.vcf*
-						rm ../${pop}_${ploidy}x_raw_cohorts*.vcf*
+						rm ../cohorts*/${pop}_${ploidy}x_*_raw.vcf.gz* 2> /dev/null
+						rm ../cohorts*/${pop}_${ploidy}x_raw.vcf* 2> /dev/null
+						rm ../${pop}_${ploidy}x_raw_cohorts*.vcf* 2> /dev/null
 						echo -e "${magenta}- \n- SNP calling failed probably due to insufficient memory ${white}\n"
 						echo -e "${magenta}- \n- Exiting pipeline in 5 seconds ${white}\n"
 						sleep 5 && exit 1

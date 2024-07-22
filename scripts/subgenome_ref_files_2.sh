@@ -1363,7 +1363,7 @@ main () {
 
 		  ######################
 
-		  if [[ "$ploidy_ref1" ]] || [[ "$pangenome_specific" == "true" ]]; then
+		  if [[ "$ploidy_ref1" ]]; then
         echo -e "${magenta}- performing SNP calling on subgenome-1 ${white}\n"
   		  j=-I; input=""; k=""
   		  for i in *_${ref1%.f*}_precall.bam; do
@@ -1427,7 +1427,7 @@ main () {
 
 		  ######################
 
-		  if [[ "$ploidy_ref2" ]] || [[ "$pangenome_specific" == "true" ]]; then
+		  if [[ "$ploidy_ref2" ]]; then
         echo -e "${magenta}- performing SNP calling on subgenome-2 ${white}\n"
   		  j=-I; input=""; k=""
   		  for i in *_${ref2%.f*}_precall.bam; do
@@ -1610,9 +1610,9 @@ main () {
 							if LC_ALL=C gzip -l ${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_${selchr}_raw.vcf.gz | awk 'NR==2 {exit($2!=0)}'; then
 								:
 							else
-								rm ../cohorts*/${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_*_raw.vcf.gz*
-								rm ../cohorts*/${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_raw.vcf*
-								rm ../${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_raw_cohorts*.vcf*
+								rm ../cohorts*/${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_*_raw.vcf.gz* 2> /dev/null
+								rm ../cohorts*/${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_raw.vcf* 2> /dev/null
+								rm ../${pop}_${ref1%.f*}_${ref2%.f*}_${ploidy}x_raw_cohorts*.vcf* 2> /dev/null
 								echo -e "${magenta}- \n- SNP calling failed probably due to insufficient memory ${white}\n"
 								echo -e "${magenta}- \n- Exiting pipeline in 5 seconds ${white}\n"
 								sleep 5 && exit 1
@@ -1670,7 +1670,7 @@ main () {
 
 		######################
 
-    if [[ "$ploidy_ref1" ]] || [[ "$pangenome_specific" == "true" ]]; then
+    if [[ "$ploidy_ref1" ]]; then
       while [[ ! -f ${projdir}/precall_done_${samples_list} ]]; do
         sleep 300
       done
@@ -1794,9 +1794,9 @@ main () {
 							if LC_ALL=C gzip -l ${pop}_${ref1%.f*}_${ploidy_ref1}x_${selchr}_raw.vcf.gz | awk 'NR==2 {exit($2!=0)}'; then
 								:
 							else
-								rm ../cohorts*/${pop}_${ref1%.f*}_${ploidy_ref1}x_*_raw.vcf.gz*
-								rm ../cohorts*/${pop}_${ref1%.f*}_${ploidy_ref1}x_raw.vcf*
-								rm ../${pop}_${ref1%.f*}_${ploidy_ref1}x_raw_cohorts*.vcf
+								rm ../cohorts*/${pop}_${ref1%.f*}_${ploidy_ref1}x_*_raw.vcf.gz* 2> /dev/null
+								rm ../cohorts*/${pop}_${ref1%.f*}_${ploidy_ref1}x_raw.vcf* 2> /dev/null
+								rm ../${pop}_${ref1%.f*}_${ploidy_ref1}x_raw_cohorts*.vcf 2> /dev/null
 								echo -e "${magenta}- \n- SNP calling failed probably due to insufficient memory ${white}\n"
 								echo -e "${magenta}- \n- Exiting pipeline in 5 seconds ${white}\n"
 								sleep 5 && exit 1
@@ -1856,7 +1856,7 @@ main () {
 
 		######################
 
-    if [[ "$ploidy_ref2" ]] || [[ "$pangenome_specific" == "true" ]]; then
+    if [[ "$ploidy_ref2" ]]; then
       while [[ ! -f ${projdir}/precall_done_${samples_list} ]]; do
         sleep 300
       done
@@ -1964,6 +1964,7 @@ main () {
                   $GATK --java-options "$Xmx1 -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$loopthreads"  GenotypeGVCFs -R ${projdir}/refgenomes/$ref2 -L ${selchr} -V gendb://${pop}_${ref2%.f*}_${ploidy_ref2}x_${selchr}_raw -O ${pop}_${ref2%.f*}_${ploidy_ref2}x_${selchr}_raw.hold.vcf.gz && \
   								rm -r ${pop}_${ref2%.f*}_${ploidy_ref2}x_${selchr}_raw && \
   								mv ${pop}_${ref2%.f*}_${ploidy_ref2}x_${selchr}_raw.hold.vcf.gz ${pop}_${ref2%.f*}_${ploidy_ref2}x_${selchr}_raw.vcf.gz &&
+                  mv ${pop}_${ref2%.f*}_${ploidy_ref2}x_${selchr}_raw.hold.vcf.gz.tbi ${pop}_${ref2%.f*}_${ploidy_ref2}x_${selchr}_raw.vcf.gz.tbi &&
   								wait
                 else
                   cat ${projdir}/${interval_list_ref2} | grep $selchr > ${projdir}/variant_intervals_${selchr}.list &&
@@ -1978,9 +1979,9 @@ main () {
 							if LC_ALL=C gzip -l ${pop}_${ref2%.f*}_${ploidy_ref2}x_${selchr}_raw.vcf.gz | awk 'NR==2 {exit($2!=0)}'; then
 								:
 							else
-								rm ../cohorts*/${pop}_${ref2%.f*}_${ploidy_ref2}x_*_raw.vcf.gz*
-								rm ../cohorts*/${pop}_${ref2%.f*}_${ploidy_ref2}x_raw.vcf*
-								rm ../${pop}_${ref2%.f*}_${ploidy_ref2}x_raw_cohorts*.vcf*
+								rm ../cohorts*/${pop}_${ref2%.f*}_${ploidy_ref2}x_*_raw.vcf.gz* 2> /dev/null
+								rm ../cohorts*/${pop}_${ref2%.f*}_${ploidy_ref2}x_raw.vcf* 2> /dev/null
+								rm ../${pop}_${ref2%.f*}_${ploidy_ref2}x_raw_cohorts*.vcf* 2> /dev/null
 								echo -e "${magenta}- \n- SNP calling failed probably due to insufficient memory ${white}\n"
 								echo -e "${magenta}- \n- Exiting pipeline in 5 seconds ${white}\n"
 								sleep 5 && exit 1
@@ -3735,7 +3736,7 @@ wait
 
 cd "$projdir"/snpfilter
 export n="${ref1%.f*}"
-nother="${ref2%.f*}_"
+export nother="${ref2%.f*}_"
 {
   for snpfilter_dir in */; do
     if [ -d "${projdir}/snpfilter/${snpfilter_dir}" ]; then

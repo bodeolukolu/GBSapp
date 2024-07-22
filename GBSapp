@@ -36,7 +36,7 @@ if [[ "$1" == "-h" || "$1" == "--help" ]]; then
   echo -e "${white}\t\t--help, -h\t\tprint help message"
   echo -e "${white}\t\tinstall\t\t\tsoftware dependencies"
   echo -e "${white}\t\tproj_dir\t\tto run job, specify absolute or relative path to project directory\n"
-  echo -e "${magenta}- Do you want to view pipeline help? ${white}"
+  echo -e "${magenta}- Do you want to view description of parameter settings and example of config.sh file? ${white}"
   read -p "- y(YES) or n(NO)? " -n 1 -r
   if [[ $REPLY =~ ^[Yy]$ ]]; then
     awk '{gsub(/\|/," | ");}1' $GBSapp_dir/misc/pipeline_help.txt | less
