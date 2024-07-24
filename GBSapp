@@ -313,6 +313,13 @@ for f in $(ls *.FFN 2> /dev/null); do if [[ "$f" == *.FFN ]]; then echo -e "${ma
 for f in $(ls *.FAA 2> /dev/null); do if [[ "$f" == *.FAA ]]; then echo -e "${magenta}- changing upper case FAA extension of reference genome(s) to lower case"; mv $f ${f%.FAA}.faa  2> /dev/null; fi; done
 wait
 
+#check for and replace fastq file suffix capitalizations
+cd $projdir
+cd samples
+for f in $(ls *.FASTQ* 2> /dev/null); do if [[ "$f" == *.FASTQ* ]]; then echo -e "${magenta}- changing upper case FASTQ extension of sample(s) to lower case"; fi; done;
+find . -depth -name '*FASTQ*' -execdir bash -c 'mv -i "$1" "${1//FASTQ/fastq}"' bash {} \;
+wait
+
 ####################################################################################################################
 # check if the job was previously submitted and interrupted
 cd "$projdir"

@@ -310,6 +310,13 @@ fi
 
 
 echo -e "${blue}\n############################################################################## ${yellow}\n- Organizing sample fastq files \n${blue}##############################################################################${white}\n"
+#check for and replace fastq file suffix capitalizations
+cd $projdir
+cd samples
+for f in $(ls *.FASTQ* 2> /dev/null); do if [[ "$f" == *.FASTQ* ]]; then echo -e "${magenta}- changing upper case FASTQ extension of sample(s) to lower case"; fi; done;
+find . -depth -name '*FASTQ*' -execdir bash -c 'mv -i "$1" "${1//FASTQ/fastq}"' bash {} \;
+wait
+
 main () {
 	cd $projdir
 	cd samples
