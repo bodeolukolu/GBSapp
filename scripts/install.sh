@@ -228,7 +228,7 @@ fi
 
 main9 () {
   echo -e "${blue}\n############################################## \n- installing R-package: reshape2  ${blue}\n##############################################${white}"
-  R -e 'install.packages("reshape2", dependencies = TRUE, repos="http://cran.r-project.org", lib="./")'
+  R -e 'install.packages("reshape2", dependencies = TRUE, lib="./")'
   cd $R_dir
 }
 dirtool=./reshape2

@@ -439,13 +439,17 @@ mv unixformat.sh config.sh
 awk '{ sub("\r$",""); print}' config.sh > unixformat.sh
 mv unixformat.sh config.sh
 
-string="$(awk '/^ref/&&/=/&&/.fa/ {print}' config.sh | wc -l)"
-string_hap="$(awk '/^hap_ref/&&/=/&&/.fa/ {print}' config.sh | wc -l)"
+string="$(awk '/^ref/&&/=/&&/.f/ {print}' config.sh | wc -l)"
+string_hap="$(awk '/^hap_ref/&&/=/&&/.f/ {print}' config.sh | wc -l)"
 if [[ "$string" -gt 0 ]] && [[ "$string_hap" -gt 0 ]]; then
   echo -e "${magenta}\n- You cannot specify both haploid and haplotype-resolved reference genome. ${white}\n"
   exit 1
 fi
 
+if [[ "$string" -eq 0 ]] && [[ "$(ls ./refgenomes/*.f* | wc -l)" -eq 0 ]]; then
+  echo -e "${magenta}- specify reference genome fasta file(s) in config file and provide the file(s) in refgenomes folder ${white}\n"
+  sleep 5; exit 0
+fi
 if [[ "$string" -eq 0 ]]; then
 string=1
 fi
