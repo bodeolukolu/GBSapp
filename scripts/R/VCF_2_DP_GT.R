@@ -24,13 +24,12 @@ if (ploidy == "1x"){
       cnames <- colnames(vcffile)
       vcffile_GT <- vcffile; vcffile_DP <- vcffile
       all_content <- NULL
-      for (j in 5:length(cnames)) {
-        vcffile_GT[,j] <- gsub(":.*", "", vcffile_GT[,j])
-        vcffile_DP[,j] <- gsub("^[^:]*:", "", vcffile_DP[,j])
-        vcffile_DP[,j] <- gsub("^[^:]*:", "", vcffile_DP[,j])
-        vcffile_DP[,j] <- gsub(":.*", "", vcffile_DP[,j])
-        vcffile_DP[,j] <- gsub(".", "0", vcffile_DP[,j], fixed = TRUE)
-      }
+      
+      vcffile_GT[,5:length(cnames)] <- lapply(vcffile_GT[,5:length(cnames)], gsub, pattern = ":.*", replacement = "", fixed = TRUE)
+      vcffile_DP[,5:length(cnames)] <- lapply(vcffile_DP[,5:length(cnames)], gsub, pattern = "^[^:]*:", replacement = "", fixed = TRUE)
+      vcffile_DP[,5:length(cnames)] <- lapply(vcffile_DP[,5:length(cnames)], gsub, pattern = ":.*", replacement = "", fixed = TRUE)
+      vcffile_DP[,5:length(cnames)] <- lapply(vcffile_DP[,5:length(cnames)], gsub, pattern = ".", replacement = "0", fixed = TRUE)
+      
       names(vcffile_GT)[5:length(cnames)] <- paste(colnames(vcffile_GT[,5:length(cnames)]), "_GT", sep="")
       names(vcffile_DP)[5:length(cnames)] <- paste(colnames(vcffile_DP[,5:length(cnames)]), "_DP", sep="")
       vcffile <- merge(vcffile_DP,vcffile_GT, by=c("CHROM","POS","REF","ALT"))
@@ -53,6 +52,7 @@ if (ploidy == "1x"){
     vcffile_DP <- NULL
     vcffile_GT <- NULL
     unlink(paste("*1x_rawSPLIT*",sep=""))
+    gc()
   }
   vcf_to_DP_GT_1x()
 }
@@ -70,15 +70,14 @@ if (ploidy == "2x"){
       cnames <- colnames(vcffile)
       vcffile_GT <- vcffile; vcffile_DP <- vcffile; vcffile_AR <- vcffile
       all_content <- NULL
-      for (j in 5:length(cnames)) {
-        vcffile_GT[,j] <- gsub(":.*", "", vcffile_GT[,j])
-        vcffile_DP[,j] <- gsub("^[^:]*:", "", vcffile_DP[,j])
-        vcffile_AR[,j] <- gsub(":.*", "", vcffile_DP[,j])
-        vcffile_DP[,j] <- gsub("^[^:]*:", "", vcffile_DP[,j])
-        vcffile_DP[,j] <- gsub(":.*", "", vcffile_DP[,j])
-        vcffile_DP[,j] <- gsub("./.", "0", vcffile_DP[,j], fixed = TRUE)
-        vcffile_DP[,j] <- gsub(".", "0", vcffile_DP[,j], fixed = TRUE)
-      }
+
+      vcffile_GT[,5:length(cnames)] <- lapply(vcffile_GT[,5:length(cnames)], gsub, pattern = ":.*", replacement = "", fixed = TRUE)
+      vcffile_AR[,5:length(cnames)] <- lapply(vcffile_AR[,5:length(cnames)], gsub, pattern = ":.*", replacement = "", fixed = TRUE)
+      vcffile_DP[,5:length(cnames)] <- lapply(vcffile_DP[,5:length(cnames)], gsub, pattern = "^[^:]*:", replacement = "", fixed = TRUE)
+      vcffile_DP[,5:length(cnames)] <- lapply(vcffile_DP[,5:length(cnames)], gsub, pattern = ":.*", replacement = "", fixed = TRUE)
+      vcffile_DP[,5:length(cnames)] <- lapply(vcffile_DP[,5:length(cnames)], gsub, pattern = "./.", replacement = "0", fixed = TRUE)
+      vcffile_DP[,5:length(cnames)] <- lapply(vcffile_DP[,5:length(cnames)], gsub, pattern = ".", replacement = "0", fixed = TRUE)
+
       vcffile_AR_label <- vcffile_AR[,1:4]
       nosplit <- vcffile_AR_label
       for (k in c(5:(ncol(vcffile_AR)))) {
@@ -100,7 +99,6 @@ if (ploidy == "2x"){
         nosplit <- merge(nosplit,splitAR, by=c("CHROM","POS","REF","ALT"))
       }
       vcffile_AR <- nosplit
-      
       
       names(vcffile_GT)[5:length(cnames)] <- paste(colnames(vcffile_GT[,5:length(cnames)]), "_GT", sep="")
       names(vcffile_DP)[5:length(cnames)] <- paste(colnames(vcffile_DP[,5:length(cnames)]), "_DP", sep="")
@@ -195,15 +193,15 @@ if (ploidy == "3x"){
       cnames <- colnames(vcffile)
       vcffile_GT <- vcffile; vcffile_DP <- vcffile; vcffile_AR <- vcffile
       all_content <- NULL
-      for (j in 5:length(cnames)) {
-        vcffile_GT[,j] <- gsub(":.*", "", vcffile_GT[,j])
-        vcffile_DP[,j] <- gsub("^[^:]*:", "", vcffile_DP[,j])
-        vcffile_AR[,j] <- gsub(":.*", "", vcffile_DP[,j])
-        vcffile_DP[,j] <- gsub("^[^:]*:", "", vcffile_DP[,j])
-        vcffile_DP[,j] <- gsub(":.*", "", vcffile_DP[,j])
-        vcffile_DP[,j] <- gsub("././.", "0", vcffile_DP[,j], fixed = TRUE)
-        vcffile_DP[,j] <- gsub(".", "0", vcffile_DP[,j], fixed = TRUE)
-      }
+      
+      vcffile_GT[,5:length(cnames)] <- lapply(vcffile_GT[,5:length(cnames)], gsub, pattern = ":.*", replacement = "", fixed = TRUE)
+      vcffile_AR[,5:length(cnames)] <- lapply(vcffile_AR[,5:length(cnames)], gsub, pattern = ":.*", replacement = "", fixed = TRUE)
+      vcffile_DP[,5:length(cnames)] <- lapply(vcffile_DP[,5:length(cnames)], gsub, pattern = "^[^:]*:", replacement = "", fixed = TRUE)
+      vcffile_DP[,5:length(cnames)] <- lapply(vcffile_DP[,5:length(cnames)], gsub, pattern = ":.*", replacement = "", fixed = TRUE)
+      vcffile_DP[,5:length(cnames)] <- lapply(vcffile_DP[,5:length(cnames)], gsub, pattern = "././.", replacement = "0", fixed = TRUE)
+      vcffile_DP[,5:length(cnames)] <- lapply(vcffile_DP[,5:length(cnames)], gsub, pattern = ".", replacement = "0", fixed = TRUE)
+      
+
       vcffile_AR_label <- vcffile_AR[,1:4]
       nosplit <- vcffile_AR_label
       for (k in c(5:(ncol(vcffile_AR)))) {
@@ -225,7 +223,6 @@ if (ploidy == "3x"){
         nosplit <- merge(nosplit,splitAR, by=c("CHROM","POS","REF","ALT"))
       }
       vcffile_AR <- nosplit
-      
       
       names(vcffile_GT)[5:length(cnames)] <- paste(colnames(vcffile_GT[,5:length(cnames)]), "_GT", sep="")
       names(vcffile_DP)[5:length(cnames)] <- paste(colnames(vcffile_DP[,5:length(cnames)]), "_DP", sep="")
@@ -327,15 +324,14 @@ if (ploidy == "4x"){
       cnames <- colnames(vcffile)
       vcffile_GT <- vcffile; vcffile_DP <- vcffile; vcffile_AR <- vcffile
       all_content <- NULL
-      for (j in 5:length(cnames)) {
-        vcffile_GT[,j] <- gsub(":.*", "", vcffile_GT[,j])
-        vcffile_DP[,j] <- gsub("^[^:]*:", "", vcffile_DP[,j])
-        vcffile_AR[,j] <- gsub(":.*", "", vcffile_DP[,j])
-        vcffile_DP[,j] <- gsub("^[^:]*:", "", vcffile_DP[,j])
-        vcffile_DP[,j] <- gsub(":.*", "", vcffile_DP[,j])
-        vcffile_DP[,j] <- gsub("./././.", "0", vcffile_DP[,j], fixed = TRUE)
-        vcffile_DP[,j] <- gsub(".", "0", vcffile_DP[,j], fixed = TRUE)
-      }
+      
+      vcffile_GT[,5:length(cnames)] <- lapply(vcffile_GT[,5:length(cnames)], gsub, pattern = ":.*", replacement = "", fixed = TRUE)
+      vcffile_AR[,5:length(cnames)] <- lapply(vcffile_AR[,5:length(cnames)], gsub, pattern = ":.*", replacement = "", fixed = TRUE)
+      vcffile_DP[,5:length(cnames)] <- lapply(vcffile_DP[,5:length(cnames)], gsub, pattern = "^[^:]*:", replacement = "", fixed = TRUE)
+      vcffile_DP[,5:length(cnames)] <- lapply(vcffile_DP[,5:length(cnames)], gsub, pattern = ":.*", replacement = "", fixed = TRUE)
+      vcffile_DP[,5:length(cnames)] <- lapply(vcffile_DP[,5:length(cnames)], gsub, pattern = "./././.", replacement = "0", fixed = TRUE)
+      vcffile_DP[,5:length(cnames)] <- lapply(vcffile_DP[,5:length(cnames)], gsub, pattern = ".", replacement = "0", fixed = TRUE)
+      
       vcffile_AR_label <- vcffile_AR[,1:4]
       nosplit <- vcffile_AR_label
       for (k in c(5:(ncol(vcffile_AR)))) {
@@ -460,15 +456,14 @@ if (ploidy == "6x"){
       cnames <- colnames(vcffile)
       vcffile_GT <- vcffile; vcffile_DP <- vcffile; vcffile_AR <- vcffile
       all_content <- NULL
-      for (j in 5:length(cnames)) {
-        vcffile_GT[,j] <- gsub(":.*", "", vcffile_GT[,j])
-        vcffile_DP[,j] <- gsub("^[^:]*:", "", vcffile_DP[,j])
-        vcffile_AR[,j] <- gsub(":.*", "", vcffile_DP[,j])
-        vcffile_DP[,j] <- gsub("^[^:]*:", "", vcffile_DP[,j])
-        vcffile_DP[,j] <- gsub(":.*", "", vcffile_DP[,j])
-        vcffile_DP[,j] <- gsub("./././././.", "0", vcffile_DP[,j], fixed = TRUE)
-        vcffile_DP[,j] <- gsub(".", "0", vcffile_DP[,j], fixed = TRUE)
-      }
+      
+      vcffile_GT[,5:length(cnames)] <- lapply(vcffile_GT[,5:length(cnames)], gsub, pattern = ":.*", replacement = "", fixed = TRUE)
+      vcffile_AR[,5:length(cnames)] <- lapply(vcffile_AR[,5:length(cnames)], gsub, pattern = ":.*", replacement = "", fixed = TRUE)
+      vcffile_DP[,5:length(cnames)] <- lapply(vcffile_DP[,5:length(cnames)], gsub, pattern = "^[^:]*:", replacement = "", fixed = TRUE)
+      vcffile_DP[,5:length(cnames)] <- lapply(vcffile_DP[,5:length(cnames)], gsub, pattern = ":.*", replacement = "", fixed = TRUE)
+      vcffile_DP[,5:length(cnames)] <- lapply(vcffile_DP[,5:length(cnames)], gsub, pattern = "./././././.", replacement = "0", fixed = TRUE)
+      vcffile_DP[,5:length(cnames)] <- lapply(vcffile_DP[,5:length(cnames)], gsub, pattern = ".", replacement = "0", fixed = TRUE)
+      
       vcffile_AR_label <- vcffile_AR[,1:4]
       nosplit <- vcffile_AR_label
       for (k in c(5:(ncol(vcffile_AR)))) {
@@ -601,15 +596,15 @@ if (ploidy == "8x"){
       cnames <- colnames(vcffile)
       vcffile_GT <- vcffile; vcffile_DP <- vcffile; vcffile_AR <- vcffile
       all_content <- NULL
-      for (j in 5:length(cnames)) {
-        vcffile_GT[,j] <- gsub(":.*", "", vcffile_GT[,j])
-        vcffile_DP[,j] <- gsub("^[^:]*:", "", vcffile_DP[,j])
-        vcffile_AR[,j] <- gsub(":.*", "", vcffile_DP[,j])
-        vcffile_DP[,j] <- gsub("^[^:]*:", "", vcffile_DP[,j])
-        vcffile_DP[,j] <- gsub(":.*", "", vcffile_DP[,j])
-        vcffile_DP[,j] <- gsub("./././././././.", "0", vcffile_DP[,j], fixed = TRUE)
-        vcffile_DP[,j] <- gsub(".", "0", vcffile_DP[,j], fixed = TRUE)
-      }
+      
+      vcffile_GT[,5:length(cnames)] <- lapply(vcffile_GT[,5:length(cnames)], gsub, pattern = ":.*", replacement = "", fixed = TRUE)
+      vcffile_AR[,5:length(cnames)] <- lapply(vcffile_AR[,5:length(cnames)], gsub, pattern = ":.*", replacement = "", fixed = TRUE)
+      vcffile_DP[,5:length(cnames)] <- lapply(vcffile_DP[,5:length(cnames)], gsub, pattern = "^[^:]*:", replacement = "", fixed = TRUE)
+      vcffile_DP[,5:length(cnames)] <- lapply(vcffile_DP[,5:length(cnames)], gsub, pattern = ":.*", replacement = "", fixed = TRUE)
+      vcffile_DP[,5:length(cnames)] <- lapply(vcffile_DP[,5:length(cnames)], gsub, pattern = "./././././././.", replacement = "0", fixed = TRUE)
+      vcffile_DP[,5:length(cnames)] <- lapply(vcffile_DP[,5:length(cnames)], gsub, pattern = ".", replacement = "0", fixed = TRUE)
+      
+
       vcffile_AR_label <- vcffile_AR[,1:4]
       nosplit <- vcffile_AR_label
       for (k in c(5:(ncol(vcffile_AR)))) {
