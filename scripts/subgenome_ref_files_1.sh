@@ -1227,6 +1227,7 @@ echo -e "${magenta}- performing SNP calling ${white}\n"
 cd $projdir
 cd preprocess
 mkdir -p processed
+if [[ ! -s $interval_list ]]; then export interval_list=""; fi
 
 if [[ "$samples_list" == "samples_list_node_1.txt" ]]; then
 	if [[ "$joint_calling" == true ]]; then
@@ -1646,6 +1647,8 @@ fi
 if [ -z $select_samples ]; then
 	select_samples=NULL
 fi
+if [ ! -f $select_samples ]; then export select_samples=NULL; fi
+if [ ! -s $select_samples ]; then export select_samples=NULL; fi
 if [ -z $minRD_1x ]; then
 	minRD_1x=2
 fi

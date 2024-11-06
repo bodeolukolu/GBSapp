@@ -25,10 +25,12 @@ if (ploidy == "1x"){
       vcffile_GT <- vcffile; vcffile_DP <- vcffile
       all_content <- NULL
       
-      vcffile_GT[,5:length(cnames)] <- lapply(vcffile_GT[,5:length(cnames)], gsub, pattern = ":.*", replacement = "", fixed = TRUE)
-      vcffile_DP[,5:length(cnames)] <- lapply(vcffile_DP[,5:length(cnames)], gsub, pattern = "^[^:]*:", replacement = "", fixed = TRUE)
-      vcffile_DP[,5:length(cnames)] <- lapply(vcffile_DP[,5:length(cnames)], gsub, pattern = ":.*", replacement = "", fixed = TRUE)
-      vcffile_DP[,5:length(cnames)] <- lapply(vcffile_DP[,5:length(cnames)], gsub, pattern = ".", replacement = "0", fixed = TRUE)
+      vcffile_GT[,5:length(cnames)] <- lapply(vcffile_GT[,5:length(cnames)], sub, pattern = ":.*", replacement = "")
+      vcffile_AR[,5:length(cnames)] <- lapply(vcffile_AR[,5:length(cnames)], sub, pattern = "^[^:]*:", replacement = "")
+      vcffile_AR[,5:length(cnames)] <- lapply(vcffile_AR[,5:length(cnames)], sub, pattern = ":.*", replacement = "")
+      vcffile_DP[,5:length(cnames)] <- lapply(vcffile_DP[,5:length(cnames)], sub, pattern = "^[^:]*:", replacement = "")
+      vcffile_DP[,5:length(cnames)] <- lapply(vcffile_DP[,5:length(cnames)], sub, pattern = "^[^:]*:", replacement = "")
+      vcffile_DP[,5:length(cnames)] <- lapply(vcffile_DP[,5:length(cnames)], sub, pattern = ":.*", replacement = "")
       
       names(vcffile_GT)[5:length(cnames)] <- paste(colnames(vcffile_GT[,5:length(cnames)]), "_GT", sep="")
       names(vcffile_DP)[5:length(cnames)] <- paste(colnames(vcffile_DP[,5:length(cnames)]), "_DP", sep="")
@@ -71,17 +73,17 @@ if (ploidy == "2x"){
       vcffile_GT <- vcffile; vcffile_DP <- vcffile; vcffile_AR <- vcffile
       all_content <- NULL
 
-      vcffile_GT[,5:length(cnames)] <- lapply(vcffile_GT[,5:length(cnames)], gsub, pattern = ":.*", replacement = "", fixed = TRUE)
-      vcffile_AR[,5:length(cnames)] <- lapply(vcffile_AR[,5:length(cnames)], gsub, pattern = ":.*", replacement = "", fixed = TRUE)
-      vcffile_DP[,5:length(cnames)] <- lapply(vcffile_DP[,5:length(cnames)], gsub, pattern = "^[^:]*:", replacement = "", fixed = TRUE)
-      vcffile_DP[,5:length(cnames)] <- lapply(vcffile_DP[,5:length(cnames)], gsub, pattern = ":.*", replacement = "", fixed = TRUE)
-      vcffile_DP[,5:length(cnames)] <- lapply(vcffile_DP[,5:length(cnames)], gsub, pattern = "./.", replacement = "0", fixed = TRUE)
-      vcffile_DP[,5:length(cnames)] <- lapply(vcffile_DP[,5:length(cnames)], gsub, pattern = ".", replacement = "0", fixed = TRUE)
+      vcffile_GT[,5:length(cnames)] <- lapply(vcffile_GT[,5:length(cnames)], sub, pattern = ":.*", replacement = "")
+      vcffile_AR[,5:length(cnames)] <- lapply(vcffile_AR[,5:length(cnames)], sub, pattern = "^[^:]*:", replacement = "")
+      vcffile_AR[,5:length(cnames)] <- lapply(vcffile_AR[,5:length(cnames)], sub, pattern = ":.*", replacement = "")
+      vcffile_DP[,5:length(cnames)] <- lapply(vcffile_DP[,5:length(cnames)], sub, pattern = "^[^:]*:", replacement = "")
+      vcffile_DP[,5:length(cnames)] <- lapply(vcffile_DP[,5:length(cnames)], sub, pattern = "^[^:]*:", replacement = "")
+      vcffile_DP[,5:length(cnames)] <- lapply(vcffile_DP[,5:length(cnames)], sub, pattern = ":.*", replacement = "")
 
       vcffile_AR_label <- vcffile_AR[,1:4]
       nosplit <- vcffile_AR_label
       for (k in c(5:(ncol(vcffile_AR)))) {
-        splitAR <- strsplit(as.character(vcffile_AR[,k]),',')
+        splitAR <- strsplit(as.character(vcffile_AR[,k]),",")
         suppressWarnings(splitAR <- as.data.frame(do.call(rbind, splitAR)))
         suppressWarnings(splitAR <- as.data.frame(as.numeric(splitAR$V1) / as.numeric(splitAR$V2)))
         splitAR[][splitAR[]=="NaN"] <- NA
@@ -89,13 +91,13 @@ if (ploidy == "2x"){
         splitAR <- cbind(vcffile_AR_label,splitAR)
         names(splitAR)[5] <- colnames(vcffile_AR[k])
         splitAR[,5] <- as.numeric(splitAR[,5])
-        splitAR_na <- splitAR[is.na(splitAR[,5]),]
-        splitAR_na[splitAR_na=='NA'] <- NA
+        # splitAR_na <- splitAR[is.na(splitAR[,5]),]
+        # splitAR_na[splitAR_na=='NA'] <- NA
         splitAR_pos <- subset(splitAR, splitAR[,5] <= 1)
         splitAR_neg <- subset(splitAR, splitAR[,5] > 1)
         splitAR_neg[,5] <- -(1/as.numeric(splitAR_neg[,5]))
         splitAR <- rbind(splitAR_pos, splitAR_neg)
-        splitAR <- rbind(splitAR, splitAR_na)
+        # splitAR <- rbind(splitAR, splitAR_na)
         nosplit <- merge(nosplit,splitAR, by=c("CHROM","POS","REF","ALT"))
       }
       vcffile_AR <- nosplit
@@ -194,18 +196,17 @@ if (ploidy == "3x"){
       vcffile_GT <- vcffile; vcffile_DP <- vcffile; vcffile_AR <- vcffile
       all_content <- NULL
       
-      vcffile_GT[,5:length(cnames)] <- lapply(vcffile_GT[,5:length(cnames)], gsub, pattern = ":.*", replacement = "", fixed = TRUE)
-      vcffile_AR[,5:length(cnames)] <- lapply(vcffile_AR[,5:length(cnames)], gsub, pattern = ":.*", replacement = "", fixed = TRUE)
-      vcffile_DP[,5:length(cnames)] <- lapply(vcffile_DP[,5:length(cnames)], gsub, pattern = "^[^:]*:", replacement = "", fixed = TRUE)
-      vcffile_DP[,5:length(cnames)] <- lapply(vcffile_DP[,5:length(cnames)], gsub, pattern = ":.*", replacement = "", fixed = TRUE)
-      vcffile_DP[,5:length(cnames)] <- lapply(vcffile_DP[,5:length(cnames)], gsub, pattern = "././.", replacement = "0", fixed = TRUE)
-      vcffile_DP[,5:length(cnames)] <- lapply(vcffile_DP[,5:length(cnames)], gsub, pattern = ".", replacement = "0", fixed = TRUE)
+      vcffile_GT[,5:length(cnames)] <- lapply(vcffile_GT[,5:length(cnames)], sub, pattern = ":.*", replacement = "")
+      vcffile_AR[,5:length(cnames)] <- lapply(vcffile_AR[,5:length(cnames)], sub, pattern = "^[^:]*:", replacement = "")
+      vcffile_AR[,5:length(cnames)] <- lapply(vcffile_AR[,5:length(cnames)], sub, pattern = ":.*", replacement = "")
+      vcffile_DP[,5:length(cnames)] <- lapply(vcffile_DP[,5:length(cnames)], sub, pattern = "^[^:]*:", replacement = "")
+      vcffile_DP[,5:length(cnames)] <- lapply(vcffile_DP[,5:length(cnames)], sub, pattern = "^[^:]*:", replacement = "")
+      vcffile_DP[,5:length(cnames)] <- lapply(vcffile_DP[,5:length(cnames)], sub, pattern = ":.*", replacement = "")
       
-
       vcffile_AR_label <- vcffile_AR[,1:4]
       nosplit <- vcffile_AR_label
       for (k in c(5:(ncol(vcffile_AR)))) {
-        splitAR <- strsplit(as.character(vcffile_AR[,k]),',')
+        splitAR <- strsplit(as.character(vcffile_AR[,k]),",")
         suppressWarnings(splitAR <- as.data.frame(do.call(rbind, splitAR)))
         suppressWarnings(splitAR <- as.data.frame(as.numeric(splitAR$V1) / as.numeric(splitAR$V2)))
         splitAR[][splitAR[]=="NaN"] <- NA
@@ -213,13 +214,13 @@ if (ploidy == "3x"){
         splitAR <- cbind(vcffile_AR_label,splitAR)
         names(splitAR)[5] <- colnames(vcffile_AR[k])
         splitAR[,5] <- as.numeric(splitAR[,5])
-        splitAR_na <- splitAR[is.na(splitAR[,5]),]
-        splitAR_na[splitAR_na=='NA'] <- NA
+        # splitAR_na <- splitAR[is.na(splitAR[,5]),]
+        # splitAR_na[splitAR_na=='NA'] <- NA
         splitAR_pos <- subset(splitAR, splitAR[,5] <= 1)
         splitAR_neg <- subset(splitAR, splitAR[,5] > 1)
         splitAR_neg[,5] <- -(1/as.numeric(splitAR_neg[,5]))
         splitAR <- rbind(splitAR_pos, splitAR_neg)
-        splitAR <- rbind(splitAR, splitAR_na)
+        # splitAR <- rbind(splitAR, splitAR_na)
         nosplit <- merge(nosplit,splitAR, by=c("CHROM","POS","REF","ALT"))
       }
       vcffile_AR <- nosplit
@@ -325,17 +326,17 @@ if (ploidy == "4x"){
       vcffile_GT <- vcffile; vcffile_DP <- vcffile; vcffile_AR <- vcffile
       all_content <- NULL
       
-      vcffile_GT[,5:length(cnames)] <- lapply(vcffile_GT[,5:length(cnames)], gsub, pattern = ":.*", replacement = "", fixed = TRUE)
-      vcffile_AR[,5:length(cnames)] <- lapply(vcffile_AR[,5:length(cnames)], gsub, pattern = ":.*", replacement = "", fixed = TRUE)
-      vcffile_DP[,5:length(cnames)] <- lapply(vcffile_DP[,5:length(cnames)], gsub, pattern = "^[^:]*:", replacement = "", fixed = TRUE)
-      vcffile_DP[,5:length(cnames)] <- lapply(vcffile_DP[,5:length(cnames)], gsub, pattern = ":.*", replacement = "", fixed = TRUE)
-      vcffile_DP[,5:length(cnames)] <- lapply(vcffile_DP[,5:length(cnames)], gsub, pattern = "./././.", replacement = "0", fixed = TRUE)
-      vcffile_DP[,5:length(cnames)] <- lapply(vcffile_DP[,5:length(cnames)], gsub, pattern = ".", replacement = "0", fixed = TRUE)
+      vcffile_GT[,5:length(cnames)] <- lapply(vcffile_GT[,5:length(cnames)], sub, pattern = ":.*", replacement = "")
+      vcffile_AR[,5:length(cnames)] <- lapply(vcffile_AR[,5:length(cnames)], sub, pattern = "^[^:]*:", replacement = "")
+      vcffile_AR[,5:length(cnames)] <- lapply(vcffile_AR[,5:length(cnames)], sub, pattern = ":.*", replacement = "")
+      vcffile_DP[,5:length(cnames)] <- lapply(vcffile_DP[,5:length(cnames)], sub, pattern = "^[^:]*:", replacement = "")
+      vcffile_DP[,5:length(cnames)] <- lapply(vcffile_DP[,5:length(cnames)], sub, pattern = "^[^:]*:", replacement = "")
+      vcffile_DP[,5:length(cnames)] <- lapply(vcffile_DP[,5:length(cnames)], sub, pattern = ":.*", replacement = "")
       
       vcffile_AR_label <- vcffile_AR[,1:4]
       nosplit <- vcffile_AR_label
       for (k in c(5:(ncol(vcffile_AR)))) {
-        splitAR <- strsplit(as.character(vcffile_AR[,k]),',')
+        splitAR <- strsplit(as.character(vcffile_AR[,k]),",")
         suppressWarnings(splitAR <- as.data.frame(do.call(rbind, splitAR)))
         suppressWarnings(splitAR <- as.data.frame(as.numeric(splitAR$V1) / as.numeric(splitAR$V2)))
         splitAR[][splitAR[]=="NaN"] <- NA
@@ -343,13 +344,13 @@ if (ploidy == "4x"){
         splitAR <- cbind(vcffile_AR_label,splitAR)
         names(splitAR)[5] <- colnames(vcffile_AR[k])
         splitAR[,5] <- as.numeric(splitAR[,5])
-        splitAR_na <- splitAR[is.na(splitAR[,5]),]
-        splitAR_na[splitAR_na=='NA'] <- NA
+        # splitAR_na <- splitAR[is.na(splitAR[,5]),]
+        # splitAR_na[splitAR_na=='NA'] <- NA
         splitAR_pos <- subset(splitAR, splitAR[,5] <= 1)
         splitAR_neg <- subset(splitAR, splitAR[,5] > 1)
         splitAR_neg[,5] <- -(1/as.numeric(splitAR_neg[,5]))
         splitAR <- rbind(splitAR_pos, splitAR_neg)
-        splitAR <- rbind(splitAR, splitAR_na)
+        # splitAR <- rbind(splitAR, splitAR_na)
         nosplit <- merge(nosplit,splitAR, by=c("CHROM","POS","REF","ALT"))
       }
       vcffile_AR <- nosplit
@@ -457,17 +458,17 @@ if (ploidy == "6x"){
       vcffile_GT <- vcffile; vcffile_DP <- vcffile; vcffile_AR <- vcffile
       all_content <- NULL
       
-      vcffile_GT[,5:length(cnames)] <- lapply(vcffile_GT[,5:length(cnames)], gsub, pattern = ":.*", replacement = "", fixed = TRUE)
-      vcffile_AR[,5:length(cnames)] <- lapply(vcffile_AR[,5:length(cnames)], gsub, pattern = ":.*", replacement = "", fixed = TRUE)
-      vcffile_DP[,5:length(cnames)] <- lapply(vcffile_DP[,5:length(cnames)], gsub, pattern = "^[^:]*:", replacement = "", fixed = TRUE)
-      vcffile_DP[,5:length(cnames)] <- lapply(vcffile_DP[,5:length(cnames)], gsub, pattern = ":.*", replacement = "", fixed = TRUE)
-      vcffile_DP[,5:length(cnames)] <- lapply(vcffile_DP[,5:length(cnames)], gsub, pattern = "./././././.", replacement = "0", fixed = TRUE)
-      vcffile_DP[,5:length(cnames)] <- lapply(vcffile_DP[,5:length(cnames)], gsub, pattern = ".", replacement = "0", fixed = TRUE)
+      vcffile_GT[,5:length(cnames)] <- lapply(vcffile_GT[,5:length(cnames)], sub, pattern = ":.*", replacement = "")
+      vcffile_AR[,5:length(cnames)] <- lapply(vcffile_AR[,5:length(cnames)], sub, pattern = "^[^:]*:", replacement = "")
+      vcffile_AR[,5:length(cnames)] <- lapply(vcffile_AR[,5:length(cnames)], sub, pattern = ":.*", replacement = "")
+      vcffile_DP[,5:length(cnames)] <- lapply(vcffile_DP[,5:length(cnames)], sub, pattern = "^[^:]*:", replacement = "")
+      vcffile_DP[,5:length(cnames)] <- lapply(vcffile_DP[,5:length(cnames)], sub, pattern = "^[^:]*:", replacement = "")
+      vcffile_DP[,5:length(cnames)] <- lapply(vcffile_DP[,5:length(cnames)], sub, pattern = ":.*", replacement = "")
       
       vcffile_AR_label <- vcffile_AR[,1:4]
       nosplit <- vcffile_AR_label
       for (k in c(5:(ncol(vcffile_AR)))) {
-        splitAR <- strsplit(as.character(vcffile_AR[,k]),',')
+        splitAR <- strsplit(as.character(vcffile_AR[,k]),",")
         suppressWarnings(splitAR <- as.data.frame(do.call(rbind, splitAR)))
         suppressWarnings(splitAR <- as.data.frame(as.numeric(splitAR$V1) / as.numeric(splitAR$V2)))
         splitAR[][splitAR[]=="NaN"] <- NA
@@ -475,13 +476,13 @@ if (ploidy == "6x"){
         splitAR <- cbind(vcffile_AR_label,splitAR)
         names(splitAR)[5] <- colnames(vcffile_AR[k])
         splitAR[,5] <- as.numeric(splitAR[,5])
-        splitAR_na <- splitAR[is.na(splitAR[,5]),]
-        splitAR_na[splitAR_na=='NA'] <- NA
+        # splitAR_na <- splitAR[is.na(splitAR[,5]),]
+        # splitAR_na[splitAR_na=='NA'] <- NA
         splitAR_pos <- subset(splitAR, splitAR[,5] <= 1)
         splitAR_neg <- subset(splitAR, splitAR[,5] > 1)
         splitAR_neg[,5] <- -(1/as.numeric(splitAR_neg[,5]))
         splitAR <- rbind(splitAR_pos, splitAR_neg)
-        splitAR <- rbind(splitAR, splitAR_na)
+        # splitAR <- rbind(splitAR, splitAR_na)
         nosplit <- merge(nosplit,splitAR, by=c("CHROM","POS","REF","ALT"))
       }
       vcffile_AR <- nosplit
@@ -597,18 +598,17 @@ if (ploidy == "8x"){
       vcffile_GT <- vcffile; vcffile_DP <- vcffile; vcffile_AR <- vcffile
       all_content <- NULL
       
-      vcffile_GT[,5:length(cnames)] <- lapply(vcffile_GT[,5:length(cnames)], gsub, pattern = ":.*", replacement = "", fixed = TRUE)
-      vcffile_AR[,5:length(cnames)] <- lapply(vcffile_AR[,5:length(cnames)], gsub, pattern = ":.*", replacement = "", fixed = TRUE)
-      vcffile_DP[,5:length(cnames)] <- lapply(vcffile_DP[,5:length(cnames)], gsub, pattern = "^[^:]*:", replacement = "", fixed = TRUE)
-      vcffile_DP[,5:length(cnames)] <- lapply(vcffile_DP[,5:length(cnames)], gsub, pattern = ":.*", replacement = "", fixed = TRUE)
-      vcffile_DP[,5:length(cnames)] <- lapply(vcffile_DP[,5:length(cnames)], gsub, pattern = "./././././././.", replacement = "0", fixed = TRUE)
-      vcffile_DP[,5:length(cnames)] <- lapply(vcffile_DP[,5:length(cnames)], gsub, pattern = ".", replacement = "0", fixed = TRUE)
-      
+      vcffile_GT[,5:length(cnames)] <- lapply(vcffile_GT[,5:length(cnames)], sub, pattern = ":.*", replacement = "")
+      vcffile_AR[,5:length(cnames)] <- lapply(vcffile_AR[,5:length(cnames)], sub, pattern = "^[^:]*:", replacement = "")
+      vcffile_AR[,5:length(cnames)] <- lapply(vcffile_AR[,5:length(cnames)], sub, pattern = ":.*", replacement = "")
+      vcffile_DP[,5:length(cnames)] <- lapply(vcffile_DP[,5:length(cnames)], sub, pattern = "^[^:]*:", replacement = "")
+      vcffile_DP[,5:length(cnames)] <- lapply(vcffile_DP[,5:length(cnames)], sub, pattern = "^[^:]*:", replacement = "")
+      vcffile_DP[,5:length(cnames)] <- lapply(vcffile_DP[,5:length(cnames)], sub, pattern = ":.*", replacement = "")      
 
       vcffile_AR_label <- vcffile_AR[,1:4]
       nosplit <- vcffile_AR_label
       for (k in c(5:(ncol(vcffile_AR)))) {
-        splitAR <- strsplit(as.character(vcffile_AR[,k]),',')
+        splitAR <- strsplit(as.character(vcffile_AR[,k]),",")
         suppressWarnings(splitAR <- as.data.frame(do.call(rbind, splitAR)))
         suppressWarnings(splitAR <- as.data.frame(as.numeric(splitAR$V1) / as.numeric(splitAR$V2)))
         splitAR[][splitAR[]=="NaN"] <- NA
@@ -616,13 +616,13 @@ if (ploidy == "8x"){
         splitAR <- cbind(vcffile_AR_label,splitAR)
         names(splitAR)[5] <- colnames(vcffile_AR[k])
         splitAR[,5] <- as.numeric(splitAR[,5])
-        splitAR_na <- splitAR[is.na(splitAR[,5]),]
-        splitAR_na[splitAR_na=='NA'] <- NA
+        # splitAR_na <- splitAR[is.na(splitAR[,5]),]
+        # splitAR_na[splitAR_na=='NA'] <- NA
         splitAR_pos <- subset(splitAR, splitAR[,5] <= 1)
         splitAR_neg <- subset(splitAR, splitAR[,5] > 1)
         splitAR_neg[,5] <- -(1/as.numeric(splitAR_neg[,5]))
         splitAR <- rbind(splitAR_pos, splitAR_neg)
-        splitAR <- rbind(splitAR, splitAR_na)
+        # splitAR <- rbind(splitAR, splitAR_na)
         nosplit <- merge(nosplit,splitAR, by=c("CHROM","POS","REF","ALT"))
       }
       vcffile_AR <- nosplit
