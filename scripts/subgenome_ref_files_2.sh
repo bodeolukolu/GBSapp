@@ -2237,8 +2237,20 @@ fi
 if [ -z $select_samples ]; then
 	select_samples=NULL
 fi
-if [ ! -f $select_samples ]; then export select_samples=NULL; fi
-if [ ! -s $select_samples ]; then export select_samples=NULL; fi
+if [[ -z "$select_samples" ]]; then export select_samples=NULL; fi
+if [[ ! -z "${projdir}/$select_samples" ]]; then
+  awk 'BEGIN {FS = "\t";OFS = ""}{print $0,".fasta.gz"}' "${projdir}/$select_samples" | \
+  awk '{gsub(/.fasta.gz.fasta.gz/,".fasta.gz");}1' > "${projdir}"/fetch_samples_seq.txt
+fi
+if [[ -z "${projdir}/$select_samples" ]]; then cat "${projdir}"/samples_list_node_* > "${projdir}"/fetch_samples_seq.txt; fi
+if [[ -z "${projdir}/$select_samples" ]] && [[ "$exclude_samples" ]]; then
+  echo $exclude_samples | tr ',' '\n' | awk 'BEGIN {FS = "\t";OFS = ""}{print $0,".fasta.gz"}' > "${projdir}"/fetch_excluded.txt
+  grep -vFf "${projdir}"/fetch_excluded.txt "${projdir}"/fetch_samples_seq.txt > "${projdir}"/fetch_samples_seq0.txt
+  mv "${projdir}"/fetch_samples_seq0.txt "${projdir}"/fetch_samples_seq.txt
+fi
+
+
+
 if [ -z $minRD_1x ]; then
 	minRD_1x=2
 fi
@@ -2606,7 +2618,7 @@ for smiss in ${sample_missingness//,/ }; do
               awk -v pat="${ref1%.f*}_" '{gsub(pat,""); print $1":"$2"\t"$3}' ./seq_context_${RE1}/${i%.f*}_seqcontext.tmp | awk 'NR==FNR {a[$1]++; next} $1 in a' <(awk -v pat="${ref1%.f*}_" '{gsub(pat,"");}1' snplist_haps.txt) - > ./seq_context_${RE1}/${i%.f*}_seqcontext.txt &&
               rm ./seq_context_"${RE1}"/${i%.f*}_seqcontext.tmp 2> /dev/null &&
               wait
-            done < <(cat ${projdir}/samples_list_node_*)
+            done < <(cat ${projdir}/fetch_samples_seq.txt)
           fi
           if [[ -n "$RE2" ]]; then
             mkdir -p seq_context_"${RE2}" &&
@@ -2616,7 +2628,7 @@ for smiss in ${sample_missingness//,/ }; do
               awk -v pat="${ref1%.f*}_" '{gsub(pat,""); print $1":"$2"\t"$3}' ./seq_context_${RE2}/${i%.f*}_seqcontext.tmp | awk 'NR==FNR {a[$1]++; next} $1 in a' <(awk -v pat="${ref1%.f*}_" '{gsub(pat,"");}1' snplist_haps.txt) - > ./seq_context_${RE2}/${i%.f*}_seqcontext.txt &&
               rm ./seq_context_"${RE2}"/${i%.f*}_seqcontext.tmp 2> /dev/null &&
               wait
-            done < <(cat ${projdir}/samples_list_node_*)
+            done < <(cat ${projdir}/fetch_samples_seq.txt)
           fi
           if [[ -n "$RE1" ]] || [[ -n "$RE2" ]]; then
             mkdir consensus_seq_context
@@ -2635,7 +2647,7 @@ for smiss in ${sample_missingness//,/ }; do
     					done < <(awk '{print $1}' ./consensus_seq_context/"${i%.f*}"_seqcontext.fasta | sort | uniq )
               rm ./consensus_seq_context/"${i%.f*}"_seqcontext.cons.tmp ./consensus_seq_context/"${i%.f*}"_seqcontext.fasta.tmp ./consensus_seq_context/"${i%.f*}"_seqcontext.msf 2> /dev/null &&
               wait
-            done < <(cat ${projdir}/samples_list_node_*)
+            done < <(cat ${projdir}/fetch_samples_seq.txt)
             wait
             for nn in ./consensus_seq_context/*.cons; do
               for run in $(seq 1 10); do
@@ -2734,7 +2746,7 @@ for smiss in ${sample_missingness//,/ }; do
               awk -v pat="${ref1%.f*}_" '{gsub(pat,""); print $1":"$2"\t"$3}' ./seq_context_${RE1}/${i%.f*}_seqcontext.tmp | awk 'NR==FNR {a[$1]++; next} $1 in a' <(awk -v pat="${ref1%.f*}_" '{gsub(pat,"");}1' snplist_haps.txt) - > ./seq_context_${RE1}/${i%.f*}_seqcontext.txt &&
               rm ./seq_context_"${RE1}"/${i%.f*}_seqcontext.tmp 2> /dev/null &&
               wait
-            done < <(cat ${projdir}/samples_list_node_*)
+            done < <(cat ${projdir}/fetch_samples_seq.txt)
           fi
           if [[ -n "$RE2" ]]; then
             mkdir -p seq_context_"${RE2}" &&
@@ -2745,7 +2757,7 @@ for smiss in ${sample_missingness//,/ }; do
               awk -v pat="${ref1%.f*}_" '{gsub(pat,""); print $1":"$2"\t"$3}' ./seq_context_${RE2}/${i%.f*}_seqcontext.tmp | awk 'NR==FNR {a[$1]++; next} $1 in a' <(awk -v pat="${ref1%.f*}_" '{gsub(pat,"");}1' snplist_haps.txt) - > ./seq_context_${RE2}/${i%.f*}_seqcontext.txt &&
               rm ./seq_context_"${RE2}"/${i%.f*}_seqcontext.tmp 2> /dev/null &&
               wait
-            done < <(cat ${projdir}/samples_list_node_*)
+            done < <(cat ${projdir}/fetch_samples_seq.txt)
           fi
           if [[ -n "$RE1" ]] || [[ -n "$RE2" ]]; then
             mkdir consensus_seq_context &&
@@ -2765,7 +2777,7 @@ for smiss in ${sample_missingness//,/ }; do
     					done < <(awk '{print $1}' ./consensus_seq_context/"${i%.f*}"_seqcontext.fasta | sort | uniq )
               rm ./consensus_seq_context/"${i%.f*}"_seqcontext.cons.tmp ./consensus_seq_context/"${i%.f*}"_seqcontext.fasta.tmp ./consensus_seq_context/"${i%.f*}"_seqcontext.msf 2> /dev/null &&
               wait
-            done < <(cat ${projdir}/samples_list_node_*)
+            done < <(cat ${projdir}/fetch_samples_seq.txt)
             wait
             for nn in ./consensus_seq_context/*.cons; do
               for run in $(seq 1 10); do
@@ -2862,7 +2874,7 @@ for smiss in ${sample_missingness//,/ }; do
               awk -v pat="${ref1%.f*}_" '{gsub(pat,""); print $1":"$2"\t"$3}' ./seq_context_${RE1}/${i%.f*}_seqcontext.tmp | awk 'NR==FNR {a[$1]++; next} $1 in a' <(awk -v pat="${ref1%.f*}_" '{gsub(pat,"");}1' snplist_haps.txt) - > ./seq_context_${RE1}/${i%.f*}_seqcontext.txt &&
               rm ./seq_context_${RE1}/${i%.f*}_seqcontext.tmp &&
               wait
-            done < <(cat ${projdir}/samples_list_node_*)
+            done < <(cat ${projdir}/fetch_samples_seq.txt)
           fi
           if [[ -n "$RE2" ]]; then
             mkdir -p seq_context_${RE2} &&
@@ -2873,7 +2885,7 @@ for smiss in ${sample_missingness//,/ }; do
               awk -v pat="${ref1%.f*}_" '{gsub(pat,""); print $1":"$2"\t"$3}' ./seq_context_${RE2}/${i%.f*}_seqcontext.tmp | awk 'NR==FNR {a[$1]++; next} $1 in a' <(awk -v pat="${ref1%.f*}_" '{gsub(pat,"");}1' snplist_haps.txt) - > ./seq_context_${RE2}/${i%.f*}_seqcontext.txt &&
               rm ./seq_context_${RE2}/${i%.f*}_seqcontext.tmp &&
               wait
-            done < <(cat ${projdir}/samples_list_node_*)
+            done < <(cat ${projdir}/fetch_samples_seq.txt)
           fi
           if [[ -n "$RE1" ]] || [[ -n "$RE2" ]]; then
             mkdir consensus_seq_context &&
@@ -2893,7 +2905,7 @@ for smiss in ${sample_missingness//,/ }; do
     					done < <(awk '{print $1}' ./consensus_seq_context/"${i%.f*}"_seqcontext.fasta | sort | uniq )
               rm ./consensus_seq_context/"${i%.f*}"_seqcontext.cons.tmp ./consensus_seq_context/"${i%.f*}"_seqcontext.fasta.tmp ./consensus_seq_context/"${i%.f*}"_seqcontext.msf 2> /dev/null &&
               wait
-            done < <(cat ${projdir}/samples_list_node_*)
+            done < <(cat ${projdir}/fetch_samples_seq.txt)
             wait
             for nn in ./consensus_seq_context/*.cons; do
               for run in $(seq 1 10); do
@@ -2989,7 +3001,7 @@ for smiss in ${sample_missingness//,/ }; do
               $samtools view ../../preprocess/${i%.f*}_${ref1%.f*}_${ref2%.f*}_precall.bam 2> /dev/null | awk '{print $3"\t"$4"\t"$10}' | awk -v seq="^${RE1}" '$3 ~ seq' | awk '{$2=sprintf("%d00",$2/100)}1' | \
               awk -v pat="${ref1%.f*}_" '{gsub(pat,""); print $1":"$2"\t"$3}' | awk 'NR==FNR {a[$1]++; next} $1 in a' <(awk -v pat="${ref1%.f*}_" '{gsub(pat,"");}1' snplist_haps.txt) - > ./seq_context_${RE1}/${i%.f*}_seqcontext.txt &&
               wait
-            done < <(cat ${projdir}/samples_list_node_*)
+            done < <(cat ${projdir}/fetch_samples_seq.txt)
           fi
           if [[ -n "$RE2" ]]; then
             mkdir -p seq_context_${RE2}
@@ -2998,7 +3010,7 @@ for smiss in ${sample_missingness//,/ }; do
               $samtools view ../../preprocess/${i%.f*}_${ref1%.f*}_${ref2%.f*}_precall.bam 2> /dev/null | awk '{print $3"\t"$4"\t"$10}' | awk -v seq="^${RE2}" '$3 ~ seq' | awk '{$2=sprintf("%d00",$2/100)}1' | \
               awk -v pat="${ref1%.f*}_" '{gsub(pat,""); print $1":"$2"\t"$3}' | awk 'NR==FNR {a[$1]++; next} $1 in a' <(awk -v pat="${ref1%.f*}_" '{gsub(pat,"");}1' snplist_haps.txt) - > ./seq_context_${RE2}/${i%.f*}_seqcontext.txt &&
               wait
-            done < <(cat ${projdir}/samples_list_node_*)
+            done < <(cat ${projdir}/fetch_samples_seq.txt)
           fi
           if [[ -n "$RE1" ]] || [[ -n "$RE2" ]]; then
             mkdir consensus_seq_context &&
@@ -3018,7 +3030,7 @@ for smiss in ${sample_missingness//,/ }; do
     					done < <(awk '{print $1}' ./consensus_seq_context/"${i%.f*}"_seqcontext.fasta | sort | uniq )
               rm ./consensus_seq_context/"${i%.f*}"_seqcontext.cons.tmp ./consensus_seq_context/"${i%.f*}"_seqcontext.fasta.tmp ./consensus_seq_context/"${i%.f*}"_seqcontext.msf 2> /dev/null &&
               wait
-            done < <(cat ${projdir}/samples_list_node_*)
+            done < <(cat ${projdir}/fetch_samples_seq.txt)
             wait
             for nn in ./consensus_seq_context/*.cons; do
               for run in $(seq 1 10); do
@@ -3117,7 +3129,7 @@ for smiss in ${sample_missingness//,/ }; do
               awk -v pat="${ref1%.f*}_" '{gsub(pat,""); print $1":"$2"\t"$3}' ./seq_context_${RE1}/${i%.f*}_seqcontext.tmp | awk 'NR==FNR {a[$1]++; next} $1 in a' <(awk -v pat="${ref1%.f*}_" '{gsub(pat,"");}1' snplist_haps.txt) - > ./seq_context_${RE1}/${i%.f*}_seqcontext.txt &&
               rm ./seq_context_${RE1}/${i%.f*}_seqcontext.tmp &&
               wait
-            done < <(cat ${projdir}/samples_list_node_*)
+            done < <(cat ${projdir}/fetch_samples_seq.txt)
           fi
           if [[ -n "$RE2" ]]; then
             mkdir -p seq_context_${RE2} &&
@@ -3128,7 +3140,7 @@ for smiss in ${sample_missingness//,/ }; do
               awk -v pat="${ref1%.f*}_" '{gsub(pat,""); print $1":"$2"\t"$3}' ./seq_context_${RE2}/${i%.f*}_seqcontext.tmp | awk 'NR==FNR {a[$1]++; next} $1 in a' <(awk -v pat="${ref1%.f*}_" '{gsub(pat,"");}1' snplist_haps.txt) - > ./seq_context_${RE2}/${i%.f*}_seqcontext.txt &&
               rm ./seq_context_${RE2}/${i%.f*}_seqcontext.tmp &&
               wait
-            done < <(cat ${projdir}/samples_list_node_*)
+            done < <(cat ${projdir}/fetch_samples_seq.txt)
           fi
           if [[ -n "$RE1" ]] || [[ -n "$RE2" ]]; then
             mkdir consensus_seq_context &&
@@ -3148,7 +3160,7 @@ for smiss in ${sample_missingness//,/ }; do
     					done < <(awk '{print $1}' ./consensus_seq_context/"${i%.f*}"_seqcontext.fasta | sort | uniq )
               rm ./consensus_seq_context/"${i%.f*}"_seqcontext.cons.tmp ./consensus_seq_context/"${i%.f*}"_seqcontext.fasta.tmp ./consensus_seq_context/"${i%.f*}"_seqcontext.msf 2> /dev/null &&
               wait
-            done < <(cat ${projdir}/samples_list_node_*)
+            done < <(cat ${projdir}/fetch_samples_seq.txt)
             wait
             for nn in ./consensus_seq_context/*.cons; do
               for run in $(seq 1 10); do
@@ -3248,7 +3260,7 @@ for smiss in ${sample_missingness//,/ }; do
               awk -v pat="${ref1%.f*}_" '{gsub(pat,""); print $1":"$2"\t"$3}' ./seq_context_${RE1}/${i%.f*}_seqcontext.tmp | awk 'NR==FNR {a[$1]++; next} $1 in a' <(awk -v pat="${ref1%.f*}_" '{gsub(pat,"");}1' snplist_haps.txt) - > ./seq_context_${RE1}/${i%.f*}_seqcontext.txt &&
               rm ./seq_context_"${RE1}"/${i%.f*}_seqcontext.tmp 2> /dev/null &&
               wait
-            done < <(cat ${projdir}/samples_list_node_*)
+            done < <(cat ${projdir}/fetch_samples_seq.txt)
           fi
           if [[ -n "$RE2" ]]; then
             mkdir -p seq_context_"${RE2}" &&
@@ -3259,7 +3271,7 @@ for smiss in ${sample_missingness//,/ }; do
               awk -v pat="${ref1%.f*}_" '{gsub(pat,""); print $1":"$2"\t"$3}' ./seq_context_${RE2}/${i%.f*}_seqcontext.tmp | awk 'NR==FNR {a[$1]++; next} $1 in a' <(awk -v pat="${ref1%.f*}_" '{gsub(pat,"");}1' snplist_haps.txt) - > ./seq_context_${RE2}/${i%.f*}_seqcontext.txt &&
               rm ./seq_context_"${RE2}"/${i%.f*}_seqcontext.tmp 2> /dev/null &&
               wait
-            done < <(cat ${projdir}/samples_list_node_*)
+            done < <(cat ${projdir}/fetch_samples_seq.txt)
           fi
           if [[ -n "$RE1" ]] || [[ -n "$RE2" ]]; then
             mkdir consensus_seq_context &&
@@ -3279,7 +3291,7 @@ for smiss in ${sample_missingness//,/ }; do
     					done < <(awk '{print $1}' ./consensus_seq_context/"${i%.f*}"_seqcontext.fasta | sort | uniq )
               rm ./consensus_seq_context/"${i%.f*}"_seqcontext.cons.tmp ./consensus_seq_context/"${i%.f*}"_seqcontext.fasta.tmp ./consensus_seq_context/"${i%.f*}"_seqcontext.msf 2> /dev/null &&
               wait
-            done < <(cat ${projdir}/samples_list_node_*)
+            done < <(cat ${projdir}/fetch_samples_seq.txt)
             wait
             for nn in ./consensus_seq_context/*.cons; do
               for run in $(seq 1 10); do
@@ -3377,7 +3389,7 @@ for smiss in ${sample_missingness//,/ }; do
               awk -v pat="${ref1%.f*}_" '{gsub(pat,""); print $1":"$2"\t"$3}' ./seq_context_${RE1}/${i%.f*}_seqcontext.tmp | awk 'NR==FNR {a[$1]++; next} $1 in a' <(awk -v pat="${ref1%.f*}_" '{gsub(pat,"");}1' snplist_haps.txt) - > ./seq_context_${RE1}/${i%.f*}_seqcontext.txt &&
               rm ./seq_context_${RE1}/${i%.f*}_seqcontext.tmp &&
               wait
-            done < <(cat ${projdir}/samples_list_node_*)
+            done < <(cat ${projdir}/fetch_samples_seq.txt)
           fi
           if [[ -n "$RE2" ]]; then
             mkdir -p seq_context_${RE2} &&
@@ -3388,7 +3400,7 @@ for smiss in ${sample_missingness//,/ }; do
               awk -v pat="${ref1%.f*}_" '{gsub(pat,""); print $1":"$2"\t"$3}' ./seq_context_${RE2}/${i%.f*}_seqcontext.tmp | awk 'NR==FNR {a[$1]++; next} $1 in a' <(awk -v pat="${ref1%.f*}_" '{gsub(pat,"");}1' snplist_haps.txt) - > ./seq_context_${RE2}/${i%.f*}_seqcontext.txt &&
               rm ./seq_context_${RE2}/${i%.f*}_seqcontext.tmp &&
               wait
-            done < <(cat ${projdir}/samples_list_node_*)
+            done < <(cat ${projdir}/fetch_samples_seq.txt)
           fi
           if [[ -n "$RE1" ]] || [[ -n "$RE2" ]]; then
             mkdir consensus_seq_context &&
@@ -3408,7 +3420,7 @@ for smiss in ${sample_missingness//,/ }; do
     					done < <(awk '{print $1}' ./consensus_seq_context/"${i%.f*}"_seqcontext.fasta | sort | uniq )
               rm ./consensus_seq_context/"${i%.f*}"_seqcontext.cons.tmp ./consensus_seq_context/"${i%.f*}"_seqcontext.fasta.tmp ./consensus_seq_context/"${i%.f*}"_seqcontext.msf 2> /dev/null &&
               wait
-            done < <(cat ${projdir}/samples_list_node_*)
+            done < <(cat ${projdir}/fetch_samples_seq.txt)
             wait
             for nn in ./consensus_seq_context/*.cons; do
               for run in $(seq 1 10); do
@@ -3505,7 +3517,7 @@ for smiss in ${sample_missingness//,/ }; do
               awk -v pat="${ref1%.f*}_" '{gsub(pat,""); print $1":"$2"\t"$3}' ./seq_context_${RE1}/${i%.f*}_seqcontext.tmp | awk 'NR==FNR {a[$1]++; next} $1 in a' <(awk -v pat="${ref1%.f*}_" '{gsub(pat,"");}1' snplist_haps.txt) - > ./seq_context_${RE1}/${i%.f*}_seqcontext.txt &&
               rm ./seq_context_${RE1}/${i%.f*}_seqcontext.tmp &&
               wait
-            done < <(cat ${projdir}/samples_list_node_*)
+            done < <(cat ${projdir}/fetch_samples_seq.txt)
           fi
           if [[ -n "$RE2" ]]; then
             mkdir -p seq_context_${RE2} &&
@@ -3516,7 +3528,7 @@ for smiss in ${sample_missingness//,/ }; do
               awk -v pat="${ref1%.f*}_" '{gsub(pat,""); print $1":"$2"\t"$3}' ./seq_context_${RE2}/${i%.f*}_seqcontext.tmp | awk 'NR==FNR {a[$1]++; next} $1 in a' <(awk -v pat="${ref1%.f*}_" '{gsub(pat,"");}1' snplist_haps.txt) - > ./seq_context_${RE2}/${i%.f*}_seqcontext.txt &&
               rm ./seq_context_${RE2}/${i%.f*}_seqcontext.tmp &&
               wait
-            done < <(cat ${projdir}/samples_list_node_*)
+            done < <(cat ${projdir}/fetch_samples_seq.txt)
           fi
           if [[ -n "$RE1" ]] || [[ -n "$RE2" ]]; then
             mkdir consensus_seq_context &&
@@ -3536,7 +3548,7 @@ for smiss in ${sample_missingness//,/ }; do
     					done < <(awk '{print $1}' ./consensus_seq_context/"${i%.f*}"_seqcontext.fasta | sort | uniq )
               rm ./consensus_seq_context/"${i%.f*}"_seqcontext.cons.tmp ./consensus_seq_context/"${i%.f*}"_seqcontext.fasta.tmp ./consensus_seq_context/"${i%.f*}"_seqcontext.msf 2> /dev/null &&
               wait
-            done < <(cat ${projdir}/samples_list_node_*)
+            done < <(cat ${projdir}/fetch_samples_seq.txt)
             wait
             for nn in ./consensus_seq_context/*.cons; do
               for run in $(seq 1 10); do
@@ -3635,7 +3647,7 @@ for smiss in ${sample_missingness//,/ }; do
               awk -v pat="${ref1%.f*}_" '{gsub(pat,""); print $1":"$2"\t"$3}' ./seq_context_${RE1}/${i%.f*}_seqcontext.tmp | awk 'NR==FNR {a[$1]++; next} $1 in a' <(awk -v pat="${ref1%.f*}_" '{gsub(pat,"");}1' snplist_haps.txt) - > ./seq_context_${RE1}/${i%.f*}_seqcontext.txt &&
               rm ./seq_context_${RE1}/${i%.f*}_seqcontext.tmp &&
               wait
-            done < <(cat ${projdir}/samples_list_node_*)
+            done < <(cat ${projdir}/fetch_samples_seq.txt)
           fi
           if [[ -n "$RE2" ]]; then
             mkdir -p seq_context_${RE2} &&
@@ -3646,7 +3658,7 @@ for smiss in ${sample_missingness//,/ }; do
               awk -v pat="${ref1%.f*}_" '{gsub(pat,""); print $1":"$2"\t"$3}' ./seq_context_${RE2}/${i%.f*}_seqcontext.tmp | awk 'NR==FNR {a[$1]++; next} $1 in a' <(awk -v pat="${ref1%.f*}_" '{gsub(pat,"");}1' snplist_haps.txt) - > ./seq_context_${RE2}/${i%.f*}_seqcontext.txt &&
               rm ./seq_context_${RE2}/${i%.f*}_seqcontext.tmp &&
               wait
-            done < <(cat ${projdir}/samples_list_node_*)
+            done < <(cat ${projdir}/fetch_samples_seq.txt)
           fi
           if [[ -n "$RE1" ]] || [[ -n "$RE2" ]]; then
             mkdir consensus_seq_context &&
@@ -3666,7 +3678,7 @@ for smiss in ${sample_missingness//,/ }; do
     					done < <(awk '{print $1}' ./consensus_seq_context/"${i%.f*}"_seqcontext.fasta | sort | uniq )
               rm ./consensus_seq_context/"${i%.f*}"_seqcontext.cons.tmp ./consensus_seq_context/"${i%.f*}"_seqcontext.fasta.tmp ./consensus_seq_context/"${i%.f*}"_seqcontext.msf 2> /dev/null &&
               wait
-            done < <(cat ${projdir}/samples_list_node_*)
+            done < <(cat ${projdir}/fetch_samples_seq.txt)
             wait
             for nn in ./consensus_seq_context/*.cons; do
               for run in $(seq 1 10); do
@@ -3704,6 +3716,7 @@ mv ${projdir}/preprocess/*_precall.bam ${projdir}/preprocess/processed/ 2> /dev/
 
 
 cd ${projdir}/snpfilter/
+rm ${projdir}/fetch_samples_seq.txt
 find . -type f -empty -delete
 find . -type d -empty -delete
 for snpfilter_dir in */; do
