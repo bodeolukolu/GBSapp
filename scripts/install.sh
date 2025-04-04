@@ -14,7 +14,7 @@ main0 () {
   echo -e "${blue}\n############################################## ${yellow}\n- downloading and installing bamtools ${blue}\n##############################################${white}"
   wget https://github.com/pezmaster31/bamtools/archive/refs/heads/master.zip &&
   unzip master.zip; rm master.zip; mv bamtools-master bamtools
-  mkdir build
+  cd bamtools; mkdir build
   cd build
   cmake ..
   make
