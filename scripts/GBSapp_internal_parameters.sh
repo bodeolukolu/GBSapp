@@ -26,7 +26,7 @@ if [[ "$slurm_module" =~ "Module" ]]; then
 	module unload python
 	module add python
 	pythonversion=$((python --version) 2>&1)
-	if [[ "$pythonversion" =~ "Python 2" ]] || [[ "$pythonversion" =~ "Python 3" ]]; then
+	if [[ "$pythonversion" =~ "Python 3" ]]; then
 		echo -e "${white}\n- Using $pythonversion\n ${white}"
 	fi
 	module unload R 2> /dev/null
@@ -47,36 +47,36 @@ else
 fi
 
 pythonversion=$((python --version) 2>&1)
-if [[ "$pythonversion" =~ "Python 2" ]]; then
+if [[ "$pythonversion" =~ "Python 3" ]]; then
   echo -e "${white}\n- Using $pythonversion\n ${white}"
 else
 	echo -e "${white}- install python before proceeding ${white}"
 fi
 
-javaversion=$((update-alternatives --list java | grep 'java-8-openjdk') 2>&1)
+javaversion=$((update-alternatives --list java | grep 'java-17-openjdk') 2>&1)
 mkdir -p ~/bin
 PATH=~/bin:$PATH
 rm ~/bin/java
 ln -s $javaversion ~/bin/java
 javaversion=$((java -version) 2>&1)
-if [[ "$javaversion" =~ "1.8" ]]; then
+if [[ "$javaversion" =~ "17.0.14+7" ]]; then
 	echo -e "${white}\n- Using $javaversion\n ${white}"
 else
 	mkdir -p ~/bin
 	PATH=~/bin:$PATH
 	rm ~/bin/java
-	ln -s ${GBSapp_dir}/tools/jdk8*/bin/java ~/bin/java
+	ln -s ${GBSapp_dir}/tools/jdk*/bin/java ~/bin/java
 	javaversion=$((java -version) 2>&1)
-	if [[ "$javaversion" =~ "1.8" ]]; then
+	if [[ "$javaversion" =~ "17.0.14+7" ]]; then
 		echo -e "${white}\n- Using $javaversion\n ${white}"
 	else
-		echo -e "${white}- install java version build 1.8 before proceeding ${white}"
+		echo -e "${white}- install java version build 17.0.14+7 before proceeding ${white}"
 	fi
 fi
 mkdir -p ~/bin
 PATH=~/bin:$PATH
 rm ~/bin/java
-ln -s ${GBSapp_dir}/tools/jdk8*/bin/java ~/bin/java
+ln -s ${GBSapp_dir}/tools/*jdk*/bin/java ~/bin/java
 
 
 
@@ -88,8 +88,9 @@ export samtools=${GBSapp_dir}/tools/samtools*/samtools && samtools=${samtools//'
 export bcftools=${GBSapp_dir}/tools/bcftools*/bcftools && bcftools=${bcftools//'//'/'/'}
 export bedtools=${GBSapp_dir}/tools/bedtools2/bin/bedtools && bedtools=${bedtools//'//'/'/'}
 export picard=${GBSapp_dir}/tools/picard.jar && picard=${picard//'//'/'/'}
-export GATK=${GBSapp_dir}/tools/gatk-4.2.6.1/gatk && GATK=${GATK//'//'/'/'}
-export java=${GBSapp_dir}/tools/jdk8*/bin/java && java=${java//'//'/'/'}
+export GATK=${GBSapp_dir}/tools/gatk-4.6.1.0/gatk && GATK=${GATK//'//'/'/'}
+export java=${GBSapp_dir}/tools/*jdk*/bin/java && java=${java//'//'/'/'}
+export JAVA_HOME=${GBSapp_dir}/tools/*jdk*/bin/
 export consambig=${GBSapp_dir}/tools/EMBOSS-6.6.0/emboss/consambig
 export mafft=${GBSapp_dir}/tools/mafft/mafft
 if command -v pigz &>/dev/null; then

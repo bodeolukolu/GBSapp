@@ -9,6 +9,28 @@ cyan=$'\e[1;36m'
 white=$'\e[0m'
 
 tools_dir=$(pwd)
+
+main0 () {
+  echo -e "${blue}\n############################################## ${yellow}\n- downloading and installing bamtools ${blue}\n##############################################${white}"
+  wget https://github.com/pezmaster31/bamtools/archive/refs/heads/master.zip &&
+  unzip master.zip; rm master.zip; mv bamtools-master bamtools
+  mkdir build
+  cd build
+  cmake ..
+  make
+  cd $tools_dir
+}
+dirtool=bamtools*
+if [ -d $dirtool ]; then
+  :
+else
+  echo -e "${magenta}- Performing installation of dependency (bamtools) ${white}"
+  main0 &>> ./log.out
+  if [ ! -d $dirtool ]; then
+      echo -e "${magenta} bamtools did not install properly ${white}"
+  fi
+fi
+
 main1 () {
   echo -e "${blue}\n############################################## ${yellow}\n- downloading and installing NGM ${blue}\n##############################################${white}"
   wget http://www.cmake.org/files/v2.8/cmake-2.8.0-Linux-i386.tar.gz
@@ -17,9 +39,9 @@ main1 () {
   wget https://github.com/Cibiv/NextGenMap/tarball/master -O NGM.tar.gz
   tar xvfz NGM.tar.gz; rm NGM.tar.gz
   cd Cibiv-NextGenMap*
-  mkdir -p build/
-  cd build/
-  cmake ..
+  mkdir -p build/release
+  cd build/release/
+  cmake ../../ -DCMAKE_PREFIX_PATH="./bamtools/build/src/" -DCMAKE_BUILD_TYPE=Release
   make
   rm -rf ../../cmake-2.8.0-Linux-i386/
   cd $tools_dir
@@ -111,9 +133,9 @@ fi
 
 
 main () {
-  echo -e "${blue}\n############################################## \n- installiing java 1.8. ${blue}\n##############################################${white}"
-  wget https://github.com/adoptium/temurin8-binaries/releases/download/jdk8u322-b06/OpenJDK8U-jdk_x64_linux_hotspot_8u322b06.tar.gz
-  tar -xvf OpenJDK8U-jdk_x64_linux_hotspot_8u322b06.tar.gz; rm *tar.gz
+  echo -e "${blue}\n############################################## \n- installiing java 17.0.14+7 ${blue}\n##############################################${white}"
+  wget https://github.com/adoptium/temurin17-binaries/releases/download/jdk-17.0.14%2B7/OpenJDK17U-jdk_x64_linux_hotspot_17.0.14_7.tar.gz
+  tar -xvf OpenJDK17U-jdk_x64_linux_hotspot_17.0.14_7.tar.gz; rm *tar.gz
   cd $tools_dir
 }
 dirtool=*jdk*
@@ -180,9 +202,9 @@ fi
 
 main8 () {
   echo -e "${green}\n############################################## \n- downloading GATK \n##############################################${white}"
-  wget -O GATK4.2.6.1.zip "https://github.com/broadinstitute/gatk/releases/download/4.2.6.1/gatk-4.2.6.1.zip"
-  unzip GATK4.2.6.1.zip
-  rm GATK4.2.6.1.zip
+  wget -O GATK4.6.1.0.zip "https://github.com/broadinstitute/gatk/releases/download/4.6.1.0/gatk-4.6.1.0.zip"
+  unzip GATK4.6.1.0.zip
+  rm GATK4.6.1.0.zip
   cd $tools_dir
 }
 dirtool=gatk*
