@@ -34,10 +34,11 @@ if (ploidy == "1x"){
       
       names(vcffile_GT)[5:length(cnames)] <- paste(colnames(vcffile_GT[,5:length(cnames)]), "_GT", sep="")
       names(vcffile_DP)[5:length(cnames)] <- paste(colnames(vcffile_DP[,5:length(cnames)]), "_DP", sep="")
+      vcffile_DP[,5:ncol(vcffile_DP)] <- lapply(vcffile_DP[,5:ncol(vcffile_DP)], gsub, pattern = "\\.", replacement = "0")
       vcffile <- merge(vcffile_DP,vcffile_GT, by=c("CHROM","POS","REF","ALT"))
       vcffile[][vcffile[]=="."] <- NA
       vcffile$no_missing <- rowSums(is.na(vcffile))
-      vcffile <- subset(vcffile, no_missing <= ((ncol(vcffile)-5)/2)*0.8)
+      # vcffile <- subset(vcffile, no_missing <= ((ncol(vcffile)-5)/2)*0.8)
       vcffile <- subset(vcffile, select=-c(no_missing))
       DPstart <- 5; DPend <- (((ncol(vcffile)-4)/2)+4); increments <- DPend - DPstart
       GTstart <- DPend + 1; GTend <-  GTstart +increments
@@ -81,6 +82,7 @@ if (ploidy == "2x"){
       vcffile_DP[,5:length(cnames)] <- lapply(vcffile_DP[,5:length(cnames)], sub, pattern = ":.*", replacement = "")
 
       vcffile_AR_label <- vcffile_AR[,1:4]
+      vcffile_AR[,5:ncol(vcffile_AR)] <- lapply(vcffile_AR[,5:ncol(vcffile_AR)], gsub, pattern = "\\.", replacement = "0,0")
       nosplit <- vcffile_AR_label
       for (k in c(5:(ncol(vcffile_AR)))) {
         splitAR <- strsplit(as.character(vcffile_AR[,k]),",")
@@ -104,12 +106,13 @@ if (ploidy == "2x"){
       
       names(vcffile_GT)[5:length(cnames)] <- paste(colnames(vcffile_GT[,5:length(cnames)]), "_GT", sep="")
       names(vcffile_DP)[5:length(cnames)] <- paste(colnames(vcffile_DP[,5:length(cnames)]), "_DP", sep="")
+      vcffile_DP[,5:ncol(vcffile_DP)] <- lapply(vcffile_DP[,5:ncol(vcffile_DP)], gsub, pattern = "\\.", replacement = "0")
       names(vcffile_AR)[5:length(cnames)] <- paste(colnames(vcffile_AR[,5:length(cnames)]), "_AR", sep="")
       vcffile <- merge(vcffile_DP,vcffile_GT, by=c("CHROM","POS","REF","ALT"))
-      vcffile <- merge(vcffile,vcffile_AR, by=c("CHROM","POS","REF","ALT"))
+      vcffile <- merge(vcffile,vcffile_AR, by=c("CHROM","POS","REF","ALT"), all=TRUE)
       vcffile[][vcffile[]=="./."] <- NA
       vcffile$no_missing <- rowSums(is.na(vcffile))
-      vcffile <- subset(vcffile, no_missing <= ((ncol(vcffile)-5)/3)*0.8)
+      # vcffile <- subset(vcffile, no_missing <= ((ncol(vcffile)-5)/3)*0.8)
       vcffile <- subset(vcffile, select=-c(no_missing))
       DPstart <- 5; DPend <- (((ncol(vcffile)-4)/3)+4); increments <- DPend - DPstart
       GTstart <- DPend + 1; GTend <-  GTstart +increments
@@ -204,6 +207,7 @@ if (ploidy == "3x"){
       vcffile_DP[,5:length(cnames)] <- lapply(vcffile_DP[,5:length(cnames)], sub, pattern = ":.*", replacement = "")
       
       vcffile_AR_label <- vcffile_AR[,1:4]
+      vcffile_AR[,5:ncol(vcffile_AR)] <- lapply(vcffile_AR[,5:ncol(vcffile_AR)], gsub, pattern = "\\.", replacement = "0,0")
       nosplit <- vcffile_AR_label
       for (k in c(5:(ncol(vcffile_AR)))) {
         splitAR <- strsplit(as.character(vcffile_AR[,k]),",")
@@ -227,12 +231,13 @@ if (ploidy == "3x"){
       
       names(vcffile_GT)[5:length(cnames)] <- paste(colnames(vcffile_GT[,5:length(cnames)]), "_GT", sep="")
       names(vcffile_DP)[5:length(cnames)] <- paste(colnames(vcffile_DP[,5:length(cnames)]), "_DP", sep="")
+      vcffile_DP[,5:ncol(vcffile_DP)] <- lapply(vcffile_DP[,5:ncol(vcffile_DP)], gsub, pattern = "\\.", replacement = "0")
       names(vcffile_AR)[5:length(cnames)] <- paste(colnames(vcffile_AR[,5:length(cnames)]), "_AR", sep="")
       vcffile <- merge(vcffile_DP,vcffile_GT, by=c("CHROM","POS","REF","ALT"))
-      vcffile <- merge(vcffile,vcffile_AR, by=c("CHROM","POS","REF","ALT"))
+      vcffile <- merge(vcffile,vcffile_AR, by=c("CHROM","POS","REF","ALT"), all=TRUE)
       vcffile[][vcffile[]=="././."] <- NA
       vcffile$no_missing <- rowSums(is.na(vcffile))
-      vcffile <- subset(vcffile, no_missing <= ((ncol(vcffile)-5)/3)*0.8)
+      # vcffile <- subset(vcffile, no_missing <= ((ncol(vcffile)-5)/3)*0.8)
       vcffile <- subset(vcffile, select=-c(no_missing))
       DPstart <- 5; DPend <- (((ncol(vcffile)-4)/3)+4); increments <- DPend - DPstart
       GTstart <- DPend + 1; GTend <-  GTstart +increments
@@ -334,6 +339,7 @@ if (ploidy == "4x"){
       vcffile_DP[,5:length(cnames)] <- lapply(vcffile_DP[,5:length(cnames)], sub, pattern = ":.*", replacement = "")
       
       vcffile_AR_label <- vcffile_AR[,1:4]
+      vcffile_AR[,5:ncol(vcffile_AR)] <- lapply(vcffile_AR[,5:ncol(vcffile_AR)], gsub, pattern = "\\.", replacement = "0,0")
       nosplit <- vcffile_AR_label
       for (k in c(5:(ncol(vcffile_AR)))) {
         splitAR <- strsplit(as.character(vcffile_AR[,k]),",")
@@ -358,12 +364,13 @@ if (ploidy == "4x"){
       
       names(vcffile_GT)[5:length(cnames)] <- paste(colnames(vcffile_GT[,5:length(cnames)]), "_GT", sep="")
       names(vcffile_DP)[5:length(cnames)] <- paste(colnames(vcffile_DP[,5:length(cnames)]), "_DP", sep="")
+      vcffile_DP[,5:ncol(vcffile_DP)] <- lapply(vcffile_DP[,5:ncol(vcffile_DP)], gsub, pattern = "\\.", replacement = "0")
       names(vcffile_AR)[5:length(cnames)] <- paste(colnames(vcffile_AR[,5:length(cnames)]), "_AR", sep="")
       vcffile <- merge(vcffile_DP,vcffile_GT, by=c("CHROM","POS","REF","ALT"))
-      vcffile <- merge(vcffile,vcffile_AR, by=c("CHROM","POS","REF","ALT"))
+      vcffile <- merge(vcffile,vcffile_AR, by=c("CHROM","POS","REF","ALT"), all=TRUE)
       vcffile[][vcffile[]=="./././."] <- NA
       vcffile$no_missing <- rowSums(is.na(vcffile))
-      vcffile <- subset(vcffile, no_missing <= ((ncol(vcffile)-5)/3)*0.8)
+      # vcffile <- subset(vcffile, no_missing <= ((ncol(vcffile)-5)/3)*0.8)
       vcffile <- subset(vcffile, select=-c(no_missing))
       DPstart <- 5; DPend <- (((ncol(vcffile)-4)/3)+4); increments <- DPend - DPstart
       GTstart <- DPend + 1; GTend <-  GTstart +increments
@@ -466,6 +473,7 @@ if (ploidy == "6x"){
       vcffile_DP[,5:length(cnames)] <- lapply(vcffile_DP[,5:length(cnames)], sub, pattern = ":.*", replacement = "")
       
       vcffile_AR_label <- vcffile_AR[,1:4]
+      vcffile_AR[,5:ncol(vcffile_AR)] <- lapply(vcffile_AR[,5:ncol(vcffile_AR)], gsub, pattern = "\\.", replacement = "0,0")
       nosplit <- vcffile_AR_label
       for (k in c(5:(ncol(vcffile_AR)))) {
         splitAR <- strsplit(as.character(vcffile_AR[,k]),",")
@@ -490,12 +498,13 @@ if (ploidy == "6x"){
       
       names(vcffile_GT)[5:length(cnames)] <- paste(colnames(vcffile_GT[,5:length(cnames)]), "_GT", sep="")
       names(vcffile_DP)[5:length(cnames)] <- paste(colnames(vcffile_DP[,5:length(cnames)]), "_DP", sep="")
+      vcffile_DP[,5:ncol(vcffile_DP)] <- lapply(vcffile_DP[,5:ncol(vcffile_DP)], gsub, pattern = "\\.", replacement = "0")
       names(vcffile_AR)[5:length(cnames)] <- paste(colnames(vcffile_AR[,5:length(cnames)]), "_AR", sep="")
       vcffile <- merge(vcffile_DP,vcffile_GT, by=c("CHROM","POS","REF","ALT"))
-      vcffile <- merge(vcffile,vcffile_AR, by=c("CHROM","POS","REF","ALT"))
+      vcffile <- merge(vcffile,vcffile_AR, by=c("CHROM","POS","REF","ALT"), all=TRUE)
       vcffile[][vcffile[]=="./././././."] <- NA
       vcffile$no_missing <- rowSums(is.na(vcffile))
-      vcffile <- subset(vcffile, no_missing <= ((ncol(vcffile)-5)/3)*0.8)
+      # vcffile <- subset(vcffile, no_missing <= ((ncol(vcffile)-5)/3)*0.8)
       vcffile <- subset(vcffile, select=-c(no_missing))
       DPstart <- 5; DPend <- (((ncol(vcffile)-4)/3)+4); increments <- DPend - DPstart
       GTstart <- DPend + 1; GTend <-  GTstart +increments
@@ -630,12 +639,13 @@ if (ploidy == "8x"){
       
       names(vcffile_GT)[5:length(cnames)] <- paste(colnames(vcffile_GT[,5:length(cnames)]), "_GT", sep="")
       names(vcffile_DP)[5:length(cnames)] <- paste(colnames(vcffile_DP[,5:length(cnames)]), "_DP", sep="")
+      vcffile_DP[,5:ncol(vcffile_DP)] <- lapply(vcffile_DP[,5:ncol(vcffile_DP)], gsub, pattern = "\\.", replacement = "0")
       names(vcffile_AR)[5:length(cnames)] <- paste(colnames(vcffile_AR[,5:length(cnames)]), "_AR", sep="")
       vcffile <- merge(vcffile_DP,vcffile_GT, by=c("CHROM","POS","REF","ALT"))
-      vcffile <- merge(vcffile,vcffile_AR, by=c("CHROM","POS","REF","ALT"))
+      vcffile <- merge(vcffile,vcffile_AR, by=c("CHROM","POS","REF","ALT"), all=TRUE)
       vcffile[][vcffile[]=="./././././././."] <- NA
       vcffile$no_missing <- rowSums(is.na(vcffile))
-      vcffile <- subset(vcffile, no_missing <= ((ncol(vcffile)-5)/3)*0.8)
+      # vcffile <- subset(vcffile, no_missing <= ((ncol(vcffile)-5)/3)*0.8)
       vcffile <- subset(vcffile, select=-c(no_missing))
       DPstart <- 5; DPend <- (((ncol(vcffile)-4)/3)+4); increments <- DPend - DPstart
       GTstart <- DPend + 1; GTend <-  GTstart +increments
