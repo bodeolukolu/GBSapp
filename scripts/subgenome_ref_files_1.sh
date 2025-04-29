@@ -458,17 +458,31 @@ main () {
 
   				if [[ $(file $i 2> /dev/null) =~ gzip ]]; then
   					if [[ "${fa_fq}" == "@" ]]; then
+              awk 'NR%4 == 1 {print} NR%4 == 2 {print}' <(zcat $i) | \
+              awk '{gsub(/AAAAAAAAAA/,"\t"); gsub(/CCCCCCCCCC/,"\t"); gsub(/GGGGGGGGGG/,"\t"); gsub(/TTTTTTTTTT/,"\t"); print $1}' | \
+              awk '/^@/ {printf("%s%s\t",(N>0?"\n":""),$0);N++;next;} {printf("%s",$0);} END {printf("\n");}' | \
+              awk '{print $1"\t"$2"\t+\t"$2}' | awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$4); print}' | awk '{gsub(/\t/,"\n")}1' | gzip > nopolymers_${i} &&
+              mv nopolymers_${i} $i &&
   						awk 'NR%2==0' <(zcat $i) | awk 'NR%2==1' | awk 'BEGIN{srand();} {a[NR]=$0} END{for(i=1; i<=1000; i++){x=int(rand()*NR) + 1; print a[x];}}' > ${i}_length_distribution.txt
   					fi
   					if [[ "${fa_fq}" == ">" ]]; then
+              awk '{gsub(/AAAAAAAAAA/,"\t"); gsub(/CCCCCCCCCC/,"\t"); gsub(/GGGGGGGGGG/,"\t"); gsub(/TTTTTTTTTT/,"\t"); print $1}' <(zcat $i) | gzip > nopolymers_${i} &&
+              mv nopolymers_${i} $i &&
   						awk '/^>/ { if(i>0) printf("\n"); i++; printf("%s\t",$0); next;} {printf("%s",$0);} END { printf("\n");}' <(zcat $i) | \
   						awk 'NR%2==0' | awk 'BEGIN{srand();} {a[NR]=$0} END{for(i=1; i<=1000; i++){x=int(rand()*NR) + 1; print a[x];}}' > ${i}_length_distribution.txt
   					fi
   				else
   					if [[ "${fa_fq}" == "@" ]]; then
+              awk 'NR%4 == 1 {print} NR%4 == 2 {print}' $i | \
+              awk '{gsub(/AAAAAAAAAA/,"\t"); gsub(/CCCCCCCCCC/,"\t"); gsub(/GGGGGGGGGG/,"\t"); gsub(/TTTTTTTTTT/,"\t"); print $1}' | \
+              awk '/^@/ {printf("%s%s\t",(N>0?"\n":""),$0);N++;next;} {printf("%s",$0);} END {printf("\n");}' | \
+              awk '{print $1"\t"$2"\t+\t"$2}' | awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$4); print}' | awk '{gsub(/\t/,"\n")}1' > nopolymers_${i} &&
+              mv nopolymers_${i} $i &&
   						awk 'NR%2==0' $i | awk 'NR%2==1' | awk 'BEGIN{srand();} {a[NR]=$0} END{for(i=1; i<=1000; i++){x=int(rand()*NR) + 1; print a[x];}}' > ${i}_length_distribution.txt
   					fi
   					if [[ "${fa_fq}" == ">" ]]; then
+              awk '{gsub(/AAAAAAAAAA/,"\t"); gsub(/CCCCCCCCCC/,"\t"); gsub(/GGGGGGGGGG/,"\t"); gsub(/TTTTTTTTTT/,"\t"); print $1}' $i > nopolymers_${i} &&
+              mv nopolymers_${i} $i &&
   						awk '/^>/ { if(i>0) printf("\n"); i++; printf("%s\t",$0); next;} {printf("%s",$0);} END { printf("\n");}' $i | \
   						awk 'NR%2==0' | awk 'BEGIN{srand();} {a[NR]=$0} END{for(i=1; i<=1000; i++){x=int(rand()*NR) + 1; print a[x];}}' > ${i}_length_distribution.txt
   					fi
@@ -904,16 +918,21 @@ main () {
     # rm ./alignment/${i%.f*}_redun.sam.gz && $gzip ./alignment/${i%.f*}_redun.sam &&
     # rm ${i%.f*}_redun_head.sam &&
     printf '\n###---'${i%.f*}'---###\n' > ${projdir}/alignment_summaries/${i%.f*}_summ.txt &&
-    zcat ./alignment/${i%.f*}_redun.sam.gz | grep -v '^@PG' | tr ' ' '\t' | $samtools flagstat - >> ${projdir}/alignment_summaries/${i%.f*}_summ.txt &&
+    zcat ./alignment/${i%.f*}_redun.sam.gz | grep -v '^@' | awk '{gsub(/_/,"\t",$1);}1' | awk '{gsub(/se-/,"",$2);gsub(/pe-/,"",$2);}1' | tr ' ' '\t' > ${i%.f*}_full.sam &&
+    split -l 10000 ${i%.f*}_full.sam chunk_ && rm ${i%.f*}_full.sam &&
+    find . -name 'chunk_*' -print0 | xargs -0 -P "$prepthreads" -I{} bash -c 'awk '\''{for(i=0;i<=$2-1;i++) print $0}'\'' "$1" > "$1.out"' _ {} &&
+    cat chunk_*.out | awk '!($2="")1' | awk '{$1=$1"_"NR}1' | awk '{gsub(/ /,"\t");}1' > ${i%.f*}_full.sam &&
+    cat <(zcat ./alignment/${i%.f*}_redun.sam.gz | grep '^@') ${i%.f*}_full.sam | gzip > ${i%.f*}_full.sam.gz &&
+    rm chunk_* ${i%.f*}_full.sam &&
+    samtools flagstat ${i%.f*}_full.sam.gz >> ${projdir}/alignment_summaries/${i%.f*}_summ.txt &&
     printf '########################################################################################################\n\n' >> ${projdir}/alignment_summaries/${i%.f*}_summ.txt &&
     printf 'copy_number\tFrequency\tPercentage\n' > ${projdir}/alignment_summaries/copy_number/${i%.f*}_copy_number_Read_histogram.txt &&
-    $samtools view -F4 <(zcat ./alignment/${i%.f*}_redun.sam.gz 2> /dev/null) | awk '{print $1}' | awk '{gsub(/_pe-/,"\t");gsub(/seq/,"");}1' | \
+    $samtools view -F4 <(zcat ${i%.f*}_full.sam.gz 2> /dev/null) | awk '{print $1}' | awk '{gsub(/_pe-/,"\t");gsub(/seq/,"");}1' | \
     awk '{while ($2-- > 0) print $1}' | awk '{!seen[$0]++}END{for (i in seen) print seen[i]}' | awk '{!seen[$0]++}END{for (i in seen) print i, seen[i]}' > ${projdir}/alignment_summaries/copy_number/${i%.f*}_copy_number.txt  &&
     awk 'NR==FNR{sum+= $2; next;} {printf("%s\t%s\t%3.3f%%\t%3.0f\n",$1,$2,100*$2/sum,100*$2/sum)}' ${projdir}/alignment_summaries/copy_number/${i%.f*}_copy_number.txt ${projdir}/alignment_summaries/copy_number/${i%.f*}_copy_number.txt | awk '$4 > 0' > ${projdir}/alignment_summaries/copy_number/${i%.f*}_plot.txt &&
     unset IFS; printf "%s\t%s\t%s\t%*s\n" $(sed 's/$/ |/' ${projdir}/alignment_summaries/copy_number/${i%.f*}_plot.txt) | tr ' ' '|' | sort -T ./tmp/ -k1,1 -n >> ${projdir}/alignment_summaries/copy_number/${i%.f*}_copy_number_Read_histogram.txt &&
-    rm ${projdir}/alignment_summaries/copy_number/${i%.f*}_copy_number.txt ${projdir}/alignment_summaries/copy_number/${i%.f*}_plot.txt
+    rm ${projdir}/alignment_summaries/copy_number/${i%.f*}_copy_number.txt ${projdir}/alignment_summaries/copy_number/${i%.f*}_plot.txt ${i%.f*}_full.sam.gz &&
     wait
-
 
     if [[ "$hap_ref" ]]; then
     max_hap=0

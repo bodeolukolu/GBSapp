@@ -862,33 +862,53 @@ main () {
     fi
 
     while IFS="" read -r i || [ -n "$i" ]; do (
-      printf '\n###---'${i%.f*}'---###\n' > ${projdir}/alignment_summaries/${i%.f*}_summ_${ref1%.f*}.txt &&
-      zcat ./alignment/${i%.f*}_redun_${ref1%.f*}.sam.gz | grep -v '^@PG' | tr ' ' '\t' | $samtools flagstat - >> ${projdir}/alignment_summaries/${i%.f*}_summ_${ref1%.f*}.txt &&
-      printf '########################################################################################################\n\n' >> ${projdir}/alignment_summaries/${i%.f*}_summ_${ref1%.f*}.txt &&
-      printf 'copy_number\tFrequency\tPercentage\n' > ${projdir}/alignment_summaries/copy_number/${i%.f*}_copy_number_Read_histogram_${ref1%.f*}.txt &&
-      $samtools view -F4 <(zcat ./alignment/${i%.f*}_redun_${ref1%.f*}.sam.gz 2> /dev/null) | awk '{print $1}' | awk '{gsub(/_pe-/,"\t");gsub(/seq/,"");}1' | \
-      awk '{while ($2-- > 0) print $1}' | awk '{!seen[$0]++}END{for (i in seen) print seen[i]}' | awk '{!seen[$0]++}END{for (i in seen) print i, seen[i]}' > ${projdir}/alignment_summaries/copy_number/${i%.f*}_copy_number_${ref1%.f*}.txt  &&
-      awk 'NR==FNR{sum+= $2; next;} {printf("%s\t%s\t%3.3f%%\t%3.0f\n",$1,$2,100*$2/sum,100*$2/sum)}' ${projdir}/alignment_summaries/copy_number/${i%.f*}_copy_number_${ref1%.f*}.txt ${projdir}/alignment_summaries/copy_number/${i%.f*}_copy_number_${ref1%.f*}.txt | awk '$4 > 0' > ${projdir}/alignment_summaries/copy_number/${i%.f*}_plot_${ref1%.f*}.txt &&
-      unset IFS; printf "%s\t%s\t%s\t%*s\n" $(sed 's/$/ |/' ${projdir}/alignment_summaries/copy_number/${i%.f*}_plot_${ref1%.f*}.txt) | tr ' ' '|' | sort -T ./tmp/ -k1,1 -n >> ${projdir}/alignment_summaries/copy_number/${i%.f*}_copy_number_Read_histogram_${ref1%.f*}.txt &&
-      rm ${projdir}/alignment_summaries/copy_number/${i%.f*}_copy_number_${ref1%.f*}.txt ${projdir}/alignment_summaries/copy_number/${i%.f*}_plot_${ref1%.f*}.txt
-      printf '\n###---'${i%.f*}'---###\n' > ${projdir}/alignment_summaries/${i%.f*}_summ_${ref2%.f*}.txt &&
-      zcat ./alignment/${i%.f*}_redun_${ref2%.f*}.sam.gz | grep -v '^@PG' | tr ' ' '\t' | $samtools flagstat - >> ${projdir}/alignment_summaries/${i%.f*}_summ_${ref2%.f*}.txt &&
-      printf '########################################################################################################\n\n' >> ${projdir}/alignment_summaries/${i%.f*}_summ_${ref2%.f*}.txt &&
-      printf 'copy_number\tFrequency\tPercentage\n' > ${projdir}/alignment_summaries/copy_number/${i%.f*}_copy_number_Read_histogram_${ref2%.f*}.txt &&
-      $samtools view -F4 <(zcat ./alignment/${i%.f*}_redun_${ref2%.f*}.sam.gz 2> /dev/null) | awk '{print $1}' | awk '{gsub(/_pe-/,"\t");gsub(/seq/,"");}1' | \
-      awk '{while ($2-- > 0) print $1}' | awk '{!seen[$0]++}END{for (i in seen) print seen[i]}' | awk '{!seen[$0]++}END{for (i in seen) print i, seen[i]}' > ${projdir}/alignment_summaries/copy_number/${i%.f*}_copy_number_${ref2%.f*}.txt  &&
-      awk 'NR==FNR{sum+= $2; next;} {printf("%s\t%s\t%3.3f%%\t%3.0f\n",$1,$2,100*$2/sum,100*$2/sum)}' ${projdir}/alignment_summaries/copy_number/${i%.f*}_copy_number_${ref2%.f*}.txt ${projdir}/alignment_summaries/copy_number/${i%.f*}_copy_number_${ref2%.f*}.txt | awk '$4 > 0' > ${projdir}/alignment_summaries/copy_number/${i%.f*}_plot_${ref2%.f*}.txt &&
-      unset IFS; printf "%s\t%s\t%s\t%*s\n" $(sed 's/$/ |/' ${projdir}/alignment_summaries/copy_number/${i%.f*}_plot_${ref2%.f*}.txt) | tr ' ' '|' | sort -T ./tmp/ -k1,1 -n >> ${projdir}/alignment_summaries/copy_number/${i%.f*}_copy_number_Read_histogram_${ref2%.f*}.txt &&
-      rm ${projdir}/alignment_summaries/copy_number/${i%.f*}_copy_number_${ref2%.f*}.txt ${projdir}/alignment_summaries/copy_number/${i%.f*}_plot_${ref2%.f*}.txt
-      printf '\n###---'${i%.f*}'---###\n' > ${projdir}/alignment_summaries/${i%.f*}_summ_${ref2%.f*}.txt &&
-      zcat ./alignment/${i%.f*}_redun_${ref3%.f*}.sam.gz | grep -v '^@PG' | tr ' ' '\t' | $samtools flagstat - >> ${projdir}/alignment_summaries/${i%.f*}_summ_${ref3%.f*}.txt &&
-      printf '########################################################################################################\n\n' >> ${projdir}/alignment_summaries/${i%.f*}_summ_${ref3%.f*}.txt &&
-      printf 'copy_number\tFrequency\tPercentage\n' > ${projdir}/alignment_summaries/copy_number/${i%.f*}_copy_number_Read_histogram_${ref3%.f*}.txt &&
-      $samtools view -F4 <(zcat ./alignment/${i%.f*}_redun_${ref3%.f*}.sam.gz 2> /dev/null) | awk '{print $1}' | awk '{gsub(/_pe-/,"\t");gsub(/seq/,"");}1' | \
-      awk '{while ($2-- > 0) print $1}' | awk '{!seen[$0]++}END{for (i in seen) print seen[i]}' | awk '{!seen[$0]++}END{for (i in seen) print i, seen[i]}' > ${projdir}/alignment_summaries/copy_number/${i%.f*}_copy_number_${ref3%.f*}.txt  &&
-      awk 'NR==FNR{sum+= $2; next;} {printf("%s\t%s\t%3.3f%%\t%3.0f\n",$1,$2,100*$2/sum,100*$2/sum)}' ${projdir}/alignment_summaries/copy_number/${i%.f*}_copy_number_${ref3%.f*}.txt ${projdir}/alignment_summaries/copy_number/${i%.f*}_copy_number_${ref3%.f*}.txt | awk '$4 > 0' > ${projdir}/alignment_summaries/copy_number/${i%.f*}_plot_${ref3%.f*}.txt &&
-      unset IFS; printf "%s\t%s\t%s\t%*s\n" $(sed 's/$/ |/' ${projdir}/alignment_summaries/copy_number/${i%.f*}_plot_${ref3%.f*}.txt) | tr ' ' '|' | sort -T ./tmp/ -k1,1 -n >> ${projdir}/alignment_summaries/copy_number/${i%.f*}_copy_number_Read_histogram_${ref3%.f*}.txt &&
-      rm ${projdir}/alignment_summaries/copy_number/${i%.f*}_copy_number_${ref3%.f*}.txt ${projdir}/alignment_summaries/copy_number/${i%.f*}_plot_${ref3%.f*}.txt
+    printf '\n###---'${i%.f*}'---###\n' > ${projdir}/alignment_summaries/${i%.f*}_summ_${ref1%.f*}.txt &&
+    zcat ./alignment/${i%.f*}_redun_${ref1%.f*}.sam.gz | grep -v '^@' | awk '{gsub(/_/,"\t",$1);}1' | awk '{gsub(/se-/,"",$2);gsub(/pe-/,"",$2);}1' | tr ' ' '\t' > ${i%.f*}_full_${ref1%.f*}.sam &&
+    split -l 10000 ${i%.f*}_full_${ref1%.f*}.sam chunk_ && rm ${i%.f*}_full_${ref1%.f*}.sam &&
+    find . -name 'chunk_*' -print0 | xargs -0 -P "$prepthreads" -I{} bash -c 'awk '\''{for(i=0;i<=$2-1;i++) print $0}'\'' "$1" > "$1.out"' _ {} &&
+    cat chunk_*.out | awk '!($2="")1' | awk '{$1=$1"_"NR}1' | awk '{gsub(/ /,"\t");}1' > ${i%.f*}_full_${ref1%.f*}.sam &&
+    cat <(zcat ./alignment/${i%.f*}_redun_${ref1%.f*}.sam.gz | grep '^@') ${i%.f*}_full_${ref1%.f*}.sam | gzip > ${i%.f*}_full_${ref1%.f*}.sam.gz &&
+    rm chunk_* ${i%.f*}_full_${ref1%.f*}.sam &&
+    samtools flagstat ${i%.f*}_full_${ref1%.f*}.sam.gz >> ${projdir}/alignment_summaries/${i%.f*}_summ.txt &&
+    printf '########################################################################################################\n\n' >> $${projdir}/alignment_summaries/${i%.f*}_summ_${ref1%.f*}.txt &&
+    printf 'copy_number\tFrequency\tPercentage\n' > ${projdir}/alignment_summaries/copy_number/${i%.f*}_copy_number_Read_histogram_${ref1%.f*}.txt &&
+    $samtools view -F4 <(zcat ${i%.f*}_full_${ref1%.f*}.sam.gz 2> /dev/null) | awk '{print $1}' | awk '{gsub(/_pe-/,"\t");gsub(/seq/,"");}1' | \
+    awk '{while ($2-- > 0) print $1}' | awk '{!seen[$0]++}END{for (i in seen) print seen[i]}' | awk '{!seen[$0]++}END{for (i in seen) print i, seen[i]}' > ${projdir}/alignment_summaries/copy_number/${i%.f*}_copy_number_${ref1%.f*}.txt  &&
+    awk 'NR==FNR{sum+= $2; next;} {printf("%s\t%s\t%3.3f%%\t%3.0f\n",$1,$2,100*$2/sum,100*$2/sum)}' ${projdir}/alignment_summaries/copy_number/${i%.f*}_copy_number_${ref1%.f*}.txt ${projdir}/alignment_summaries/copy_number/${i%.f*}_copy_number_${ref1%.f*}.txt | awk '$4 > 0' > ${projdir}/alignment_summaries/copy_number/${i%.f*}_plot_${ref1%.f*}.txt &&
+    unset IFS; printf "%s\t%s\t%s\t%*s\n" $(sed 's/$/ |/' ${projdir}/alignment_summaries/copy_number/${i%.f*}_plot_${ref1%.f*}.txt) | tr ' ' '|' | sort -T ./tmp/ -k1,1 -n >> ${projdir}/alignment_summaries/copy_number/${i%.f*}_copy_number_Read_histogram_${ref1%.f*}.txt &&
+    rm ${projdir}/alignment_summaries/copy_number/${i%.f*}_copy_number_${ref1%.f*}.txt ${projdir}/alignment_summaries/copy_number/${i%.f*}_plot_${ref1%.f*}.txt ${i%.f*}_full_${ref1%.f*}.sam.gz
+
+    printf '\n###---'${i%.f*}'---###\n' > ${projdir}/alignment_summaries/${i%.f*}_summ_${ref2%.f*}.txt &&
+    zcat ./alignment/${i%.f*}_redun_${ref2%.f*}.sam.gz | grep -v '^@' | awk '{gsub(/_/,"\t",$1);}1' | awk '{gsub(/se-/,"",$2);gsub(/pe-/,"",$2);}1' | tr ' ' '\t' > ${i%.f*}_full_${ref2%.f*}.sam &&
+    split -l 10000 ${i%.f*}_full_${ref2%.f*}.sam chunk_ && rm ${i%.f*}_full_${ref2%.f*}.sam &&
+    find . -name 'chunk_*' -print0 | xargs -0 -P "$prepthreads" -I{} bash -c 'awk '\''{for(i=0;i<=$2-1;i++) print $0}'\'' "$1" > "$1.out"' _ {} &&
+    cat chunk_*.out | awk '!($2="")1' | awk '{$1=$1"_"NR}1' | awk '{gsub(/ /,"\t");}1' > ${i%.f*}_full_${ref2%.f*}.sam &&
+    cat <(zcat ./alignment/${i%.f*}_redun_${ref2%.f*}.sam.gz | grep '^@') ${i%.f*}_full_${ref2%.f*}.sam | gzip > ${i%.f*}_full_${ref2%.f*}.sam.gz &&
+    rm chunk_* ${i%.f*}_full_${ref2%.f*}.sam &&
+    samtools flagstat ${i%.f*}_full_${ref2%.f*}.sam.gz >> ${projdir}/alignment_summaries/${i%.f*}_summ.txt &&
+    printf '########################################################################################################\n\n' >> $${projdir}/alignment_summaries/${i%.f*}_summ_${ref2%.f*}.txt &&
+    printf 'copy_number\tFrequency\tPercentage\n' > ${projdir}/alignment_summaries/copy_number/${i%.f*}_copy_number_Read_histogram_${ref2%.f*}.txt &&
+    $samtools view -F4 <(zcat ${i%.f*}_full_${ref2%.f*}.sam.gz 2> /dev/null) | awk '{print $1}' | awk '{gsub(/_pe-/,"\t");gsub(/seq/,"");}1' | \
+    awk '{while ($2-- > 0) print $1}' | awk '{!seen[$0]++}END{for (i in seen) print seen[i]}' | awk '{!seen[$0]++}END{for (i in seen) print i, seen[i]}' > ${projdir}/alignment_summaries/copy_number/${i%.f*}_copy_number_${ref2%.f*}.txt  &&
+    awk 'NR==FNR{sum+= $2; next;} {printf("%s\t%s\t%3.3f%%\t%3.0f\n",$1,$2,100*$2/sum,100*$2/sum)}' ${projdir}/alignment_summaries/copy_number/${i%.f*}_copy_number_${ref2%.f*}.txt ${projdir}/alignment_summaries/copy_number/${i%.f*}_copy_number_${ref2%.f*}.txt | awk '$4 > 0' > ${projdir}/alignment_summaries/copy_number/${i%.f*}_plot_${ref2%.f*}.txt &&
+    unset IFS; printf "%s\t%s\t%s\t%*s\n" $(sed 's/$/ |/' ${projdir}/alignment_summaries/copy_number/${i%.f*}_plot_${ref2%.f*}.txt) | tr ' ' '|' | sort -T ./tmp/ -k1,1 -n >> ${projdir}/alignment_summaries/copy_number/${i%.f*}_copy_number_Read_histogram_${ref2%.f*}.txt &&
+    rm ${projdir}/alignment_summaries/copy_number/${i%.f*}_copy_number_${ref2%.f*}.txt ${projdir}/alignment_summaries/copy_number/${i%.f*}_plot_${ref2%.f*}.txt ${i%.f*}_full_${ref2%.f*}.sam.gz
+
+    printf '\n###---'${i%.f*}'---###\n' > ${projdir}/alignment_summaries/${i%.f*}_summ_${ref3%.f*}.txt &&
+    zcat ./alignment/${i%.f*}_redun_${ref3%.f*}.sam.gz | grep -v '^@' | awk '{gsub(/_/,"\t",$1);}1' | awk '{gsub(/se-/,"",$2);gsub(/pe-/,"",$2);}1' | tr ' ' '\t' > ${i%.f*}_full_${ref3%.f*}.sam &&
+    split -l 10000 ${i%.f*}_full_${ref3%.f*}.sam chunk_ && rm ${i%.f*}_full_${ref3%.f*}.sam &&
+    find . -name 'chunk_*' -print0 | xargs -0 -P "$prepthreads" -I{} bash -c 'awk '\''{for(i=0;i<=$2-1;i++) print $0}'\'' "$1" > "$1.out"' _ {} &&
+    cat chunk_*.out | awk '!($2="")1' | awk '{$1=$1"_"NR}1' | awk '{gsub(/ /,"\t");}1' > ${i%.f*}_full_${ref3%.f*}.sam &&
+    cat <(zcat ./alignment/${i%.f*}_redun_${ref3%.f*}.sam.gz | grep '^@') ${i%.f*}_full_${ref3%.f*}.sam | gzip > ${i%.f*}_full_${ref3%.f*}.sam.gz &&
+    rm chunk_* ${i%.f*}_full_${ref3%.f*}.sam &&
+    samtools flagstat ${i%.f*}_full_${ref3%.f*}.sam.gz >> ${projdir}/alignment_summaries/${i%.f*}_summ.txt &&
+    printf '########################################################################################################\n\n' >> $${projdir}/alignment_summaries/${i%.f*}_summ_${ref3%.f*}.txt &&
+    printf 'copy_number\tFrequency\tPercentage\n' > ${projdir}/alignment_summaries/copy_number/${i%.f*}_copy_number_Read_histogram_${ref3%.f*}.txt &&
+    $samtools view -F4 <(zcat ${i%.f*}_full_${ref3%.f*}.sam.gz 2> /dev/null) | awk '{print $1}' | awk '{gsub(/_pe-/,"\t");gsub(/seq/,"");}1' | \
+    awk '{while ($2-- > 0) print $1}' | awk '{!seen[$0]++}END{for (i in seen) print seen[i]}' | awk '{!seen[$0]++}END{for (i in seen) print i, seen[i]}' > ${projdir}/alignment_summaries/copy_number/${i%.f*}_copy_number_${ref3%.f*}.txt  &&
+    awk 'NR==FNR{sum+= $2; next;} {printf("%s\t%s\t%3.3f%%\t%3.0f\n",$1,$2,100*$2/sum,100*$2/sum)}' ${projdir}/alignment_summaries/copy_number/${i%.f*}_copy_number_${ref3%.f*}.txt ${projdir}/alignment_summaries/copy_number/${i%.f*}_copy_number_${ref3%.f*}.txt | awk '$4 > 0' > ${projdir}/alignment_summaries/copy_number/${i%.f*}_plot_${ref3%.f*}.txt &&
+    unset IFS; printf "%s\t%s\t%s\t%*s\n" $(sed 's/$/ |/' ${projdir}/alignment_summaries/copy_number/${i%.f*}_plot_${ref3%.f*}.txt) | tr ' ' '|' | sort -T ./tmp/ -k1,1 -n >> ${projdir}/alignment_summaries/copy_number/${i%.f*}_copy_number_Read_histogram_${ref3%.f*}.txt &&
+    rm ${projdir}/alignment_summaries/copy_number/${i%.f*}_copy_number_${ref3%.f*}.txt ${projdir}/alignment_summaries/copy_number/${i%.f*}_plot_${ref3%.f*}.txt ${i%.f*}_full_${ref3%.f*}.sam.gz
 
 
       if test ! -f ${projdir}/preprocess/${i%.f*}_${ref1%.f*}_precall.bam.bai && test ! -f ${projdir}/preprocess/${i%.f*}_${ref2%.f*}_precall.bam.bai && test ! -f ${projdir}/preprocess/${i%.f*}_${ref1%.f*}_${ref2%.f*}_precall.bam.bai; then
