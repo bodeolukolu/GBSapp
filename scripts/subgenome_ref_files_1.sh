@@ -284,7 +284,7 @@ fi
 cd $projdir
 cd refgenomes
 if [[ "$gap_split_align" == "false" ]]; then
-  if ls ./*.ngm 1> /dev/null 2>&1; then
+  if [[ $(ls ./*.ngm 1> /dev/null 2>&1 | wc -l) -gt 0 ]]; then
   	echo -e "${magenta}- indexed genome available ${white}\n"
   	if [ -z "$ref1" ]; then
   		for ref in *.f*; do
@@ -312,7 +312,7 @@ if [[ "$gap_split_align" == "false" ]]; then
 fi
 wait
 if [[ "$gap_split_align" == "true" ]]; then
-  if ls ./*.mmi 1> /dev/null 2>&1; then
+  if [[ $(ls ./*.mmi 1> /dev/null 2>&1 | wc -l) -gt 0 ]]; then
   	echo -e "${magenta}- indexed genome available ${white}\n"
   	if [ -z "$ref1" ]; then
   		for ref in *.f*; do

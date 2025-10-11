@@ -12,21 +12,29 @@ tools_dir=$(pwd)
 
 main_ngm () {
   echo -e "${blue}\n############################################## ${yellow}\n- downloading and installing NGM ${blue}\n##############################################${white}"
-  wget https://cmake.org/files/v2.8/cmake-2.8.0-Linux-x86_64.tar.gz
-  tar -zxvf cmake-2.8.0-Linux-x86_64.tar.gz
-  rm cmake-2.8.0-Linux-x86_64.tar.gz
-  export PATH="$tools_dir/cmake-2.8.0-Linux-i386/bin:$PATH"
-  wget https://github.com/Cibiv/NextGenMap/tarball/master -O NGM.tar.gz
-  tar -xvzf NGM.tar.gz
-  rm NGM.tar.gz
-  cd Cibiv-NextGenMap*/ || exit 1
-  mkdir -p build/release
-  cd build/release || exit 1
-  cmake ../../ -DCMAKE_PREFIX_PATH="../../../bamtools/build/src/" -DCMAKE_BUILD_TYPE=Release
-  make -j$(nproc)
-  cd "$tools_dir"
-  rm -rf "$tools_dir/cmake-2.8.0-Linux-x86_64/"
-  cd $tools_dir
+wget https://cmake.org/files/v3.28/cmake-3.28.3-linux-x86_64.tar.gz
+tar -xzf cmake-3.28.3-linux-x86_64.tar.gz
+rm cmake-3.28.3-linux-x86_64.tar.gz
+cd cmake-3.28.3-linux-x86_64
+export PATH="$tools_dir/cmake-3.28.3-linux-x86_64/bin:$PATH"
+cd $tools_dir
+git clone https://github.com/pezmaster31/bamtools.git
+cd bamtools && mkdir build && cd build && cmake .. -DCMAKE_CXX_STANDARD=98 && make
+cd $tools_dir
+wget https://github.com/Cibiv/NextGenMap/tarball/master -O NGM.tar.gz
+tar -xvzf NGM.tar.gz
+rm NGM.tar.gz
+cd Cibiv-NextGenMap*/ || exit 1
+mkdir -p build/release
+cd build/release || exit 1
+cmake ../../ \
+  -DCMAKE_PREFIX_PATH="../../../bamtools/build/src/" \
+  -DCMAKE_BUILD_TYPE=Release \
+  -DCMAKE_CXX_STANDARD=98
+make -j$(nproc)
+cd "$tools_dir"
+rm -rf "$tools_dir/cmake-3.28.3-linux-x86_64/"
+cd $tools_dir
 }
 dirtool=*NextGenMap*
 if [ -d $dirtool ]; then
