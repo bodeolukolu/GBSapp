@@ -7,6 +7,25 @@ if [ -z "$threads" ]; then
 		export threads=$((threads-2))
 	fi
 fi
+if [ -z "$gap_split_align" ]; then
+  export gap_split_align=true
+fi
+if [ -z "$RNA" ]; then
+ export RNA=false
+fi
+if [ -z "$variant_caller" ]; then
+ export variant_caller=gatk
+fi
+if [ "$variant_caller" == "GATK" ]; then
+ export variant_caller=gatk
+fi
+if [ "$variant_caller" == "BCFtools" ] || [ "$variant_caller" == "BCFTOOLS" ]; then
+ export variant_caller=bcftools
+fi
+if [ "$variant_caller" == "bcftools" ]; then
+ export ploidy=2
+ export ploidy_ref1=2
+fi
 if [ -z "$lib_type" ]; then
  export lib_type=RRS
 fi
@@ -30,6 +49,9 @@ if [ -z "$uniquely_mapped" ]; then
 fi
 if [ -z "$minmapq" ]; then
 	export minmapq=20
+fi
+if [ "$RNA" == "true" ]; then
+	export minmapq=1
 fi
 if [ -z "$maxHaplotype" ]; then
 	export maxHaplotype=128
@@ -163,14 +185,12 @@ for f in $(ls *.FAS 2> /dev/null); do if [[ "$f" == *.FAS ]]; then echo -e "${ma
 for f in $(ls *.FFN 2> /dev/null); do if [[ "$f" == *.FFN ]]; then echo -e "${magenta}- changing upper case FFN extension of reference genome(s) to lower case"; mv $f ${f%.FFN}.ffn  2> /dev/null; fi; done
 for f in $(ls *.FAA 2> /dev/null); do if [[ "$f" == *.FAA ]]; then echo -e "${magenta}- changing upper case FAA extension of reference genome(s) to lower case"; mv $f ${f%.FAA}.faa  2> /dev/null; fi; done
 wait
-
-
 for i in *.gz; do
 	sleep $((RANDOM % 2))
   gunzip $i >/dev/null 2>&1
 done
 
-if ls ./*.ngm 1> /dev/null 2>&1; then
+if ls ./*.dict 1> /dev/null 2>&1; then
 	:
 else
 	checknfastafiles=$(ls *.f* | grep -v .fai | grep -v .ngm | grep -v _original.fasta | wc -l)
@@ -261,34 +281,75 @@ else
   wait
 fi
 
-
 cd $projdir
 cd refgenomes
-if ls ./*.ngm 1> /dev/null 2>&1; then
-	echo -e "${magenta}- indexed genome available ${white}\n"
-	if [ -z "$ref1" ]; then
-		for ref in *.f*; do
-			sleep $((RANDOM % 2))
-      ref1=${ref%%.f*}.fasta
-		done
-	fi
-else
-	echo -e "${magenta}- indexing single reference subgenome ${white}\n"
-	if [ -z "$ref1" ]; then
-		for ref in *.f*; do
-			sleep $((RANDOM % 2))
-      ref1=${ref%%.f*}.fasta
-		done
-	fi
-	awk '{ sub("\r$",""); print}' $ref1 | awk 'BEGIN{FS=" "}{if(!/>/){print toupper($0)}else{print $1}}' | \
-  awk '/>/{gsub(/a$/,"A");gsub(/b$/,"B");gsub(/c$/,"C");gsub(/d$/,"D");gsub(/e$/,"E");gsub(/f$/,"F");gsub(/g$/,"G");gsub(/h$/,"H");}1' > ref.txt
-	n=">${ref1%.f*}_"
-	awk '{ sub("\r$",""); print}' ref.txt | awk -v n="$n" '{gsub(n,">"); print}' | awk -v n="$n" '{gsub(/>/,n); print}' > $ref1
-	rm ref.txt
-	$samtools faidx $ref1
-	$java -jar $picard CreateSequenceDictionary REFERENCE= $ref1 OUTPUT=${ref1%.f*}.dict
-	$ngm -r $ref1
-
+if [[ "$gap_split_align" == "false" ]]; then
+  if ls ./*.ngm 1> /dev/null 2>&1; then
+  	echo -e "${magenta}- indexed genome available ${white}\n"
+  	if [ -z "$ref1" ]; then
+  		for ref in *.f*; do
+  			sleep $((RANDOM % 2))
+        ref1=${ref%%.f*}.fasta
+  		done
+  	fi
+  else
+  	echo -e "${magenta}- indexing single reference subgenome ${white}\n"
+  	if [ -z "$ref1" ]; then
+  		for ref in *.f*; do
+  			sleep $((RANDOM % 2))
+        ref1=${ref%%.f*}.fasta
+  		done
+  	fi
+  	awk '{ sub("\r$",""); print}' $ref1 | awk 'BEGIN{FS=" "}{if(!/>/){print toupper($0)}else{print $1}}' | \
+    awk '/>/{gsub(/a$/,"A");gsub(/b$/,"B");gsub(/c$/,"C");gsub(/d$/,"D");gsub(/e$/,"E");gsub(/f$/,"F");gsub(/g$/,"G");gsub(/h$/,"H");}1' > ref.txt
+  	n=">${ref1%.f*}_"
+  	awk '{ sub("\r$",""); print}' ref.txt | awk -v n="$n" '{gsub(n,">"); print}' | awk -v n="$n" '{gsub(/>/,n); print}' > $ref1
+  	rm ref.txt
+  	$samtools faidx $ref1
+  	$java -jar $picard CreateSequenceDictionary REFERENCE= $ref1 OUTPUT=${ref1%.f*}.dict
+    $ngm -r $ref1
+  fi
+fi
+wait
+if [[ "$gap_split_align" == "true" ]]; then
+  if ls ./*.mmi 1> /dev/null 2>&1; then
+  	echo -e "${magenta}- indexed genome available ${white}\n"
+  	if [ -z "$ref1" ]; then
+  		for ref in *.f*; do
+  			sleep $((RANDOM % 2))
+        ref1=${ref%%.f*}.fasta
+  		done
+  	fi
+  else
+  	echo -e "${magenta}- indexing single reference subgenome ${white}\n"
+  	if [ -z "$ref1" ]; then
+  		for ref in *.f*; do
+  			sleep $((RANDOM % 2))
+        ref1=${ref%%.f*}.fasta
+  		done
+  	fi
+  	awk '{ sub("\r$",""); print}' $ref1 | awk 'BEGIN{FS=" "}{if(!/>/){print toupper($0)}else{print $1}}' | \
+    awk '/>/{gsub(/a$/,"A");gsub(/b$/,"B");gsub(/c$/,"C");gsub(/d$/,"D");gsub(/e$/,"E");gsub(/f$/,"F");gsub(/g$/,"G");gsub(/h$/,"H");}1' > ref.txt
+  	n=">${ref1%.f*}_"
+  	awk '{ sub("\r$",""); print}' ref.txt | awk -v n="$n" '{gsub(n,">"); print}' | awk -v n="$n" '{gsub(/>/,n); print}' > $ref1
+  	rm ref.txt
+  	$samtools faidx $ref1
+  	$java -jar $picard CreateSequenceDictionary REFERENCE= $ref1 OUTPUT=${ref1%.f*}.dict
+    $minimap2 -d ${ref1%.f*}.mmi $ref1
+  fi
+fi
+wait
+if [[ "$RNA" == "true" ]]; then
+  mkdir -p star_index
+  if [[ "$(ls ./star_index/* 1> /dev/null 2>&1 | wc -l)" -eq 0 ]]; then
+    gff=${ref1%.fasta}.gff*
+    "$star" --runThreadN $threads \
+         --runMode genomeGenerate \
+         --genomeDir star_index \
+         --genomeFastaFiles $ref1 \
+         --sjdbGTFfile $gff \
+         --sjdbOverhang 136
+  fi
 fi
 
 declare -a arr=("${ref1%.f*}.dict" "${ref1}" "${ref1}.fai")
@@ -838,23 +899,96 @@ main () {
   fi
   if [[ $nodes -eq 1 ]]; then cd ${projdir}/samples/ ; fi
   if [[ $nodes -gt 1 ]] && test -f ${projdir}/GBSapp_run_node_1.sh; then cd /tmp/${samples_list%.txt}/samples/ ; fi
-  if test ! -f ${projdir}/precall_done.txt && test ! -f ${projdir}/alignment_done; then
-    while IFS="" read -r alignfq || [ -n "$alignfq" ]; do
-      sleep $((RANDOM % 2))
-      if test ! -f ../preprocess/alignment/${alignfq%.f*}_redun.sam.gz; then
-          $ngm -r ../refgenomes/$ref1 --qry ${alignfq%.f*}_uniq.fasta.gz -o ../preprocess/alignment/${alignfq%.f*}_redun.sam -R 20 -t $ngmthreads --topn $tophap --strata 8 --affine &&
-          awk '/@HD/ || /@SQ/{print}' ../preprocess/alignment/${alignfq%.f*}_redun.sam 2> /dev/null > ../preprocess/alignment/${alignfq%.f*}_redun_head.sam
-          grep -v '^@' ../preprocess/alignment/${alignfq%.f*}_redun.sam 2> /dev/null | awk -F"\t" 'BEGIN{FS=OFS="\t"} {$11="*"; print $0}' | \
-          cat ../preprocess/alignment/${alignfq%.f*}_redun_head.sam - | gzip  > ../preprocess/alignment/${alignfq%.f*}_redun.sam.gz &&
-          rm ../preprocess/alignment/"${alignfq%.f*}"_redun.sam &&
-          cp -rn ../preprocess/alignment/${alignfq%.f*}_redun.sam.gz ${projdir}/preprocess/alignment/ &&
-          rm "${alignfq%.f*}"_uniq.fastq.gz ../preprocess/alignment/"${alignfq%.f*}"_redun_head.sam &&
-          wait
+  if [[ "$RNA" == "false" ]]; then
+    if [[ "$gap_split_align" == "false" ]]; then
+      if test ! -f ${projdir}/precall_done.txt && test ! -f ${projdir}/alignment_done; then
+        while IFS="" read -r alignfq || [ -n "$alignfq" ]; do
+          sleep $((RANDOM % 2))
+          if test ! -f ../preprocess/alignment/${alignfq%.f*}_redun.sam.gz; then
+            $ngm -r ../refgenomes/$ref1 --qry ${alignfq%.f*}_uniq.fasta.gz -o ../preprocess/alignment/${alignfq%.f*}_redun.sam -R 20 -t $threads --topn $tophap --strata 8 --affine &&
+            awk '/@HD/ || /@SQ/{print}' ../preprocess/alignment/${alignfq%.f*}_redun.sam 2> /dev/null > ../preprocess/alignment/${alignfq%.f*}_redun_head.sam
+            grep -v '^@' ../preprocess/alignment/${alignfq%.f*}_redun.sam 2> /dev/null | awk 'BEGIN{FS=OFS="\t"} !($10 == "*" && $6 !~ /^\*$/) {print}' | \
+            cat ../preprocess/alignment/${alignfq%.f*}_redun_head.sam - | gzip  > ../preprocess/alignment/${alignfq%.f*}_redun.sam.gz &&
+            rm ../preprocess/alignment/"${alignfq%.f*}"_redun.sam ../preprocess/alignment/"${alignfq%.f*}"_redun_head.sam &&
+            cp -rn ../preprocess/alignment/${alignfq%.f*}_redun.sam.gz ${projdir}/preprocess/alignment/ &&
+            rm "${alignfq%.f*}"_uniq.fasta.gz &&
+            wait
+          fi
+        done < <( cat ${projdir}/${samples_list} )
       fi
-    done < <( cat ${projdir}/${samples_list} )
+    fi
+    wait
+    if [[ "$gap_split_align" == "true" ]]; then
+      if test ! -f ${projdir}/precall_done.txt && test ! -f ${projdir}/alignment_done; then
+        while IFS="" read -r alignfq || [ -n "$alignfq" ]; do
+          sleep $((RANDOM % 2))
+          if test ! -f ../preprocess/alignment/${alignfq%.f*}_redun.sam.gz; then
+            $minimap2 -t $threads -ax splice ../refgenomes/${ref1%.f*}.mmi ${alignfq%.f*}_uniq.fasta.gz > ${alignfq%.f*}_all.sam &&
+            grep '^@' ${alignfq%.f*}_all.sam > ${alignfq%.f*}_header.sam &&
+            grep -v '^@' ${alignfq%.f*}_all.sam | awk '$6 ~ /N/' | awk 'BEGIN{FS=OFS="\t"} !($10 == "*" && $6 !~ /^\*$/) {print}' > ${alignfq%.f*}_spliced_reads.sam &&
+            grep -v '^@' ${alignfq%.f*}_all.sam | awk '$6 !~ /N/' | awk 'BEGIN{FS=OFS="\t"} !($10 == "*" && $6 !~ /^\*$/) {print}' > ${alignfq%.f*}_unspliced_reads.sam &&
+            cat ${alignfq%.f*}_header.sam ${alignfq%.f*}_spliced_reads.sam > ${alignfq%.f*}_rna.sam &&
+            cat ${alignfq%.f*}_header.sam ${alignfq%.f*}_unspliced_reads.sam > ${alignfq%.f*}_dna.sam &&
+            $samtools view -bS ${alignfq%.f*}_rna.sam > ${alignfq%.f*}_rna.bam &&
+            $samtools view -bS ${alignfq%.f*}_dna.sam > ${alignfq%.f*}_dna.bam &&
+            $samtools fasta ${alignfq%.f*}_rna.bam > ${alignfq%.f*}_rna_reads.fasta &&
+            $samtools fasta ${alignfq%.f*}_dna.bam > ${alignfq%.f*}_dna_reads.fasta &&
+            $minimap2 -t $threads -N 8 -ax sr ../refgenomes/${ref1%.f*}.mmi ${alignfq%.f*}_dna_reads.fasta | $samtools sort -o ${alignfq%.f*}_dna_final.bam &&
+            $samtools index ${alignfq%.f*}_dna_final.bam &&
+            $minimap2 -t $threads -N 8 -ax splice -uf -k14 ../refgenomes/${ref1%.f*}.mmi ${alignfq%.f*}_rna_reads.fasta | $samtools sort -o ${alignfq%.f*}_rna_final.bam &&
+            $samtools index ${alignfq%.f*}_rna_final.bam &&
+            $GATK SplitNCigarReads -R ../refgenomes/$ref1 -I ${alignfq%.f*}_rna_final.bam -O ${alignfq%.f*}_rna_final_spliced.bam &&
+            $samtools merge ${alignfq%.f*}_redun.bam ${alignfq%.f*}_dna_final.bam ${alignfq%.f*}_rna_final_spliced.bam &&
+            $samtools sort -o ${alignfq%.f*}_sorted.bam ${alignfq%.f*}_redun.bam &&
+            $samtools view -h ${alignfq%.f*}_sorted.bam > ../preprocess/alignment/${alignfq%.f*}_redun.sam &&
+            rm ${alignfq%.f*}_*sam ${alignfq%.f*}_*bam ${alignfq%.f*}_*bai ${alignfq%.f*}_rna_reads* ${alignfq%.f*}_dna_reads* &&
+            awk '/@HD/ || /@SQ/{print}' ../preprocess/alignment/${alignfq%.f*}_redun.sam 2> /dev/null > ../preprocess/alignment/${alignfq%.f*}_redun_head.sam
+            grep -v '^@' ../preprocess/alignment/${alignfq%.f*}_redun.sam 2> /dev/null | awk 'BEGIN{FS=OFS="\t"} !($10 == "*" && $6 !~ /^\*$/) {print}' | \
+            cat ../preprocess/alignment/${alignfq%.f*}_redun_head.sam - | gzip  > ../preprocess/alignment/${alignfq%.f*}_redun.sam.gz &&
+            rm ../preprocess/alignment/"${alignfq%.f*}"_redun.sam ../preprocess/alignment/"${alignfq%.f*}"_redun_head.sam &&
+            cp -rn ../preprocess/alignment/${alignfq%.f*}_redun.sam.gz ${projdir}/preprocess/alignment/ &&
+            rm "${alignfq%.f*}"_uniq.fasta.gz &&
+            wait
+          fi
+        done < <( cat ${projdir}/${samples_list} )
+      fi
+    fi
   fi
   wait
-
+  if [[ "$RNA" == "true" ]]; then
+    mkdir -p ../preprocess/staralign
+    if test ! -f ${projdir}/precall_done.txt && test ! -f ${projdir}/alignment_done; then
+      while IFS="" read -r alignfq || [ -n "$alignfq" ]; do
+        sleep $((RANDOM % 2))
+        if test ! -f ../preprocess/alignment/${alignfq%.f*}_redun.sam.gz; then
+          awk 'BEGIN {RS=">"; ORS=""} NR>1 {header=substr($0, 1, index($0, "\n") - 1); seq=substr($0, index($0, "\n") + 1); gsub(/\n/, "", seq); if (length(seq) >= 32) print ">" header "\n" seq "\n"}' <(zcat ${alignfq%.f*}_uniq.fasta.gz) | \
+          awk 'BEGIN {OFS = "\n"} /^>/ {header = substr($0, 2); next} {print "@" header, $0, "+", gensub(/./, "I", "g", $0)}' | gzip > ${alignfq%.f*}_uniq.fastq.gz
+          $star --runThreadN $threads \
+            --genomeDir ${projdir}/refgenomes/star_index \
+            --readFilesIn ${alignfq%.f*}_uniq.fastq.gz \
+            --readFilesCommand zcat \
+            --outFileNamePrefix ../preprocess/staralign/${alignfq%.f*}_redun_ \
+            --outSAMtype SAM \
+            --outFilterMultimapNmax 8 \
+            --twopassMode Basic
+          wait
+          awk '/@HD/ || /@SQ/{print}' ../preprocess/staralign/${alignfq%.f*}_redun_Aligned.out.sam 2> /dev/null > ../preprocess/alignment/${alignfq%.f*}_redun_head.sam
+          grep -v '^@' ../preprocess/staralign/${alignfq%.f*}_redun_Aligned.out.sam 2> /dev/null | awk 'BEGIN{FS=OFS="\t"} !($10 == "*" && $6 !~ /^\*$/) {print}' | \
+          cat ../preprocess/alignment/${alignfq%.f*}_redun_head.sam - > ../preprocess/alignment/${alignfq%.f*}_redun.sam &&
+          $samtools view -S -b ../preprocess/alignment/${alignfq%.f*}_redun.sam > ../preprocess/alignment/${alignfq%.f*}_redun.bam &&
+          $GATK SplitNCigarReads -R ${projdir}/refgenomes/$ref1 -I ../preprocess/alignment/${alignfq%.f*}_redun.bam -O ../preprocess/alignment/${alignfq%.f*}_redunsplit.bam &&
+          $samtools view -h ../preprocess/alignment/${alignfq%.f*}_redunsplit.bam | gzip > ../preprocess/alignment/${alignfq%.f*}_redun.sam.gz &&
+          rm ../preprocess/alignment/${alignfq%.f*}_redun.sam ../preprocess/alignment/${alignfq%.f*}_redun.bam ../preprocess/alignment/${alignfq%.f*}_redunsplit* &&
+          rm ../preprocess/alignment/"${alignfq%.f*}"_redun_head.sam &&
+          cp -rn ../preprocess/alignment/${alignfq%.f*}_redun.sam.gz ${projdir}/preprocess/alignment/ &&
+          rm ${alignfq%.f*}_uniq.fasta.gz ${alignfq%.f*}_uniq.fastq.gz &&
+          rm -rf ../preprocess/staralign/*
+          wait
+        fi
+      done < <( cat ${projdir}/${samples_list} )
+    fi
+  fi
+  wait
 
   touch ${projdir}/alignment_done_${samples_list}
 
@@ -919,12 +1053,12 @@ main () {
     # rm ${i%.f*}_redun_head.sam &&
     printf '\n###---'${i%.f*}'---###\n' > ${projdir}/alignment_summaries/${i%.f*}_summ.txt &&
     zcat ./alignment/${i%.f*}_redun.sam.gz | grep -v '^@' | awk '{gsub(/_/,"\t",$1);}1' | awk '{gsub(/se-/,"",$2);gsub(/pe-/,"",$2);}1' | tr ' ' '\t' > ${i%.f*}_full.sam &&
-    split -l 10000 ${i%.f*}_full.sam chunk_ && rm ${i%.f*}_full.sam &&
-    find . -name 'chunk_*' -print0 | xargs -0 -P "$prepthreads" -I{} bash -c 'awk '\''{for(i=0;i<=$2-1;i++) print $0}'\'' "$1" > "$1.out"' _ {} &&
-    cat chunk_*.out | awk '!($2="")1' | awk '{$1=$1"_"NR}1' | awk '{gsub(/ /,"\t");}1' > ${i%.f*}_full.sam &&
+    split -l 10000 ${i%.f*}_full.sam ${i%.f*}_chunk_ && rm ${i%.f*}_full.sam &&
+    find . -name '${i%.f*}_chunk_*' -print0 | xargs -0 -P "$prepthreads" -I{} bash -c 'awk '\''{for(i=0;i<=$2-1;i++) print $0}'\'' "$1" > "$1.out"' _ {} &&
+    cat ${i%.f*}_chunk_* | awk '!($2="")1' | awk '{$1=$1"_"NR}1' | awk '{gsub(/ /,"\t");}1' > ${i%.f*}_full.sam &&
     cat <(zcat ./alignment/${i%.f*}_redun.sam.gz | grep '^@') ${i%.f*}_full.sam | gzip > ${i%.f*}_full.sam.gz &&
-    rm chunk_* ${i%.f*}_full.sam &&
-    samtools flagstat ${i%.f*}_full.sam.gz >> ${projdir}/alignment_summaries/${i%.f*}_summ.txt &&
+    rm ${i%.f*}_chunk_* ${i%.f*}_full.sam &&
+    $samtools flagstat ${i%.f*}_full.sam.gz >> ${projdir}/alignment_summaries/${i%.f*}_summ.txt &&
     printf '########################################################################################################\n\n' >> ${projdir}/alignment_summaries/${i%.f*}_summ.txt &&
     printf 'copy_number\tFrequency\tPercentage\n' > ${projdir}/alignment_summaries/copy_number/${i%.f*}_copy_number_Read_histogram.txt &&
     $samtools view -F4 <(zcat ${i%.f*}_full.sam.gz 2> /dev/null) | awk '{print $1}' | awk '{gsub(/_pe-/,"\t");gsub(/seq/,"");}1' | \
@@ -941,6 +1075,7 @@ main () {
     for minhap in ${haplome_number//,/ }; do if [[ "$minhap" -lt "$min_hap" ]]; then min_hap=$minhap; fi; done
     export max_hap=$maxhap
     export min_hap=$minhap
+
 
       if test ! -f ${projdir}/preprocess/${i%.f*}_${ref1%.f*}_precall.bam.bai; then
         if [[ "$paralogs" == false ]] && [[ "$uniquely_mapped" == true ]]; then
@@ -1052,7 +1187,8 @@ main () {
         $java $Xmx2 -XX:ParallelGCThreads=$gthreads -jar $picard BuildBamIndex INPUT=${j%.sam*}.bam VALIDATION_STRINGENCY=LENIENT && \
         $java $Xmx2 -XX:ParallelGCThreads=$gthreads -jar $picard AddOrReplaceReadGroups I=${j%.sam*}.bam O=${j%.sam*}_precall.bam RGLB=${i%.f*} RGPL=illumina RGPU=run RGSM=${i%.f*} VALIDATION_STRINGENCY=LENIENT && \
         $samtools index ${j%.sam*}_precall.bam &&
-        rm $j ${j%.sam*}.bam ${j%.sam*}.bai &&
+        rm $j ${j%.sam*}.bam ${j%.sam*}.bai
+        wait
         if [[ $nodes -gt 1 ]]; then cp /tmp/${samples_list%.txt}/preprocess/${j%.sam*}_precall.bam* ${projdir}/preprocess/; fi
         wait
       fi
@@ -1118,7 +1254,8 @@ main () {
         $java $Xmx2 -XX:ParallelGCThreads=$gthreads -jar $picard BuildBamIndex INPUT=${j%.sam*}.bam VALIDATION_STRINGENCY=LENIENT && \
         $java $Xmx2 -XX:ParallelGCThreads=$gthreads -jar $picard AddOrReplaceReadGroups I=${j%.sam*}.bam O=${j%.sam*}_precall.bam RGLB=${i%.f*} RGPL=illumina RGPU=run RGSM=${i%.f*} VALIDATION_STRINGENCY=LENIENT && \
         $samtools index ${j%.sam*}_precall.bam &&
-        rm $j ${j%.sam*}.bam ${j%.sam*}.bai &&
+        rm $j ${j%.sam*}.bam ${j%.sam*}.bai
+        wait
         if [[ $nodes -gt 1 ]]; then cp /tmp/${samples_list%.txt}/preprocess/${j%.sam*}_precall.bam* ${projdir}/preprocess/; fi
         wait
       fi
@@ -1251,7 +1388,7 @@ mkdir -p processed
 if [[ ! -s $interval_list ]]; then export interval_list=""; fi
 
 if [[ "$samples_list" == "samples_list_node_1.txt" ]]; then
-	if [[ "$joint_calling" == true ]]; then
+	if [[ "$joint_calling" == true ]] && [[ "$variant_caller" == "gatk" ]]; then
 		j=-I; input=""; k=""
 		for i in *_precall.bam; do
 			k="${j} ${i}"; input="${input} ${k}"
@@ -1310,7 +1447,7 @@ if [[ "$samples_list" == "samples_list_node_1.txt" ]]; then
 	fi
 fi
 
-if [[ "$joint_calling" == false ]]; then
+if [[ "$joint_calling" == false ]]&& [[ "$variant_caller" == "gatk" ]]; then
 
   if [[ $nodes -eq 1 ]]; then cd ${projdir}/preprocess/; fi
   if [[ $nodes -gt 1 ]] && test -f ${projdir}/GBSapp_run_node_1.sh; then cd /tmp/${samples_list%.txt}/preprocess/; fi
@@ -1494,6 +1631,18 @@ if [[ "$joint_calling" == false ]]; then
 		rm -rf /tmp/${samples_list%.txt} 2> /dev/null
 		rm ${projdir}/queue_move_${samples_list%.txt}.txt
 	fi
+fi
+
+if [[ "$variant_caller" == "bcftools" ]]; then
+  cd ${projdir}/preprocess
+  ls *.bam > bam_list.txt
+  $bcftools mpileup -Ou -f ../refgenomes/$ref1 -b bam_list.txt | \
+  $bcftools call -mv -Ov -o ${projdir}/snpcall/${pop}_${ref1%.f*}_${ploidy}x_raw.vcf &&
+  rm bam_list.txt && cd ${projdir}/snpcall/ &&
+  $bcftools view -I ${pop}_${ref1%.f*}_${ploidy}x_raw.vcf -O z -o ${pop}_${ref1%.f*}_${ploidy}x_raw.vcf.gz &&
+  $bcftools index ${pop}_${ref1%.f*}_${ploidy}x_raw.vcf.gz &&
+  mv ${projdir}/preprocess/*_${ref1%.f*}_precall.bam* ${projdir}/preprocess/processed/ 2> /dev/null
+  wait
 fi
 
 }

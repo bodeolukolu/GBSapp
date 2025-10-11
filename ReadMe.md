@@ -14,14 +14,14 @@ For questions, bugs, and suggestions, please contact bolukolu@utk.edu.
 - Fully-automated: “walk-away” and “walk-through” mode.
 - Allows for use of haplomes (haplotype-resolved), subgenomes (haploid), and pan-genomes (haploid or haplotype-resolved) references.
 - Minimizes excess heterozygosity and allele dropout.
-- Variant calling implemented for any ploidy-level.
-- Input data: shotgun WGS, reduced representation sequence (e.g., OmeSeq-qRRS, GBS, ddRADseq), and multiplexed-PCR data.
+- Variant calling implemented for up to ploidy of 8.
+- Input data: shotgun WGS, reduced representation sequence (e.g., OmeSeq-qRRS, GBS, ddRADseq), RNAseq and multiplexed-PCR data.
 - Can subsample shotgun whole genome data for variant calling, i.e. in silico reduced representation sequencing (RRS).
 - Parallelization of job on multiple compute cluster nodes (spark cluster infrastructure not required).
-- Splice-aware aligner allows for RNAseq data as input (recommended only for haploid or diploid genomes).
+- Splice-aware aligner (STAR) allows for RNAseq data as input (recommended only for haploid or diploid genomes).
 - Generates variant sequence context (useful for applications such as oligo/primer design & sequenced-based phylogenetic analysis).
 - Variant calling delineates SNP from uniquely mapped and paralogs.
-- Fast variant calling due to dynamic downsampling (avoids allele dropout due to biased downsampling).
+- Increase speed of variant calling based on dynamic downsampling (avoids allele dropout due to biased downsampling).
 - Fast alignment due to joint-alignment method.
 - Visualizations for report and QC.
 
@@ -111,6 +111,9 @@ Using a text editor, save a file containing any of the following variables as 'c
 |walkaway|true|run in walk-away or walk-through mode|true or false|Optional|
 |cluster|false|run on compute cluster node (default: slurm) or workstation|true or false|Optional|
 |nodes|1|number of nodes|integer|Optional|
+|gap_split_align|true|minimap2 if true (large gaps and SVs) and NGM if false(small gaps)|true or false|Optional|
+|RNA|false|RNA-seq reads as input (STAR aligner)|true or false|Optional|
+|variant_caller|gatk|gatk (recommended) or bcftools(diploid only, might be better for some genomes)|string|Optional|
 |samples_alt_dir|false|links samples in separate directory to project directory|true or false|Optional|
 |lib_type|RRS|RRS (reduced representation sequence e.g. GBS, ddRADseq, qRRS) or WGS (shotgun whole genome sequence)|string|Optional|
 |subsample_WGS_in_silico_qRRS|false|Fast alternative to variant calling on whole genome data|true or false|Optional|
@@ -194,6 +197,9 @@ threads=16
 walkaway=true
 cluster=true
 nodes=1
+gap_split_align=true
+RNA=false
+variant_caller=gatk
 samples_alt_dir=false
 lib_type=RRS
 subsample_WGS_in_silico_qRRS=false
