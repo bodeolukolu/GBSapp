@@ -84,14 +84,14 @@ ln -s ${GBSapp_dir}/tools/*jdk*/bin/java ~/bin/java
 ######################################################################################################################################################
 # tools
 export ngm=${GBSapp_dir}/tools/*NextGenMap*/bin/ngm*/ngm
-export star=${GBSapp_dir}/tools/STAR-2.7.11b/source/STAR
+export star=${GBSapp_dir}/tools/STAR*/source/STAR
 export minimap2=${GBSapp_dir}/tools/minimap2*/minimap2
 export bwa=${GBSapp_dir}/tools/bwa/bwa
 export samtools=${GBSapp_dir}/tools/samtools*/samtools && samtools=${samtools//'//'/'/'}
 export bcftools=${GBSapp_dir}/tools/bcftools*/bcftools && bcftools=${bcftools//'//'/'/'}
 export bedtools=${GBSapp_dir}/tools/bedtools2/bin/bedtools && bedtools=${bedtools//'//'/'/'}
 export picard=${GBSapp_dir}/tools/picard.jar && picard=${picard//'//'/'/'}
-export GATK=${GBSapp_dir}/tools/gatk-4.2.6.1/gatk && GATK=${GATK//'//'/'/'}
+export GATK=${GBSapp_dir}/tools/gatk*/gatk && GATK=${GATK//'//'/'/'}
 export java=${GBSapp_dir}/tools/*jdk*/bin/java && java=${java//'//'/'/'}
 export consambig=${GBSapp_dir}/tools/EMBOSS-6.6.0/emboss/consambig
 export mafft=${GBSapp_dir}/tools/mafft/mafft

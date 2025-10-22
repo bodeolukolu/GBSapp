@@ -8,7 +8,7 @@ if [ -z "$threads" ]; then
 	fi
 fi
 if [ -z "$gap_split_align" ]; then
-  export gap_split_align=true
+  export gap_split_align=false
 fi
 if [ -z "$RNA" ]; then
  export RNA=false

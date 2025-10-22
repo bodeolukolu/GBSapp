@@ -248,6 +248,7 @@ main_star () {
   cd STAR/source
   make STAR
   cd $tools_dir*
+  rm 2.7.11b.tar.gz
 }
 dirtool=STAR
 if [ -d $dirtool ]; then

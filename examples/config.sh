@@ -4,6 +4,9 @@ threads=16
 walkaway=true
 cluster=true
 nodes=1
+gap_split_align=true
+RNA=false
+variant_caller=gatk
 samples_alt_dir=false
 lib_type=RRS
 subsample_WGS_in_silico_qRRS=false
@@ -11,18 +14,20 @@ subsample_WGS_in_silico_qRRS=false
 # Variant calling
 ###################################################
 ploidy=6
-haplome_number=1,2,3,4,5,6
+haplome_number=6
 # Variant calling with haploid subgenome(s)
-# Anchored to ref1 for loci conserved across all subgenomes/pangenomes
+# Anchored to ref1 for loci conserved across all subgenomes
 ref1=TF.fasta
 ref2=TL.fasta
 ploidy_ref1=4
 ploidy_ref2=2
 # Variant calling with haplotype-resolved reference genome or pangenomes
+# Anchored to haplome_ref1 for loci conserved across all haplomes
 hap_ref=Ib.fasta
 # exclue or limit variant calling to specific chromosomes
 Get_Chromosome=TF_Chr01,TF_Chr02
 Exclude_Chromosome=TF_Chr00,TL_Chr00
+genomecov_est=false
 
 # SNP-filtering:
 ####################################################
@@ -61,4 +66,3 @@ keep_gVCF=false
 RE1=TGCAT
 RE2=CATG
 filter_ExcHet=false
-genomecov_est=false
