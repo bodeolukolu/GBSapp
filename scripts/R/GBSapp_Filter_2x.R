@@ -431,18 +431,18 @@ final_summary <- function(){
   subgenome_1_noSD <- subgenome_1_noSD[,c(which(colnames(subgenome_1_noSD)=="SNP"),which(colnames(subgenome_1_noSD)!="SNP"))]
   write.table (subgenome_1_noSD, file=paste(pop,"_2x","_rd",rd+1,"_noSDbinary.txt",sep=""), row.names=F, quote = FALSE, sep = "\t")
 
-  
+
   subgenome_1_noSD[][subgenome_1_noSD[]=="0/0"] <- "0"
   subgenome_1_noSD[][subgenome_1_noSD[]=="0/1"] <- "1"
   subgenome_1_noSD[][subgenome_1_noSD[]=="1/1"] <- "2"
   write.table (subgenome_1_noSD, file=paste(pop,"_2x","_rd",rd+1,"_noSDdose.txt",sep=""), row.names=F, quote = FALSE, sep = "\t")
 
   sumfreq <- read.table(paste(pop,"_2x","_rd",rd+1,"_noSDdose.txt",sep=""), header=T, sep="\t",stringsAsFactors=FALSE, check.names = FALSE)
-  Chrfreq <- subset(sumfreq, select=(2))
-  Chrfreq <- as.data.frame(table(Chrfreq))
-  sum <- sum(as.numeric(Chrfreq$Freq), na.rm = TRUE)
-  Chrfreq <- subset(Chrfreq, Freq > 0.05)
-  props <- 100/sum
+  Chrfreq <- as.data.frame(table(sumfreq$CHROM))
+  colnames(Chrfreq) <- c("CHROM", "Freq")
+  sum <- sum(Chrfreq$Freq, na.rm = TRUE)
+  Chrfreq <- subset(Chrfreq, Freq > 0.05 * sum)
+  props <- 100 / sum
   plot <- ggplot(data=Chrfreq, aes(x=CHROM, y=Freq)) +
     geom_bar(stat='identity', color="darkblue", fill="cornflowerblue") +
     scale_y_continuous(name=paste("Number of Variants"), sec.axis = sec_axis(~.*props, name="Percentage (%)")) +
@@ -451,8 +451,8 @@ final_summary <- function(){
     theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
     xlab(paste("Chromosomes/Pseudomolecule (",sum," total variants)",sep=""))
   ggsave(filename=paste(pop,"_2x","_variants_chromosome_rd",rd+1,".tiff",sep=""), plot=plot, width=7.5, height= 5, dpi=300, compression = "lzw")
-  
-  
+
+
   miss_heat <- subset(sumfreq, select=-c(2:5))
   miss_heat <- subset(miss_heat, select=-c(pvalue))
   miss_heat$percent <- (apply(miss_heat, 1, function(x) sum(is.na(x))))/(ncol(miss_heat)-1)*100
@@ -484,7 +484,7 @@ final_summary <- function(){
     geom_vline(xintercept = (nrow(sumfreq)/4)*2, lty=10, color="white") +
     geom_vline(xintercept = (nrow(sumfreq)/4)*3, lty=10, color="white")
   ggsave(filename=paste(pop,"_2x","_Heatmap_missing_rate_rd",rd+1,".tiff",sep=""), plot=plot, width=5, height= 5, dpi=300, compression = "lzw")
-  
+
   sumfreq <- subset(sumfreq, select=-c(1:5))
   sumfreq <- subset(sumfreq, select=-c(pvalue))
   SNP <- sumfreq
@@ -545,7 +545,7 @@ final_summary()
 #   snpidMf <- data.frame(CHROM = character(0), POS = numeric(0), nloci = numeric(0))
 #   snpid_data <- read.table(paste(pop,"_2x","_rd",rd+1,"_noSDdose.txt",sep=""), header=T, sep="\t",stringsAsFactors=FALSE, check.names = FALSE)
 #   snpidN_data <- read.table("../../alignment_summaries/refgenome_paralogs.txt", header=T, sep="\t", quote="", check.names=FALSE, fill=F)
-#   
+#
 #   for (intrange in c(100)) {
 #     snpid <- snpid_data
 #     snpid <- subset(snpid, select=c("CHROM","POS"))
@@ -655,7 +655,7 @@ rd_boxplot <- function(){
     if (maxX > 100) {intervalm <- 100}
     if (maxX > 1000) {intervalm <- 250}
     if (maxX > 10000) {intervalm <- 1000}
-    
+
     histogram <- ggplot(subgenome_1_dist, aes(x=Var1, y=Freq)) +
       geom_bar(stat="identity", position=position_dodge(0.95), width=0.9, colour="cornflowerblue", fill="white")+
       geom_vline(aes(xintercept=meanDP), color="cornflowerblue", linetype="dashed", size=3, alpha=0.5)+
@@ -723,7 +723,7 @@ rd_boxplot <- function(){
   if (maxX > 100) {intervalm <- 100}
   if (maxX > 1000) {intervalm <- 250}
   if (maxX > 10000) {intervalm <- 1000}
-  
+
   histogram <- ggplot(subgenome_1_dist, aes(x=Var1, y=Freq)) +
     geom_bar(stat="identity", position=position_dodge(0.95), width=0.9, colour="cornflowerblue", fill="white")+
     geom_vline(aes(xintercept=meanDP), color="cornflowerblue", linetype="dashed", size=3, alpha=0.5)+
@@ -907,28 +907,28 @@ pop_struc <- function() {
     tmp[1:9,1:9]
     #fix eigenvalues to positive
     diag(tmp)=diag(tmp)-min(eigen(tmp)$values)
-    tmp[1:9,1:9]  
+    tmp[1:9,1:9]
     return(tmp)
   }
   if (nrow(pop_data) >= 10) {
     pop_data <- as.matrix(t(pop_data))
     #Computing the full-autopolyploid matrix based on Slater 2016 (Eq. 8 and 9)
-    Gmatrix <- function(SNPmatrix = pop_data, method = "VanRaden", missingValue = NA, 
-                        maf = 0, thresh.missing = 0.1, verify.posdef = FALSE, ploidy = 2, 
-                        pseudo.diploid = FALSE, integer = FALSE, ratio = FALSE, impute.method = TRUE, 
+    Gmatrix <- function(SNPmatrix = pop_data, method = "VanRaden", missingValue = NA,
+                        maf = 0, thresh.missing = 0.1, verify.posdef = FALSE, ploidy = 2,
+                        pseudo.diploid = FALSE, integer = FALSE, ratio = FALSE, impute.method = TRUE,
                         ratio.check = FALSE) {
       Time = proc.time()
-      
+
       if(ratio){ #This allows to enter in the scaled crossprod condition
         method="VanRaden"
         ploidy=8
       }
-      
+
       if (!is.na(missingValue)) {
         m <- match(SNPmatrix, missingValue, 0)
         SNPmatrix[m > 0] <- NA
       }
-      
+
       # Internal function to check input Gmatrix arguments
       check_Gmatrix_data <- function(SNPmatrix,ploidy,method, ratio=FALSE, integer=TRUE){
         if (is.null(SNPmatrix)) {
@@ -937,57 +937,57 @@ pop_struc <- function() {
         if (all(method != c("Yang", "VanRaden", "Slater", "Su", "Vitezica", "MarkersMatrix","Endelman"))) {
           stop("Method to build Gmatrix has to be either `Yang` or `VanRaden` for marker-based additive relationship matrix, or `Su` or `Vitezica` or `Endelman` for marker-based dominance relationship matrx, or `MarkersMatrix` for matrix with amount of shared-marks by individuals pairs")
         }
-        
+
         #  if( method=="Yang" && ploidy>2)
         #    stop("Change method to 'VanRaden' for ploidies higher than 2 for marker-based additive relationship matrix")
-        
+
         if( method=="Su" && ploidy>2)
           stop("Change method to 'Slater' for ploidies higher than 2 for marker-based non-additive relationship matrix")
-        
+
         if( method=="Vitezica" && ploidy>2)
           stop("Change method to 'Slater' for ploidies higher than 2 for marker-based non-additive relationship matrix")
-        
+
         # if(class(SNPmatrix)!="matrix"){
         #   cat("SNPmatrix class is:",class(SNPmatrix),"\n")
         #   stop("SNPmatrix class must be matrix. Please verify it.")
         # }
-        
+
         if(!ratio){
           if( ploidy > 20 | (ploidy %% 2) != 0)
             stop(deparse("Only even ploidy from 2 to 20"))
-          
+
           t <- max(SNPmatrix,na.rm = TRUE)
           if( t > ploidy )
             stop(deparse("Check your data, it has values above ploidy number"))
-          
+
           t <- min(SNPmatrix,na.rm=TRUE)
           if( t < 0 )
             stop(deparse("Check your data, it has values under 0"))
-          
+
           if(integer)
             if(prod(SNPmatrix == round(SNPmatrix),na.rm = TRUE)==0)
               stop(deparse("Check your data, it has not integer values"))
         }
-        
+
         if(ratio){
           t <- max(SNPmatrix,na.rm = TRUE)
           if( t > 1)
             stop(deparse("Check your data, it has values above 1. It is expected a ratio values [0;1]."))
-          
+
           t <- min(SNPmatrix,na.rm=TRUE)
           if( t < 0 )
             stop(deparse("Check your data, it has values under 0. It is expected a ratio values [0;1]."))
         }
       }
       check_Gmatrix_data(SNPmatrix=SNPmatrix,method=method,ploidy=ploidy,ratio=ratio,integer=integer)
-      
+
       NumberMarkers <- ncol(SNPmatrix)
       nindTotal <- colSums(!is.na(SNPmatrix))
       nindAbs <- max(nindTotal)
       cat("Initial data: \n")
       cat("\tNumber of Individuals:", max(nindTotal), "\n")
       cat("\tNumber of Markers:", NumberMarkers, "\n")
-      
+
       # Function by Luis F. V. Ferrao
       # Internal function to maf cutoff and impute data
       snp.check = function(M = NULL,
@@ -997,7 +997,7 @@ pop_struc <- function() {
                            impute.method = "mean"){
         # SNP missing data
         ncol.init <- ncol(M)
-        
+
         missing <- apply(M, 2, function(x) sum(is.na(x))/nrow(M))
         missing.low = missing <= thresh.missing
         cat("\nMissing data check: \n")
@@ -1010,7 +1010,7 @@ pop_struc <- function() {
         } else{
           cat("\tNo SNPs with missing data, missing threshold of = ", thresh.missing,"\n")
         }
-        
+
         # Minor alele frequency
         MAF <- apply(M, 2, function(x) {
           AF <- mean(x, na.rm = T)/ploidy
@@ -1026,7 +1026,7 @@ pop_struc <- function() {
         } else{
           cat("\tNo SNPs with MAF below", thresh.maf,"\n")
         }
-        
+
         # SNPs monomorficos
         mono <- apply(M, 2, function(x) {
           equal <- isTRUE(all.equal(x, rep(x[1], length(x))))
@@ -1040,7 +1040,7 @@ pop_struc <- function() {
         } else{
           cat("\tNo monomorphic SNPs \n")
         }
-        
+
         # Imputing by mode
         if(impute.method=="mean"){
           ix <- which(is.na(M))
@@ -1048,54 +1048,54 @@ pop_struc <- function() {
             M[ix] <- mean(M,na.rm = TRUE)
           }
         }
-        
+
         if(impute.method=="mode"){
           ix <- which(is.na(M))
           if (length(ix) > 0) {
             M[ix] <- as.integer(names(which.max(table(M))))
           }
         }
-        
+
         # Total of SNPs
         cat("Summary check: \n")
         cat("\tInitial: ", ncol.init, "SNPs \n")
         cat("\tFinal: ", ncol(M), " SNPs (", ncol.init - ncol(M), " SNPs removed) \n \n")
         return(M)
       }
-      
+
       if(ratio==FALSE){
         SNPmatrix <- snp.check(SNPmatrix,
-                               ploidy = ploidy, 
-                               thresh.maf = maf, 
+                               ploidy = ploidy,
+                               thresh.maf = maf,
                                thresh.missing = thresh.missing,
                                impute.method = impute.method)
       }
-      
+
       ## Testing ratio check function: not final!
       if(ratio && ratio.check){
         SNPmatrix <- snp.check(SNPmatrix,
-                               ploidy = ploidy, 
-                               thresh.maf = maf, 
+                               ploidy = ploidy,
+                               thresh.maf = maf,
                                thresh.missing = thresh.missing,
                                impute.method = impute.method)
       }
-      
+
       ## Internal Functions ##
       # Coding SNPmatrix as Slater (2016) Full autotetraploid model including non-additive effects (Presence/Absence per Genotype per Marker)
       slater_par <- function(X,ploidy){
         prime.index <- c(3,5,7,11,13,17,19,23,29,31,37,
                          41,43,47,53,59,61,67,71,73,79)
-        
+
         NumberMarkers <- ncol(X)
         nindTotal <- nrow(X)
         X <- X+1
-        
+
         ## Breaking intervals to use less RAM
         temp <- seq(1,NumberMarkers,10000)
         temp <- cbind(temp,temp+9999)
         temp[length(temp)] <- NumberMarkers
         prime.index <- prime.index[1:(ploidy+1)]
-        
+
         ## Uses Diagonal (which is Sparse mode, uses less memmory)
         for(i in 1:nrow(temp)){
           X.temp <- X[,c(temp[i,1]:temp[i,2])]
@@ -1108,59 +1108,59 @@ pop_struc <- function() {
             X_out <- X.temp
           }else{
             X_out <- cbind(X_out,X.temp)
-          }   
+          }
         }
         gc()
         return(X_out)
       }
-      
+
       if(method=="Slater"){
         P <- colSums(SNPmatrix,na.rm = TRUE)/nrow(SNPmatrix)
         SNPmatrix[,which(P>ploidy/2)] <- ploidy-SNPmatrix[,which(P>(ploidy/2))]
         SNPmatrix <- slater_par(SNPmatrix,ploidy=ploidy)
         NumberMarkers <- ncol(SNPmatrix)
         Frequency <- colSums(SNPmatrix,na.rm=TRUE)/nrow(SNPmatrix)
-        FreqP <- matrix(rep(Frequency, each = nrow(SNPmatrix)), 
+        FreqP <- matrix(rep(Frequency, each = nrow(SNPmatrix)),
                         ncol = ncol(SNPmatrix))
       }
-      
+
       if(ploidy==2){
         alelleFreq <- function(x, y) {
-          (2 * length(which(x == y)) + length(which(x == 1)))/(2 * 
+          (2 * length(which(x == y)) + length(which(x == 1)))/(2 *
                                                                  length(which(!is.na(x))))
         }
         Frequency <- cbind(apply(SNPmatrix, 2, function(x) alelleFreq(x,0))
                            , apply(SNPmatrix, 2, function(x) alelleFreq(x, 2)))
-        
+
         #   if (any(Frequency[, 1] <= maf) & maf != 0) {
         #      cat("\t", length(which(Frequency[, 1] <= maf)), "markers dropped due to maf cutoff of", maf, "\n")
         #      SNPmatrix <- SNPmatrix[,-which(Frequency[, 1] <= maf)]
         #      cat("\t", ncol(SNPmatrix), "markers kept \n")
-        #      Frequency <- as.matrix(Frequency[-which(Frequency[,1] <= 
+        #      Frequency <- as.matrix(Frequency[-which(Frequency[,1] <=
         #                                                maf), ])
         #      NumberMarkers <- ncol(SNPmatrix)
         #    }
-        FreqP <- matrix(rep(Frequency[, 2], each = nrow(SNPmatrix)), 
+        FreqP <- matrix(rep(Frequency[, 2], each = nrow(SNPmatrix)),
                         ncol = ncol(SNPmatrix))
       }
-      
+
       if(ploidy>2 && pseudo.diploid){## Uses Pseudodiploid model
         P <- colSums(SNPmatrix,na.rm = TRUE)/nrow(SNPmatrix)
         SNPmatrix[,which(P>ploidy/2)] <- ploidy-SNPmatrix[,which(P>(ploidy/2))]
         Frequency <- colSums(SNPmatrix,na.rm=TRUE)/(ploidy*nrow(SNPmatrix))
         Frequency <- cbind(1-Frequency,Frequency)
-        FreqP <- matrix(rep(Frequency[, 2], each = nrow(SNPmatrix)), 
+        FreqP <- matrix(rep(Frequency[, 2], each = nrow(SNPmatrix)),
                         ncol = ncol(SNPmatrix))
         SNPmatrix[SNPmatrix %in% c(1:(ploidy-1))] <- 1
         SNPmatrix[SNPmatrix==ploidy] <- 2
       }
-      
+
       if (method == "MarkersMatrix") {
         Gmatrix <- !is.na(SNPmatrix)
         Gmatrix <- tcrossprod(Gmatrix, Gmatrix)
         return(Gmatrix)
       }
-      
+
       ## VanRaden ##
       if (method == "VanRaden") {
         if(ploidy==2){
@@ -1170,18 +1170,18 @@ pop_struc <- function() {
           Gmatrix <- (tcrossprod(SNPmatrix, SNPmatrix))/as.numeric(TwoPQ)
         }else{
           if(ploidy>2){
-            SNPmatrix<-scale(SNPmatrix,center=TRUE,scale=FALSE) 
+            SNPmatrix<-scale(SNPmatrix,center=TRUE,scale=FALSE)
             K<-sum(apply(X=SNPmatrix,FUN=var,MARGIN=2,na.rm=TRUE))
             SNPmatrix[which(is.na(SNPmatrix))] <- 0
             Gmatrix<-tcrossprod(SNPmatrix)/K
           }
         }
       }
-      
+
       if (method == "Yang") {
-        FreqPQ <- matrix(rep(2 * Frequency[, 1] * Frequency[, 
+        FreqPQ <- matrix(rep(2 * Frequency[, 1] * Frequency[,
                                                             2], each = nrow(SNPmatrix)), ncol = ncol(SNPmatrix))
-        G.all <- (SNPmatrix^2 - (1 + 2 * FreqP) * SNPmatrix + 
+        G.all <- (SNPmatrix^2 - (1 + 2 * FreqP) * SNPmatrix +
                     2 * (FreqP^2))/FreqPQ
         G.ii <- as.matrix(colSums(t(G.all), na.rm = T))
         SNPmatrix <- (SNPmatrix - (2 * FreqP))/sqrt(FreqPQ)
@@ -1190,16 +1190,16 @@ pop_struc <- function() {
         Gmatrix <- (tcrossprod(SNPmatrix, SNPmatrix))/NumberMarkers
         diag(Gmatrix) <- G.ii.hat
       }
-      
+
       if (method == "Su"){
         TwoPQ <- 2*(FreqP)*(1-FreqP)
         SNPmatrix[SNPmatrix==2 | SNPmatrix==0] <- 0
         SNPmatrix <- SNPmatrix - TwoPQ
         SNPmatrix[is.na(SNPmatrix)] <- 0
         Gmatrix <- tcrossprod(SNPmatrix,SNPmatrix)/
-          sum(TwoPQ[1,]*(1-TwoPQ[1,]))        
+          sum(TwoPQ[1,]*(1-TwoPQ[1,]))
       }
-      
+
       if (method == "Vitezica"){
         TwoPQ <- 2*(FreqP[1,])*(1-FreqP[1,])
         SNPmatrix[is.na(SNPmatrix)] <- 0
@@ -1208,7 +1208,7 @@ pop_struc <- function() {
           (SNPmatrix==2)*-2*((1-FreqP)^2)
         Gmatrix <- tcrossprod(SNPmatrix,SNPmatrix)/sum(TwoPQ^2)
       }
-      
+
       if (method == "Slater"){
         drop.alleles <- which(Frequency==0)
         if(length(drop.alleles)>0){
@@ -1228,7 +1228,7 @@ pop_struc <- function() {
         Gmatrix <- (tcrossprod(SNPmatrix, SNPmatrix))/NumberMarkers
         diag(Gmatrix) <- G.ii
       }
-      
+
       if( method == "Endelman" ){
         if( ploidy != 4 ){
           cat( stop( "'Endelman' method is just implemented for ploidy=4" ))
@@ -1236,32 +1236,32 @@ pop_struc <- function() {
         Frequency <- colSums(SNPmatrix)/(nrow(SNPmatrix)*ploidy)
         Frequency <- cbind(Frequency,1-Frequency)
         SixPQ <- 6 * t((Frequency[, 1]^2)) %*% (Frequency[, 2]^2)
-        SNPmatrix <- 6 * t((Frequency[, 1]^2)%*%t(rep(1,nrow(SNPmatrix)))) - 
+        SNPmatrix <- 6 * t((Frequency[, 1]^2)%*%t(rep(1,nrow(SNPmatrix)))) -
           3*t((Frequency[, 1])%*%t(rep(1,nrow(SNPmatrix))))*SNPmatrix + 0.5 * SNPmatrix*(SNPmatrix-1)
         Gmatrix <- (tcrossprod(SNPmatrix, SNPmatrix))/as.numeric(SixPQ)
       }
-      
+
       if (verify.posdef) {
         e.values <- eigen(Gmatrix, symmetric = TRUE)$values
         indicator <- length(which(e.values <= 0))
-        if (indicator > 0) 
-          cat("\t Matrix is NOT positive definite. It has ", indicator, 
+        if (indicator > 0)
+          cat("\t Matrix is NOT positive definite. It has ", indicator,
               " eigenvalues <= 0 \n \n")
       }
-      
+
       Time = as.matrix(proc.time() - Time)
       cat("Completed! Time =", Time[3], " seconds \n")
       gc()
       return(Gmatrix)
     }
-    
+
     G_matrix <- Gmatrix()
     Gmat<- normalize_kinmat(as.matrix(G_matrix)); Gmat[is.na(Gmat)] <- 0
     write.table (Gmat, file=paste(pop,"_2x","_rd",rd+1,"_Kinship_Matrix.txt",sep=""), row.names=F, quote = FALSE, sep = "\t")
     tiff(paste(pop,"_",ncol(pop_data),"markers_relatedness_heatmap_dendogram_2x.tiff",sep=""), width=30, height=30, units = 'in', res = 300, compression = 'lzw')
     heatmap(as.matrix(Gmat))
     dev.off()
-    
+
     pedigree <- as.data.frame(Gmat[,c(p1,p2)])
     colnames(pedigree) <- c("Distance_p1","Distance_p2")
     ped <- ggplot(pedigree, aes(x=Distance_p1, y=Distance_p2, label=row.names(Gmat))) +
@@ -1271,7 +1271,7 @@ pop_struc <- function() {
       xlab("Kinship Coefficient Relative to Maternal Parent (P1)") +
       ylab("Kinship Coefficient Relative to Paternal Parent (P2)")
     ggsave(filename=paste(pop,"_",ncol(pop_data),"markers_Parentage_Inference_2x.tiff",sep=""), plot=ped, width=15, height= 15, dpi=300, compression = "lzw")
-    
+
   } else {
     print ("Not enough markers to compute Gmatrix (i.e. threshold of 10 markers)")
   }
@@ -1295,5 +1295,3 @@ var_density <- function() {
   file.rename("Marker_Density.Trait1_Trait0.tiff","variant_genome_distribution_2x.tiff")
 }
 try(var_density(), silent = TRUE)
-
-

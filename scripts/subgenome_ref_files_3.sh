@@ -764,7 +764,7 @@ if [[ "$(cat ${projdir}/samples_list_node_* | wc -l)" -lt 5 ]]; then
   export p1=""
   export p2=""
 fi
-if [[ "$(cat ${projdir}/samples_list_node_* | wc -l)" -lt 50 ]]; then
+if [[ "$(cat ${projdir}/samples_list_node_* | wc -l)" -lt 50 ]] && [[ -z $maf ]]; then
   maf=0
 fi
 

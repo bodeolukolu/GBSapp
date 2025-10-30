@@ -111,7 +111,7 @@ Using a text editor, save a file containing any of the following variables as 'c
 |walkaway|true|run in walk-away or walk-through mode|true or false|Optional|
 |cluster|false|run on compute cluster node (default: slurm) or workstation|true or false|Optional|
 |nodes|1|number of nodes|integer|Optional|
-|gap_split_align|true|minimap2 if true (large gaps and SVs) and NGM if false(small gaps)|true or false|Optional|
+|gap_split_align|false|minimap2 if true (large gaps and SVs) and NGM if false(small gaps)|true or false|Optional|
 |RNA|false|RNA-seq reads as input (STAR aligner)|true or false|Optional|
 |variant_caller|gatk|gatk (recommended) or bcftools(diploid only, might be better for some genomes)|string|Optional|
 |samples_alt_dir|false|links samples in separate directory to project directory|true or false|Optional|
@@ -197,7 +197,7 @@ threads=16
 walkaway=true
 cluster=true
 nodes=1
-gap_split_align=true
+gap_split_align=false
 RNA=false
 variant_caller=gatk
 samples_alt_dir=false
