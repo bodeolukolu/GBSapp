@@ -46,7 +46,6 @@ fi
 
 export projdir="$( cd -- "$(dirname "$1 ")" >/dev/null 2>&1 ; pwd -P )/"
 if [[ "$1" == "install" ]]; then
-  mkdir -p $GBSapp_dir/tools
   cd $GBSapp_dir/tools
   bash $GBSapp_dir/scripts/install.sh
   wait; exit 0

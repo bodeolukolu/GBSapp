@@ -83,9 +83,11 @@ ln -s ${GBSapp_dir}/tools/*jdk*/bin/java ~/bin/java
 
 ######################################################################################################################################################
 # tools
+export genmap=${GBSapp_dir}/tools/genmap-build/bin/genmap
 export ngm=${GBSapp_dir}/tools/*NextGenMap*/bin/ngm*/ngm
 export star=${GBSapp_dir}/tools/STAR*/source/STAR
 export minimap2=${GBSapp_dir}/tools/minimap2*/minimap2
+export wig2bed=${GBSapp_dir}/tools/wig2bed_merged.py
 export bwa=${GBSapp_dir}/tools/bwa/bwa
 export samtools=${GBSapp_dir}/tools/samtools*/samtools && samtools=${samtools//'//'/'/'}
 export bcftools=${GBSapp_dir}/tools/bcftools*/bcftools && bcftools=${bcftools//'//'/'/'}

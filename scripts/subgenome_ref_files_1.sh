@@ -7,8 +7,8 @@ if [ -z "$threads" ]; then
 		export threads=$((threads-2))
 	fi
 fi
-if [ -z "$gap_split_align" ]; then
-  export gap_split_align=false
+if [ -z "$aligner" ]; then
+  export aligner=minimmap2
 fi
 if [ -z "$RNA" ]; then
  export RNA=false
@@ -283,7 +283,7 @@ fi
 
 cd $projdir
 cd refgenomes
-if [[ "$gap_split_align" == "false" ]]; then
+if [[ "$aligner" == "ngm" ]]; then
   if [[ $(ls ./*.ngm 1> /dev/null 2>&1 | wc -l) -gt 0 ]]; then
   	echo -e "${magenta}- indexed genome available ${white}\n"
   	if [ -z "$ref1" ]; then
@@ -308,10 +308,19 @@ if [[ "$gap_split_align" == "false" ]]; then
   	$samtools faidx $ref1
   	$java -jar $picard CreateSequenceDictionary REFERENCE= $ref1 OUTPUT=${ref1%.f*}.dict
     $ngm -r $ref1
+    $genmap index -F $ref1 -I ./genmap_out
+    $genmap map -K 100 -E 2 -I ./genmap_out -O ./genmap_out/ -t -w -bg --threads $threads
+    if [[ "$paralogs" == "false" ]]; then
+      python wig2bed ./genmap_out/${ref1%.f*}.genmap.wig 1 ./genmap_out/lowmap_merged.bed
+    else
+      python wig2bed ./genmap_out/${ref1%.f*}.genmap.wig 8 ./genmap_out/lowmap_merged.bed
+    fi
+    $bedtools maskfasta -fi $ref1 -bed ./genmap_out/lowmap_merged.bed -fo ${ref1%.f*}.hardmasked.fasta
+
   fi
 fi
 wait
-if [[ "$gap_split_align" == "true" ]]; then
+if [[ "$align" == "minimap2" ]]; then
   if [[ $(ls ./*.mmi 1> /dev/null 2>&1 | wc -l) -gt 0 ]]; then
   	echo -e "${magenta}- indexed genome available ${white}\n"
   	if [ -z "$ref1" ]; then
@@ -333,9 +342,19 @@ if [[ "$gap_split_align" == "true" ]]; then
   	n=">${ref1%.f*}_"
   	awk '{ sub("\r$",""); print}' ref.txt | awk -v n="$n" '{gsub(n,">"); print}' | awk -v n="$n" '{gsub(/>/,n); print}' > $ref1
   	rm ref.txt
-  	$samtools faidx $ref1
-  	$java -jar $picard CreateSequenceDictionary REFERENCE= $ref1 OUTPUT=${ref1%.f*}.dict
+
+    $samtools faidx $ref1
+    $java -jar $picard CreateSequenceDictionary REFERENCE= $ref1 OUTPUT=${ref1%.f*}.dict
     $minimap2 -d ${ref1%.f*}.mmi $ref1
+    $genmap index -F $ref1 -I ./genmap_out
+    $genmap map -K 100 -E 2 -I ./genmap_out -O ./genmap_out/ -t -w -bg --threads $threads
+    if [[ "$paralogs" == "false" ]]; then
+      python wig2bed ./genmap_out/${ref1%.f*}.genmap.wig 1 ./genmap_out/lowmap_merged.bed
+    else
+      python wig2bed ./genmap_out/${ref1%.f*}.genmap.wig 8 ./genmap_out/lowmap_merged.bed
+    fi
+    $bedtools maskfasta -fi $ref1 -bed ./genmap_out/lowmap_merged.bed -fo ${ref1%.f*}.hardmasked.fasta
+    $minimap2 -d ${ref1%.f*}.mmi ${ref1%.f*}.hardmasked.fasta
   fi
 fi
 wait
@@ -900,12 +919,12 @@ main () {
   if [[ $nodes -eq 1 ]]; then cd ${projdir}/samples/ ; fi
   if [[ $nodes -gt 1 ]] && test -f ${projdir}/GBSapp_run_node_1.sh; then cd /tmp/${samples_list%.txt}/samples/ ; fi
   if [[ "$RNA" == "false" ]]; then
-    if [[ "$gap_split_align" == "false" ]]; then
+    if [[ "$aligner" == "ngm" ]]; then
       if test ! -f ${projdir}/precall_done.txt && test ! -f ${projdir}/alignment_done; then
         while IFS="" read -r alignfq || [ -n "$alignfq" ]; do
           sleep $((RANDOM % 2))
           if test ! -f ../preprocess/alignment/${alignfq%.f*}_redun.sam.gz; then
-            $ngm -r ../refgenomes/$ref1 --qry ${alignfq%.f*}_uniq.fasta.gz -o ../preprocess/alignment/${alignfq%.f*}_redun.sam -R 20 -t $threads --topn $tophap --strata 8 --affine &&
+            $ngm -r ../refgenomes/${ref1%.f*}.hardmasked.fasta --qry ${alignfq%.f*}_uniq.fasta.gz -o ../preprocess/alignment/${alignfq%.f*}_redun.sam -R 20 -t $threads --topn $tophap --strata 8 --affine &&
             awk '/@HD/ || /@SQ/{print}' ../preprocess/alignment/${alignfq%.f*}_redun.sam 2> /dev/null > ../preprocess/alignment/${alignfq%.f*}_redun_head.sam
             grep -v '^@' ../preprocess/alignment/${alignfq%.f*}_redun.sam 2> /dev/null | awk 'BEGIN{FS=OFS="\t"} !($10 == "*" && $6 !~ /^\*$/) {print}' | \
             cat ../preprocess/alignment/${alignfq%.f*}_redun_head.sam - | gzip  > ../preprocess/alignment/${alignfq%.f*}_redun.sam.gz &&
@@ -918,12 +937,12 @@ main () {
       fi
     fi
     wait
-    if [[ "$gap_split_align" == "true" ]]; then
+    if [[ "$aligner" == "minimap2" ]]; then
       if test ! -f ${projdir}/precall_done.txt && test ! -f ${projdir}/alignment_done; then
         while IFS="" read -r alignfq || [ -n "$alignfq" ]; do
           sleep $((RANDOM % 2))
           if test ! -f ../preprocess/alignment/${alignfq%.f*}_redun.sam.gz; then
-            $minimap2 -t $threads -ax splice ../refgenomes/${ref1%.f*}.mmi ${alignfq%.f*}_uniq.fasta.gz > ${alignfq%.f*}_all.sam &&
+            $minimap2 -t $threads -ax splice --secondary=no -f 0.0005 -N 8 -n 2 -m 25 ../refgenomes/${ref1%.f*}.mmi ${alignfq%.f*}_uniq.fasta.gz > ${alignfq%.f*}_all.sam &&
             grep '^@' ${alignfq%.f*}_all.sam > ${alignfq%.f*}_header.sam &&
             grep -v '^@' ${alignfq%.f*}_all.sam | awk '$6 ~ /N/' | awk 'BEGIN{FS=OFS="\t"} !($10 == "*" && $6 !~ /^\*$/) {print}' > ${alignfq%.f*}_spliced_reads.sam &&
             grep -v '^@' ${alignfq%.f*}_all.sam | awk '$6 !~ /N/' | awk 'BEGIN{FS=OFS="\t"} !($10 == "*" && $6 !~ /^\*$/) {print}' > ${alignfq%.f*}_unspliced_reads.sam &&
@@ -933,7 +952,7 @@ main () {
             $samtools view -bS ${alignfq%.f*}_dna.sam > ${alignfq%.f*}_dna.bam &&
             $samtools fasta ${alignfq%.f*}_rna.bam > ${alignfq%.f*}_rna_reads.fasta &&
             $samtools fasta ${alignfq%.f*}_dna.bam > ${alignfq%.f*}_dna_reads.fasta &&
-            $minimap2 -t $threads -N 8 -ax sr ../refgenomes/${ref1%.f*}.mmi ${alignfq%.f*}_dna_reads.fasta | $samtools sort -o ${alignfq%.f*}_dna_final.bam &&
+            $minimap2 -t $threads -ax sr --secondary=no -f 0.0005 -N 8 -n 2 -m 25 ../refgenomes/${ref1%.f*}.mmi ${alignfq%.f*}_dna_reads.fasta | $samtools sort -o ${alignfq%.f*}_dna_final.bam &&
             $samtools index ${alignfq%.f*}_dna_final.bam &&
             $minimap2 -t $threads -N 8 -ax splice -uf -k14 ../refgenomes/${ref1%.f*}.mmi ${alignfq%.f*}_rna_reads.fasta | $samtools sort -o ${alignfq%.f*}_rna_final.bam &&
             $samtools index ${alignfq%.f*}_rna_final.bam &&

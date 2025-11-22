@@ -8,8 +8,8 @@ if [ -z "$threads" ]; then
 		export threads=$((threads-2))
 	fi
 fi
-if [ -z "$gap_split_align" ]; then
-  export gap_split_align=false
+if [ -z "$aligner" ]; then
+  export aligner=minimmap2
 fi
 if [ -z "$RNA" ]; then
  export RNA=false
