@@ -58,6 +58,7 @@ fi
 
 cd $GBSapp_dir/tools
 if [ ! -d *NextGenMap* ]; then echo -e "${magenta}- NextGenMap is not installated or properly installed\n- Consider checking dependencies and re-running install command\n\n ${white}"; fi
+if [ ! -d genmap* ]; then echo -e "${magenta}- genmap is not installated or properly installed\n- Consider checking dependencies and re-running install command ${white}"; fi
 if [ ! -d bcftools* ]; then echo -e "${magenta}- bcftools is not installated or properly installed\n- Consider checking dependencies and re-running install command ${white}"; fi
 if [ ! -d bcftools* ]; then echo -e "${magenta}- in the meantime, GBSapp will attempt using the system-installed version of bcftools\n\n ${white}"; fi
 if [ ! -d bedtools* ]; then echo -e "${magenta}- bedtools is not installated or properly installed\n- Consider checking dependencies and re-running install command ${white}"; fi

@@ -39,7 +39,7 @@ if [ -z "$biallelic" ]; then
 	export biallelic=false
 fi
 if [ -z "$paralogs" ]; then
-	export paralogs=true
+	export paralogs=false
 fi
 if [ -z "$max_pseudoMol" ]; then
 	export max_pseudoMol=1000
@@ -308,14 +308,14 @@ if [[ "$aligner" == "ngm" ]]; then
   	$samtools faidx $ref1
   	$java -jar $picard CreateSequenceDictionary REFERENCE= $ref1 OUTPUT=${ref1%.f*}.dict
     $ngm -r $ref1
-    $genmap index -F $ref1 -I ./genmap_out
-    $genmap map -K 100 -E 2 -I ./genmap_out -O ./genmap_out/ -t -w -bg --threads $threads
+    $genmap index -F $ref1 -I ./genmap_out >/dev/null 2>&1
+    $genmap map -K 100 -E 2 -I ./genmap_out -O ./genmap_out/ -t -w -bg --threads $threads >/dev/null 2>&1
     if [[ "$paralogs" == "false" ]]; then
-      python wig2bed ./genmap_out/${ref1%.f*}.genmap.wig 1 ./genmap_out/lowmap_merged.bed
+      python wig2bed ./genmap_out/${ref1%.f*}.genmap.wig 1 ./genmap_out/lowmap_merged.bed >/dev/null 2>&1
     else
-      python wig2bed ./genmap_out/${ref1%.f*}.genmap.wig 8 ./genmap_out/lowmap_merged.bed
+      python wig2bed ./genmap_out/${ref1%.f*}.genmap.wig 8 ./genmap_out/lowmap_merged.bed >/dev/null 2>&1
     fi
-    $bedtools maskfasta -fi $ref1 -bed ./genmap_out/lowmap_merged.bed -fo ${ref1%.f*}.hardmasked.fasta
+    $bedtools maskfasta -fi $ref1 -bed ./genmap_out/lowmap_merged.bed -fo ${ref1%.f*}.hardmasked.fasta >/dev/null 2>&1
 
   fi
 fi
@@ -346,14 +346,14 @@ if [[ "$aligner" == "minimap2" ]]; then
     $samtools faidx $ref1
     $java -jar $picard CreateSequenceDictionary REFERENCE= $ref1 OUTPUT=${ref1%.f*}.dict
     $minimap2 -d ${ref1%.f*}.mmi $ref1
-    $genmap index -F $ref1 -I ./genmap_out
-    $genmap map -K 100 -E 2 -I ./genmap_out -O ./genmap_out/ -t -w -bg --threads $threads
+    $genmap index -F $ref1 -I ./genmap_out >/dev/null 2>&1
+    $genmap map -K 100 -E 2 -I ./genmap_out -O ./genmap_out/ -t -w -bg --threads $thread >/dev/null 2>&1s
     if [[ "$paralogs" == "false" ]]; then
-      python wig2bed ./genmap_out/${ref1%.f*}.genmap.wig 1 ./genmap_out/lowmap_merged.bed
+      python $wig2bed ./genmap_out/${ref1%.f*}.genmap.wig 1 ./genmap_out/lowmap_merged.bed >/dev/null 2>&1
     else
-      python wig2bed ./genmap_out/${ref1%.f*}.genmap.wig 8 ./genmap_out/lowmap_merged.bed
+      python $wig2bed ./genmap_out/${ref1%.f*}.genmap.wig 8 ./genmap_out/lowmap_merged.bed >/dev/null 2>&1
     fi
-    $bedtools maskfasta -fi $ref1 -bed ./genmap_out/lowmap_merged.bed -fo ${ref1%.f*}.hardmasked.fasta
+    $bedtools maskfasta -fi $ref1 -bed ./genmap_out/lowmap_merged.bed -fo ${ref1%.f*}.hardmasked.fasta >/dev/null 2>&1
     $minimap2 -d ${ref1%.f*}.mmi ${ref1%.f*}.hardmasked.fasta
   fi
 fi

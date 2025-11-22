@@ -170,7 +170,7 @@ Using a text editor, save a file containing any of the following variables as 'c
 |:-------------|:-------------|:-------------|:-------------|:----------------|
 |max_pseudoMol|1000|maximum # of pseudomolecules (scaffold/contig) before stitching into non-contiguous pseudo-chromosomes|integer|Optional|
 |uniquely_mapped|true|include uniquely mapped for variant calling |string|Optional|
-|paralogs|true|include paralogs for variant calling |string|Optional|
+|paralogs|false|include paralogs for variant calling |string|Optional|
 |minmapq|20|minimum mapping quality|integer|Optional|
 |downsample_2x|50|value for unbiased downsampling for 2x ploidy|integer|Optional|
 |downsample_4x|100|value for unbiased downsampling for 4x ploidy|integer|Optional|
