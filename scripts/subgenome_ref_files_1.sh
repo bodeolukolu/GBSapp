@@ -320,7 +320,7 @@ if [[ "$aligner" == "ngm" ]]; then
   fi
 fi
 wait
-if [[ "$align" == "minimap2" ]]; then
+if [[ "$aligner" == "minimap2" ]]; then
   if [[ $(ls ./*.mmi 1> /dev/null 2>&1 | wc -l) -gt 0 ]]; then
   	echo -e "${magenta}- indexed genome available ${white}\n"
   	if [ -z "$ref1" ]; then
