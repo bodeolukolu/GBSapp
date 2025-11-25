@@ -306,15 +306,16 @@ if [[ "$aligner" == "ngm" ]]; then
   	awk '{ sub("\r$",""); print}' ref.txt | awk -v n="$n" '{gsub(n,">"); print}' | awk -v n="$n" '{gsub(/>/,n); print}' > $ref1
   	rm ref.txt
   	$samtools faidx $ref1
-  	$java -jar $picard CreateSequenceDictionary REFERENCE= $ref1 OUTPUT=${ref1%.f*}.dict
+  	$java -jar $picard CreateSequenceDictionary REFERENCE=$ref1 OUTPUT=${ref1%.f*}.dict
     $ngm -r $ref1
     $genmap index -F $ref1 -I ./genmap_out >/dev/null 2>&1
     $genmap map -K 100 -E 2 -I ./genmap_out -O ./genmap_out/ -t -w -bg --threads $threads >/dev/null 2>&1
     if [[ "$paralogs" == "false" ]]; then
-      python wig2bed ./genmap_out/${ref1%.f*}.genmap.wig 1 ./genmap_out/lowmap_merged.bed >/dev/null 2>&1
+      threshold=1
     else
-      python wig2bed ./genmap_out/${ref1%.f*}.genmap.wig 8 ./genmap_out/lowmap_merged.bed >/dev/null 2>&1
+      threshold=8
     fi
+    python "$wig2bed" "./genmap_out/${ref1%.f*}.genmap.wig" "$threshold" "./genmap_out/lowmap_merged.bed" > /dev/null 2>&1
     $bedtools maskfasta -fi $ref1 -bed ./genmap_out/lowmap_merged.bed -fo ${ref1%.f*}.hardmasked.fasta >/dev/null 2>&1
 
   fi
@@ -344,15 +345,16 @@ if [[ "$aligner" == "minimap2" ]]; then
   	rm ref.txt
 
     $samtools faidx $ref1
-    $java -jar $picard CreateSequenceDictionary REFERENCE= $ref1 OUTPUT=${ref1%.f*}.dict
+    $java -jar $picard CreateSequenceDictionary REFERENCE=$ref1 OUTPUT=${ref1%.f*}.dict
     $minimap2 -d ${ref1%.f*}.mmi $ref1
     $genmap index -F $ref1 -I ./genmap_out >/dev/null 2>&1
-    $genmap map -K 100 -E 2 -I ./genmap_out -O ./genmap_out/ -t -w -bg --threads $thread >/dev/null 2>&1s
+    $genmap map -K 100 -E 2 -I ./genmap_out -O ./genmap_out/ -t -w -bg --threads $threads >/dev/null 2>&1
     if [[ "$paralogs" == "false" ]]; then
-      python $wig2bed ./genmap_out/${ref1%.f*}.genmap.wig 1 ./genmap_out/lowmap_merged.bed >/dev/null 2>&1
+      threshold=1
     else
-      python $wig2bed ./genmap_out/${ref1%.f*}.genmap.wig 8 ./genmap_out/lowmap_merged.bed >/dev/null 2>&1
+      threshold=8
     fi
+    python "$wig2bed" "./genmap_out/${ref1%.f*}.genmap.wig" "$threshold" "./genmap_out/lowmap_merged.bed" > /dev/null 2>&1
     $bedtools maskfasta -fi $ref1 -bed ./genmap_out/lowmap_merged.bed -fo ${ref1%.f*}.hardmasked.fasta >/dev/null 2>&1
     $minimap2 -d ${ref1%.f*}.mmi ${ref1%.f*}.hardmasked.fasta
   fi
