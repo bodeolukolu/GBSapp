@@ -8,7 +8,7 @@ if [ -z "$threads" ]; then
 	fi
 fi
 if [ -z "$aligner" ]; then
-  export aligner=minimmap2
+  export aligner=minimap2
 fi
 if [ -z "$RNA" ]; then
  export RNA=false
@@ -189,6 +189,9 @@ for i in *.gz; do
 	sleep $((RANDOM % 2))
   gunzip $i >/dev/null 2>&1
 done
+mv $ref1 ../
+rm -rf ../refgenomes/*
+mv ../$ref1 ./
 
 if ls ./*.dict 1> /dev/null 2>&1; then
 	:
@@ -317,7 +320,9 @@ if [[ "$aligner" == "ngm" ]]; then
     fi
     python "$wig2bed" "./genmap_out/${ref1%.f*}.genmap.wig" "$threshold" "./genmap_out/lowmap_merged.bed" > /dev/null 2>&1
     $bedtools maskfasta -fi $ref1 -bed ./genmap_out/lowmap_merged.bed -fo ${ref1%.f*}.hardmasked.fasta >/dev/null 2>&1
-
+    mv $ref1 ${ref1%.f*}.nohardmasked.fasta
+    mv ${ref1%.f*}.hardmasked.fasta $ref1
+    $ngm -r $ref1
   fi
 fi
 wait
@@ -356,7 +361,9 @@ if [[ "$aligner" == "minimap2" ]]; then
     fi
     python "$wig2bed" "./genmap_out/${ref1%.f*}.genmap.wig" "$threshold" "./genmap_out/lowmap_merged.bed" > /dev/null 2>&1
     $bedtools maskfasta -fi $ref1 -bed ./genmap_out/lowmap_merged.bed -fo ${ref1%.f*}.hardmasked.fasta >/dev/null 2>&1
-    $minimap2 -d ${ref1%.f*}.mmi ${ref1%.f*}.hardmasked.fasta
+    mv $ref1 ${ref1%.f*}.nohardmasked.fasta
+    mv ${ref1%.f*}.hardmasked.fasta $ref1
+    $minimap2 -d ${ref1%.f*}.mmi $ref1
   fi
 fi
 wait
@@ -926,7 +933,7 @@ main () {
         while IFS="" read -r alignfq || [ -n "$alignfq" ]; do
           sleep $((RANDOM % 2))
           if test ! -f ../preprocess/alignment/${alignfq%.f*}_redun.sam.gz; then
-            $ngm -r ../refgenomes/${ref1%.f*}.hardmasked.fasta --qry ${alignfq%.f*}_uniq.fasta.gz -o ../preprocess/alignment/${alignfq%.f*}_redun.sam -R 20 -t $threads --topn $tophap --strata 8 --affine &&
+            $ngm -r ../refgenomes/$ref1 --qry ${alignfq%.f*}_uniq.fasta.gz -o ../preprocess/alignment/${alignfq%.f*}_redun.sam -R 20 -t $threads --topn $tophap --strata 8 --affine &&
             awk '/@HD/ || /@SQ/{print}' ../preprocess/alignment/${alignfq%.f*}_redun.sam 2> /dev/null > ../preprocess/alignment/${alignfq%.f*}_redun_head.sam
             grep -v '^@' ../preprocess/alignment/${alignfq%.f*}_redun.sam 2> /dev/null | awk 'BEGIN{FS=OFS="\t"} !($10 == "*" && $6 !~ /^\*$/) {print}' | \
             cat ../preprocess/alignment/${alignfq%.f*}_redun_head.sam - | gzip  > ../preprocess/alignment/${alignfq%.f*}_redun.sam.gz &&
