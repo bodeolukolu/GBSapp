@@ -4009,10 +4009,15 @@ if [[ "$samples_list" == "samples_list_node_1.txt" ]] && [[ -d "snpfilter" ]]; t
 	mv ${projdir}/GBSapp_run_node.sh ${projdir}/GBSapp_run_node_done.sh 2> /dev/null &&
   wait
   if [[ "$biallelic" == true ]]; then mv snpfilter snpfilter_biallelic; fi
-  touch Analysis_Complete
+  cd refgenomes
+  mv ${ref1%.f*}.nohardmasked.fasta $ref1
+  touch ../Analysis_Complete
+
   wait
 else
-	touch Analysis_Complete_${samples_list}
+  cd refgenomes
+  mv ${ref1%.f*}.nohardmasked.fasta $ref1
+	touch ../Analysis_Complete_${samples_list}
 fi
 wait
 echo -e "${magenta}- Run Complete. ${white}\n"
