@@ -364,6 +364,8 @@ if [[ "$aligner" == "minimap2" ]]; then
     mv $ref1 ${ref1%.f*}.nohardmasked.fasta
     mv ${ref1%.f*}.hardmasked.fasta $ref1
     $minimap2 -d ${ref1%.f*}.mmi $ref1
+    mkdir -p /dev/shm/minimap2_index
+    cp ${projdir}/refgenomes/${ref1%.f*}.mmi /dev/shm/minimap2_index/
   fi
 fi
 wait
@@ -951,7 +953,7 @@ main () {
         while IFS="" read -r alignfq || [ -n "$alignfq" ]; do
           sleep $((RANDOM % 2))
           if test ! -f ../preprocess/alignment/${alignfq%.f*}_redun.sam.gz; then
-            $minimap2 -t $threads -ax splice --secondary=no -f 0.0005 -N 8 -n 2 -m 25 ../refgenomes/${ref1%.f*}.mmi ${alignfq%.f*}_uniq.fasta.gz > ${alignfq%.f*}_all.sam &&
+            $minimap2 -t $threads -ax splice --secondary=no -f 0.0005 -N 8 -n 2 -m 25 /dev/shm/minimap2_index/${ref1%.f*}.mmi ${alignfq%.f*}_uniq.fasta.gz > ${alignfq%.f*}_all.sam &&
             grep '^@' ${alignfq%.f*}_all.sam > ${alignfq%.f*}_header.sam &&
             grep -v '^@' ${alignfq%.f*}_all.sam | awk '$6 ~ /N/' | awk 'BEGIN{FS=OFS="\t"} !($10 == "*" && $6 !~ /^\*$/) {print}' > ${alignfq%.f*}_spliced_reads.sam &&
             grep -v '^@' ${alignfq%.f*}_all.sam | awk '$6 !~ /N/' | awk 'BEGIN{FS=OFS="\t"} !($10 == "*" && $6 !~ /^\*$/) {print}' > ${alignfq%.f*}_unspliced_reads.sam &&
@@ -4011,6 +4013,7 @@ if [[ "$samples_list" == "samples_list_node_1.txt" ]] && [[ -d "snpfilter" ]]; t
   if [[ "$biallelic" == true ]]; then mv snpfilter snpfilter_biallelic; fi
   cd refgenomes
   mv ${ref1%.f*}.nohardmasked.fasta $ref1
+  rm /dev/shm/minimap2_index/*
   touch ../Analysis_Complete
 
   wait
@@ -4018,6 +4021,7 @@ else
   cd refgenomes
   mv ${ref1%.f*}.nohardmasked.fasta $ref1
 	touch ../Analysis_Complete_${samples_list}
+  rm /dev/shm/minimap2_index/*
 fi
 wait
 echo -e "${magenta}- Run Complete. ${white}\n"
