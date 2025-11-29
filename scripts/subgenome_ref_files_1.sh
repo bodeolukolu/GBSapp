@@ -969,12 +969,9 @@ main () {
             $samtools view -bS ${alignfq%.f*}_dna.sam > ${alignfq%.f*}_dna.bam &&
             $samtools fasta ${alignfq%.f*}_rna.bam > ${alignfq%.f*}_rna_reads.fasta &&
             $samtools fasta ${alignfq%.f*}_dna.bam > ${alignfq%.f*}_dna_reads.fasta &&
-
             $minimap2 -t $threads -ax sr --secondary=no -f 0.0005 -N 8 -n 2 -m 25 ../refgenomes/${ref1%.f*}.mmi ${alignfq%.f*}_dna_reads.fasta | $samtools sort -o ${alignfq%.f*}_dna_final.bam &&
             $samtools index ${alignfq%.f*}_dna_final.bam &&
-
             $minimap2 -t $threads -N 8 -ax splice -uf -k14 --secondary=no -f 0.0005 -N 8 -n 2 -m 25 ../refgenomes/${ref1%.f*}.mmi ${alignfq%.f*}_rna_reads.fasta | $samtools sort -o ${alignfq%.f*}_rna_final.bam &&
-
             $samtools index ${alignfq%.f*}_rna_final.bam &&
             $GATK SplitNCigarReads -R ../refgenomes/$ref1 -I ${alignfq%.f*}_rna_final.bam -O ${alignfq%.f*}_rna_final_spliced.bam &&
             $samtools merge ${alignfq%.f*}_redun.bam ${alignfq%.f*}_dna_final.bam ${alignfq%.f*}_rna_final_spliced.bam &&
