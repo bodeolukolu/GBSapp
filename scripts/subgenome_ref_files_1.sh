@@ -190,6 +190,12 @@ for i in *.gz; do
   gunzip $i >/dev/null 2>&1
 done
 
+cd refgenomes
+mv ${ref1%.f*}.nohardmasked.fasta $ref1
+mv $ref1 ../
+rm -rf ./*
+mv ../$ref1 ./
+
 if ls ./*.dict 1> /dev/null 2>&1; then
 	:
 else
@@ -4013,19 +4019,9 @@ if [[ "$samples_list" == "samples_list_node_1.txt" ]] && [[ -d "snpfilter" ]]; t
 	mv ${projdir}/GBSapp_run_node.sh ${projdir}/GBSapp_run_node_done.sh 2> /dev/null &&
   wait
   if [[ "$biallelic" == true ]]; then mv snpfilter snpfilter_biallelic; fi
-  cd refgenomes
-  mv ${ref1%.f*}.nohardmasked.fasta $ref1
-  mv $ref1 ../
-  rm -rf ./*
-  mv ../$ref1 ./
   touch ../Analysis_Complete
   wait
 else
-  cd refgenomes
-  mv ${ref1%.f*}.nohardmasked.fasta $ref1
-  mv $ref1 ../
-  rm -rf ./*
-  mv ../$ref1 ./
 	touch ../Analysis_Complete_${samples_list}
 fi
 wait
