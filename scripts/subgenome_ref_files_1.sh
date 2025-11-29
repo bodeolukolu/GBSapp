@@ -189,9 +189,6 @@ for i in *.gz; do
 	sleep $((RANDOM % 2))
   gunzip $i >/dev/null 2>&1
 done
-mv $ref1 ../
-rm -rf ../refgenomes/*
-mv ../$ref1 ./
 
 if ls ./*.dict 1> /dev/null 2>&1; then
 	:
@@ -364,8 +361,6 @@ if [[ "$aligner" == "minimap2" ]]; then
     mv $ref1 ${ref1%.f*}.nohardmasked.fasta
     mv ${ref1%.f*}.hardmasked.fasta $ref1
     $minimap2 -d ${ref1%.f*}.mmi $ref1
-    mkdir -p /dev/shm/minimap2_index
-    cp ${projdir}/refgenomes/${ref1%.f*}.mmi /dev/shm/minimap2_index/
   fi
 fi
 wait
@@ -953,7 +948,11 @@ main () {
         while IFS="" read -r alignfq || [ -n "$alignfq" ]; do
           sleep $((RANDOM % 2))
           if test ! -f ../preprocess/alignment/${alignfq%.f*}_redun.sam.gz; then
-            $minimap2 -t $threads -ax splice --secondary=no -f 0.0005 -N 8 -n 2 -m 25 /dev/shm/minimap2_index/${ref1%.f*}.mmi ${alignfq%.f*}_uniq.fasta.gz > ${alignfq%.f*}_all.sam &&
+            minimap2 -x sr --secondary=no --min-occ-floor=1000 ../refgenomes/${ref1%.f*}.mmi <(zcat ${alignfq%.f*}_uniq.fasta.gz) | awk '$10 <= 10 {print $1}' | \
+            awk 'NR==FNR{keep[$1]=1;next}
+                   (NR%2==1){id=substr($1,2);p=keep[id]}
+                   {if(p)print}' - <(zcat ${alignfq%.f*}_uniq.fasta.gz) | \ 
+            $minimap2 -t $threads -ax splice --secondary=no -f 0.0005 -N 8 -n 2 -m 25 ../refgenomes/${ref1%.f*}.mmi - > ${alignfq%.f*}_all.sam &&
             grep '^@' ${alignfq%.f*}_all.sam > ${alignfq%.f*}_header.sam &&
             grep -v '^@' ${alignfq%.f*}_all.sam | awk '$6 ~ /N/' | awk 'BEGIN{FS=OFS="\t"} !($10 == "*" && $6 !~ /^\*$/) {print}' > ${alignfq%.f*}_spliced_reads.sam &&
             grep -v '^@' ${alignfq%.f*}_all.sam | awk '$6 !~ /N/' | awk 'BEGIN{FS=OFS="\t"} !($10 == "*" && $6 !~ /^\*$/) {print}' > ${alignfq%.f*}_unspliced_reads.sam &&
@@ -963,9 +962,12 @@ main () {
             $samtools view -bS ${alignfq%.f*}_dna.sam > ${alignfq%.f*}_dna.bam &&
             $samtools fasta ${alignfq%.f*}_rna.bam > ${alignfq%.f*}_rna_reads.fasta &&
             $samtools fasta ${alignfq%.f*}_dna.bam > ${alignfq%.f*}_dna_reads.fasta &&
+
             $minimap2 -t $threads -ax sr --secondary=no -f 0.0005 -N 8 -n 2 -m 25 ../refgenomes/${ref1%.f*}.mmi ${alignfq%.f*}_dna_reads.fasta | $samtools sort -o ${alignfq%.f*}_dna_final.bam &&
             $samtools index ${alignfq%.f*}_dna_final.bam &&
-            $minimap2 -t $threads -N 8 -ax splice -uf -k14 ../refgenomes/${ref1%.f*}.mmi ${alignfq%.f*}_rna_reads.fasta | $samtools sort -o ${alignfq%.f*}_rna_final.bam &&
+
+            $minimap2 -t $threads -N 8 -ax splice -uf -k14 --secondary=no -f 0.0005 -N 8 -n 2 -m 25 ../refgenomes/${ref1%.f*}.mmi ${alignfq%.f*}_rna_reads.fasta | $samtools sort -o ${alignfq%.f*}_rna_final.bam &&
+
             $samtools index ${alignfq%.f*}_rna_final.bam &&
             $GATK SplitNCigarReads -R ../refgenomes/$ref1 -I ${alignfq%.f*}_rna_final.bam -O ${alignfq%.f*}_rna_final_spliced.bam &&
             $samtools merge ${alignfq%.f*}_redun.bam ${alignfq%.f*}_dna_final.bam ${alignfq%.f*}_rna_final_spliced.bam &&
@@ -4013,15 +4015,18 @@ if [[ "$samples_list" == "samples_list_node_1.txt" ]] && [[ -d "snpfilter" ]]; t
   if [[ "$biallelic" == true ]]; then mv snpfilter snpfilter_biallelic; fi
   cd refgenomes
   mv ${ref1%.f*}.nohardmasked.fasta $ref1
-  rm /dev/shm/minimap2_index/*
+  mv $ref1 ../
+  rm -rf ./*
+  mv ../$ref1 ./
   touch ../Analysis_Complete
-
   wait
 else
   cd refgenomes
   mv ${ref1%.f*}.nohardmasked.fasta $ref1
+  mv $ref1 ../
+  rm -rf ./*
+  mv ../$ref1 ./
 	touch ../Analysis_Complete_${samples_list}
-  rm /dev/shm/minimap2_index/*
 fi
 wait
 echo -e "${magenta}- Run Complete. ${white}\n"
