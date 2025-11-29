@@ -99,8 +99,10 @@ export consambig=${GBSapp_dir}/tools/EMBOSS-6.6.0/emboss/consambig
 export mafft=${GBSapp_dir}/tools/mafft/mafft
 if command -v pigz &>/dev/null; then
   export gzip=pigz
+	export pigzdc=pigz -t $threads -dc
 else
-  export gzip=gzip
+  export pigzdc=zcat
+	export gzip=gzip
 fi
 
 samtoolsout=$($samtools --version | head -n 3)
