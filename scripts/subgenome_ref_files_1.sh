@@ -168,6 +168,14 @@ main () {
       export Xmxg=-Xmx${ramg}G
     fi
 	fi
+
+  if command -v pigz &>/dev/null; then
+    export gzip=pigz
+  	export pigzdc="pigz -t $threads -dc"
+  else
+    export pigzdc=zcat
+  	export gzip=gzip
+  fi
 }
 cd $projdir
 main &>> log.out
