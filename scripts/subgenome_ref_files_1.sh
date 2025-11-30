@@ -168,14 +168,6 @@ main () {
       export Xmxg=-Xmx${ramg}G
     fi
 	fi
-
-  if command -v pigz &>/dev/null; then
-    export gzip=pigz
-  	export pigzdc="pigz -t $threads -dc"
-  else
-    export pigzdc=zcat
-  	export gzip=gzip
-  fi
 }
 cd $projdir
 main &>> log.out
@@ -551,24 +543,24 @@ main () {
           :
         else
   				if [[ $(file $i 2> /dev/null) =~ gzip ]]; then
-  					fa_fq=$(bash -c "$pigzdc < \"$projdir/samples/$i\" 2> /dev/null" | head -n1 | cut -c1-1)
+  					fa_fq=$(zcat $projdir/samples/$i 2> /dev/null | head -n1 | cut -c1-1)
   				else
   					fa_fq=$(cat $projdir/samples/$i | head -n1 | cut -c1-1)
   				fi
 
   				if [[ $(file $i 2> /dev/null) =~ gzip ]]; then
   					if [[ "${fa_fq}" == "@" ]]; then
-              awk 'NR%4 == 1 {print} NR%4 == 2 {print}' <(bash -c "$pigzdc < \"$i\"") | \
+              awk 'NR%4 == 1 {print} NR%4 == 2 {print}' <(zcat $i) | \
               awk '{gsub(/AAAAAAAAAA/,"\t"); gsub(/CCCCCCCCCC/,"\t"); gsub(/GGGGGGGGGG/,"\t"); gsub(/TTTTTTTTTT/,"\t"); print $1}' | \
               awk '/^@/ {printf("%s%s\t",(N>0?"\n":""),$0);N++;next;} {printf("%s",$0);} END {printf("\n");}' | \
               awk '{print $1"\t"$2"\t+\t"$2}' | awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$4); print}' | awk '{gsub(/\t/,"\n")}1' | gzip > nopolymers_${i} &&
               mv nopolymers_${i} $i &&
-  						awk 'NR%2==0' <(bash -c "$pigzdc < \"$i\"") | awk 'NR%2==1' | awk 'BEGIN{srand();} {a[NR]=$0} END{for(i=1; i<=1000; i++){x=int(rand()*NR) + 1; print a[x];}}' > ${i}_length_distribution.txt
+  						awk 'NR%2==0' <(zcat $i) | awk 'NR%2==1' | awk 'BEGIN{srand();} {a[NR]=$0} END{for(i=1; i<=1000; i++){x=int(rand()*NR) + 1; print a[x];}}' > ${i}_length_distribution.txt
   					fi
   					if [[ "${fa_fq}" == ">" ]]; then
-              awk '{gsub(/AAAAAAAAAA/,"\t"); gsub(/CCCCCCCCCC/,"\t"); gsub(/GGGGGGGGGG/,"\t"); gsub(/TTTTTTTTTT/,"\t"); print $1}' <(bash -c "$pigzdc < \"$i\"") | gzip > nopolymers_${i} &&
+              awk '{gsub(/AAAAAAAAAA/,"\t"); gsub(/CCCCCCCCCC/,"\t"); gsub(/GGGGGGGGGG/,"\t"); gsub(/TTTTTTTTTT/,"\t"); print $1}' <(zcat $i) | gzip > nopolymers_${i} &&
               mv nopolymers_${i} $i &&
-  						awk '/^>/ { if(i>0) printf("\n"); i++; printf("%s\t",$0); next;} {printf("%s",$0);} END { printf("\n");}' <(bash -c "$pigzdc < \"$i\"") | \
+  						awk '/^>/ { if(i>0) printf("\n"); i++; printf("%s\t",$0); next;} {printf("%s",$0);} END { printf("\n");}' <(zcat $i) | \
   						awk 'NR%2==0' | awk 'BEGIN{srand();} {a[NR]=$0} END{for(i=1; i<=1000; i++){x=int(rand()*NR) + 1; print a[x];}}' > ${i}_length_distribution.txt
   					fi
   				else
@@ -612,21 +604,21 @@ main () {
           :
         else
   				if [[ $(file $i 2> /dev/null) =~ gzip ]]; then
-  					fa_fq=$(bash -c "$pigzdc < \"$projdir/samples/$i\" 2> /dev/null" | head -n1 | cut -c1-1)
+  					fa_fq=$(zcat $projdir/samples/$i 2> /dev/null | head -n1 | cut -c1-1)
   				else
   					fa_fq=$(cat $projdir/samples/$i | head -n1 | cut -c1-1)
   				fi
 
   				if [[ $(file $i 2> /dev/null) =~ gzip ]]; then
   					if [[ "${fa_fq}" == "@" ]]; then
-              awk 'NR%2==0' <(bash -c "$pigzdc < \"$i\"") | awk 'NR%2==1' | awk -v max=$max_seqread_len '{print substr($0,1,max)}' | awk 'NF' | \
+              awk 'NR%2==0' <(zcat $i) | awk 'NR%2==1' | awk -v max=$max_seqread_len '{print substr($0,1,max)}' | awk 'NF' | \
               awk '{print "@seq"NR"\t"$1"\t"$1}' | awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$3); print}' | \
               awk '{print $1"\n"$2"\n+\n"$3}' | gzip > "${i%.f*}"_tmp.fa.gz &&
               mv "${i%.f*}_tmp.fa.gz" "${i%.f*}.fastq.gz" &&
               wait
   					fi
   					if [[ "${fa_fq}" == ">" ]]; then
-              grep -v '^>' <(bash -c "$pigzdc < \"$i\"") | awk -v max=$max_seqread_len '{print substr($0,1,max)}' | awk 'NF' | \
+              grep -v '^>' <(zcat $i) | awk -v max=$max_seqread_len '{print substr($0,1,max)}' | awk 'NF' | \
               awk '{print "@seq"NR"\n"$1}' | awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$3); print}' | \
               awk '{print $1"\n"$2"\n+\n"$3}' | gzip > "${i%.f*}"_tmp.fa.gz &&
               mv "${i%.f*}_tmp.fa.gz" "${i%.f*}.fastq.gz" &&
@@ -669,7 +661,7 @@ main () {
           :
         else
             if [[ $(file $i 2> /dev/null) =~ gzip ]]; then
-              fa_fq=$(bash -c "$pigzdc < \"${projdir}/samples/$i\" 2> /dev/null" | head -n1 | cut -c1-1)
+              fa_fq=$(zcat ${projdir}/samples/$i 2> /dev/null | head -n1 | cut -c1-1)
             else
               fa_fq=$(cat ${projdir}/samples/$i | head -n1 | cut -c1-1)
             fi
@@ -677,22 +669,22 @@ main () {
 
             if [[ $(file $i 2> /dev/null) =~ gzip ]]; then
               if [[ "${fa_fq}" == "@" ]]; then
-                awk 'NR%2==0' <(bash -c "$pigzdc < \"$i\"") | awk 'NR%2==1' | awk '{gsub(/ATGCAT/,"ATGCAT\nATGCAT");}1' | awk 'length >= 64 && length <= 600' | \
+                awk 'NR%2==0' <(zcat $i) | awk 'NR%2==1' | awk '{gsub(/ATGCAT/,"ATGCAT\nATGCAT");}1' | awk 'length >= 64 && length <= 600' | \
                 grep '^ATGCAT.*ATGCAT$' | awk '{print ">frag"NR"\n"$0}' | $gzip > ${i%.f*}_RE1.fasta.gz &&
-                awk 'NR%2==0' <(bash -c "$pigzdc < \"$i\"") | awk 'NR%2==1' | awk '{gsub(/CATG/,"CATG\nCATG");}1' | awk 'length >= 64 && length <= 600' | \
+                awk 'NR%2==0' <(zcat $i) | awk 'NR%2==1' | awk '{gsub(/CATG/,"CATG\nCATG");}1' | awk 'length >= 64 && length <= 600' | \
                 grep '^CATG.*CATG$' | awk '{print ">frag"NR"\n"$0}' | $gzip > ${i%.f*}_RE2.fasta.gz &&
-                awk 'NR%2==0' <(bash -c "$pigzdc < \"$i\"") | awk 'NR%2==1' | awk '{gsub(/ATGCAT/,"ATGCAT\nATGCAT");gsub(/CATG/,"CATG\nCATG");}1' | awk 'length >= 64 && length <= 600' | \
+                awk 'NR%2==0' <(zcat $i) | awk 'NR%2==1' | awk '{gsub(/ATGCAT/,"ATGCAT\nATGCAT");gsub(/CATG/,"CATG\nCATG");}1' | awk 'length >= 64 && length <= 600' | \
                 grep '^ATGCAT.*CATG$\|^CATG.*ATGCAT$' | awk '{print ">frag"NR"\n"$0}' | $gzip > ${i%.f*}_RE1RE2.fasta.gz &&
                 cat ${i%.f*}_RE1.fasta.gz ${i%.f*}_RE2.fasta.gz ${i%.f*}_RE1RE2.fasta.gz > ${i%.f*}.fasta.gz &&
                 rm "${i%.f*}"_RE1.fasta.gz "${i%.f*}"_RE2.fasta.gz "${i%.f*}"_RE1RE2.fasta.gz &&
                 wait
               fi
               if [[ "${fa_fq}" == ">" ]]; then
-                awk '{if(NR==1) {print $0} else {if($0 ~ /^>/) {print "\n"$0} else {printf $0}}}' <(bash -c "$pigzdc < \"$i\"") | awk 'NR%2==0' | awk '{gsub(/ATGCAT/,"ATGCAT\nATGCAT");}1' | \
+                awk '{if(NR==1) {print $0} else {if($0 ~ /^>/) {print "\n"$0} else {printf $0}}}' <(zcat $i) | awk 'NR%2==0' | awk '{gsub(/ATGCAT/,"ATGCAT\nATGCAT");}1' | \
                 awk 'length >= 64 && length <= 600' | grep '^ATGCAT.*ATGCAT$' | awk '{print ">frag"NR"\n"$0}' | $gzip > ${i%.f*}.tmp1.gz &&
-                awk '{if(NR==1) {print $0} else {if($0 ~ /^>/) {print "\n"$0} else {printf $0}}}' <(bash -c "$pigzdc < \"$i\"") | awk 'NR%2==0' | awk '{gsub(/CATG/,"CATG\nCATG");}1' | \
+                awk '{if(NR==1) {print $0} else {if($0 ~ /^>/) {print "\n"$0} else {printf $0}}}' <(zcat $i) | awk 'NR%2==0' | awk '{gsub(/CATG/,"CATG\nCATG");}1' | \
                 awk 'length >= 64 && length <= 600' | grep '^CATG.*CATG$' | awk '{print ">frag"NR"\n"$0}' | $gzip > ${i%.f*}.tmp2.gz &&
-                awk '{if(NR==1) {print $0} else {if($0 ~ /^>/) {print "\n"$0} else {printf $0}}}' <(bash -c "$pigzdc < \"$i\"") | awk 'NR%2==0' | awk '{gsub(/ATGCAT/,"ATGCAT\nATGCAT");gsub(/CATG/,"CATG\nCATG");}1' | \
+                awk '{if(NR==1) {print $0} else {if($0 ~ /^>/) {print "\n"$0} else {printf $0}}}' <(zcat $i) | awk 'NR%2==0' | awk '{gsub(/ATGCAT/,"ATGCAT\nATGCAT");gsub(/CATG/,"CATG\nCATG");}1' | \
                 awk 'length >= 64 && length <= 600' | grep '^ATGCAT.*CATG$\|^CATG.*ATGCAT$' | awk '{print ">frag"NR"\n"$0}' | $gzip > ${i%.f*}.tmp3.gz &&
                 cat ${i%.f*}.tmp1.gz ${i%.f*}.tmp2.gz ${i%.f*}.tmp3.gz > ${i%.f*}.tmp.gz &&
                 rm "${i%.f*}".fasta.gz &&
@@ -832,14 +824,14 @@ main () {
       sleep $((RANDOM % 2))
       if test ! -f ${projdir}/preprocess/alignment/${i%.f*}_redun.sam.gz && test ! -f ${projdir}/preprocess/${i%.f*}_${ref1%.f*}_precall.bam.bai; then
         if test ! -f ${i%.f*}_uniq.fasta.gz; then
-          bash -c "$pigzdc < \"$i\"" | awk 'NR%2==0' | awk 'NR%2' | gzip > ${i%.f*}_R1_uniq.txt.gz 2> /dev/null &&
+          zcat $i | awk 'NR%2==0' | awk 'NR%2' | gzip > ${i%.f*}_R1_uniq.txt.gz 2> /dev/null &&
           wait
           if test -f ${i%.f*}_R2.fastq.gz; then
-            bash -c "$pigzdc < \"${i%.f*}_R2.fastq.gz\"" | awk 'NR%2==0' | awk 'NR%2' | gzip > ${i%.f*}_R2_uniq.txt.gz 2> /dev/null &&
+            zcat ${i%.f*}_R2.fastq.gz | awk 'NR%2==0' | awk 'NR%2' | gzip > ${i%.f*}_R2_uniq.txt.gz 2> /dev/null &&
             wait
           fi
           if test -f ${i%.f*}.R2.fastq.gz; then
-            $pigzdc < \"${i%.f*}.R2.fastq.gz\"" | awk 'NR%2==0' | awk 'NR%2' | gzip > ${i%.f*}_R2_uniq.txt.gz 2> /dev/null &&
+            zcat ${i%.f*}.R2.fastq.gz | awk 'NR%2==0' | awk 'NR%2' | gzip > ${i%.f*}_R2_uniq.txt.gz 2> /dev/null &&
             wait
           fi
           if test ! -f ${i%.f*}_R2.fastq.gz && test ! -f ${i%.f*}.R2.fastq.gz; then
@@ -859,9 +851,9 @@ main () {
       sleep $((RANDOM % 2))
       if test ! -f ${projdir}/preprocess/alignment/${i%.f*}_redun.sam.gz && test ! -f ${projdir}/preprocess/${i%.f*}_${ref1%.f*}_precall.bam.bai; then
         if test ! -f ${i%.f*}_uniq.fasta.gz; then
-          (bash -c "$pigzdc < \"${i%.f*}_R1_uniq.txt.gz\""; bash -c "$pigzdc < \"${i%.f*}_R2_uniq.txt.gz\"") | awk '{!seen[$0]++}END{for (i in seen) print seen[i], i}' | awk '{$1=$1};1' | gzip > ${i%.f*}_repeatn.txt.gz &&
-          repeatn=$(bash -c "$pigzdc < \"${i%.f*}_repeatn.txt.gz\"" | awk '{print $1}' | sort -n | awk '{all[NR] = $1} END{print all[int(NR*0.999 - 0.5)]}')
-          bash -c "$pigzdc < \"${i%.f*}_repeatn.txt.gz\"" | awk -v pat="$repeatn" '$1 < pat' | \
+          cat ${i%.f*}_R1_uniq.txt.gz ${i%.f*}_R2_uniq.txt.gz | zcat | awk '{!seen[$0]++}END{for (i in seen) print seen[i], i}' | awk '{$1=$1};1' | gzip > ${i%.f*}_repeatn.txt.gz &&
+          repeatn=$(zcat ${i%.f*}_repeatn.txt.gz | awk '{print $1}' | sort -n | awk '{all[NR] = $1} END{print all[int(NR*0.999 - 0.5)]}')
+          zcat ${i%.f*}_repeatn.txt.gz | awk -v pat="$repeatn" '$1 < pat' | \
           awk '{gsub(/AAAAAAAAAA$/,"A~");gsub(/AAAAAAAAAA~/,"A~");gsub(/AAAAAAAAAA~/,"A~");gsub(/AAAAAAAAAA~/,"A~");gsub(/AAAAAAAAAA~/,"A~");gsub(/AAAAAAAAAA~/,"A~");gsub(/AAAAAAAAAA~/,"A~");gsub(/AAAAAAAAAA~/,"A~");gsub(/AAAAAAAAAA~/,"A~");gsub(/AAAAAAAAAA~/,"A~");gsub(/AAAAAAAAAA~/,"A~");gsub(/AAAAAAAAAA~/,"A~");gsub(/AAAAAAAAAA~/,"A~");gsub(/AAAAAAAAAA~/,"A~");}1' | \
   				awk '{gsub(/CCCCCCCCCC$/,"C~");gsub(/CCCCCCCCCC~/,"C~");gsub(/CCCCCCCCCC~/,"C~");gsub(/CCCCCCCCCC~/,"C~");gsub(/CCCCCCCCCC~/,"C~");gsub(/CCCCCCCCCC~/,"C~");gsub(/CCCCCCCCCC~/,"C~");gsub(/CCCCCCCCCC~/,"C~");gsub(/CCCCCCCCCC~/,"C~");gsub(/CCCCCCCCCC~/,"C~");gsub(/CCCCCCCCCC~/,"C~");gsub(/CCCCCCCCCC~/,"C~");gsub(/CCCCCCCCCC~/,"C~");gsub(/CCCCCCCCCC~/,"C~");}1' | \
   				awk '{gsub(/GGGGGGGGGG$/,"G~");gsub(/GGGGGGGGGG~/,"G~");gsub(/GGGGGGGGGG~/,"G~");gsub(/GGGGGGGGGG~/,"G~");gsub(/GGGGGGGGGG~/,"G~");gsub(/GGGGGGGGGG~/,"G~");gsub(/GGGGGGGGGG~/,"G~");gsub(/GGGGGGGGGG~/,"G~");gsub(/GGGGGGGGGG~/,"G~");gsub(/GGGGGGGGGG~/,"G~");gsub(/GGGGGGGGGG~/,"G~");gsub(/GGGGGGGGGG~/,"G~");gsub(/GGGGGGGGGG~/,"G~");gsub(/GGGGGGGGGG~/,"G~");}1' | \
@@ -962,11 +954,11 @@ main () {
         while IFS="" read -r alignfq || [ -n "$alignfq" ]; do
           sleep $((RANDOM % 2))
           if test ! -f ../preprocess/alignment/${alignfq%.f*}_redun.sam.gz; then
-            $minimap2 -x sr --secondary=no --min-occ-floor=1000 ../refgenomes/${ref1%.f*}.mmi <(bash -c "$pigzdc < \"${alignfq%.f*}_uniq.fasta.gz\"") | \
+            $minimap2 -x sr --secondary=no --min-occ-floor=1000 ../refgenomes/${ref1%.f*}.mmi <(zcat ${alignfq%.f*}_uniq.fasta.gz) | \
             awk '{for(i=1;i<=NF;i++) if($i ~ /^cm:i:/){split($i,a,":"); if(a[3] <= 10) print $1}}' | \
             awk 'NR==FNR{keep[$1]=1;next}
                    (NR%2==1){id=substr($1,2);p=keep[id]}
-                   {if(p)print}' - <(bash -c "$pigzdc < \"${alignfq%.f*}_uniq.fasta.gz\"") | \
+                   {if(p)print}' - <(zcat ${alignfq%.f*}_uniq.fasta.gz) | \
             $minimap2 -t $threads -ax splice --secondary=no -f 0.0005 -N 8 -n 2 -m 25 ../refgenomes/${ref1%.f*}.mmi - > ${alignfq%.f*}_all.sam &&
             grep '^@' ${alignfq%.f*}_all.sam > ${alignfq%.f*}_header.sam &&
             grep -v '^@' ${alignfq%.f*}_all.sam | awk '$6 ~ /N/' | awk 'BEGIN{FS=OFS="\t"} !($10 == "*" && $6 !~ /^\*$/) {print}' > ${alignfq%.f*}_spliced_reads.sam &&
@@ -1005,7 +997,7 @@ main () {
       while IFS="" read -r alignfq || [ -n "$alignfq" ]; do
         sleep $((RANDOM % 2))
         if test ! -f ../preprocess/alignment/${alignfq%.f*}_redun.sam.gz; then
-          awk 'BEGIN {RS=">"; ORS=""} NR>1 {header=substr($0, 1, index($0, "\n") - 1); seq=substr($0, index($0, "\n") + 1); gsub(/\n/, "", seq); if (length(seq) >= 32) print ">" header "\n" seq "\n"}' <(bash -c "$pigzdc < \"${alignfq%.f*}_uniq.fasta.gz\"") | \
+          awk 'BEGIN {RS=">"; ORS=""} NR>1 {header=substr($0, 1, index($0, "\n") - 1); seq=substr($0, index($0, "\n") + 1); gsub(/\n/, "", seq); if (length(seq) >= 32) print ">" header "\n" seq "\n"}' <(zcat ${alignfq%.f*}_uniq.fasta.gz) | \
           awk 'BEGIN {OFS = "\n"} /^>/ {header = substr($0, 2); next} {print "@" header, $0, "+", gensub(/./, "I", "g", $0)}' | gzip > ${alignfq%.f*}_uniq.fastq.gz
           $star --runThreadN $threads \
             --genomeDir ${projdir}/refgenomes/star_index \
@@ -1096,16 +1088,16 @@ main () {
     # rm ./alignment/${i%.f*}_redun.sam.gz && $gzip ./alignment/${i%.f*}_redun.sam &&
     # rm ${i%.f*}_redun_head.sam &&
     printf '\n###---'${i%.f*}'---###\n' > ${projdir}/alignment_summaries/${i%.f*}_summ.txt &&
-    bash -c "$pigzdc < \"./alignment/${i%.f*}_redun.sam.gz\"" | grep -v '^@' | awk '{gsub(/_/,"\t",$1);}1' | awk '{gsub(/se-/,"",$2);gsub(/pe-/,"",$2);}1' | tr ' ' '\t' > ${i%.f*}_full.sam &&
+    zcat ./alignment/${i%.f*}_redun.sam.gz | grep -v '^@' | awk '{gsub(/_/,"\t",$1);}1' | awk '{gsub(/se-/,"",$2);gsub(/pe-/,"",$2);}1' | tr ' ' '\t' > ${i%.f*}_full.sam &&
     split -l 10000 ${i%.f*}_full.sam ${i%.f*}_chunk_ && rm ${i%.f*}_full.sam &&
     find . -name '${i%.f*}_chunk_*' -print0 | xargs -0 -P "$prepthreads" -I{} bash -c 'awk '\''{for(i=0;i<=$2-1;i++) print $0}'\'' "$1" > "$1.out"' _ {} &&
     cat ${i%.f*}_chunk_* | awk '!($2="")1' | awk '{$1=$1"_"NR}1' | awk '{gsub(/ /,"\t");}1' > ${i%.f*}_full.sam &&
-    cat <(bash -c "$pigzdc < \"./alignment/${i%.f*}_redun.sam.gz\"" | grep '^@') ${i%.f*}_full.sam | gzip > ${i%.f*}_full.sam.gz &&
+    cat <(zcat ./alignment/${i%.f*}_redun.sam.gz | grep '^@') ${i%.f*}_full.sam | gzip > ${i%.f*}_full.sam.gz &&
     rm ${i%.f*}_chunk_* ${i%.f*}_full.sam &&
     $samtools flagstat ${i%.f*}_full.sam.gz >> ${projdir}/alignment_summaries/${i%.f*}_summ.txt &&
     printf '########################################################################################################\n\n' >> ${projdir}/alignment_summaries/${i%.f*}_summ.txt &&
     printf 'copy_number\tFrequency\tPercentage\n' > ${projdir}/alignment_summaries/copy_number/${i%.f*}_copy_number_Read_histogram.txt &&
-    $samtools view -F4 <(bash -c "$pigzdc < \"${i%.f*}_full.sam.gz\" 2> /dev/null") | awk '{print $1}' | awk '{gsub(/_pe-/,"\t");gsub(/seq/,"");}1' | \
+    $samtools view -F4 <(zcat ${i%.f*}_full.sam.gz 2> /dev/null) | awk '{print $1}' | awk '{gsub(/_pe-/,"\t");gsub(/seq/,"");}1' | \
     awk '{while ($2-- > 0) print $1}' | awk '{!seen[$0]++}END{for (i in seen) print seen[i]}' | awk '{!seen[$0]++}END{for (i in seen) print i, seen[i]}' > ${projdir}/alignment_summaries/copy_number/${i%.f*}_copy_number.txt  &&
     awk 'NR==FNR{sum+= $2; next;} {printf("%s\t%s\t%3.3f%%\t%3.0f\n",$1,$2,100*$2/sum,100*$2/sum)}' ${projdir}/alignment_summaries/copy_number/${i%.f*}_copy_number.txt ${projdir}/alignment_summaries/copy_number/${i%.f*}_copy_number.txt | awk '$4 > 0' > ${projdir}/alignment_summaries/copy_number/${i%.f*}_plot.txt &&
     unset IFS; printf "%s\t%s\t%s\t%*s\n" $(sed 's/$/ |/' ${projdir}/alignment_summaries/copy_number/${i%.f*}_plot.txt) | tr ' ' '|' | sort -T ./tmp/ -k1,1 -n >> ${projdir}/alignment_summaries/copy_number/${i%.f*}_copy_number_Read_histogram.txt &&
@@ -1123,8 +1115,8 @@ main () {
 
       if test ! -f ${projdir}/preprocess/${i%.f*}_${ref1%.f*}_precall.bam.bai; then
         if [[ "$paralogs" == false ]] && [[ "$uniquely_mapped" == true ]]; then
-          awk '/@HD/ || /@SQ/{print}' <(bash -c "$pigzdc < \"./alignment/${i%.f*}_redun.sam.gz\" 2> /dev/null") > ${i%.f*}_heading.sam &&
-          $samtools view -F4 <(bash -c "$pigzdc < \"./alignment/${i%.f*}_redun.sam.gz\" 2> /dev/null") | grep -v '^@' | awk '$3 != "*"' 2> /dev/null | awk '$6 != "*"' 2> /dev/null | \
+          awk '/@HD/ || /@SQ/{print}' <(zcat ./alignment/${i%.f*}_redun.sam.gz 2> /dev/null) > ${i%.f*}_heading.sam &&
+          $samtools view -F4 <(zcat ./alignment/${i%.f*}_redun.sam.gz 2> /dev/null) | grep -v '^@' | awk '$3 != "*"' 2> /dev/null | awk '$6 != "*"' 2> /dev/null | \
           awk -v min=$minmapq -F '\t' 'BEGIN{OFS="\t"} {if ($5 == 0 || $5 >= min) {print $0}}' | awk -F '\t' 'BEGIN{OFS="\t"} {print $1"_"substr($3,length($3),1)"\t"$0}' | \
           awk '!h[$1] { g[$1]=$0 } { h[$1]++ } END { for(k in g) print h[k], g[k] }' | tr " " "\t" | tr '\r' '\n' | awk '$1==1{print $0}' | \
           awk '{$1=$2=""}1' | awk '$1=$1' | tr " " "\t" | awk -F '\t' 'BEGIN{OFS="\t"} {print $1"_"substr($3,1,length($3)-1)"\t"$0}' > ${i%.f*}_uniq1.sam &&
@@ -1141,15 +1133,15 @@ main () {
         fi
 
         if [[ "$paralogs" == true ]] && [[ "$uniquely_mapped" == false ]]; then
-          awk '/@HD/ || /@SQ/{print}' <(bash -c "$pigzdc < \"./alignment/${i%.f*}_redun.sam.gz\" 2> /dev/null") > ${i%.f*}_heading.sam &&
-          $samtools view -F4 <(bash -c "$pigzdc < \"./alignment/${i%.f*}_redun.sam.gz\" 2> /dev/null") | grep -v '^@' | awk '$3 != "*"' 2> /dev/null | awk '$6 != "*"' 2> /dev/null | \
+          awk '/@HD/ || /@SQ/{print}' <(zcat ./alignment/${i%.f*}_redun.sam.gz 2> /dev/null) > ${i%.f*}_heading.sam &&
+          $samtools view -F4 <(zcat ./alignment/${i%.f*}_redun.sam.gz 2> /dev/null) | grep -v '^@' | awk '$3 != "*"' 2> /dev/null | awk '$6 != "*"' 2> /dev/null | \
           awk -v min=$minmapq -F '\t' 'BEGIN{OFS="\t"} {if ($5 == 0 || $5 >= min) {print $0}}' | awk -F '\t' 'BEGIN{OFS="\t"} {print $1"_"substr($3,length($3),1)"\t"$0}' | \
           awk '!h[$1] { g[$1]=$0 } { h[$1]++ } END { for(k in g) print h[k], g[k] }' | tr " " "\t" | tr '\r' '\n' | awk '$1<=6{print $0}' | awk '{$1=$2=""}1' | \
           awk '$1=$1' | tr " " "\t" | awk -F '\t' 'BEGIN{OFS="\t"} {if ($5 == 0) {print $0}}' 2> /dev/null | \
           awk -F '\t' 'BEGIN{OFS="\t"} {print $1"_"$3"\t"$0}' | awk -F '\t' 'BEGIN{OFS="\t"} {$1=substr($1, 1, length($1)-1); print}' > ${i%.f*}_uniqeq1.sam &&
           awk '!h[$1] { g[$1]=$0 } { h[$1]++ } END { for(k in g) print h[k], g[k] }' ${i%.f*}_uniqeq1.sam | tr " " "\t" | tr '\r' '\n' | \
           awk -v min=$min_hap -v max=$((max_hap*6)) '$1>=min || $1<=max{print $0}' | awk '{$1=$2=""}1' | awk '$1=$1' | tr " " "\t" > ${i%.f*}_uniqeq2.sam &&
-          $samtools view -F4 <(bash -c "$pigzdc < \"./alignment/${i%.f*}_redun.sam.gz\" 2> /dev/null") | grep -v '^@' | awk '$3 != "*"' 2> /dev/null | awk '$6 != "*"' 2> /dev/null | \
+          $samtools view -F4 <(zcat ./alignment/${i%.f*}_redun.sam.gz 2> /dev/null) | grep -v '^@' | awk '$3 != "*"' 2> /dev/null | awk '$6 != "*"' 2> /dev/null | \
           awk -v min=$minmapq -F '\t' 'BEGIN{OFS="\t"} {if ($5 == 0 || $5 >= min) {print $0}}' | awk -F '\t' 'BEGIN{OFS="\t"} {print $1"_"substr($3,length($3),1)"\t"$0}' | \
           awk '!h[$1] { g[$1]=$0 } { h[$1]++ } END { for(k in g) print h[k], g[k] }' | tr " " "\t" | tr '\r' '\n' | awk '$1<=6{print $0}' | awk '{$1=$2=""}1' | \
           awk '$1=$1' | tr " " "\t" | awk -F '\t' 'BEGIN{OFS="\t"} {if ($5 > 0) {print $0}}' 2> /dev/null | awk -F '\t' 'BEGIN{OFS="\t"} {print $1"_"$3"\t"$0}' | \
@@ -1169,8 +1161,8 @@ main () {
           wait
         fi
         if [[ "$paralogs" == true ]] && [[ "$uniquely_mapped" == true ]]; then
-          awk '/@HD/ || /@SQ/{print}' <(bash -c "$pigzdc < \"./alignment/${i%.f*}_redun.sam.gz\" 2> /dev/null") > ${i%.f*}_heading.sam &&
-          $samtools view -F4 <(bash -c "$pigzdc < \"./alignment/${i%.f*}_redun.sam.gz\" 2> /dev/null") | grep -v '^@' | awk '$3 != "*"' 2> /dev/null | awk '$6 != "*"' 2> /dev/null | \
+          awk '/@HD/ || /@SQ/{print}' <(zcat ./alignment/${i%.f*}_redun.sam.gz 2> /dev/null) > ${i%.f*}_heading.sam &&
+          $samtools view -F4 <(zcat ./alignment/${i%.f*}_redun.sam.gz 2> /dev/null) | grep -v '^@' | awk '$3 != "*"' 2> /dev/null | awk '$6 != "*"' 2> /dev/null | \
           awk -v min=$minmapq -F '\t' 'BEGIN{OFS="\t"} {if ($5 == 0 || $5 >= min) {print $0}}' | awk -F '\t' 'BEGIN{OFS="\t"} {print $1"_"substr($3,length($3),1)"\t"$0}' | \
           awk '!h[$1] { g[$1]=$0 } { h[$1]++ } END { for(k in g) print h[k], g[k] }' | tr " " "\t" | tr '\r' '\n' | awk '$1==1{print $0}' | \
           awk '{$1=$2=""}1' | awk '$1=$1' | tr " " "\t" | awk -F '\t' 'BEGIN{OFS="\t"} {print $1"_"substr($3,1,length($3)-1)"\t"$0}' > ${i%.f*}_uniq1.sam &&
@@ -1184,15 +1176,15 @@ main () {
           tr -s " " | tr " " "\t" > ${i%.f*}_uniqpart.sam &&
           rm ${i%.f*}_uniq2.bam ${i%.f*}_uniqsorted.sam &&
           wait
-          awk '/@HD/ || /@SQ/{print}' <(bash -c "$pigzdc < \"./alignment/${i%.f*}_redun.sam.gz\" 2> /dev/null") > ${i%.f*}_heading.sam &&
-          $samtools view -F4 <(bash -c "$pigzdc < \"./alignment/${i%.f*}_redun.sam.gz\" 2> /dev/null") | grep -v '^@' | awk '$3 != "*"' 2> /dev/null | awk '$6 != "*"' 2> /dev/null | \
+          awk '/@HD/ || /@SQ/{print}' <(zcat ./alignment/${i%.f*}_redun.sam.gz 2> /dev/null) > ${i%.f*}_heading.sam &&
+          $samtools view -F4 <(zcat ./alignment/${i%.f*}_redun.sam.gz 2> /dev/null) | grep -v '^@' | awk '$3 != "*"' 2> /dev/null | awk '$6 != "*"' 2> /dev/null | \
           awk -v min=$minmapq -F '\t' 'BEGIN{OFS="\t"} {if ($5 == 0 || $5 >= min) {print $0}}' | awk -F '\t' 'BEGIN{OFS="\t"} {print $1"_"substr($3,length($3),1)"\t"$0}' | \
           awk '!h[$1] { g[$1]=$0 } { h[$1]++ } END { for(k in g) print h[k], g[k] }' | tr " " "\t" | tr '\r' '\n' | awk '$1<=6{print $0}' | awk '{$1=$2=""}1' | \
           awk '$1=$1' | tr " " "\t" | awk -F '\t' 'BEGIN{OFS="\t"} {if ($5 == 0) {print $0}}' 2> /dev/null | \
           awk -F '\t' 'BEGIN{OFS="\t"} {print $1"_"$3"\t"$0}' | awk -F '\t' 'BEGIN{OFS="\t"} {$1=substr($1, 1, length($1)-1); print}' > ${i%.f*}_uniqeq1.sam &&
           awk '!h[$1] { g[$1]=$0 } { h[$1]++ } END { for(k in g) print h[k], g[k] }' ${i%.f*}_uniqeq1.sam | tr " " "\t" | tr '\r' '\n' | \
           awk -v min=$min_hap -v max=$((max_hap*6)) '$1>=min || $1<=max{print $0}' | awk '{$1=$2=""}1' | awk '$1=$1' | tr " " "\t" > ${i%.f*}_uniqeq2.sam &&
-          $samtools view -F4 <(bash -c "$pigzdc < \"./alignment/${i%.f*}_redun.sam.gz\" 2> /dev/null") | grep -v '^@' | awk '$3 != "*"' 2> /dev/null | awk '$6 != "*"' 2> /dev/null | \
+          $samtools view -F4 <(zcat ./alignment/${i%.f*}_redun.sam.gz 2> /dev/null) | grep -v '^@' | awk '$3 != "*"' 2> /dev/null | awk '$6 != "*"' 2> /dev/null | \
           awk -v min=$minmapq -F '\t' 'BEGIN{OFS="\t"} {if ($5 == 0 || $5 >= min) {print $0}}' | awk -F '\t' 'BEGIN{OFS="\t"} {print $1"_"substr($3,length($3),1)"\t"$0}' | \
           awk '!h[$1] { g[$1]=$0 } { h[$1]++ } END { for(k in g) print h[k], g[k] }' | tr " " "\t" | tr '\r' '\n' | awk '$1<=6{print $0}' | awk '{$1=$2=""}1' | \
           awk '$1=$1' | tr " " "\t" | awk -F '\t' 'BEGIN{OFS="\t"} {if ($5 > 0) {print $0}}' 2> /dev/null | awk -F '\t' 'BEGIN{OFS="\t"} {print $1"_"$3"\t"$0}' | \
@@ -1239,20 +1231,20 @@ main () {
     else
       if test ! -f ${projdir}/preprocess/${i%.f*}_${ref1%.f*}_precall.bam.bai; then
         if [[ "$paralogs" == false ]] && [[ "$uniquely_mapped" == true ]]; then
-          awk '/@HD/ || /@SQ/{print}' <(bash -c "$pigzdc < \"./alignment/${i%.f*}_redun.sam.gz\" 2> /dev/null") > ${i%.f*}_heading.sam &&
-          $samtools view -F4 <(bash -c "$pigzdc < \"./alignment/${i%.f*}_redun.sam.gz\" 2> /dev/null") | grep -v '^@' | awk '$3 != "*"' 2> /dev/null | awk '$6 != "*"' 2> /dev/null | \
+          awk '/@HD/ || /@SQ/{print}' <(zcat ./alignment/${i%.f*}_redun.sam.gz 2> /dev/null) > ${i%.f*}_heading.sam &&
+          $samtools view -F4 <(zcat ./alignment/${i%.f*}_redun.sam.gz 2> /dev/null) | grep -v '^@' | awk '$3 != "*"' 2> /dev/null | awk '$6 != "*"' 2> /dev/null | \
           awk -v min=$minmapq -F '\t' 'BEGIN{OFS="\t"} {if ($5 == 0 || $5 >= min) {print $0}}' | awk '!h[$1] { g[$1]=$0 } { h[$1]++ } END { for(k in g) print h[k], g[k] }' | \
           tr " " "\t" | tr '\r' '\n' | awk '$1==1{print $0}' | awk '{$1=""}1' | awk '$1=$1' | tr " " "\t" | awk '{gsub(/_pe-/,"_pe-\t",$1);}1' | awk '{print $2"\t"$0}' | \
           awk '{$2=$3=""}1' | tr -s " " | tr " " "\t" > ${i%.f*}_uniq.sam &&
           wait
         fi
         if [[ "$paralogs" == true ]] && [[ "$uniquely_mapped" == true ]]; then
-          awk '/@HD/ || /@SQ/{print}' <(bash -c "$pigzdc < \"./alignment/${i%.f*}_redun.sam.gz\" 2> /dev/null") > ${i%.f*}_heading.sam &&
-          $samtools view -F4 <(bash -c "$pigzdc < \"./alignment/${i%.f*}_redun.sam.gz\" 2> /dev/null") | grep -v '^@' | awk '$3 != "*"' 2> /dev/null | awk '$6 != "*"' 2> /dev/null | \
+          awk '/@HD/ || /@SQ/{print}' <(zcat ./alignment/${i%.f*}_redun.sam.gz 2> /dev/null) > ${i%.f*}_heading.sam &&
+          $samtools view -F4 <(zcat ./alignment/${i%.f*}_redun.sam.gz 2> /dev/null) | grep -v '^@' | awk '$3 != "*"' 2> /dev/null | awk '$6 != "*"' 2> /dev/null | \
           awk -v min=$minmapq -F '\t' 'BEGIN{OFS="\t"} {if ($5 == 0 || $5 >= min) {print $0}}' | awk '!h[$1] { g[$1]=$0 } { h[$1]++ } END { for(k in g) print h[k], g[k] }' | \
           tr " " "\t" | tr '\r' '\n' | awk '$1==1 || $1<=6{print $0}' | awk '{$1=""}1' | awk '$1=$1' | tr " " "\t" | \
           awk -F '\t' 'BEGIN{OFS="\t"} {if ($5 == 0) {print $0}}' 2> /dev/null > ${i%.f*}_uniqeq.sam
-          $samtools view -F4 <(bash -c "$pigzdc < \"./alignment/${i%.f*}_redun.sam.gz\" 2> /dev/null") | grep -v '^@' | awk '$3 != "*"' 2> /dev/null | awk '$6 != "*"' 2> /dev/null | \
+          $samtools view -F4 <(zcat ./alignment/${i%.f*}_redun.sam.gz 2> /dev/null) | grep -v '^@' | awk '$3 != "*"' 2> /dev/null | awk '$6 != "*"' 2> /dev/null | \
           awk '!h[$1] { g[$1]=$0 } { h[$1]++ } END { for(k in g) print h[k], g[k] }' | tr " " "\t" | tr '\r' '\n' | awk '$1==1 || $1<=6{print $0}' | awk '{$1=""}1' | awk '$1=$1' | tr " " "\t" | \
           awk -F '\t' 'BEGIN{OFS="\t"} {if ($5 > 0) {print $0}}' 2> /dev/null | cat - ${i%.f*}_uniqeq.sam | \
           awk '{gsub(/_pe-/,"_pe-\t",$1);}1' | awk '{print $2"\t"$0}' | awk '{$2=$3=""}1' | tr -s " " | tr " " "\t" > ${i%.f*}_uniq.sam &&
@@ -1260,17 +1252,17 @@ main () {
           wait
         fi
         if [[ "$paralogs" == true ]] && [[ "$uniquely_mapped" == false ]]; then
-          awk '/@HD/ || /@SQ/{print}' <(bash -c "$pigzdc < \"./alignment/${i%.f*}_redun.sam.gz\" 2> /dev/null") > ${i%.f*}_heading.sam &&
-          $samtools view -F4 <(bash -c "$pigzdc < \"./alignment/${i%.f*}_redun.sam.gz\" 2> /dev/null") | grep -v '^@' | awk '$3 != "*"' 2> /dev/null | awk '$6 != "*"' 2> /dev/null | \
+          awk '/@HD/ || /@SQ/{print}' <(zcat ./alignment/${i%.f*}_redun.sam.gz 2> /dev/null) > ${i%.f*}_heading.sam &&
+          $samtools view -F4 <(zcat ./alignment/${i%.f*}_redun.sam.gz 2> /dev/null) | grep -v '^@' | awk '$3 != "*"' 2> /dev/null | awk '$6 != "*"' 2> /dev/null | \
           awk -v min=$minmapq -F '\t' 'BEGIN{OFS="\t"} {if ($5 == 0 || $5 >= min) {print $0}}' | awk '!h[$1] { g[$1]=$0 } { h[$1]++ } END { for(k in g) print h[k], g[k] }' | \
           tr " " "\t" | tr '\r' '\n' | awk '$1==1{print $0}' | awk '{$1=""}1' | awk '$1=$1' | tr " " "\t" | awk '{gsub(/_pe-/,"_pe-\t",$1);}1' | awk '{print $2"\t"$0}' | \
           awk '{$2=$3=""}1' | tr -s " " | tr " " "\t" > ${i%.f*}_uniq.sampart &&
           wait
-          $samtools view -F4 <(bash -c "$pigzdc < \"./alignment/${i%.f*}_redun.sam.gz\" 2> /dev/null") | grep -v '^@' | awk '$3 != "*"' 2> /dev/null | awk '$6 != "*"' 2> /dev/null | \
+          $samtools view -F4 <(zcat ./alignment/${i%.f*}_redun.sam.gz 2> /dev/null) | grep -v '^@' | awk '$3 != "*"' 2> /dev/null | awk '$6 != "*"' 2> /dev/null | \
           awk -v min=$minmapq -F '\t' 'BEGIN{OFS="\t"} {if ($5 == 0 || $5 >= min) {print $0}}' | awk '!h[$1] { g[$1]=$0 } { h[$1]++ } END { for(k in g) print h[k], g[k] }' | \
           tr " " "\t" | tr '\r' '\n' | awk '$1==1 || $1<=6{print $0}' | awk '{$1=""}1' | awk '$1=$1' | tr " " "\t" | \
           awk -F '\t' 'BEGIN{OFS="\t"} {if ($5 == 0) {print $0}}' 2> /dev/null > ${i%.f*}_uniqeq.sam
-          $samtools view -F4 <(bash -c "$pigzdc < \"./alignment/${i%.f*}_redun.sam.gz\" 2> /dev/null") | grep -v '^@' | awk '$3 != "*"' 2> /dev/null | awk '$6 != "*"' 2> /dev/null | \
+          $samtools view -F4 <(zcat ./alignment/${i%.f*}_redun.sam.gz 2> /dev/null) | grep -v '^@' | awk '$3 != "*"' 2> /dev/null | awk '$6 != "*"' 2> /dev/null | \
           awk '!h[$1] { g[$1]=$0 } { h[$1]++ } END { for(k in g) print h[k], g[k] }' | tr " " "\t" | tr '\r' '\n' | awk '$1==1 || $1<=6{print $0}' | awk '{$1=""}1' | awk '$1=$1' | tr " " "\t" | \
           awk -F '\t' 'BEGIN{OFS="\t"} {if ($5 > 0) {print $0}}' 2> /dev/null | cat - ${i%.f*}_uniqeq.sam | \
           awk '{gsub(/_pe-/,"_pe-\t",$1);}1' | awk '{print $2"\t"$0}' | awk '{$2=$3=""}1' | tr -s " " | tr " " "\t" > ${i%.f*}_uniqAll.sam &&
@@ -1348,7 +1340,7 @@ main () {
       printf "Sample\tGenome_Coverage(percentage)\n" > summary_genomecov.txt
       genome_size=$(awk '{print $3}' ../refgenomes/${ref1%.f*}.dict | awk '{gsub(/LN:/,"");}1' | awk '{s+=$1}END{print s}')
       for i in ../preprocess/alignment/*_redun.sam.gz; do
-        $samtools view -bS <(bash -c "$pigzdc < \"$i\" 2> /dev/null") | $samtools sort - > ${i%*_redun.sam.gz}.bam
+        $samtools view -bS <(zcat $i 2> /dev/null) | $samtools sort - > ${i%*_redun.sam.gz}.bam
         cov=$($bedtools genomecov -ibam ${i%*_redun.sam.gz}.bam -bga | awk '{print ($4>1)? 1 : $4}' | awk -v pat=$genome_size '{s+=$1}END{print (s/pat)*100}')
         printf "${i%*_redun.sam.gz}\t$cov\n"  | awk '{gsub(/..\/preprocess\/alignment\//,"");}1' >> summary_genomecov.txt
         rm ${i%*_redun.sam.gz}.bam 2> /dev/null
@@ -2165,7 +2157,7 @@ cd ${projdir}/snpcall
 if [ `ls -1 *biallelic* 2>/dev/null | wc -l` -eq 0 ]; then
   for bial in *_DP_GT.txt; do
     bialv=${bial%_DP_GT.txt} &&
-    grep -v '^#' <(bash -c "$pigzdc < \"*${bialv#*_}_raw.vcf.gz\"") | awk '{print $1"\t"$2"\t"$5}' | grep -v ',' | awk '{print $1"\t"$2}' | \
+    grep -v '^#' <(zcat *${bialv#*_}_raw.vcf.gz) | awk '{print $1"\t"$2"\t"$5}' | grep -v ',' | awk '{print $1"\t"$2}' | \
     awk 'NR==FNR{a[$1,$2]=$0;next}(($1,$2) in a)' - <(awk '{gsub(/ /,"\t");}1' $bial) | cat <(head -n1  $bial | awk '{gsub(/ /,"\t");}1') - > ${bial%.txt}_biallelic.txt
   done
 fi
@@ -3469,8 +3461,8 @@ export n="${ref1%.f*}"
             wait
           done
           wait
-          bash -c "$pigzdc < \"${i%rd*}split.vcf.gz\"" | grep '^#' | awk -v pat1="${n}_Chr" -v pat2="${n}_chr" '{gsub(pat1,"Chr");gsub(pat2,"Chr");gsub(/chr/,"Chr");}1' > ${i%.txt}_header.vcf &&
-          awk 'FNR==NR{a[$1,$2]=$0;next}{if(b=a[$2,$3]){print b}}' <(bash -c "$pigzdc < \"${i%rd*}split.vcf.gz\"" | grep -v '^#' | awk -v pat1="${n}_Chr" -v pat2="${n}_chr" '{gsub(pat1,"Chr");gsub(pat2,"Chr");gsub(/chr/,"Chr");}1') <(awk '!seen[$0] {print} {++seen[$0]}' $i) | \
+          zcat ${i%rd*}split.vcf.gz | grep '^#' | awk -v pat1="${n}_Chr" -v pat2="${n}_chr" '{gsub(pat1,"Chr");gsub(pat2,"Chr");gsub(/chr/,"Chr");}1' > ${i%.txt}_header.vcf &&
+          awk 'FNR==NR{a[$1,$2]=$0;next}{if(b=a[$2,$3]){print b}}' <(zcat ${i%rd*}split.vcf.gz | grep -v '^#' | awk -v pat1="${n}_Chr" -v pat2="${n}_chr" '{gsub(pat1,"Chr");gsub(pat2,"Chr");gsub(/chr/,"Chr");}1') <(awk '!seen[$0] {print} {++seen[$0]}' $i) | \
           sort -Vk1,1 -Vk2,2 | cat ${i%.txt}_header.vcf - > ${i%dose.txt}.vcf &&
           rm ${i%.txt}_header.vcf 2> /dev/null &&
           rm ${i%rd*}split.vcf.gz 2> /dev/null &&
