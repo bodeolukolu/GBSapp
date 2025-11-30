@@ -560,7 +560,7 @@ main () {
   					if [[ "${fa_fq}" == ">" ]]; then
               awk '{gsub(/AAAAAAAAAA/,"\t"); gsub(/CCCCCCCCCC/,"\t"); gsub(/GGGGGGGGGG/,"\t"); gsub(/TTTTTTTTTT/,"\t"); print $1}' <(bash -c "$pigzdc < \"$i\"") | gzip > nopolymers_${i} &&
               mv nopolymers_${i} $i &&
-  						awk '/^>/ { if(i>0) printf("\n"); i++; printf("%s\t",$0); next;} {printf("%s",$0);} END { printf("\n");}' <(bash -c "$pigzdc \"$i\"") | \
+  						awk '/^>/ { if(i>0) printf("\n"); i++; printf("%s\t",$0); next;} {printf("%s",$0);} END { printf("\n");}' <(bash -c "$pigzdc < \"$i\"") | \
   						awk 'NR%2==0' | awk 'BEGIN{srand();} {a[NR]=$0} END{for(i=1; i<=1000; i++){x=int(rand()*NR) + 1; print a[x];}}' > ${i}_length_distribution.txt
   					fi
   				else
@@ -1340,7 +1340,7 @@ main () {
       printf "Sample\tGenome_Coverage(percentage)\n" > summary_genomecov.txt
       genome_size=$(awk '{print $3}' ../refgenomes/${ref1%.f*}.dict | awk '{gsub(/LN:/,"");}1' | awk '{s+=$1}END{print s}')
       for i in ../preprocess/alignment/*_redun.sam.gz; do
-        $samtools view -bS <($pigzdc < "$i" 2>/dev/null) | $samtools sort - > ${i%*_redun.sam.gz}.bam
+        $samtools view -bS <(bash -c "$pigzdc < \"$i\" 2> /dev/null") | $samtools sort - > ${i%*_redun.sam.gz}.bam
         cov=$($bedtools genomecov -ibam ${i%*_redun.sam.gz}.bam -bga | awk '{print ($4>1)? 1 : $4}' | awk -v pat=$genome_size '{s+=$1}END{print (s/pat)*100}')
         printf "${i%*_redun.sam.gz}\t$cov\n"  | awk '{gsub(/..\/preprocess\/alignment\//,"");}1' >> summary_genomecov.txt
         rm ${i%*_redun.sam.gz}.bam 2> /dev/null
