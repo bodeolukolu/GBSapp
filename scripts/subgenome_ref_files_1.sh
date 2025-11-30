@@ -955,7 +955,31 @@ main () {
           sleep $((RANDOM % 2))
           if test ! -f ../preprocess/alignment/${alignfq%.f*}_redun.sam.gz; then
             $minimap2 -x sr --secondary=no --min-occ-floor=1000 ../refgenomes/${ref1%.f*}.mmi <(zcat ${alignfq%.f*}_uniq.fasta.gz) | \
-            awk '{for(i=1;i<=NF;i++) if($i ~ /^cm:i:/){split($i,a,":"); if(a[3] <= 10) print $1}}' | \
+            awk '
+              {
+                  read=$1
+                  aln_start=$3
+                  aln_end=$4
+                  aln_len = aln_end - aln_start
+
+                  rep=0
+                  for(i=12;i<=NF;i++){
+                      if($i ~ /^cm:i:/){split($i,a,":"); rep=a[3]}
+                  }
+
+                  # calculate fraction of read considered repetitive
+                  # assume if rep>1, those bases are repetitive
+                  # cumulative repetitive fraction per read
+                  read_reps[read] += aln_len * (rep>1)
+                  read_lens[read] = $2  # store read length
+              }
+              END{
+                  # loop through reads and keep those with <80% repetitive bases
+                  for(r in read_lens){
+                      frac_rep = read_reps[r] / read_lens[r]
+                      if(frac_rep <= 0.8) print r
+                  }
+              }' | \
             awk 'NR==FNR{keep[$1]=1;next}
                    (NR%2==1){id=substr($1,2);p=keep[id]}
                    {if(p)print}' - <(zcat ${alignfq%.f*}_uniq.fasta.gz) | \
