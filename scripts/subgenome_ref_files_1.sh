@@ -954,75 +954,7 @@ main () {
         while IFS="" read -r alignfq || [ -n "$alignfq" ]; do
           sleep $((RANDOM % 2))
           if test ! -f ../preprocess/alignment/${alignfq%.f*}_redun.sam.gz; then
-            $minimap2 -x sr --secondary=no --min-occ-floor=500 ../refgenomes/${ref1%.f*}.mmi <(zcat ${alignfq%.f*}_uniq.fasta.gz) | \
-            awk -v end_k=20 '
-              BEGIN{
-                  # you can add known motifs here if desired:
-                  known_end_motifs["AGATCGGAAGAGC"]=1   # Illumina
-                  known_end_motifs["CATG"]=1            # MboI/NlaIII site
-              }
-              {
-                  r = $1
-                  read_len = $2
-                  # classify hit region
-                  start=$3
-                  end=$4
-                  aln_len = end - start
-
-                  # extract cm:i score
-                  cm=0
-                  for(i=12;i<=NF;i++){
-                      if($i ~ /^cm:i:/){
-                          split($i,a,":")
-                          cm = a[3]
-                      }
-                  }
-                  # record minimum cm:i
-                  if((r in min_cm)==0 || cm < min_cm[r]) min_cm[r]=cm
-                  # separate END alignments from INTERNAL alignments
-                  # If alignment touches first or last end_k bases, treat differently
-                  if(start <= end_k || end >= (read_len - end_k)){
-                      end_hits[r]++
-                      # record cm for end hits (not used for filtering, for debug)
-                      if((r in end_cm)==0 || cm < end_cm[r]) end_cm[r]=cm
-                  } else {
-                      internal_hits[r]++
-                      # record cm for internal hits (used for filtering)
-                      if((r in internal_cm)==0 || cm < internal_cm[r]) internal_cm[r]=cm
-                  }
-                  # number of hits per read
-                  aln_count[r]++
-              }
-              END{
-                  for(r in aln_count){
-                      # RULE 1: Unique alignments → always keep
-                      if(aln_count[r] == 1){
-                          print r
-                          continue
-                      }
-                      # RULE 2: INTERNAL region must not be repetitive
-                      # If no internal alignments, treat internal as unique
-                      int_cm = ((r in internal_cm) ? internal_cm[r] : 999)
-
-                      # if internal region is clean (cm>=10), keep
-                      if(int_cm >= 10){
-                          print r
-                          continue
-                      }
-                      # RULE 3: If repetitive only at ends → allow
-                      # i.e. all multi-hits are from ends, not internal
-                      if(!(r in internal_hits) && (r in end_hits)){
-                          print r
-                          continue
-                      }
-                      # Otherwise → read is globally repetitive
-                      # (do not print)
-                  }
-              }' | \
-            awk 'NR==FNR{keep[$1]=1;next}
-                   (NR%2==1){id=substr($1,2);p=keep[id]}
-                   {if(p)print}' - <(zcat ${alignfq%.f*}_uniq.fasta.gz) | \
-            $minimap2 -t $threads -ax splice --secondary=no -f 0.0005 -N 8 -n 2 -m 25 ../refgenomes/${ref1%.f*}.mmi - > ${alignfq%.f*}_all.sam &&
+            $minimap2 -t $threads -ax splice --secondary=no -f 0.0005 -N 8 -n 2 -m 25 ../refgenomes/${ref1%.f*}.mmi ${alignfq%.f*}_uniq.fasta.gz > ${alignfq%.f*}_all.sam &&
             grep '^@' ${alignfq%.f*}_all.sam > ${alignfq%.f*}_header.sam &&
             grep -v '^@' ${alignfq%.f*}_all.sam | awk '$6 ~ /N/' | awk 'BEGIN{FS=OFS="\t"} !($10 == "*" && $6 !~ /^\*$/) {print}' > ${alignfq%.f*}_spliced_reads.sam &&
             grep -v '^@' ${alignfq%.f*}_all.sam | awk '$6 !~ /N/' | awk 'BEGIN{FS=OFS="\t"} !($10 == "*" && $6 !~ /^\*$/) {print}' > ${alignfq%.f*}_unspliced_reads.sam &&
