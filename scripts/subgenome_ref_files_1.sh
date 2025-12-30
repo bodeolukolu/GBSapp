@@ -318,25 +318,34 @@ if [[ "$aligner" == "ngm" ]]; then
   		done
   	fi
   	awk '{ sub("\r$",""); print}' $ref1 | awk 'BEGIN{FS=" "}{if(!/>/){print toupper($0)}else{print $1}}' | \
-    awk '/>/{gsub(/a$/,"A");gsub(/b$/,"B");gsub(/c$/,"C");gsub(/d$/,"D");gsub(/e$/,"E");gsub(/f$/,"F");gsub(/g$/,"G");gsub(/h$/,"H");}1' > ref.txt
-  	n=">${ref1%.f*}_"
-  	awk '{ sub("\r$",""); print}' ref.txt | awk -v n="$n" '{gsub(n,">"); print}' | awk -v n="$n" '{gsub(/>/,n); print}' > $ref1
-  	rm ref.txt
-  	$samtools faidx $ref1
-  	$java -jar $picard CreateSequenceDictionary REFERENCE=$ref1 OUTPUT=${ref1%.f*}.dict
-    $ngm -r $ref1
-    $genmap index -F $ref1 -I ./genmap_out >/dev/null 2>&1
-    $genmap map -K 100 -E 2 -I ./genmap_out -O ./genmap_out/ -t -w -bg --threads $threads >/dev/null 2>&1
+    awk '/>/{gsub(/a$/,"A");gsub(/b$/,"B");gsub(/c$/,"C");gsub(/d$/,"D");gsub(/e$/,"E");gsub(/f$/,"F");gsub(/g$/,"G");gsub(/h$/,"H");}1' > ref.txt &&
+  	n=">${ref1%.f*}_" &&
+  	awk '{ sub("\r$",""); print}' ref.txt | awk -v n="$n" '{gsub(n,">"); print}' | awk -v n="$n" '{gsub(/>/,n); print}' > $ref1 &&
+  	rm ref.txt &&
+  	$samtools faidx "$ref1" &&
+  	$java -jar $picard CreateSequenceDictionary REFERENCE="$ref1" OUTPUT="${ref1%.f*}.dict" &&
+    $ngm -r "$ref1" &&
+    $genmap index -F "$ref1" -I ./genmap_out >/dev/null 2>&1
+    wait
+    $genmap map -K 100 -E 2 -I ./genmap_out -O ./genmap_out/ -t -w -bg --threads "$threads" >/dev/null 2>&1
+    wait
+
     if [[ "$paralogs" == "false" ]]; then
       threshold=1
     else
       threshold=8
     fi
-    python "$wig2bed" "./genmap_out/${ref1%.f*}.genmap.wig" "$threshold" "./genmap_out/lowmap_merged.bed" > /dev/null 2>&1
-    $bedtools maskfasta -fi $ref1 -bed ./genmap_out/lowmap_merged.bed -fo ${ref1%.f*}.hardmasked.fasta >/dev/null 2>&1
-    mv $ref1 ${ref1%.f*}.nohardmasked.fasta
-    mv ${ref1%.f*}.hardmasked.fasta $ref1
-    $ngm -r $ref1
+    wait
+    python "$wig2bed" "./genmap_out/${ref1%.f*}.genmap.wig" "$threshold" "./genmap_out/lowmap_merged.bed" >/dev/null 2>&1
+    wait
+    $bedtools maskfasta -fi "$ref1" -bed ./genmap_out/lowmap_merged.bed -fo "${ref1%.f*}.hardmasked.fasta" >/dev/null 2>&1
+    wait
+    mv "$ref1" "${ref1%.f*}.nohardmasked.fasta" &&
+    mv "${ref1%.f*}.hardmasked.fasta" "$ref1" &&
+    $samtools faidx $ref1 &&
+    $java -jar $picard CreateSequenceDictionary REFERENCE=$ref1 OUTPUT=${ref1%.f*}.dict &&
+    $ngm -r "$ref1"
+    wait
   fi
 fi
 wait
@@ -358,26 +367,34 @@ if [[ "$aligner" == "minimap2" ]]; then
   		done
   	fi
   	awk '{ sub("\r$",""); print}' $ref1 | awk 'BEGIN{FS=" "}{if(!/>/){print toupper($0)}else{print $1}}' | \
-    awk '/>/{gsub(/a$/,"A");gsub(/b$/,"B");gsub(/c$/,"C");gsub(/d$/,"D");gsub(/e$/,"E");gsub(/f$/,"F");gsub(/g$/,"G");gsub(/h$/,"H");}1' > ref.txt
-  	n=">${ref1%.f*}_"
-  	awk '{ sub("\r$",""); print}' ref.txt | awk -v n="$n" '{gsub(n,">"); print}' | awk -v n="$n" '{gsub(/>/,n); print}' > $ref1
-  	rm ref.txt
+    awk '/>/{gsub(/a$/,"A");gsub(/b$/,"B");gsub(/c$/,"C");gsub(/d$/,"D");gsub(/e$/,"E");gsub(/f$/,"F");gsub(/g$/,"G");gsub(/h$/,"H");}1' > ref.txt &&
+  	n=">${ref1%.f*}_" &&
+  	awk '{ sub("\r$",""); print}' ref.txt | awk -v n="$n" '{gsub(n,">"); print}' | awk -v n="$n" '{gsub(/>/,n); print}' > $ref1 &&
+  	rm ref.txt &&
 
-    $samtools faidx $ref1
-    $java -jar $picard CreateSequenceDictionary REFERENCE=$ref1 OUTPUT=${ref1%.f*}.dict
-    $minimap2 -d ${ref1%.f*}.mmi $ref1
+    $samtools faidx $ref1 &&
+    $java -jar $picard CreateSequenceDictionary REFERENCE=$ref1 OUTPUT=${ref1%.f*}.dict &&
+    $minimap2 -d ${ref1%.f*}.mmi $ref1 &&
     $genmap index -F $ref1 -I ./genmap_out >/dev/null 2>&1
+    wait
     $genmap map -K 100 -E 2 -I ./genmap_out -O ./genmap_out/ -t -w -bg --threads $threads >/dev/null 2>&1
+    wait
     if [[ "$paralogs" == "false" ]]; then
       threshold=1
     else
       threshold=8
     fi
+    wait
     python "$wig2bed" "./genmap_out/${ref1%.f*}.genmap.wig" "$threshold" "./genmap_out/lowmap_merged.bed" > /dev/null 2>&1
+    wait
     $bedtools maskfasta -fi $ref1 -bed ./genmap_out/lowmap_merged.bed -fo ${ref1%.f*}.hardmasked.fasta >/dev/null 2>&1
-    mv $ref1 ${ref1%.f*}.nohardmasked.fasta
-    mv ${ref1%.f*}.hardmasked.fasta $ref1
-    $minimap2 -d ${ref1%.f*}.mmi $ref1
+    wait
+    mv $ref1 ${ref1%.f*}.nohardmasked.fasta &&
+    mv ${ref1%.f*}.hardmasked.fasta $ref1 &&
+    $samtools faidx $ref1 &&
+    $java -jar $picard CreateSequenceDictionary REFERENCE=$ref1 OUTPUT=${ref1%.f*}.dict &&
+    $minimap2 -d ${ref1%.f*}.mmi "$ref1"
+    wait
   fi
 fi
 wait
