@@ -10,6 +10,9 @@ fi
 if [ -z "$aligner" ]; then
   export aligner=minimap2
 fi
+if [ "$aligner" == "NGM" ]; then
+  export aligner=ngm
+fi
 if [ -z "$RNA" ]; then
  export RNA=false
 fi
@@ -190,11 +193,19 @@ for i in *.gz; do
   gunzip $i >/dev/null 2>&1
 done
 
+cd $projdir
 cd refgenomes
-mv ${ref1%.f*}.nohardmasked.fasta $ref1
-mv $ref1 ../
-rm -rf ./*
-mv ../$ref1 ./
+hardmaskedfile=$(ls *.nohardmasked.fasta 2>/dev/null)
+if [[ -f "$hardmaskedfile" ]]; then
+  mv ${ref1%.f*}.nohardmasked.fasta $ref1
+  mv $ref1 ../
+  rm -rf ./*
+  mv ../$ref1 ./
+else
+    echo "nohardmasked.fasta does not exist"
+fi
+
+
 
 if ls ./*.dict 1> /dev/null 2>&1; then
 	:
