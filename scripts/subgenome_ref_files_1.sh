@@ -337,14 +337,13 @@ if [[ "$aligner" == "ngm" ]]; then
     fi
     wait
     ref_base=$(basename "$ref1" .fasta) &&
-    python "$wig2bed" "${projdir}/refgenomes/genmap_out/${ref_base}.genmap.wig" "$threshold" "${projdir}/refgenomes/genmap_out/lowmap_merged.bed" >/dev/null 2>&1
+    python3 "$wig2bed" "${projdir}/refgenomes/genmap_out/${ref_base}.genmap.wig" "$threshold" "${projdir}/refgenomes/genmap_out/lowmap_merged.bed" >/dev/null 2>&1
     wait
     $bedtools maskfasta -fi "$ref1" -bed "${projdir}/refgenomes/genmap_out/lowmap_merged.bed" -fo "${projdir}/refgenomes/${ref1%.f*}.hardmasked.fasta" >/dev/null 2>&1
     wait
     mv "$ref1" "${ref1%.f*}.nohardmasked.fasta" &&
     mv "${ref1%.f*}.hardmasked.fasta" "$ref1" &&
     $samtools faidx "$ref1" &&
-    $java -jar $picard CreateSequenceDictionary REFERENCE=$ref1 OUTPUT=${ref1%.f*}.dict &&
     $ngm -r "${projdir}/refgenomes/$ref1"
     wait
   fi
@@ -387,14 +386,13 @@ if [[ "$aligner" == "minimap2" ]]; then
     fi
     wait
     ref_base=$(basename "$ref1" .fasta) &&
-    python "$wig2bed" "${projdir}/refgenomes/genmap_out/${ref_base}.genmap.wig" "$threshold" "${projdir}/refgenomes/genmap_out/lowmap_merged.bed" > /dev/null 2>&1
+    python3 "$wig2bed" "${projdir}/refgenomes/genmap_out/${ref_base}.genmap.wig" "$threshold" "${projdir}/refgenomes/genmap_out/lowmap_merged.bed" > /dev/null 2>&1
     wait
     $bedtools maskfasta -fi "${projdir}/refgenomes/$ref1" -bed "${projdir}/refgenomes/genmap_out/lowmap_merged.bed" -fo "${projdir}/refgenomes/${ref1%.f*}.hardmasked.fasta" >/dev/null 2>&1
     wait
     mv "$ref1" "${ref1%.f*}.nohardmasked.fasta" &&
     mv "${ref1%.f*}.hardmasked.fasta" "$ref1" &&
     $samtools faidx "$ref1" &&
-    $java -jar $picard CreateSequenceDictionary REFERENCE="$ref1" OUTPUT="${ref1%.f*}.dict" &&
     $minimap2 -d "${ref1%.f*}.mmi" "$ref1"
     wait
   fi
