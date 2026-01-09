@@ -425,10 +425,11 @@ for file in "${arr[@]}"; do
 done
 }
 cd $projdir
-if [[ "$samples_list" == "samples_list_node_1.txt" ]]; then
-	time main 2>> ${projdir}/log.out
+if [[ "$alignments" == 1 ]] && [[ "$snp_calling" == 1 ]]; then
+  if [[ "$samples_list" == "samples_list_node_1.txt" ]]; then
+  	time main 2>> ${projdir}/log.out
+  fi
 fi
-
 
 echo -e "${blue}\n############################################################################## ${yellow}\n- Organizing sample fastq files \n${blue}##############################################################################${white}\n"
 main () {
@@ -468,9 +469,7 @@ main () {
   						:
   					fi
           fi ) &
-          if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
-          	wait
-          fi
+          while (( $(jobs -rp | wc -l) >= $gN )); do sleep 2; done
 				done
         wait
 			fi
@@ -517,9 +516,7 @@ main () {
 							exit 1
 						fi
 					fi ) &
-          if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
-          	wait
-          fi
+          while (( $(jobs -rp | wc -l) >= $gN )); do sleep 2; done
 				done
         wait
 			fi
@@ -546,9 +543,7 @@ main () {
 							exit 1
 						fi
 					fi ) &
-          if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
-          	wait
-          fi
+          while (( $(jobs -rp | wc -l) >= $gN )); do sleep 2; done
 				done
         wait
 			fi
@@ -608,9 +603,7 @@ main () {
   					fi
   				fi
         fi ) &
-        if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
-          wait
-        fi
+        while (( $(jobs -rp | wc -l) >= $gN )); do sleep 2; done
 			done
       wait
 
@@ -669,9 +662,7 @@ main () {
   					fi
   				fi
   		  fi ) &
-        if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
-          wait
-        fi
+        while (( $(jobs -rp | wc -l) >= $gN )); do sleep 2; done
       done
       wait
 		fi
@@ -683,85 +674,65 @@ main () {
       printf "Improvement in flushed reads not required for shotgun WGS data""\n" > flushed_reads.txt
     fi
     if test ! -f flushed_reads.txt || [[ "$(ls ${projdir}/preprocess/alignment/*_redun.sam.gz 2> /dev/null | wc -l)" -eq 0 ]]; then
-      if [[ "$subsample_WGS_in_silico_qRRS" == true ]]; then
-        for i in *.f*; do (
-        if [[ "$i" == *"_uniq.fasta"* || "$i" == *"_R1_uniq.fasta"* || "$i" == *"_R2_uniq.fasta"* || "$i" == *"_uniq.hold.fasta"* || "$i" == *"_R1_uniq.hold.fasta"* || "$i" == *"_R2_uniq.hold.fasta"* || "$i" == *"fq.gz"* ]]; then
-          :
-        else
-            if [[ $(file $i 2> /dev/null) =~ gzip ]]; then
-              fa_fq=$(zcat ${projdir}/samples/$i 2> /dev/null | head -n1 | cut -c1-1)
+      if [[ "${subsample_WGS_in_silico_qRRS,,}" == "medium" || "${subsample_WGS_in_silico_qRRS,,}" == "low" ]]; then
+        for i in *.f*; do
+          (
+            # skip unwanted files
+            [[ "$i" == *_uniq.fasta ]] && continue
+            [[ "$i" == *_R1_uniq.fasta ]] && continue
+            [[ "$i" == *_R2_uniq.fasta ]] && continue
+            [[ "$i" == *_uniq.hold.fasta ]] && continue
+            [[ "$i" == *_R1_uniq.hold.fasta ]] && continue
+            [[ "$i" == *_R2_uniq.hold.fasta ]] && continue
+            [[ "$i" == *.fq.gz ]] && continue
+            # determine input reader
+            if file "$i" 2>/dev/null | grep -q gzip; then
+              reader="zcat ${projdir}/samples/$i"
             else
-              fa_fq=$(cat ${projdir}/samples/$i | head -n1 | cut -c1-1)
+              reader="cat ${projdir}/samples/$i"
             fi
-            wait
 
-            if [[ $(file $i 2> /dev/null) =~ gzip ]]; then
-              if [[ "${fa_fq}" == "@" ]]; then
-                awk 'NR%2==0' <(zcat $i) | awk 'NR%2==1' | awk '{gsub(/ATGCAT/,"ATGCAT\nATGCAT");}1' | awk 'length >= 64 && length <= 600' | \
-                grep '^ATGCAT.*ATGCAT$' | awk '{print ">frag"NR"\n"$0}' | $gzip > ${i%.f*}_RE1.fasta.gz &&
-                awk 'NR%2==0' <(zcat $i) | awk 'NR%2==1' | awk '{gsub(/CATG/,"CATG\nCATG");}1' | awk 'length >= 64 && length <= 600' | \
-                grep '^CATG.*CATG$' | awk '{print ">frag"NR"\n"$0}' | $gzip > ${i%.f*}_RE2.fasta.gz &&
-                awk 'NR%2==0' <(zcat $i) | awk 'NR%2==1' | awk '{gsub(/ATGCAT/,"ATGCAT\nATGCAT");gsub(/CATG/,"CATG\nCATG");}1' | awk 'length >= 64 && length <= 600' | \
-                grep '^ATGCAT.*CATG$\|^CATG.*ATGCAT$' | awk '{print ">frag"NR"\n"$0}' | $gzip > ${i%.f*}_RE1RE2.fasta.gz &&
-                cat ${i%.f*}_RE1.fasta.gz ${i%.f*}_RE2.fasta.gz ${i%.f*}_RE1RE2.fasta.gz > ${i%.f*}.fasta.gz &&
-                rm "${i%.f*}"_RE1.fasta.gz "${i%.f*}"_RE2.fasta.gz "${i%.f*}"_RE1RE2.fasta.gz &&
-                wait
-              fi
-              if [[ "${fa_fq}" == ">" ]]; then
-                awk '{if(NR==1) {print $0} else {if($0 ~ /^>/) {print "\n"$0} else {printf $0}}}' <(zcat $i) | awk 'NR%2==0' | awk '{gsub(/ATGCAT/,"ATGCAT\nATGCAT");}1' | \
-                awk 'length >= 64 && length <= 600' | grep '^ATGCAT.*ATGCAT$' | awk '{print ">frag"NR"\n"$0}' | $gzip > ${i%.f*}.tmp1.gz &&
-                awk '{if(NR==1) {print $0} else {if($0 ~ /^>/) {print "\n"$0} else {printf $0}}}' <(zcat $i) | awk 'NR%2==0' | awk '{gsub(/CATG/,"CATG\nCATG");}1' | \
-                awk 'length >= 64 && length <= 600' | grep '^CATG.*CATG$' | awk '{print ">frag"NR"\n"$0}' | $gzip > ${i%.f*}.tmp2.gz &&
-                awk '{if(NR==1) {print $0} else {if($0 ~ /^>/) {print "\n"$0} else {printf $0}}}' <(zcat $i) | awk 'NR%2==0' | awk '{gsub(/ATGCAT/,"ATGCAT\nATGCAT");gsub(/CATG/,"CATG\nCATG");}1' | \
-                awk 'length >= 64 && length <= 600' | grep '^ATGCAT.*CATG$\|^CATG.*ATGCAT$' | awk '{print ">frag"NR"\n"$0}' | $gzip > ${i%.f*}.tmp3.gz &&
-                cat ${i%.f*}.tmp1.gz ${i%.f*}.tmp2.gz ${i%.f*}.tmp3.gz > ${i%.f*}.tmp.gz &&
-                rm "${i%.f*}".fasta.gz &&
-                mv "${i%.f*}".tmp.gz "${i%.f*}".fasta.gz &&
-                rm "${i%.f*}".tmp1.gz "${i%.f*}".tmp2.gz "${i%.f*}".tmp3.gz "${i%.f*}".tmp.gz &&
-                wait
-              fi
-            else
-              if [[ "${fa_fq}" == "@" ]]; then
-                awk 'NR%2==0' $i | awk 'NR%2==1' | awk '{gsub(/ATGCAT/,"ATGCAT\nATGCAT")}1' | awk 'length >= 64 && length <= 600' | \
-                grep '^ATGCAT.*ATGCAT$' | awk '{print ">frag"NR"\n"$0}' | $gzip > ${i%.f*}_RE1.fasta.gz &&
-                awk 'NR%2==0' $i | awk 'NR%2==1' | awk '{gsub(/CATG/,"CATG\nCATG");}1' | awk 'length >= 64 && length <= 600' | \
-                grep '^CATG.*CATG$' | awk '{print ">frag"NR"\n"$0}' | $gzip > ${i%.f*}_RE2.fasta.gz &&
-                awk 'NR%2==0' $i | awk 'NR%2==1' | awk '{gsub(/ATGCAT/,"ATGCAT\nATGCAT");gsub(/CATG/,"CATG\nCATG");}1' | awk 'length >= 64 && length <= 600' | \
-                grep '^ATGCAT.*CATG$\|^CATG.*ATGCAT$' | awk '{print ">frag"NR"\n"$0}' | $gzip > ${i%.f*}_RE1RE2.fasta.gz &&
-                cat "${i%.f*}"_RE1.fasta.gz "${i%.f*}"_RE2.fasta.gz "${i%.f*}"_RE1RE2.fasta.gz > "${i%.f*}".fasta.gz &&
-                rm "${i%.f*}"_RE1.fasta.gz "${i%.f*}"_RE2.fasta.gz "${i%.f*}"_RE1RE2.fasta.gz &&
-                wait
-              fi
-              if [[ "${fa_fq}" == ">" ]]; then
-                awk '{if(NR==1) {print $0} else {if($0 ~ /^>/) {print "\n"$0} else {printf $0}}}' $i | awk 'NR%2==0' | awk '{gsub(/ATGCAT/,"ATGCAT\nATGCAT");}1' | \
-                awk 'length >= 64 && length <= 600' | grep '^ATGCAT.*ATGCAT$\|^CATG.*CATG$' | awk '{print ">frag"NR"\n"$0}' | $gzip > ${i%.f*}.tmp1.gz &&
-                awk '{if(NR==1) {print $0} else {if($0 ~ /^>/) {print "\n"$0} else {printf $0}}}' $i | awk 'NR%2==0' | awk '{gsub(/CATG/,"CATG\nCATG");}1' | \
-                awk 'length >= 64 && length <= 600' | grep '^CATG.*CATG$' | awk '{print ">frag"NR"\n"$0}' | $gzip > ${i%.f*}.tmp2.gz &&
-                awk '{if(NR==1) {print $0} else {if($0 ~ /^>/) {print "\n"$0} else {printf $0}}}' $i | awk 'NR%2==0' | awk '{gsub(/ATGCAT/,"ATGCAT\nATGCAT");gsub(/CATG/,"CATG\nCATG");}1' | \
-                awk 'length >= 64 && length <= 600' | grep '^ATGCAT.*CATG$\|^CATG.*ATGCAT$' | awk '{print ">frag"NR"\n"$0}' | $gzip > ${i%.f*}.tmp3.gz &&
-                cat ${i%.f*}.tmp1.gz ${i%.f*}.tmp2.gz ${i%.f*}.tmp3.gz > ${i%.f*}.tmp.gz &&
-                rm "${i%.f*}".fasta.gz &&
-                mv "${i%.f*}".tmp.gz "${i%.f*}".fasta.gz &&
-                rm "${i%.f*}".tmp1.gz "${i%.f*}".tmp2.gz "${i%.f*}".tmp3.gz "${i%.f*}".tmp.gz &&
-                wait
-              fi
-            fi
-            # grep -v '^>' <(zcat ${i%.f*}.fasta.gz) | awk '{print substr($0,1,64)}' | awk '{print "@B"NR"\t"$1"\t"$1}' | \
-            # awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$3); print}' | awk '{print $1"\n"$2"\n+\n"$3}' | gzip > "${i%.f*}"_tmp1.fq.gz &&
-            # grep -v '^>' <(zcat ${i%.f*}.fasta.gz) | awk -v max=$max_seqread_len 'length == max' | awk -v max=$max_seqread_len '{print substr($0,65,max)}' | \
-            # awk '{print "@E"NR"\t"$1"\t"$1}' | awk 'BEGIN{OFS="\t"}{gsub(/A|a|C|c|G|g|T|t|N|n/,"I",$3); print}' | awk '{print $1"\n"$2"\n+\n"$3}' | gzip > "${i%.f*}"_tmp2.fq.gz &&
-            # rm ${i%.f*}.fasta.gz &&
-            # cat "${i%.f*}"_tmp1.fq.gz "${i%.f*}"_tmp2.fq.gz > ${i%.f*}.fastq.gz &&
-            # rm "${i%.f*}"_tmp1.fq.gz "${i%.f*}"_tmp2.fq.gz &&
-            wait
-          fi
+            # in silico digest
+            $reader | awk -v MODE="$MODE" '
+            BEGIN{
+              MIN=64; MAX=600
+              H="AAGCTT"; M="CCGG"
+              # high/low coverage fragment selection
+              if(MODE=="medium"){
+                keep["H,H"]=keep["H,M"]=keep["M,H"]=keep["M,M"]=1
+                keep["H,N"]=keep["N,H"]=keep["M,N"]=keep["N,M"]=1
+              } else if(MODE=="low"){
+                keep["H,H"]=keep["H,M"]=keep["M,H"]=1
+                keep["H,N"]=keep["N,H"]=1
+              }
+            }
+            function emit(seq,n,i,o,tmp,p,cut,t,l,r,len,frag){
+              n=1; cut[1]=0; t[1]="N"; tmp=seq; o=0
+              while(match(tmp,/(AAGCTT|CCGG)/)){
+                p=o+RSTART+RLENGTH-1
+                cut[++n]=p
+                t[n]=(substr(tmp,RSTART,RLENGTH)==H?"H":"M")
+                o+=RSTART
+                tmp=substr(tmp,RSTART+1)
+              }
+              cut[++n]=length(seq); t[n]="N"
+              for(i=1;i<n;i++){
+                l=t[i]; r=t[i+1]
+                len=cut[i+1]-cut[i]
+                if(len>=MIN && len<=MAX && keep[l","r]){
+                  frag=substr(seq,cut[i]+1,len)
+                  printf(">frag_%d_%s_%s\n%s\n",NR,l,r,frag)
+                }
+              }
+            }
+            NR%4==2 {emit($0); next}   # FASTQ
+            /^>/ {next}                 # FASTA header
+            {seq=$0; emit(seq)}'
           ) &
-          if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
-            wait
-          fi
+          while (( $(jobs -rp | wc -l) >= $gN )); do sleep 2; done
+          wait
+          echo "Improvement in flushed reads already implemented" > flushed_reads.txt
         done
-        wait
-        printf "Improvement in flushed reads already implemented""\n" > flushed_reads.txt
       fi
     fi
 	fi
@@ -868,9 +839,7 @@ main () {
           fi
         fi
       fi) &
-      if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
-        wait
-      fi
+      while (( $(jobs -rp | wc -l) >= $gN )); do sleep 2; done
     done < <(cat ${projdir}/samples_list_node_* )
     wait
 
@@ -898,9 +867,7 @@ main () {
           wait
         fi
       fi ) &
-      if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
-        wait
-      fi
+      while (( $(jobs -rp | wc -l) >= $gN )); do sleep 2; done
     done < <(cat ${projdir}/samples_list_node_* )
     wait
 
@@ -1320,9 +1287,7 @@ main () {
       fi
     fi
     ) &
-    if [[ $(jobs -r -p | wc -l) -ge $prepN ]]; then
-      wait
-    fi
+    while (( $(jobs -rp | wc -l) >= $prepN )); do sleep 2; done
   done < <(cat ${projdir}/${samples_list})
   wait && touch ${projdir}/precall_done_${samples_list}
   wait
@@ -1467,9 +1432,7 @@ if [[ "$samples_list" == "samples_list_node_1.txt" ]]; then
   					wait
   				fi
   				) &
-  				if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
-  					wait
-  				fi
+  				while (( $(jobs -rp | wc -l) >= $gN )); do sleep 2; done
   			done
       else
         for selchr in $Get2_Chromosome; do (
@@ -1481,9 +1444,7 @@ if [[ "$samples_list" == "samples_list_node_1.txt" ]]; then
             wait
           fi
           ) &
-          if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
-            wait
-          fi
+          while (( $(jobs -rp | wc -l) >= $gN )); do sleep 2; done
         done
       fi
 			wait
@@ -1539,9 +1500,7 @@ if [[ "$joint_calling" == false ]]&& [[ "$variant_caller" == "gatk" ]]; then
     		mv ${projdir}/preprocess/${i%.f*}_${ref1%.f*}_precall.bam* ${projdir}/preprocess/processed/ 2> /dev/null
         rm ${i%.f*}_${ref1%.f*}_precall.bam* 2> /dev/null
         wait ) &
-  		if [[ $(jobs -r -p | wc -l) -ge $gN ]]; then
-  			wait
-  		fi
+  		while (( $(jobs -rp | wc -l) >= $gN )); do sleep 2; done
   	done < <(cat ${projdir}/${samples_list})
   fi
 	wait
@@ -1592,9 +1551,7 @@ if [[ "$joint_calling" == false ]]&& [[ "$variant_caller" == "gatk" ]]; then
             fi
           fi
           wait ) &
-      		if [[ $(jobs -r -p | wc -l) -ge $N ]]; then
-      			wait
-      		fi
+      		while (( $(jobs -rp | wc -l) >= $N )); do sleep 2; done
 				done
         wait
 
@@ -1629,9 +1586,7 @@ if [[ "$joint_calling" == false ]]&& [[ "$variant_caller" == "gatk" ]]; then
 						sleep 5 && exit 1
 					fi
           wait ) &
-      		if [[ $(jobs -r -p | wc -l) -ge $N ]]; then
-      			wait
-      		fi
+      		while (( $(jobs -rp | wc -l) >= $N )); do sleep 2; done
 				done
 				wait
 				for g in ${pop}_${ploidy}x_*_raw.vcf.gz; do
@@ -1733,10 +1688,9 @@ echo -e "${blue}\n##############################################################
 main () {
 cd $projdir
 
-if test -d snpfilter; then
-	number_snpfilter=$( ls -d snpfilter* | wc -l )
-	mv snpfilter snpfilter_"${number_snpfilter}"
-fi
+for number_snpfilter in snpfilter snpfilter_biallelic; do
+  [[ -d $number_snpfilter ]] && mv "$number_snpfilter" "${number_snpfilter}_$(ls -d snpfilter* 2>/dev/null | wc -l)"
+done
 
 
 mkdir snpfilter
@@ -2318,7 +2272,7 @@ for smiss in ${sample_missingness//,/ }; do
             mkdir -p ./consensus_seq_context/sequences && mv ./consensus_seq_context/*fasta ./consensus_seq_context/sequences/ 2> /dev/null &&
             mkdir -p ./consensus_seq_context/sample_consensus_seqs && mv ./consensus_seq_context/*.cons ./consensus_seq_context/sample_consensus_seqs 2> /dev/null &&
             mv seq_context_TGCAT ./consensus_seq_context/ 2> /dev/null &&
-            mv seq_context_CATG ./consensus_seq_context/ 2> /dev/null &&
+            mv seq_context_CCGG ./consensus_seq_context/ 2> /dev/null &&
             wait
           fi
         fi
@@ -2451,7 +2405,7 @@ for smiss in ${sample_missingness//,/ }; do
             mkdir -p ./consensus_seq_context/sequences && mv ./consensus_seq_context/*fasta ./consensus_seq_context/sequences/ 2> /dev/null &&
             mkdir -p ./consensus_seq_context/sample_consensus_seqs && mv ./consensus_seq_context/*.cons ./consensus_seq_context/sample_consensus_seqs 2> /dev/null &&
             mv seq_context_TGCAT ./consensus_seq_context/ 2> /dev/null &&
-            mv seq_context_CATG ./consensus_seq_context/ 2> /dev/null &&
+            mv seq_context_CCGG ./consensus_seq_context/ 2> /dev/null &&
             wait
           fi
         fi
@@ -2579,7 +2533,7 @@ for smiss in ${sample_missingness//,/ }; do
             mkdir -p ./consensus_seq_context/sequences && mv ./consensus_seq_context/*fasta ./consensus_seq_context/sequences/ 2> /dev/null &&
             mkdir -p ./consensus_seq_context/sample_consensus_seqs && mv ./consensus_seq_context/*.cons ./consensus_seq_context/sample_consensus_seqs 2> /dev/null &&
             mv seq_context_TGCAT ./consensus_seq_context/ 2> /dev/null &&
-            mv seq_context_CATG ./consensus_seq_context/ 2> /dev/null &&
+            mv seq_context_CCGG ./consensus_seq_context/ 2> /dev/null &&
             wait
           fi
         fi
@@ -2707,7 +2661,7 @@ for smiss in ${sample_missingness//,/ }; do
             mkdir -p ./consensus_seq_context/sequences && mv ./consensus_seq_context/*fasta ./consensus_seq_context/sequences/ 2> /dev/null &&
             mkdir -p ./consensus_seq_context/sample_consensus_seqs && mv ./consensus_seq_context/*.cons ./consensus_seq_context/sample_consensus_seqs 2> /dev/null &&
             mv seq_context_TGCAT ./consensus_seq_context/ 2> /dev/null &&
-            mv seq_context_CATG ./consensus_seq_context/ 2> /dev/null &&
+            mv seq_context_CCGG ./consensus_seq_context/ 2> /dev/null &&
             wait
           fi
         fi
@@ -2840,7 +2794,7 @@ for smiss in ${sample_missingness//,/ }; do
             mkdir -p ./consensus_seq_context/sequences && mv ./consensus_seq_context/*fasta ./consensus_seq_context/sequences/ 2> /dev/null &&
             mkdir -p ./consensus_seq_context/sample_consensus_seqs && mv ./consensus_seq_context/*.cons ./consensus_seq_context/sample_consensus_seqs 2> /dev/null &&
             mv seq_context_TGCAT ./consensus_seq_context/ 2> /dev/null &&
-            mv seq_context_CATG ./consensus_seq_context/ 2> /dev/null &&
+            mv seq_context_CCGG ./consensus_seq_context/ 2> /dev/null &&
             wait
           fi
         fi
@@ -2974,7 +2928,7 @@ for smiss in ${sample_missingness//,/ }; do
             mkdir -p ./consensus_seq_context/sequences && mv ./consensus_seq_context/*fasta ./consensus_seq_context/sequences/ 2> /dev/null &&
             mkdir -p ./consensus_seq_context/sample_consensus_seqs && mv ./consensus_seq_context/*.cons ./consensus_seq_context/sample_consensus_seqs 2> /dev/null &&
             mv seq_context_TGCAT ./consensus_seq_context/ 2> /dev/null &&
-            mv seq_context_CATG ./consensus_seq_context/ 2> /dev/null &&
+            mv seq_context_CCGG ./consensus_seq_context/ 2> /dev/null &&
             wait
           fi
         fi
@@ -3106,7 +3060,7 @@ for smiss in ${sample_missingness//,/ }; do
             mkdir -p ./consensus_seq_context/sequences && mv ./consensus_seq_context/*fasta ./consensus_seq_context/sequences/ 2> /dev/null &&
             mkdir -p ./consensus_seq_context/sample_consensus_seqs && mv ./consensus_seq_context/*.cons ./consensus_seq_context/sample_consensus_seqs 2> /dev/null &&
             mv seq_context_TGCAT ./consensus_seq_context/ 2> /dev/null &&
-            mv seq_context_CATG ./consensus_seq_context/ 2> /dev/null &&
+            mv seq_context_CCGG ./consensus_seq_context/ 2> /dev/null &&
             wait
           fi
         fi
@@ -3237,7 +3191,7 @@ for smiss in ${sample_missingness//,/ }; do
             mkdir -p ./consensus_seq_context/sequences && mv ./consensus_seq_context/*fasta ./consensus_seq_context/sequences/ 2> /dev/null &&
             mkdir -p ./consensus_seq_context/sample_consensus_seqs && mv ./consensus_seq_context/*.cons ./consensus_seq_context/sample_consensus_seqs 2> /dev/null &&
             mv seq_context_TGCAT ./consensus_seq_context/ 2> /dev/null &&
-            mv seq_context_CATG ./consensus_seq_context/ 2> /dev/null &&
+            mv seq_context_CCGG ./consensus_seq_context/ 2> /dev/null &&
             wait
           fi
         fi
@@ -3370,7 +3324,7 @@ for smiss in ${sample_missingness//,/ }; do
             mkdir -p ./consensus_seq_context/sequences && mv ./consensus_seq_context/*fasta ./consensus_seq_context/sequences/ 2> /dev/null &&
             mkdir -p ./consensus_seq_context/sample_consensus_seqs && mv ./consensus_seq_context/*.cons ./consensus_seq_context/sample_consensus_seqs 2> /dev/null &&
             mv seq_context_TGCAT ./consensus_seq_context/ 2> /dev/null &&
-            mv seq_context_CATG ./consensus_seq_context/ 2> /dev/null &&
+            mv seq_context_CCGG ./consensus_seq_context/ 2> /dev/null &&
             wait
           fi
         fi
@@ -3678,9 +3632,7 @@ for snpfilter_dir in */; do (
 	wait
 	rm CHROM_POS.txt snp_allele_depth.txt && \
 	cd "$projdir"/snpfilter ) &
-	if [[ $(jobs -r -p | wc -l) -ge $N ]]; then
-		wait
-	fi
+	while (( $(jobs -rp | wc -l) >= $N )); do sleep 2; done
 done
 wait
 cd "$projdir"/snpfilter

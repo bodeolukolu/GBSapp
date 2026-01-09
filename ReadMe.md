@@ -116,7 +116,7 @@ Using a text editor, save a file containing any of the following variables as 'c
 |variant_caller|gatk|gatk (recommended) or bcftools(diploid only, might be better for some genomes)|string|Optional|
 |samples_alt_dir|false|links samples in separate directory to project directory|true or false|Optional|
 |lib_type|RRS|RRS (reduced representation sequence e.g. GBS, ddRADseq, qRRS) or WGS (shotgun whole genome sequence)|string|Optional|
-|subsample_WGS_in_silico_qRRS|false|Fast alternative to variant calling on whole genome data|true or false|Optional|
+|subsample_WGS_in_silico_qRRS|false|Fast alternative to variant calling on whole genome data|false, medium, low|Optional|
 
 
 
@@ -256,8 +256,8 @@ maxHaplotype=128
 use_softclip=false
 joint_calling=false
 keep_gVCF=false
-RE1=TGCAT
-RE2=CATG
+RE1=AACGTT
+RE2=CCGG
 filter_ExcHet=false
 ```
 
