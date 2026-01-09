@@ -126,13 +126,8 @@ Using a text editor, save a file containing any of the following variables as 'c
 |:-------------|:-------------|:-------------|:-------------|:----------------|
 |ploidy|na|value = 1,2,4,6, or 8|integer|Required|
 |haplome_number|1|specify single value or range (comma delimited) up to maximum haplome i.e. ploidy level|integer|Optional|
-|ref1|na|reference subgenome as .fasta file. Anchor-genome when other pangenomes/subgenomes are specified |integer|Optional|
-|ref2|na|2nd reference genome as .fasta file|integer|Optional|
-|ref3|na|3rd reference genome as .fasta file|integer|Optional|
-|ploidy_ref1|na|ploidy-level for subgenome 1|integer|Optional|
-|ploidy_ref2|na|ploidy-level for subgenome 2, only specify for subgenome specific variants|integer|Optional|
-|ploidy_ref3|na|ploidy-level for subgenome 3, only specify for subgenome specific variants|integer|Optional|
-|hap_ref|na|haplotype-resolved reference genome (# of haplomes typically = ploidy level) |integer|Optional|
+|ref1|na|reference subgenome as .fasta file. Anchor-genome when other pangenomes/subgenomes are provided  |integer|Optional|
+|ploidy_ref1|na|ploidy-level|integer|Optional|
 |Get_Chromosome|na|variant calling on specific chromosomes, scaffolds,and contigs|comma delimited string(s)|optional|
 |Exclude_Chromosome|na|variant calling to exclude specific chromosomes, scaffolds,and contigs|comma delimited string(s)|optional|
 
@@ -168,7 +163,7 @@ Using a text editor, save a file containing any of the following variables as 'c
 **Advanced parameters**
 |Variable      |Default       |Usage         |Input         |required/Optional|
 |:-------------|:-------------|:-------------|:-------------|:----------------|
-|max_pseudoMol|1000|maximum # of pseudomolecules (scaffold/contig) before stitching into non-contiguous pseudo-chromosomes|integer|Optional|
+|max_pseudoMol|5000|maximum # of pseudomolecules (scaffold/contig) before stitching into non-contiguous pseudo-chromosomes|integer|Optional|
 |uniquely_mapped|true|include uniquely mapped for variant calling |string|Optional|
 |paralogs|false|include paralogs for variant calling |string|Optional|
 |minmapq|20|minimum mapping quality|integer|Optional|
@@ -211,12 +206,7 @@ haplome_number=6
 # Variant calling with haploid subgenome(s)
 # Anchored to ref1 for loci conserved across all subgenomes
 ref1=TF.fasta
-ref2=TL.fasta
-ploidy_ref1=4
-ploidy_ref2=2
-# Variant calling with haplotype-resolved reference genome or pangenomes
-# Anchored to haplome_ref1 for loci conserved across all haplomes
-hap_ref=Ib.fasta
+ploidy_ref1=2
 # exclue or limit variant calling to specific chromosomes
 Get_Chromosome=TF_Chr01,TF_Chr02
 Exclude_Chromosome=TF_Chr00,TL_Chr00
@@ -240,7 +230,7 @@ filtered_vcf=true
 
 # Advanced_parameters
 ###################################################
-max_pseudoMol=1000
+max_pseudoMol=5000
 uniquely_mapped=true
 paralogs=true
 minmapq=20
