@@ -226,14 +226,18 @@ else
 	fi
 
   # Filter contigs >= 1000 bp (robust)
-  awk 'BEGIN{RS=">"; ORS=""}
-  NR>1{
-    n = split($0, a, "\n")
-    seq = ""
-    for (i = 2; i <= n; i++) seq = seq a[i]
-    if (length(seq) >= 1000) print ">" $0
-  }' "$ref1" > "${ref1}.tmp"
-  mv "${ref1}.tmp" "$ref1"
+  if [[ $(awk '/^>/{if(NR>1 && len<1000) exit 1; len=0; next}{len+=length($0)}END{if(len<1000) exit 1}' "$ref1") -gt 0 ]]; then
+    echo "All contigs/scaffolds/chromosomes sequences >= 1000 bp"
+  else
+    awk 'BEGIN{RS=">"; ORS=""}
+    NR>1{
+      n = split($0, a, "\n")
+      seq = ""
+      for (i = 2; i <= n; i++) seq = seq a[i]
+      if (length(seq) >= 1000) print ">" $0
+    }' "$ref1" > "${ref1}.tmp"
+    mv "${ref1}.tmp" "$ref1"
+  fi
   ncontigscaffold=$(grep -c '^>' "$ref1")
   if [[ $ncontigscaffold -gt $max_pseudoMol ]]; then
     nfakechr=$(( threads > 1 ? threads/2 : 1 ))
@@ -417,14 +421,18 @@ if [[ "$aligner" == "minimap2" ]]; then
       shopt -s nullglob
       for panref in *.fasta; do (
         ## 1. Filter sequences ≥1000 bp (sequence-only length)
-        awk 'BEGIN{RS=">"; ORS=""}
-        NR>1{
-          n = split($0, a, "\n")
-          seq = ""
-          for (i = 2; i <= n; i++) seq = seq a[i]
-          if (length(seq) >= 1000) print ">" $0
-        }' "$panref" > "${panref}.tmp"
-        mv "${panref}.tmp" "$panref"
+        if [[ $(awk '/^>/{if(NR>1 && len<1000) exit 1; len=0; next}{len+=length($0)}END{if(len<1000) exit 1}' "$ref1") -gt 0 ]]; then
+          echo "All contigs/scaffolds/chromosomes sequences >= 1000 bp"
+        else
+          awk 'BEGIN{RS=">"; ORS=""}
+          NR>1{
+            n = split($0, a, "\n")
+            seq = ""
+            for (i = 2; i <= n; i++) seq = seq a[i]
+            if (length(seq) >= 1000) print ">" $0
+          }' "$panref" > "${panref}.tmp"
+          mv "${panref}.tmp" "$panref"
+        fi
         ncontigscaffold=$(grep '>' "$panref" | wc -l)
         if [[ $ncontigscaffold -gt $max_pseudoMol ]]; then
           nfakechr=$((threads/2))
