@@ -196,7 +196,7 @@ done
 cd $projdir
 cd refgenomes
 [[ -f "${ref1%.f*}_unstitched.fasta" ]] && mv "${ref1%.f*}_unstitched.fasta" ../
-[[ -f "unsplit_"${ref1%.f*}_fasta.txt" ]] && mv "unsplit_"${ref1%.f*}_fasta.txt" ../
+[[ -f "unsplit_${ref1%.f*}_fasta.txt" ]] && mv "unsplit_${ref1%.f*}_fasta.txt" ../
 originalREF=$(ls *_original.fasta 2>/dev/null)
 if [[ -f "$originalREF" ]]; then
   mv ${ref1%.f*}_original.fasta ../$ref1
@@ -206,7 +206,7 @@ if [[ -f "$originalREF" ]]; then
   mv ../pangenomes ./
 fi
 [[ -f "../${ref1%.f*}_unstitched.fasta" ]] && mv "../${ref1%.f*}_unstitched.fasta" ./
-[[ -f "../unsplit_"${ref1%.f*}_fasta.txt" ]] && mv "../unsplit_"${ref1%.f*}_fasta.txt" ./
+[[ -f "../unsplit_${ref1%.f*}_fasta.txt" ]] && mv "../unsplit_${ref1%.f*}_fasta.txt" ./
 
 
 if ls ./*.dict 1> /dev/null 2>&1; then
@@ -228,10 +228,10 @@ else
   # Filter contigs >= 1000 bp (robust)
   awk 'BEGIN{RS=">"; ORS=""}
   NR>1{
-    split($0,a,"\n")
-    seq=""
-    for(i=2;i<=length(a);i++) seq=seq a[i]
-    if(length(seq)>=1000) print ">"$0
+    n = split($0, a, "\n")
+    seq = ""
+    for (i = 2; i <= n; i++) seq = seq a[i]
+    if (length(seq) >= 1000) print ">" $0
   }' "$ref1" > "${ref1}.tmp"
   mv "${ref1}.tmp" "$ref1"
   ncontigscaffold=$(grep -c '^>' "$ref1")
@@ -312,7 +312,7 @@ else
 		done
 		cd ../
 		sleep $((RANDOM % 2))
-    mv $ref1 ./unsplit_"${ref1%.f*}_fasta.txt"
+    mv $ref1 "./unsplit_${ref1%.f*}_fasta.txt"
 		cat ./split/*Chr*.txt > $ref1
 		wait
 		rm -rf split
@@ -419,10 +419,10 @@ if [[ "$aligner" == "minimap2" ]]; then
         ## 1. Filter sequences ≥1000 bp (sequence-only length)
         awk 'BEGIN{RS=">"; ORS=""}
         NR>1{
-          split($0,a,"\n")
-          seq=""
-          for(i=2;i<=length(a);i++) seq=seq a[i]
-          if(length(seq)>=1000) print ">"$0
+          n = split($0, a, "\n")
+          seq = ""
+          for (i = 2; i <= n; i++) seq = seq a[i]
+          if (length(seq) >= 1000) print ">" $0
         }' "$panref" > "${panref}.tmp"
         mv "${panref}.tmp" "$panref"
         ncontigscaffold=$(grep '>' "$panref" | wc -l)
