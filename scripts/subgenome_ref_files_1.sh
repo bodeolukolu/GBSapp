@@ -226,7 +226,7 @@ else
 	fi
 
   # Filter contigs >= 1000 bp (robust)
-  if [[ $(awk '/^>/{if(NR>1 && len<1000) exit 1; len=0; next}{len+=length($0)}END{if(len<1000) exit 1}' "$ref1") -gt 0 ]]; then
+  if awk '/^>/{if(NR>1 && len<1000) exit 1; len=0; next}{len+=length($0)}END{if(len<1000) exit 1}' "$ref1"; then
     echo "All contigs/scaffolds/chromosomes sequences >= 1000 bp"
   else
     awk 'BEGIN{RS=">"; ORS=""}
