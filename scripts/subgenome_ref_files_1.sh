@@ -421,7 +421,7 @@ if [[ "$aligner" == "minimap2" ]]; then
       shopt -s nullglob
       for panref in *.fasta; do (
         ## 1. Filter sequences ≥1000 bp (sequence-only length)
-        if awk '/^>/{if(NR>1 && len<1000) exit 1; len=0; next}{len+=length($0)}END{if(len<1000) exit 1}' "$ref1"; then
+        if awk '/^>/{if(NR>1 && len<1000) exit 1; len=0; next}{len+=length($0)}END{if(len<1000) exit 1}' "$panref"; then
           echo "All contigs/scaffolds/chromosomes sequences >= 1000 bp"
         else
           awk 'BEGIN{RS=">"; ORS=""}
@@ -434,7 +434,7 @@ if [[ "$aligner" == "minimap2" ]]; then
           mv "${panref}.tmp" "$panref"
         fi
         ncontigscaffold=$(grep '>' "$panref" | wc -l)
-        if [[ $ncontigscaffold -gt $max_pseudoMol ]]; then
+        if [[ "$ncontigscaffold" -gt "$max_pseudoMol" ]]; then
           nfakechr=$((threads/2))
           awk 'BEGIN{RS=">"; FS="\n"}
           NR>1{
@@ -488,16 +488,19 @@ if [[ "$aligner" == "minimap2" ]]; then
       done
       wait
       ## 10. Merge all index files SAFELY
-      cat contigscaffold_index_*.txt > contigscaffold_index.txt
-      rm contigscaffold_index_*.txt
+      if [[ "$ncontigscaffold" -gt "$max_pseudoMol" ]]; then
+        cat contigscaffold_index_*.txt > contigscaffold_index.txt
+        rm contigscaffold_index_*.txt
+      fi
 
       # add pangenome as prefix to pangenomes fasta header
       for panref in *.fasta; do (
-        awk '{ sub("\r$",""); print}' $panref | awk 'BEGIN{FS=" "}{if(!/>/){print toupper($0)}else{print $1}}' | \
-        awk '/>/{gsub(/a$/,"A");gsub(/b$/,"B");gsub(/c$/,"C");gsub(/d$/,"D");gsub(/e$/,"E");gsub(/f$/,"F");gsub(/g$/,"G");gsub(/h$/,"H");}1' > ${panref%%.fasta}.txt &&
+        awk '{ sub("\r$",""); print}' "$panref" | awk 'BEGIN{FS=" "}{if(!/>/){print toupper($0)}else{print $1}}' | \
+        awk '/>/{gsub(/a$/,"A");gsub(/b$/,"B");gsub(/c$/,"C");gsub(/d$/,"D");gsub(/e$/,"E");gsub(/f$/,"F");gsub(/g$/,"G");gsub(/h$/,"H");}1' > "${panref%%.fasta}.txt" &&
         n=">pangenome_${panref%.fasta}_" &&
-        awk '{ sub("\r$",""); print}' ${panref%%.fasta}.txt | awk -v n="$n" '{gsub(n,">"); print}' | awk -v n="$n" '{gsub(/>/,n); print}' > $panref &&
-        rm ${panref%%.fasta}.txt
+        awk '{ sub("\r$",""); print}' "${panref%%.fasta}.txt" | awk -v n="$n" '{gsub(n,">"); print}' | awk -v n="$n" '{gsub(/>/,n); print}' > "${panref}.tmp" &&
+        mv "${panref}.tmp" "$panref" &&
+        rm "${panref%%.fasta}.txt"
         ) &
         while (( $(jobs -rp | wc -l) >= $gN )); do sleep 2; done
       done
@@ -507,12 +510,13 @@ if [[ "$aligner" == "minimap2" ]]; then
       $samtools faidx $ref1 &&
       $java -jar $picard CreateSequenceDictionary REFERENCE=$ref1 OUTPUT=${ref1%.f*}.dict &&
       $minimap2 -d ${ref1%.f*}.mmi $ref1 &&
-      touch pangenomes/panref.fa
 
-      for panref in pangenomes/*.fasta; do (
-        $minimap2 -x asm5 -t "$threads" "$ref1" "$panref" > "${panref%%.fasta}_unique.paf" &&
+      cd pangenomes
+      touch panref.fa
+      for panref in *.fasta; do (
+        $minimap2 -x asm5 -t "$threads" "../${ref1}" "$panref" > "${panref%%.fasta}_unique.paf" &&
         awk '{print $6, $8, $9}' OFS='\t' "${panref%%.fasta}_unique.paf" > "${panref%%.fasta}_aligned.bed" &&
-        $samtools faidx "$panref"
+        $samtools faidx "$panref" &&
         awk -v OFS='\t' '{print $1, 0, $2}' "${panref}.fai" > "${panref%%.fasta}_full.bed" &&
         $bedtools subtract -a "${panref%%.fasta}_full.bed" -b "${panref%%.fasta}_aligned.bed" > "${panref%%.fasta}_divergent.bed" &&
         $bedtools getfasta -fi "$panref" -bed "${panref%%.fasta}_divergent.bed" -fo "${panref%%.fasta}_unique.tmp"
@@ -520,9 +524,8 @@ if [[ "$aligner" == "minimap2" ]]; then
         while (( $(jobs -rp | wc -l) >= $gN )); do sleep 2; done
       done
       wait
-      cd pangenomes
       cat *_unique.tmp > panref.fa &&
-      rm *_unique.tmp &&
+      rm *_unique.tmp *paf *bed &&
       awk 'BEGIN { RS=">"; FS="\n"; ORS="" }
       NR>1 {
         seq=""
@@ -533,16 +536,16 @@ if [[ "$aligner" == "minimap2" ]]; then
         }
       }' panref.fa > panref_dedup.fasta &&
       $minimap2 -x asm10 -t "$threads" panref_dedup.fasta panref_dedup.fasta > panref.paf &&
-      awk '$10==$11 && $3/$2 >= 0.95 {print $1,$3,$4}' OFS='\t' panref.paf > duplicates.bed &&
-      $samtools faidx panref.fa &&
-      awk -v OFS='\t' '{print $1,0,$2}' panref.fai > panref.full.bed &&
+      awk '$10==$11 && ($4-$3)/$2 >= 0.95 {print $1,$3,$4}' OFS='\t' panref.paf > duplicates.bed &&
+      $samtools faidx panref_dedup.fasta &&
+      awk -v OFS='\t' '{print $1,0,$2}' panref_dedup.fai > panref.full.bed &&
       $bedtools subtract -a panref.full.bed -b duplicates.bed > panref.unique.bed &&
-      $bedtools getfasta -fi panref.fa -bed panref.unique.bed -fo panref.fasta &&
+      $bedtools getfasta -fi panref_dedup.fasta -bed panref.unique.bed -fo panref.fasta &&
       $minimap2 -x asm5 -t $threads "${ref1%.f*}_original.fasta" panref.fasta > ../pangenome2primary.paf
-      cp panref.fasta ../panref.fasta
-      cat "../${ref1}" panref.fasta > ref_combined.fasta &&
+      mv panref.fasta ../
+      cat "../${ref1}" ../panref.fasta > ref_combined.fasta &&
       mv ref_combined.fasta "../${ref1}" &&
-      rm -f *.paf *.bed *_unique.tmp
+      rm -f *.paf *.bed *dedup*
     fi
 
 

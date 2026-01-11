@@ -268,7 +268,7 @@ if [[ -d "./samples/pe" ]] || [[ -d "./samples/se" ]]; then
         if [[ -d samples_backup ]]; then
           echo -e "${magenta}- A previous backup copy already exist; ctrl+c to cancel backup ${white}"
         else
-          echo -e "${magenta}- A copy of your sample fastq files is in ${projdir}/samples_backup/ ${white}"
+          echo -e "${magenta}- A copy of your sample fastq files will be in ${projdir}/samples_backup/ ${white}"
           cp -r samples samples_backup
         fi
       else
