@@ -512,42 +512,49 @@ if [[ "$aligner" == "minimap2" ]]; then
       $minimap2 -d ${ref1%.f*}.mmi $ref1 &&
 
       cd pangenomes
-      touch panref.fa
+      : > panref.raw.fa
+      # 1. Extract divergent regions
       for panref in *.fasta; do (
-        $minimap2 -x asm5 -t "$threads" "../${ref1}" "$panref" > "${panref%%.fasta}_unique.paf" &&
-        awk '{print $6, $8, $9}' OFS='\t' "${panref%%.fasta}_unique.paf" > "${panref%%.fasta}_aligned.bed" &&
-        $samtools faidx "$panref" &&
-        awk -v OFS='\t' '{print $1, 0, $2}' "${panref}.fai" > "${panref%%.fasta}_full.bed" &&
-        $bedtools subtract -a "${panref%%.fasta}_full.bed" -b "${panref%%.fasta}_aligned.bed" > "${panref%%.fasta}_divergent.bed" &&
-        $bedtools getfasta -fi "$panref" -bed "${panref%%.fasta}_divergent.bed" -fo "${panref%%.fasta}_unique.tmp"
-        ) &
-        while (( $(jobs -rp | wc -l) >= $gN )); do sleep 2; done
+        minimap2 -x asm5 -t "$threads" "../$ref1" "$panref" > "${panref%.fasta}.paf" &&
+        awk '{print $6,$8,$9}' OFS='\t' "${panref%.fasta}.paf" > "${panref%.fasta}.aligned.bed" &&
+        samtools faidx "$panref" &&
+        awk -v OFS='\t' '{print $1,0,$2}' "${panref}.fai" > "${panref%.fasta}.full.bed" &&
+        bedtools subtract -a "${panref%.fasta}.full.bed" -b "${panref%.fasta}.aligned.bed" \
+        | bedtools getfasta -fi "$panref" -bed - -fo "${panref%.fasta}.div.fa"
+      ) &
+      while (( $(jobs -rp | wc -l) >= gN )); do sleep 1; done
       done
       wait
-      cat *_unique.tmp > panref.fa &&
-      rm *_unique.tmp *paf *bed &&
-      awk 'BEGIN { RS=">"; FS="\n"; ORS="" }
-      NR>1 {
-        seq=""
-        for (i=2; i<=NF; i++) seq=seq $i
-        if (!(seq in seen)) {
-          seen[seq]=1
-          print ">" $0
+      cat *.div.fa > panref.raw.fa
+      rm -f *.paf *.bed *.fai *.div.fa
+      # 2. Self-alignment (for near-identical collapse)
+      minimap2 -x asm20 -c --cs -t "$threads" panref.raw.fa panref.raw.fa > panref.self.paf
+      # 3. Identify redundant sequences (≥95% coverage, not self)
+      awk '
+      $1 != $6 {
+        qlen=$2; tlen=$7
+        aln=$10
+        cov=aln/(qlen<tlen?qlen:tlen)
+        if(cov >= 0.95){
+          print $1
         }
-      }' panref.fa > panref_dedup.fasta &&
-      $minimap2 -x asm10 -t "$threads" panref_dedup.fasta panref_dedup.fasta > panref.paf &&
-      awk '$10==$11 && ($4-$3)/$2 >= 0.95 {print $1,$3,$4}' OFS='\t' panref.paf > duplicates.bed &&
-      $samtools faidx panref_dedup.fasta &&
-      awk -v OFS='\t' '{print $1,0,$2}' panref_dedup.fai > panref.full.bed &&
-      $bedtools subtract -a panref.full.bed -b duplicates.bed > panref.unique.bed &&
-      $bedtools getfasta -fi panref_dedup.fasta -bed panref.unique.bed -fo panref.fasta &&
+      }' panref.self.paf | sort -u > redundant.ids
+      # 4. Keep only non-redundant (longest representative survives)
+      awk '
+      BEGIN { RS=">"; FS="\n"; ORS="" }
+      NR>1 {
+        id=$1
+        if(!(id in drop)){
+          print ">"$0
+        }
+      }
+      ' drop=redundant.ids panref.raw.fa > panref.fasta
+      rm panref.self.paf redundant.ids panref.raw.fa
       $minimap2 -x asm5 -t $threads "${ref1%.f*}_original.fasta" panref.fasta > ../pangenome2primary.paf
       mv panref.fasta ../
       cat "../${ref1}" ../panref.fasta > ref_combined.fasta &&
-      mv ref_combined.fasta "../${ref1}" &&
-      rm -f *.paf *.bed *dedup*
+      mv ref_combined.fasta "../${ref1}" && wait
     fi
-
 
     cd ../
     $samtools faidx panref.fasta &&

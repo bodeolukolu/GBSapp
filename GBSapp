@@ -266,7 +266,7 @@ if [[ -d "./samples/pe" ]] || [[ -d "./samples/se" ]]; then
       if [[ $REPLY =~ ^[Yy]$ ]]; then
         printf "\n"
         if [[ -d samples_backup ]]; then
-          echo -e "${magenta}- A previous backup copy already exist; ctrl+c to cancel backup ${white}"
+          echo -e "${magenta}- A previous backup copy already exist, program will skip backup ${white}"
         else
           echo -e "${magenta}- A copy of your sample fastq files will be in ${projdir}/samples_backup/ ${white}"
           cp -r samples samples_backup
@@ -286,8 +286,12 @@ else
       read -p "- y(YES) or n(NO)? " -n 1 -r
       if [[ $REPLY =~ ^[Yy]$ ]]; then
         printf "\n"
-        echo -e "${magenta}- A copy of your sample fastq files is in ${projdir}/samples_backup/ ${white}"
-        cp -r samples samples_backup
+        if [[ -d samples_backup ]]; then
+          echo -e "${magenta}- A previous backup copy already exist, program will skip backup ${white}"
+        else
+          echo -e "${magenta}- A copy of your sample fastq files will be in ${projdir}/samples_backup/ ${white}"
+          cp -r samples samples_backup
+        fi
       else
           echo -e "${white}\n#########################################################################################"
       fi
