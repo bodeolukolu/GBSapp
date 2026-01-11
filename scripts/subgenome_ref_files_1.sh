@@ -515,12 +515,12 @@ if [[ "$aligner" == "minimap2" ]]; then
       : > panref.raw.fa
       # 1. Extract divergent regions
       for panref in *.fasta; do (
-        minimap2 -x asm5 -t "$threads" "../$ref1" "$panref" > "${panref%.fasta}.paf" &&
+        $minimap2 -x asm5 -t "$threads" "../$ref1" "$panref" > "${panref%.fasta}.paf" &&
         awk '{print $6,$8,$9}' OFS='\t' "${panref%.fasta}.paf" > "${panref%.fasta}.aligned.bed" &&
-        samtools faidx "$panref" &&
+        $samtools faidx "$panref" &&
         awk -v OFS='\t' '{print $1,0,$2}' "${panref}.fai" > "${panref%.fasta}.full.bed" &&
-        bedtools subtract -a "${panref%.fasta}.full.bed" -b "${panref%.fasta}.aligned.bed" \
-        | bedtools getfasta -fi "$panref" -bed - -fo "${panref%.fasta}.div.fa"
+        $bedtools subtract -a "${panref%.fasta}.full.bed" -b "${panref%.fasta}.aligned.bed" \
+        | $bedtools getfasta -fi "$panref" -bed - -fo "${panref%.fasta}.div.fa"
       ) &
       while (( $(jobs -rp | wc -l) >= gN )); do sleep 1; done
       done
@@ -528,7 +528,7 @@ if [[ "$aligner" == "minimap2" ]]; then
       cat *.div.fa > panref.raw.fa
       rm -f *.paf *.bed *.fai *.div.fa
       # 2. Self-alignment (for near-identical collapse)
-      minimap2 -x asm20 -c --cs -t "$threads" panref.raw.fa panref.raw.fa > panref.self.paf
+      $minimap2 -x asm20 -c --cs -t "$threads" panref.raw.fa panref.raw.fa > panref.self.paf
       # 3. Identify redundant sequences (≥95% coverage, not self)
       awk '
       $1 != $6 {
