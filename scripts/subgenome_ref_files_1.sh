@@ -179,443 +179,450 @@ main &>> log.out
 cd $projdir
 echo -e "${blue}\n############################################################################## ${yellow}\n- Index Reference Genome \n${blue}##############################################################################${white}\n"
 main () {
-cd $projdir
-cd refgenomes
-for f in $(ls *.FASTA 2> /dev/null); do if [[ "$f" == *.FASTA ]]; then echo -e "${magenta}- changing upper case FASTA extension of reference genome(s) to lower case"; mv $f ${f%.FASTA}.fasta  2> /dev/null; fi; done
-for f in $(ls *.FA 2> /dev/null); do if [[ "$f" == *.FA ]]; then echo -e "${magenta}- changing upper case FA extension of reference genome(s) to lower case"; mv $f ${f%.FA}.fa  2> /dev/null; fi; done
-for f in $(ls *.FNA 2> /dev/null); do if [[ "$f" == *.FNA ]]; then echo -e "${magenta}- changing upper case FNA extension of reference genome(s) to lower case"; mv $f ${f%.FNA}.fna  2> /dev/null; fi; done
-for f in $(ls *.FAS 2> /dev/null); do if [[ "$f" == *.FAS ]]; then echo -e "${magenta}- changing upper case FAS extension of reference genome(s) to lower case"; mv $f ${f%.FAS}.fas  2> /dev/null; fi; done
-for f in $(ls *.FFN 2> /dev/null); do if [[ "$f" == *.FFN ]]; then echo -e "${magenta}- changing upper case FFN extension of reference genome(s) to lower case"; mv $f ${f%.FFN}.ffn  2> /dev/null; fi; done
-for f in $(ls *.FAA 2> /dev/null); do if [[ "$f" == *.FAA ]]; then echo -e "${magenta}- changing upper case FAA extension of reference genome(s) to lower case"; mv $f ${f%.FAA}.faa  2> /dev/null; fi; done
-wait
-for i in *.gz; do
-	sleep $((RANDOM % 2))
-  gunzip $i >/dev/null 2>&1
-done
+  cd $projdir
+  cd refgenomes
+  for f in $(ls *.FASTA 2> /dev/null); do if [[ "$f" == *.FASTA ]]; then echo -e "${magenta}- changing upper case FASTA extension of reference genome(s) to lower case"; mv $f ${f%.FASTA}.fasta  2> /dev/null; fi; done
+  for f in $(ls *.FA 2> /dev/null); do if [[ "$f" == *.FA ]]; then echo -e "${magenta}- changing upper case FA extension of reference genome(s) to lower case"; mv $f ${f%.FA}.fa  2> /dev/null; fi; done
+  for f in $(ls *.FNA 2> /dev/null); do if [[ "$f" == *.FNA ]]; then echo -e "${magenta}- changing upper case FNA extension of reference genome(s) to lower case"; mv $f ${f%.FNA}.fna  2> /dev/null; fi; done
+  for f in $(ls *.FAS 2> /dev/null); do if [[ "$f" == *.FAS ]]; then echo -e "${magenta}- changing upper case FAS extension of reference genome(s) to lower case"; mv $f ${f%.FAS}.fas  2> /dev/null; fi; done
+  for f in $(ls *.FFN 2> /dev/null); do if [[ "$f" == *.FFN ]]; then echo -e "${magenta}- changing upper case FFN extension of reference genome(s) to lower case"; mv $f ${f%.FFN}.ffn  2> /dev/null; fi; done
+  for f in $(ls *.FAA 2> /dev/null); do if [[ "$f" == *.FAA ]]; then echo -e "${magenta}- changing upper case FAA extension of reference genome(s) to lower case"; mv $f ${f%.FAA}.faa  2> /dev/null; fi; done
+  wait
+  for i in *.gz; do
+  	sleep $((RANDOM % 2))
+    gunzip $i >/dev/null 2>&1
+  done
 
-cd $projdir
-cd refgenomes
-if [[ -f "${ref1%.f*}_unstitched.fasta" ]]; then mv "${ref1%.f*}_unstitched.fasta" ../ fi
-if [[ -f "unsplit_${ref1%.f*}_fasta.txt" ]]; then mv "unsplit_${ref1%.f*}_fasta.txt" ../ fi
-originalREF=$(ls *_original.fasta 2>/dev/null)
-if [[ -f "$originalREF" ]]; then
-  mv "${ref1%.f*}_original.fasta" ../$ref1
-  if [[ -d pangenomes ]]; then mv pangenomes ../; fi
-  rm -rf ./*
-  mv "../$ref1" ./
-  mv "../pangenomes" ./
-fi
-if [[ -f "../${ref1%.f*}_unstitched.fasta" ]]; then mv "../${ref1%.f*}_unstitched.fasta" ./ fi
-if [[ -f "../unsplit_${ref1%.f*}_fasta.txt" ]]; then mv "../unsplit_${ref1%.f*}_fasta.txt" ./ fi
+  cd $projdir
+  cd refgenomes
+  if [[ -f "${ref1%.f*}_unstitched.fasta" ]]; then
+    mv "${ref1%.f*}_unstitched.fasta" ../
+  fi
+  if [[ -f "unsplit_${ref1%.f*}_fasta.txt" ]]; then
+    mv "unsplit_${ref1%.f*}_fasta.txt" ../
+  fi
+  originalREF=$(ls *_original.fasta 2>/dev/null)
+  if [[ -f "$originalREF" ]]; then
+    mv "${ref1%.f*}_original.fasta" ../$ref1
+    if [[ -d pangenomes ]]; then mv pangenomes ../; fi
+    rm -rf ./*
+    mv "../$ref1" ./
+    mv "../pangenomes" ./
+  fi
+  if [[ -f "../${ref1%.f*}_unstitched.fasta" ]]; then
+    mv "../${ref1%.f*}_unstitched.fasta" ./
+  fi
+  if [[ -f "../unsplit_${ref1%.f*}_fasta.txt" ]]; then
+    mv "../unsplit_${ref1%.f*}_fasta.txt" ./
+  fi
 
-
-if ls ./*.dict 1> /dev/null 2>&1; then
-	:
-else
-	checknfastafiles=$(ls *.f* | grep -v .fai | grep -v .ngm | grep -v _original.fasta | wc -l)
-	if [[ $checknfastafiles -gt 1 ]]; then
-		echo -e "${magenta}- expecting only 1 fasta file for reference genome ${white}\n"
-		echo -e "${magenta}- GBSapp will quit in 5 seconds ${white}\n"
-		sleep 5 && exit 1
-	fi
-	if [ -z "$ref1" ]; then
-		for ref in *.f*; do
-			sleep $((RANDOM % 2))
-      ref1=${ref%.fa*}.fasta
-		done
-	fi
-
-  # Filter contigs >= 1000 bp (robust)
-  if awk '/^>/{if(NR>1 && len<1000) exit 1; len=0; next}{len+=length($0)}END{if(len<1000) exit 1}' "$ref1"; then
-    echo "All contigs/scaffolds/chromosomes sequences >= 1000 bp"
+  if ls ./*.dict 1> /dev/null 2>&1; then
+  	:
   else
-    awk 'BEGIN{RS=">"; ORS=""}
-    NR>1{
-      n = split($0, a, "\n")
-      seq = ""
-      for (i = 2; i <= n; i++) seq = seq a[i]
-      if (length(seq) >= 1000) print ">" $0
-    }' "$ref1" > "${ref1}.tmp" &&
-    mv "${ref1}.tmp" "$ref1"
-  fi
-  ncontigscaffold=$(grep -c '^>' "$ref1")
-  if [[ $ncontigscaffold -gt $max_pseudoMol ]]; then
-    nfakechr=$(( threads > 1 ? threads/2 : 1 ))
-    # Convert FASTA to single-line-per-contig (tab-separated)
-    awk '/^>/{if(N>0) printf("\n"); ++N; printf("%s\t",$0); next}
-         {printf("%s",$0)}
-         END{printf("\n")}' "$ref1" > panref0.txt
-    # Shuffle contigs (deterministic order not required here)
-    awk '{ a[NR]=$0 }
-    END{
-      srand()
-      for(i=NR;i>0;i--){
-        j=int(rand()*i)+1
-        tmp=a[i]; a[i]=a[j]; a[j]=tmp
-      }
-      for(i=1;i<=NR;i++) print a[i]
-    }' panref0.txt > panref0.fasta
-    # Split into pseudochromosomes
-    flength=$(wc -l panref0.fasta | awk '{print $1}')
-    nsplit=$(( (flength + nfakechr - 1) / nfakechr ))
-    split -a 2 -d -l "$nsplit" panref0.fasta Chr
-    rm panref0.txt panref0.fasta
-    for i in Chr*; do
-      sleep $((RANDOM % 2))
-      # Reconstruct FASTA
-      awk '{print $1"\n"$2}' "$i" > "${i}.fasta"
-      # Wrap sequence at 100 bp
-      awk '/^>/{print; next}
-           {gsub(/\s+/,""); print}' "${i}.fasta" | fold -w 100 > "${i}.txt"
-      # Generate contig → pseudochromosome index
-      awk '/^>/{if (l!="") print l; print; l=0; next}
-      {l+=length($0)}
-      END{print l}' "${i}.fasta" |
-      awk '{gsub(/>/,""); print}' |
-      awk '{ ORS = NR % 2 ? "\t" : "\n" } 1' |
-      awk '{print $1"\t"$2+100}' |
-      awk -F "\t" '{sum+=$2; print $1"\t"(sum-$2)}' |
-      awk -v chrid="$i" -v refgenome="${ref1%.f*}" \
-          '{print refgenome"_"chrid"\t"$1"\t"$2}' >> contigscaffold_index.txt
-    done
-
-    # Preserve filtered-but-unstitched reference
-    cp "$ref1" "${ref1%.f*}_unstitched.fasta"
-    # Build stitched pseudochromosome reference
-    : > "$ref1"
-    for filename in Chr*.txt; do
-      sleep $((RANDOM % 2))
-      echo ">${filename%.txt}" >> "$ref1"
-      cat "$filename" >> "$ref1"
-    done
-    # Cleanup (safe)
-    rm Chr?? Chr??.txt Chr??.fasta
-  fi
-  wait
-
-
-	mkdir split
-	awk '/^>/{close("file.fasta"f);f++}{print $0 > "./split/file"f}' "${ref1}" & PID=$!
-	wait $PID
-	cd split
-	export checksplit=$(wc -c file* | grep -v 'total' | awk '($1 > 500000000 )' | wc -l)
-	if [[ "$checksplit" -gt 0 ]]; then
-		for i in file*; do
-			sleep $((RANDOM % 2))
-      name=$(awk 'NR==1{print $1}' "$i" | awk '{gsub(/>/,""); print}')
-			awk 'NR>1{print $0}' $i > ${name}.fasta
-			count=$(wc -c ${name}.fasta | awk '{print $1}')
-			tr -d '\n' < "${name}".fasta | fold -w 100 |\
-			split -d -l 5000000  & PID=$!
-		  wait $PID
-			for outfile in x*; do
-				sleep $((RANDOM % 2))
-        awk -v name="$name" -v outfile="$outfile" -i inplace 'BEGINFILE{print ">"name"_"outfile}{print}' $outfile
-				mv $outfile ${name}_${outfile}.txt
-			done
-		done
-		cd ../
-		sleep $((RANDOM % 2))
-    mv $ref1 "./unsplit_${ref1%.f*}_fasta.txt"
-		cat ./split/*Chr*.txt > $ref1
-		wait
-		rm -rf split
-	else
-		cd ${projdir}/refgenomes
-		rm -rf split
-	fi
-  wait
-fi
-
-cd $projdir
-cd refgenomes
-if [[ "$aligner" == "ngm" ]]; then
-  if [[ $(ls ./*.ngm 1> /dev/null 2>&1 | wc -l) -gt 0 ]]; then
-  	echo -e "${magenta}- indexed genome available ${white}\n"
+  	checknfastafiles=$(ls *.f* | grep -v .fai | grep -v .ngm | grep -v _original.fasta | wc -l)
+  	if [[ $checknfastafiles -gt 1 ]]; then
+  		echo -e "${magenta}- expecting only 1 fasta file for reference genome ${white}\n"
+  		echo -e "${magenta}- GBSapp will quit in 5 seconds ${white}\n"
+  		sleep 5 && exit 1
+  	fi
   	if [ -z "$ref1" ]; then
   		for ref in *.f*; do
   			sleep $((RANDOM % 2))
-        ref1=${ref%%.f*}.fasta
+        ref1=${ref%.fa*}.fasta
   		done
   	fi
-  else
-  	echo -e "${magenta}- indexing single reference subgenome ${white}\n"
-  	if [ -z "$ref1" ]; then
-  		for ref in *.f*; do
-  			sleep $((RANDOM % 2))
-        ref1=${ref%%.f*}.fasta
-  		done
-  	fi
-  	awk '{ sub("\r$",""); print}' $ref1 | awk 'BEGIN{FS=" "}{if(!/>/){print toupper($0)}else{print $1}}' | \
-    awk '/>/{gsub(/a$/,"A");gsub(/b$/,"B");gsub(/c$/,"C");gsub(/d$/,"D");gsub(/e$/,"E");gsub(/f$/,"F");gsub(/g$/,"G");gsub(/h$/,"H");}1' > ref.txt &&
-  	n=">${ref1%.f*}_" &&
-  	awk '{ sub("\r$",""); print}' ref.txt | awk -v n="$n" '{gsub(n,">"); print}' | awk -v n="$n" '{gsub(/>/,n); print}' > $ref1 &&
-  	rm ref.txt &&
-  	$samtools faidx "$ref1" &&
-  	$java -jar $picard CreateSequenceDictionary REFERENCE="$ref1" OUTPUT="${ref1%.f*}.dict" &&
-    $ngm -r "$ref1" &&
-    $genmap index -F "$ref1" -I ./genmap_out >/dev/null 2>&1
-    wait
-    $genmap map -K 100 -E 2 -I ./genmap_out -O ./genmap_out/ -t -w -bg --threads "$threads" >/dev/null 2>&1
-    wait
 
-    if [[ "$paralogs" == "false" ]]; then
-      threshold=1
+    # Filter contigs >= 1000 bp (robust)
+    if awk '/^>/{if(NR>1 && len<1000) exit 1; len=0; next}{len+=length($0)}END{if(len<1000) exit 1}' "$ref1"; then
+      echo "All contigs/scaffolds/chromosomes sequences >= 1000 bp"
     else
-      threshold=8
+      awk 'BEGIN{RS=">"; ORS=""}
+      NR>1{
+        n = split($0, a, "\n")
+        seq = ""
+        for (i = 2; i <= n; i++) seq = seq a[i]
+        if (length(seq) >= 1000) print ">" $0
+      }' "$ref1" > "${ref1}.tmp" &&
+      mv "${ref1}.tmp" "$ref1"
+    fi
+    ncontigscaffold=$(grep -c '^>' "$ref1")
+    if [[ $ncontigscaffold -gt $max_pseudoMol ]]; then
+      nfakechr=$(( threads > 1 ? threads/2 : 1 ))
+      # Convert FASTA to single-line-per-contig (tab-separated)
+      awk '/^>/{if(N>0) printf("\n"); ++N; printf("%s\t",$0); next}
+           {printf("%s",$0)}
+           END{printf("\n")}' "$ref1" > panref0.txt
+      # Shuffle contigs (deterministic order not required here)
+      awk '{ a[NR]=$0 }
+      END{
+        srand()
+        for(i=NR;i>0;i--){
+          j=int(rand()*i)+1
+          tmp=a[i]; a[i]=a[j]; a[j]=tmp
+        }
+        for(i=1;i<=NR;i++) print a[i]
+      }' panref0.txt > panref0.fasta
+      # Split into pseudochromosomes
+      flength=$(wc -l panref0.fasta | awk '{print $1}')
+      nsplit=$(( (flength + nfakechr - 1) / nfakechr ))
+      split -a 2 -d -l "$nsplit" panref0.fasta Chr
+      rm panref0.txt panref0.fasta
+      for i in Chr*; do
+        sleep $((RANDOM % 2))
+        # Reconstruct FASTA
+        awk '{print $1"\n"$2}' "$i" > "${i}.fasta"
+        # Wrap sequence at 100 bp
+        awk '/^>/{print; next}
+             {gsub(/\s+/,""); print}' "${i}.fasta" | fold -w 100 > "${i}.txt"
+        # Generate contig → pseudochromosome index
+        awk '/^>/{if (l!="") print l; print; l=0; next}
+        {l+=length($0)}
+        END{print l}' "${i}.fasta" |
+        awk '{gsub(/>/,""); print}' |
+        awk '{ ORS = NR % 2 ? "\t" : "\n" } 1' |
+        awk '{print $1"\t"$2+100}' |
+        awk -F "\t" '{sum+=$2; print $1"\t"(sum-$2)}' |
+        awk -v chrid="$i" -v refgenome="${ref1%.f*}" \
+            '{print refgenome"_"chrid"\t"$1"\t"$2}' >> contigscaffold_index.txt
+      done
+
+      # Preserve filtered-but-unstitched reference
+      cp "$ref1" "${ref1%.f*}_unstitched.fasta"
+      # Build stitched pseudochromosome reference
+      : > "$ref1"
+      for filename in Chr*.txt; do
+        sleep $((RANDOM % 2))
+        echo ">${filename%.txt}" >> "$ref1"
+        cat "$filename" >> "$ref1"
+      done
+      # Cleanup (safe)
+      rm Chr?? Chr??.txt Chr??.fasta
     fi
     wait
-    ref_base=$(basename "$ref1" .fasta) &&
-    python3 "$wig2bed" "${projdir}/refgenomes/genmap_out/${ref_base}.genmap.wig" "$threshold" "${projdir}/refgenomes/genmap_out/lowmap_merged.bed" >/dev/null 2>&1
-    wait
-    $bedtools maskfasta -fi "$ref1" -bed "${projdir}/refgenomes/genmap_out/lowmap_merged.bed" -fo "${projdir}/refgenomes/${ref1%.f*}.hardmasked.fasta" >/dev/null 2>&1
-    wait
-    mv "$ref1" "${ref1%.f*}.nohardmasked.fasta" &&
-    mv "${ref1%.f*}.hardmasked.fasta" "$ref1" &&
-    $samtools faidx "$ref1" &&
-    $ngm -r "${projdir}/refgenomes/$ref1"
+
+
+  	mkdir split
+  	awk '/^>/{close("file.fasta"f);f++}{print $0 > "./split/file"f}' "${ref1}" & PID=$!
+  	wait $PID
+  	cd split
+  	export checksplit=$(wc -c file* | grep -v 'total' | awk '($1 > 500000000 )' | wc -l)
+  	if [[ "$checksplit" -gt 0 ]]; then
+  		for i in file*; do
+  			sleep $((RANDOM % 2))
+        name=$(awk 'NR==1{print $1}' "$i" | awk '{gsub(/>/,""); print}')
+  			awk 'NR>1{print $0}' $i > ${name}.fasta
+  			count=$(wc -c ${name}.fasta | awk '{print $1}')
+  			tr -d '\n' < "${name}".fasta | fold -w 100 |\
+  			split -d -l 5000000  & PID=$!
+  		  wait $PID
+  			for outfile in x*; do
+  				sleep $((RANDOM % 2))
+          awk -v name="$name" -v outfile="$outfile" -i inplace 'BEGINFILE{print ">"name"_"outfile}{print}' $outfile
+  				mv $outfile ${name}_${outfile}.txt
+  			done
+  		done
+  		cd ../
+  		sleep $((RANDOM % 2))
+      mv $ref1 "./unsplit_${ref1%.f*}_fasta.txt"
+  		cat ./split/*Chr*.txt > $ref1
+  		wait
+  		rm -rf split
+  	else
+  		cd ${projdir}/refgenomes
+  		rm -rf split
+  	fi
     wait
   fi
-fi
-wait
-if [[ "$aligner" == "minimap2" ]]; then
-  if [[ $(ls ./*.mmi 1> /dev/null 2>&1 | wc -l) -gt 0 ]]; then
-  	echo -e "${magenta}- indexed genome available ${white}\n"
-  	if [ -z "$ref1" ]; then
-  		for ref in *.f*; do
-  			sleep $((RANDOM % 2))
-        ref1=${ref%%.f*}.fasta
-  		done
-  	fi
-  else
-  	echo -e "${magenta}- indexing single reference subgenome ${white}\n"
-  	if [ -z "$ref1" ]; then
-  		for ref in *.f*; do
-  			sleep $((RANDOM % 2))
-        ref1=${ref%%.f*}.fasta
-  		done
-  	fi
-  	awk '{ sub("\r$",""); print}' $ref1 | awk 'BEGIN{FS=" "}{if(!/>/){print toupper($0)}else{print $1}}' | \
-    awk '/>/{gsub(/a$/,"A");gsub(/b$/,"B");gsub(/c$/,"C");gsub(/d$/,"D");gsub(/e$/,"E");gsub(/f$/,"F");gsub(/g$/,"G");gsub(/h$/,"H");}1' > ref.txt &&
-  	n=">${ref1%.f*}_" &&
-  	awk '{ sub("\r$",""); print}' ref.txt | awk -v n="$n" '{gsub(n,">"); print}' | awk -v n="$n" '{gsub(/>/,n); print}' > $ref1 &&
-  	rm ref.txt &&
-    cp "$ref1" "${ref1%.f*}_original.fasta" &&
-    $samtools faidx "${ref1%.f*}_original.fasta" &&
-    $java -jar $picard CreateSequenceDictionary REFERENCE="${ref1%.f*}_original.fasta" OUTPUT="${ref1%.f*}_original.dict" &&
-    $minimap2 -d "${ref1%.f*}_original.mmi" "${ref1%.f*}_original.fasta" &&
 
-    # processing pangenomes
-    if [[ -d pangenomes ]]; then
-      cd pangenomes
-      shopt -s nullglob
-      for panref in *.fa.gz *.fna.gz *.fasta.gz; do
-        gunzip -f "$panref"
-      done
-      for panref in *.fa *.fna *.fasta; do
-        mv "$panref" "${panref%.f*}.fasta"
-      done
-
-      # remove small contigs (<1kb) and limit pseudomolecules to 5,000 sequences
-      shopt -s nullglob
-      for panref in *.fasta; do (
-        ## 1. Filter sequences ≥1000 bp (sequence-only length)
-        if awk '/^>/{if(NR>1 && len<1000) exit 1; len=0; next}{len+=length($0)}END{if(len<1000) exit 1}' "$panref"; then
-          echo "All contigs/scaffolds/chromosomes sequences >= 1000 bp"
-        else
-          awk 'BEGIN{RS=">"; ORS=""}
-          NR>1{
-            n = split($0, a, "\n")
-            seq = ""
-            for (i = 2; i <= n; i++) seq = seq a[i]
-            if (length(seq) >= 1000) print ">" $0
-          }' "$panref" > "${panref}.tmp" &&
-          mv "${panref}.tmp" "$panref"
-        fi
-        ncontigscaffold=$(grep '>' "$panref" | wc -l)
-        if [[ "$ncontigscaffold" -gt "$max_pseudoMol" ]]; then
-          mkdir original_pangenomes
-          nfakechr=$((threads/2))
-          awk 'BEGIN{RS=">"; FS="\n"}
-          NR>1{
-            header=$1
-            seq=""
-            for(i=2;i<=NF;i++) seq=seq $i
-            print ">"header"\t"seq
-          }' "$panref" > "${panref%.f*}_1.fasta"
-          awk '{ a[NR]=$0 }
-          END{
-            srand()
-            for(i=NR;i>0;i--){
-              j=int(rand()*i)+1
-              tmp=a[i]; a[i]=a[j]; a[j]=tmp
-            }
-            for(i=1;i<=NR;i++) print a[i]
-          }' "${panref%.f*}_1.fasta" > "${panref%.f*}_2.fasta"
-          flength=$(wc -l "${panref%.f*}_2.fasta" | awk '{print $1}')
-          nsplit=$(( (flength + nfakechr - 1) / nfakechr ))
-          ## 5. Split into pseudochromosomes
-          split -a 2 -d -l "$nsplit" "${panref%.f*}_2.fasta" Chr
-          rm "${panref%.f*}_1.fasta" "${panref%.f*}_2.fasta"
-          ## index file per panref (FIXED: no race condition)
-          index_tmp="contigscaffold_index_${panref%.f*}.txt"
-          : > "$index_tmp"
-
-          for i in Chr*; do
-            sleep $((RANDOM % 2))
-            ## 6. Restore FASTA formatting
-            awk '{print $1"\n"$2}' "$i" > "${i}.fasta"
-            grep -v '^>' "${i}.fasta" | tr -d '\n' | fold -w 100 > "${i}.txt"
-            ## 7. Build coordinate index (APPEND, not overwrite)
-            awk '/^>/{if (l!="") print l; print; l=0; next}
-                 {l+=length($0)}
-                 END{print l}' "${i}.fasta" | awk '{gsub(/>/,""); print $0}' | awk '{ ORS = NR % 2 ? "\t" : "\n" } 1' | \
-            awk '{print $1"\t"$2+100}' | awk -F "\t" '{sum+=$2; print $1"\t"sum-$2}' | \
-            awk -v chrid="$i" -v refgenome="${panref%.f*}" '{print refgenome"_"chrid"\t"$1"\t"$2}' >> "$index_tmp"
-          done
-          cp "$panref" original_pangenomes/
-          ## 9. Replace FASTA with stitched pseudochromosomes
-          : > "$panref"
-          for filename in Chr*.txt; do
-            sleep $((RANDOM % 2))
-            echo ">${filename%.txt}" >> "$panref"
-            cat "$filename" >> "$panref"
-          done
-          rm Chr* "${index_tmp}"
-        fi
-      ) &
-      while (( $(jobs -rp | wc -l) >= gN )); do sleep 2; done
-      done
+  cd $projdir
+  cd refgenomes
+  if [[ "$aligner" == "ngm" ]]; then
+    if [[ $(ls ./*.ngm 1> /dev/null 2>&1 | wc -l) -gt 0 ]]; then
+    	echo -e "${magenta}- indexed genome available ${white}\n"
+    	if [ -z "$ref1" ]; then
+    		for ref in *.f*; do
+    			sleep $((RANDOM % 2))
+          ref1=${ref%%.f*}.fasta
+    		done
+    	fi
+    else
+    	echo -e "${magenta}- indexing single reference subgenome ${white}\n"
+    	if [ -z "$ref1" ]; then
+    		for ref in *.f*; do
+    			sleep $((RANDOM % 2))
+          ref1=${ref%%.f*}.fasta
+    		done
+    	fi
+    	awk '{ sub("\r$",""); print}' $ref1 | awk 'BEGIN{FS=" "}{if(!/>/){print toupper($0)}else{print $1}}' | \
+      awk '/>/{gsub(/a$/,"A");gsub(/b$/,"B");gsub(/c$/,"C");gsub(/d$/,"D");gsub(/e$/,"E");gsub(/f$/,"F");gsub(/g$/,"G");gsub(/h$/,"H");}1' > ref.txt &&
+    	n=">${ref1%.f*}_" &&
+    	awk '{ sub("\r$",""); print}' ref.txt | awk -v n="$n" '{gsub(n,">"); print}' | awk -v n="$n" '{gsub(/>/,n); print}' > $ref1 &&
+    	rm ref.txt &&
+    	$samtools faidx "$ref1" &&
+    	$java -jar $picard CreateSequenceDictionary REFERENCE="$ref1" OUTPUT="${ref1%.f*}.dict" &&
+      $ngm -r "$ref1" &&
+      $genmap index -F "$ref1" -I ./genmap_out >/dev/null 2>&1
       wait
-      ## 10. Merge all index files SAFELY
-      if [[ "$ncontigscaffold" -gt "$max_pseudoMol" ]]; then
-        cat contigscaffold_index_*.txt > contigscaffold_index.txt
-        rm contigscaffold_index_*.txt
+      $genmap map -K 100 -E 2 -I ./genmap_out -O ./genmap_out/ -t -w -bg --threads "$threads" >/dev/null 2>&1
+      wait
+
+      if [[ "$paralogs" == "false" ]]; then
+        threshold=1
+      else
+        threshold=8
+      fi
+      wait
+      ref_base=$(basename "$ref1" .fasta) &&
+      python3 "$wig2bed" "${projdir}/refgenomes/genmap_out/${ref_base}.genmap.wig" "$threshold" "${projdir}/refgenomes/genmap_out/lowmap_merged.bed" >/dev/null 2>&1
+      wait
+      $bedtools maskfasta -fi "$ref1" -bed "${projdir}/refgenomes/genmap_out/lowmap_merged.bed" -fo "${projdir}/refgenomes/${ref1%.f*}.hardmasked.fasta" >/dev/null 2>&1
+      wait
+      mv "$ref1" "${ref1%.f*}.nohardmasked.fasta" &&
+      mv "${ref1%.f*}.hardmasked.fasta" "$ref1" &&
+      $samtools faidx "$ref1" &&
+      $ngm -r "${projdir}/refgenomes/$ref1"
+      wait
+    fi
+  fi
+  wait
+  if [[ "$aligner" == "minimap2" ]]; then
+    if [[ $(ls ./*.mmi 1> /dev/null 2>&1 | wc -l) -gt 0 ]]; then
+    	echo -e "${magenta}- indexed genome available ${white}\n"
+    	if [ -z "$ref1" ]; then
+    		for ref in *.f*; do
+    			sleep $((RANDOM % 2))
+          ref1=${ref%%.f*}.fasta
+    		done
+    	fi
+    else
+    	echo -e "${magenta}- indexing single reference subgenome ${white}\n"
+    	if [ -z "$ref1" ]; then
+    		for ref in *.f*; do
+    			sleep $((RANDOM % 2))
+          ref1=${ref%%.f*}.fasta
+    		done
+    	fi
+    	awk '{ sub("\r$",""); print}' $ref1 | awk 'BEGIN{FS=" "}{if(!/>/){print toupper($0)}else{print $1}}' | \
+      awk '/>/{gsub(/a$/,"A");gsub(/b$/,"B");gsub(/c$/,"C");gsub(/d$/,"D");gsub(/e$/,"E");gsub(/f$/,"F");gsub(/g$/,"G");gsub(/h$/,"H");}1' > ref.txt &&
+    	n=">${ref1%.f*}_" &&
+    	awk '{ sub("\r$",""); print}' ref.txt | awk -v n="$n" '{gsub(n,">"); print}' | awk -v n="$n" '{gsub(/>/,n); print}' > $ref1 &&
+    	rm ref.txt &&
+      cp "$ref1" "${ref1%.f*}_original.fasta" &&
+      $samtools faidx "${ref1%.f*}_original.fasta" &&
+      $java -jar $picard CreateSequenceDictionary REFERENCE="${ref1%.f*}_original.fasta" OUTPUT="${ref1%.f*}_original.dict" &&
+      $minimap2 -d "${ref1%.f*}_original.mmi" "${ref1%.f*}_original.fasta" &&
+
+      # processing pangenomes
+      if [[ -d pangenomes ]]; then
+        cd pangenomes
+        shopt -s nullglob
+        for panref in *.fa.gz *.fna.gz *.fasta.gz; do
+          gunzip -f "$panref"
+        done
+        for panref in *.fa *.fna *.fasta; do
+          mv "$panref" "${panref%.f*}.fasta"
+        done
+
+        # remove small contigs (<1kb) and limit pseudomolecules to 5,000 sequences
+        shopt -s nullglob
+        for panref in *.fasta; do (
+          ## 1. Filter sequences ≥1000 bp (sequence-only length)
+          if awk '/^>/{if(NR>1 && len<1000) exit 1; len=0; next}{len+=length($0)}END{if(len<1000) exit 1}' "$panref"; then
+            echo "All contigs/scaffolds/chromosomes sequences >= 1000 bp"
+          else
+            awk 'BEGIN{RS=">"; ORS=""}
+            NR>1{
+              n = split($0, a, "\n")
+              seq = ""
+              for (i = 2; i <= n; i++) seq = seq a[i]
+              if (length(seq) >= 1000) print ">" $0
+            }' "$panref" > "${panref}.tmp" &&
+            mv "${panref}.tmp" "$panref"
+          fi
+          ncontigscaffold=$(grep '>' "$panref" | wc -l)
+          if [[ "$ncontigscaffold" -gt "$max_pseudoMol" ]]; then
+            mkdir original_pangenomes
+            nfakechr=$((threads/2))
+            awk 'BEGIN{RS=">"; FS="\n"}
+            NR>1{
+              header=$1
+              seq=""
+              for(i=2;i<=NF;i++) seq=seq $i
+              print ">"header"\t"seq
+            }' "$panref" > "${panref%.f*}_1.fasta"
+            awk '{ a[NR]=$0 }
+            END{
+              srand()
+              for(i=NR;i>0;i--){
+                j=int(rand()*i)+1
+                tmp=a[i]; a[i]=a[j]; a[j]=tmp
+              }
+              for(i=1;i<=NR;i++) print a[i]
+            }' "${panref%.f*}_1.fasta" > "${panref%.f*}_2.fasta"
+            flength=$(wc -l "${panref%.f*}_2.fasta" | awk '{print $1}')
+            nsplit=$(( (flength + nfakechr - 1) / nfakechr ))
+            ## 5. Split into pseudochromosomes
+            split -a 2 -d -l "$nsplit" "${panref%.f*}_2.fasta" Chr
+            rm "${panref%.f*}_1.fasta" "${panref%.f*}_2.fasta"
+            ## index file per panref (FIXED: no race condition)
+            index_tmp="contigscaffold_index_${panref%.f*}.txt"
+            : > "$index_tmp"
+
+            for i in Chr*; do
+              sleep $((RANDOM % 2))
+              ## 6. Restore FASTA formatting
+              awk '{print $1"\n"$2}' "$i" > "${i}.fasta"
+              grep -v '^>' "${i}.fasta" | tr -d '\n' | fold -w 100 > "${i}.txt"
+              ## 7. Build coordinate index (APPEND, not overwrite)
+              awk '/^>/{if (l!="") print l; print; l=0; next}
+                   {l+=length($0)}
+                   END{print l}' "${i}.fasta" | awk '{gsub(/>/,""); print $0}' | awk '{ ORS = NR % 2 ? "\t" : "\n" } 1' | \
+              awk '{print $1"\t"$2+100}' | awk -F "\t" '{sum+=$2; print $1"\t"sum-$2}' | \
+              awk -v chrid="$i" -v refgenome="${panref%.f*}" '{print refgenome"_"chrid"\t"$1"\t"$2}' >> "$index_tmp"
+            done
+            cp "$panref" original_pangenomes/
+            ## 9. Replace FASTA with stitched pseudochromosomes
+            : > "$panref"
+            for filename in Chr*.txt; do
+              sleep $((RANDOM % 2))
+              echo ">${filename%.txt}" >> "$panref"
+              cat "$filename" >> "$panref"
+            done
+            rm Chr* "${index_tmp}"
+          fi
+        ) &
+        while (( $(jobs -rp | wc -l) >= gN )); do sleep 2; done
+        done
+        wait
+        ## 10. Merge all index files SAFELY
+        if [[ "$ncontigscaffold" -gt "$max_pseudoMol" ]]; then
+          cat contigscaffold_index_*.txt > contigscaffold_index.txt
+          rm contigscaffold_index_*.txt
+        fi
+
+        # add pangenome as prefix to pangenomes fasta header
+        for panref in *.fasta; do (
+          awk '{ sub("\r$",""); print}' "$panref" | awk 'BEGIN{FS=" "}{if(!/>/){print toupper($0)}else{print $1}}' | \
+          awk '/>/{gsub(/a$/,"A");gsub(/b$/,"B");gsub(/c$/,"C");gsub(/d$/,"D");gsub(/e$/,"E");gsub(/f$/,"F");gsub(/g$/,"G");gsub(/h$/,"H");}1' > "${panref%%.fasta}.txt" &&
+          n=">pangenome_${panref%.fasta}_" &&
+          awk '{ sub("\r$",""); print}' "${panref%%.fasta}.txt" | awk -v n="$n" '{gsub(n,">"); print}' | awk -v n="$n" '{gsub(/>/,n); print}' > "${panref}.tmp" &&
+          mv "${panref}.tmp" "$panref" &&
+          rm "${panref%%.fasta}.txt"
+          ) &
+          while (( $(jobs -rp | wc -l) >= $gN )); do sleep 2; done
+        done
+        wait
+
+        cd ../
+        $samtools faidx $ref1 &&
+        $java -jar $picard CreateSequenceDictionary REFERENCE=$ref1 OUTPUT=${ref1%.f*}.dict &&
+        $minimap2 -d ${ref1%.f*}.mmi $ref1 &&
+
+        cd pangenomes
+        : > panref.raw.fa
+        # 1. Extract divergent regions
+        for panref in *.fasta; do (
+          $minimap2 -x asm5 -t "$threads" "../$ref1" "$panref" > "${panref%.fasta}.paf" &&
+          awk '{print $6,$8,$9}' OFS='\t' "${panref%.fasta}.paf" > "${panref%.fasta}.aligned.bed" &&
+          $samtools faidx "$panref" &&
+          awk -v OFS='\t' '{print $1,0,$2}' "${panref}.fai" > "${panref%.fasta}.full.bed" &&
+          $bedtools subtract -a "${panref%.fasta}.full.bed" -b "${panref%.fasta}.aligned.bed" \
+          | $bedtools getfasta -fi "$panref" -bed - -fo "${panref%.fasta}.div.fa"
+        ) &
+        while (( $(jobs -rp | wc -l) >= gN )); do sleep 1; done
+        done
+        wait
+        cat *.div.fa > panref.raw.fa
+        rm -f *.paf *.bed *.fai *.div.fa
+        # 2. Self-alignment (for near-identical collapse)
+        $minimap2 -x asm20 -c --cs -t "$threads" panref.raw.fa panref.raw.fa > panref.self.paf
+        # 3. Identify redundant sequences (≥95% coverage, not self)
+        awk '$1 != $6 {
+          qlen=$2; tlen=$7
+          aln=$10
+          cov=aln/(qlen<tlen?qlen:tlen)
+          if(cov >= 0.95){
+            print $1
+          }
+        }' panref.self.paf | sort -u > redundant.ids
+        # 4. Keep only non-redundant (longest representative survives)
+        awk -v dropfile="redundant.ids" 'BEGIN {
+          RS=">"; FS="\n"; ORS=""
+          while ((getline < dropfile) > 0) {
+            drop[$1] = 1
+          }
+          close(dropfile)
+        }
+        NR > 1 {
+          id = $1
+          if (!(id in drop)) {
+            print ">" $0
+          }
+        }' panref.raw.fa > panref.fasta
+        rm panref.self.paf redundant.ids panref.raw.fa
+        $minimap2 -x asm5 -t $threads "../${ref1%.f*}_original.fasta" panref.fasta > ../pangenome2primary.paf
+        mv panref.fasta ../
+        cat "../${ref1}" ../panref.fasta > ref_combined.fasta &&
+        mv ref_combined.fasta "../${ref1}" && wait
       fi
 
-      # add pangenome as prefix to pangenomes fasta header
-      for panref in *.fasta; do (
-        awk '{ sub("\r$",""); print}' "$panref" | awk 'BEGIN{FS=" "}{if(!/>/){print toupper($0)}else{print $1}}' | \
-        awk '/>/{gsub(/a$/,"A");gsub(/b$/,"B");gsub(/c$/,"C");gsub(/d$/,"D");gsub(/e$/,"E");gsub(/f$/,"F");gsub(/g$/,"G");gsub(/h$/,"H");}1' > "${panref%%.fasta}.txt" &&
-        n=">pangenome_${panref%.fasta}_" &&
-        awk '{ sub("\r$",""); print}' "${panref%%.fasta}.txt" | awk -v n="$n" '{gsub(n,">"); print}' | awk -v n="$n" '{gsub(/>/,n); print}' > "${panref}.tmp" &&
-        mv "${panref}.tmp" "$panref" &&
-        rm "${panref%%.fasta}.txt"
-        ) &
-        while (( $(jobs -rp | wc -l) >= $gN )); do sleep 2; done
-      done
-      wait
-
       cd ../
+      $samtools faidx panref.fasta &&
+      $java -jar $picard CreateSequenceDictionary REFERENCE=panref.fasta OUTPUT=panref.dict &&
+      $minimap2 -d panref.mmi panref.fasta &&
+      rm ${ref1%.f*}.dict ${ref1%.f*}.fai ${ref1%.f*}.mmi
       $samtools faidx $ref1 &&
       $java -jar $picard CreateSequenceDictionary REFERENCE=$ref1 OUTPUT=${ref1%.f*}.dict &&
       $minimap2 -d ${ref1%.f*}.mmi $ref1 &&
-
-      cd pangenomes
-      : > panref.raw.fa
-      # 1. Extract divergent regions
-      for panref in *.fasta; do (
-        $minimap2 -x asm5 -t "$threads" "../$ref1" "$panref" > "${panref%.fasta}.paf" &&
-        awk '{print $6,$8,$9}' OFS='\t' "${panref%.fasta}.paf" > "${panref%.fasta}.aligned.bed" &&
-        $samtools faidx "$panref" &&
-        awk -v OFS='\t' '{print $1,0,$2}' "${panref}.fai" > "${panref%.fasta}.full.bed" &&
-        $bedtools subtract -a "${panref%.fasta}.full.bed" -b "${panref%.fasta}.aligned.bed" \
-        | $bedtools getfasta -fi "$panref" -bed - -fo "${panref%.fasta}.div.fa"
-      ) &
-      while (( $(jobs -rp | wc -l) >= gN )); do sleep 1; done
-      done
+      $genmap index -F $ref1 -I ./genmap_out >/dev/null 2>&1
       wait
-      cat *.div.fa > panref.raw.fa
-      rm -f *.paf *.bed *.fai *.div.fa
-      # 2. Self-alignment (for near-identical collapse)
-      $minimap2 -x asm20 -c --cs -t "$threads" panref.raw.fa panref.raw.fa > panref.self.paf
-      # 3. Identify redundant sequences (≥95% coverage, not self)
-      awk '$1 != $6 {
-        qlen=$2; tlen=$7
-        aln=$10
-        cov=aln/(qlen<tlen?qlen:tlen)
-        if(cov >= 0.95){
-          print $1
-        }
-      }' panref.self.paf | sort -u > redundant.ids
-      # 4. Keep only non-redundant (longest representative survives)
-      awk -v dropfile="redundant.ids" 'BEGIN {
-        RS=">"; FS="\n"; ORS=""
-        while ((getline < dropfile) > 0) {
-          drop[$1] = 1
-        }
-        close(dropfile)
-      }
-      NR > 1 {
-        id = $1
-        if (!(id in drop)) {
-          print ">" $0
-        }
-      }' panref.raw.fa > panref.fasta
-      rm panref.self.paf redundant.ids panref.raw.fa
-      $minimap2 -x asm5 -t $threads "../${ref1%.f*}_original.fasta" panref.fasta > ../pangenome2primary.paf
-      mv panref.fasta ../
-      cat "../${ref1}" ../panref.fasta > ref_combined.fasta &&
-      mv ref_combined.fasta "../${ref1}" && wait
+      $genmap map -K 100 -E 2 -I ./genmap_out -O ./genmap_out/ -t -w -bg --threads $threads >/dev/null 2>&1
+      wait
+      if [[ "$paralogs" == "false" ]]; then
+        threshold=1
+      else
+        threshold=8
+      fi
+      wait
+      ref_base=$(basename "$ref1" .fasta) &&
+      python3 "$wig2bed" "${projdir}/refgenomes/genmap_out/${ref_base}.genmap.wig" "$threshold" "${projdir}/refgenomes/genmap_out/lowmap_merged.bed" > /dev/null 2>&1
+      wait
+      $bedtools maskfasta -fi "${projdir}/refgenomes/$ref1" -bed "${projdir}/refgenomes/genmap_out/lowmap_merged.bed" -fo "${projdir}/refgenomes/${ref1%.f*}.hardmasked.fasta" >/dev/null 2>&1
+      wait
+      mv "${ref1%.f*}.hardmasked.fasta" "$ref1" &&
+      rm ${ref1%.f*}.dict ${ref1%.f*}.fai ${ref1%.f*}.mmi
+      $samtools faidx "$ref1" &&
+      $java -jar $picard CreateSequenceDictionary REFERENCE=$ref1 OUTPUT=${ref1%.f*}.dict &&
+      $minimap2 -d "${ref1%.f*}.mmi" "$ref1"
+      wait
     fi
-
-    cd ../
-    $samtools faidx panref.fasta &&
-    $java -jar $picard CreateSequenceDictionary REFERENCE=panref.fasta OUTPUT=panref.dict &&
-    $minimap2 -d panref.mmi panref.fasta &&
-    rm ${ref1%.f*}.dict ${ref1%.f*}.fai ${ref1%.f*}.mmi
-    $samtools faidx $ref1 &&
-    $java -jar $picard CreateSequenceDictionary REFERENCE=$ref1 OUTPUT=${ref1%.f*}.dict &&
-    $minimap2 -d ${ref1%.f*}.mmi $ref1 &&
-    $genmap index -F $ref1 -I ./genmap_out >/dev/null 2>&1
-    wait
-    $genmap map -K 100 -E 2 -I ./genmap_out -O ./genmap_out/ -t -w -bg --threads $threads >/dev/null 2>&1
-    wait
-    if [[ "$paralogs" == "false" ]]; then
-      threshold=1
-    else
-      threshold=8
+  fi
+  wait
+  if [[ "$RNA" == "true" ]]; then
+    mkdir -p star_index
+    if [[ "$(ls ./star_index/* 1> /dev/null 2>&1 | wc -l)" -eq 0 ]]; then
+      gff=${ref1%.fasta}.gff*
+      "$star" --runThreadN $threads \
+           --runMode genomeGenerate \
+           --genomeDir star_index \
+           --genomeFastaFiles $ref1 \
+           --sjdbGTFfile $gff \
+           --sjdbOverhang 136
     fi
-    wait
-    ref_base=$(basename "$ref1" .fasta) &&
-    python3 "$wig2bed" "${projdir}/refgenomes/genmap_out/${ref_base}.genmap.wig" "$threshold" "${projdir}/refgenomes/genmap_out/lowmap_merged.bed" > /dev/null 2>&1
-    wait
-    $bedtools maskfasta -fi "${projdir}/refgenomes/$ref1" -bed "${projdir}/refgenomes/genmap_out/lowmap_merged.bed" -fo "${projdir}/refgenomes/${ref1%.f*}.hardmasked.fasta" >/dev/null 2>&1
-    wait
-    mv "${ref1%.f*}.hardmasked.fasta" "$ref1" &&
-    rm ${ref1%.f*}.dict ${ref1%.f*}.fai ${ref1%.f*}.mmi
-    $samtools faidx "$ref1" &&
-    $java -jar $picard CreateSequenceDictionary REFERENCE=$ref1 OUTPUT=${ref1%.f*}.dict &&
-    $minimap2 -d "${ref1%.f*}.mmi" "$ref1"
-    wait
   fi
-fi
-wait
-if [[ "$RNA" == "true" ]]; then
-  mkdir -p star_index
-  if [[ "$(ls ./star_index/* 1> /dev/null 2>&1 | wc -l)" -eq 0 ]]; then
-    gff=${ref1%.fasta}.gff*
-    "$star" --runThreadN $threads \
-         --runMode genomeGenerate \
-         --genomeDir star_index \
-         --genomeFastaFiles $ref1 \
-         --sjdbGTFfile $gff \
-         --sjdbOverhang 136
-  fi
-fi
 
-declare -a arr=("${ref1%.f*}.dict" "${ref1}" "${ref1}.fai")
-for file in "${arr[@]}"; do
-  sleep $((RANDOM % 2))
-	if test -f $file; then
-		:
-	else
-		echo -e "${magenta}- reference genome not indexed: missing $file ${white}\n"
-		echo -e "${magenta}- make sure reference genome is indexed ${white}\n"
-		echo -e "${magenta}- GBSapp will quit in 5 seconds ${white}\n"
-		sleep 5 && exit 1
-	fi
-done
+  declare -a arr=("${ref1%.f*}.dict" "${ref1}" "${ref1}.fai")
+  for file in "${arr[@]}"; do
+    sleep $((RANDOM % 2))
+  	if test -f $file; then
+  		:
+  	else
+  		echo -e "${magenta}- reference genome not indexed: missing $file ${white}\n"
+  		echo -e "${magenta}- make sure reference genome is indexed ${white}\n"
+  		echo -e "${magenta}- GBSapp will quit in 5 seconds ${white}\n"
+  		sleep 5 && exit 1
+  	fi
+  done
 }
 cd $projdir
 if [[ "$alignments" == 1 ]] && [[ "$snp_calling" == 1 ]]; then
