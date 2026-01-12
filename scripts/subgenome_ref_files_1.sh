@@ -195,18 +195,18 @@ done
 
 cd $projdir
 cd refgenomes
-[[ -f "${ref1%.f*}_unstitched.fasta" ]] && mv "${ref1%.f*}_unstitched.fasta" ../
-[[ -f "unsplit_${ref1%.f*}_fasta.txt" ]] && mv "unsplit_${ref1%.f*}_fasta.txt" ../
+if [[ -f "${ref1%.f*}_unstitched.fasta" ]]; then mv "${ref1%.f*}_unstitched.fasta" ../ fi
+if [[ -f "unsplit_${ref1%.f*}_fasta.txt" ]]; then mv "unsplit_${ref1%.f*}_fasta.txt" ../ fi
 originalREF=$(ls *_original.fasta 2>/dev/null)
 if [[ -f "$originalREF" ]]; then
-  mv ${ref1%.f*}_original.fasta ../$ref1
+  mv "${ref1%.f*}_original.fasta" ../$ref1
   if [[ -d pangenomes ]]; then mv pangenomes ../; fi
   rm -rf ./*
-  mv ../$ref1 ./
-  mv ../pangenomes ./
+  mv "../$ref1" ./
+  mv "../pangenomes" ./
 fi
-[[ -f "../${ref1%.f*}_unstitched.fasta" ]] && mv "../${ref1%.f*}_unstitched.fasta" ./
-[[ -f "../unsplit_${ref1%.f*}_fasta.txt" ]] && mv "../unsplit_${ref1%.f*}_fasta.txt" ./
+if [[ -f "../${ref1%.f*}_unstitched.fasta" ]]; then mv "../${ref1%.f*}_unstitched.fasta" ./ fi
+if [[ -f "../unsplit_${ref1%.f*}_fasta.txt" ]]; then mv "../unsplit_${ref1%.f*}_fasta.txt" ./ fi
 
 
 if ls ./*.dict 1> /dev/null 2>&1; then
@@ -408,7 +408,6 @@ if [[ "$aligner" == "minimap2" ]]; then
     # processing pangenomes
     if [[ -d pangenomes ]]; then
       cd pangenomes
-      mkdir original_pangenomes
       shopt -s nullglob
       for panref in *.fa.gz *.fna.gz *.fasta.gz; do
         gunzip -f "$panref"
@@ -435,6 +434,7 @@ if [[ "$aligner" == "minimap2" ]]; then
         fi
         ncontigscaffold=$(grep '>' "$panref" | wc -l)
         if [[ "$ncontigscaffold" -gt "$max_pseudoMol" ]]; then
+          mkdir original_pangenomes
           nfakechr=$((threads/2))
           awk 'BEGIN{RS=">"; FS="\n"}
           NR>1{
@@ -530,8 +530,7 @@ if [[ "$aligner" == "minimap2" ]]; then
       # 2. Self-alignment (for near-identical collapse)
       $minimap2 -x asm20 -c --cs -t "$threads" panref.raw.fa panref.raw.fa > panref.self.paf
       # 3. Identify redundant sequences (≥95% coverage, not self)
-      awk '
-      $1 != $6 {
+      awk '$1 != $6 {
         qlen=$2; tlen=$7
         aln=$10
         cov=aln/(qlen<tlen?qlen:tlen)
@@ -540,17 +539,21 @@ if [[ "$aligner" == "minimap2" ]]; then
         }
       }' panref.self.paf | sort -u > redundant.ids
       # 4. Keep only non-redundant (longest representative survives)
-      awk '
-      BEGIN { RS=">"; FS="\n"; ORS="" }
-      NR>1 {
-        id=$1
-        if(!(id in drop)){
-          print ">"$0
+      awk -v dropfile="redundant.ids" 'BEGIN {
+        RS=">"; FS="\n"; ORS=""
+        while ((getline < dropfile) > 0) {
+          drop[$1] = 1
         }
+        close(dropfile)
       }
-      ' drop=redundant.ids panref.raw.fa > panref.fasta
+      NR > 1 {
+        id = $1
+        if (!(id in drop)) {
+          print ">" $0
+        }
+      }' panref.raw.fa > panref.fasta
       rm panref.self.paf redundant.ids panref.raw.fa
-      $minimap2 -x asm5 -t $threads "${ref1%.f*}_original.fasta" panref.fasta > ../pangenome2primary.paf
+      $minimap2 -x asm5 -t $threads "../${ref1%.f*}_original.fasta" panref.fasta > ../pangenome2primary.paf
       mv panref.fasta ../
       cat "../${ref1}" ../panref.fasta > ref_combined.fasta &&
       mv ref_combined.fasta "../${ref1}" && wait
