@@ -873,7 +873,9 @@ main () {
     if [[ "$subsample_WGS_in_silico_qRRS" == false ]]; then
       printf "Improvement in flushed reads not required for shotgun WGS data""\n" > flushed_reads.txt
     fi
-    if test ! -f flushed_reads.txt || [[ "$(ls ${projdir}/preprocess/alignment/*_redun.sam.gz 2> /dev/null | wc -l)" -eq 0 ]]; then
+    shopt -s nullglob
+    files=("${projdir}/preprocess/alignment/"*_redun.sam.gz)
+    if [[ ! -f flushed_reads.txt || ${#files[@]} -eq 0 ]]; then
       if [[ "${subsample_WGS_in_silico_qRRS,,}" == "medium" || "${subsample_WGS_in_silico_qRRS,,}" == "low" ]]; then
         for i in *.f*; do
           (
@@ -970,8 +972,9 @@ main () {
 	mkdir -p snpcall/tmp
 	mkdir -p alignment_summaries
 	mkdir -p ./alignment_summaries/copy_number
-
-	if [[ "$samples_list" == "samples_list_node_1.txt" ]] && [[ "$(ls -A ./samples/*.f* 2> /dev/null | wc -l)" -gt 0 ]]; then
+  shopt -s nullglob
+  files=(./samples/*.f*)
+  if [[ "$samples_list" == "samples_list_node_1.txt" && ${#files[@]} -gt 0 ]]; then
 		for i in samples_list_node_*.txt; do
 			:> ${i%.txt}_hold.txt
 			while IFS="" read -r line; do
@@ -1220,7 +1223,8 @@ main () {
 
   cd ${projdir}/preprocess
   if [[ "$samples_list" == "samples_list_node_1.txt" ]] && test ! -f ${projdir}/alignment_done; then
-    while [[ "$(ls ${projdir}/alignment_done_samples_list_node_* | wc -l)" -lt "$nodes" ]]; do
+    shopt -s nullglob
+    while files=("${projdir}"/alignment_done_samples_list_node_*); [[ ${#files[@]} -lt "$nodes" ]]; do
       sleep 300
     done
     touch ${projdir}/alignment_done
@@ -1708,9 +1712,16 @@ if [[ "$joint_calling" == false ]]&& [[ "$variant_caller" == "gatk" ]]; then
   cd ${projdir}/preprocess/
 	printf "variant calling completed on ${samples_list}" > ${projdir}/call1_${samples_list}
 
-	if [[ "$samples_list" == "samples_list_node_1.txt" ]] && [[ "$(ls ${projdir}/snpcall/${pop}_${ref1%.f*}_${ploidy}x_raw.vcf* 2> /dev/null | wc -l)" -eq 0 ]]; then
-		call1=$(ls ${projdir}/call1_samples_list_node_* | wc -l)
-		while [[ "$call1" -lt $nodes ]]; do sleep 300; call1=$(ls ${projdir}/call1_samples_list_node_* | wc -l); done
+  shopt -s nullglob
+  files=("${projdir}/snpcall/${pop}_${ref1%.f*}_${ploidy}x_raw.vcf"*)
+  if [[ "$samples_list" == "samples_list_node_1.txt" && ${#files[@]} -eq 0 ]]; then
+    shopt -s nullglob
+    call1=0
+    while [[ "$call1" -lt "$nodes" ]]; do
+        files=("${projdir}/call1_samples_list_node_"*)
+        call1=${#files[@]}
+        sleep 300
+    done
 		sleep $((RANDOM % 2))
     if [[ $call1 == $nodes ]]; then
 			cd ${projdir}/snpcall
