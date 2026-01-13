@@ -337,7 +337,7 @@ main () {
   cd $projdir
   cd refgenomes
   if [[ "$aligner" == "ngm" ]]; then
-    if [[ $(ls ./*.ngm 1> /dev/null 2>&1 | wc -l) -gt 0 ]]; then
+    if [[ -n "$(compgen -G "./*.ngm")" ]]; then
     	echo -e "${magenta}- indexed genome available ${white}\n"
     	if [ -z "$ref1" ]; then
     		for ref in *.f*; do
@@ -386,7 +386,7 @@ main () {
   fi
   wait
   if [[ "$aligner" == "minimap2" ]]; then
-    if [[ $(ls ./*.mmi 1> /dev/null 2>&1 | wc -l) -gt 0 ]]; then
+    if [[ -n "$(compgen -G "./*.mmi")" ]]; then
     	echo -e "${magenta}- indexed genome available ${white}\n"
     	if [ -z "$ref1" ]; then
     		for ref in *.f*; do
@@ -600,7 +600,7 @@ main () {
   wait
   if [[ "$RNA" == "true" ]]; then
     mkdir -p star_index
-    if [[ "$(ls ./star_index/* 1> /dev/null 2>&1 | wc -l)" -eq 0 ]]; then
+    if [[ -z "$(compgen -G "./star_index/*")" ]]; then
       gff=${ref1%.fasta}.gff*
       "$star" --runThreadN $threads \
            --runMode genomeGenerate \
@@ -635,7 +635,7 @@ echo -e "${blue}\n##############################################################
 main () {
 	cd $projdir
 	cd samples
-  if [[ "$(ls -A *.f* 2> /dev/null | wc -l)" -eq 0 ]] || [[ "$(ls -A ./preprocess/alignment/*sam* 2> /dev/null | wc -l)" -gt 0 ]] ; then
+  if [[ -z "$(compgen -G "*.f*")" ]] || [[ -n "$(compgen -G "./preprocess/alignment/*sam*")" ]]; then
     if [[ ! -d "pe" ]] && [[ ! -d "se" ]]; then
       :> filename_reformatted.txt
       :> flushed_reads.txt
@@ -1627,7 +1627,7 @@ if [[ "$samples_list" == "samples_list_node_1.txt" ]]; then
 		if [[ -z "$Get_Chromosome" ]]; then
       if [[ -z "$interval_list" ]]; then
   			for selchr in $Get2_Chromosome; do (
-  				if [[ "$(ls ${projdir}/snpcall/${pop}_${ploidy}x_${selchr}_raw.vcf* 2> /dev/null | wc -l)" -eq 0 ]]; then
+          if [[ -z "$(compgen -G "${projdir}/snpcall/${pop}_${ploidy}x_${selchr}_raw.vcf*")" ]]; then
   					$GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ${projdir}/refgenomes/$ref1 -L ${selchr} ${input} -ploidy $ploidy -O ${projdir}/snpcall/${pop}_${ploidy}x_${selchr}_raw.vcf.gz --max-reads-per-alignment-start 0 --minimum-mapping-quality $minmapq --dont-use-soft-clipped-bases $dont_use_softclip --max-num-haplotypes-in-population $((ploidy * maxHaplotype)) &&
   					gunzip ${projdir}/snpcall/${pop}_${ploidy}x_${selchr}_raw.vcf.gz &&
   					wait
@@ -1638,7 +1638,7 @@ if [[ "$samples_list" == "samples_list_node_1.txt" ]]; then
       else
         for selchr in $Get2_Chromosome; do (
           cat ${projdir}/${interval_list} | grep $selchr > ${projdir}/variant_intervals_${selchr}.list &&
-          if [[ "$(ls ${projdir}/snpcall/${pop}_${ploidy}x_${selchr}_raw.vcf* 2> /dev/null | wc -l)" -eq 0 ]]; then
+          if [[ -z "$(compgen -G "${projdir}/snpcall/${pop}_${ploidy}x_${selchr}_raw.vcf*")" ]]; then
             $GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ${projdir}/refgenomes/$ref1 -L ${projdir}/variant_intervals_${selchr}.list ${input} -ploidy $ploidy -O ${projdir}/snpcall/${pop}_${ploidy}x_${selchr}_raw.vcf.gz --max-reads-per-alignment-start 0 --minimum-mapping-quality $minmapq --dont-use-soft-clipped-bases $dont_use_softclip --max-num-haplotypes-in-population $((ploidy * maxHaplotype)) &&
             gunzip ${projdir}/snpcall/${pop}_${ploidy}x_${selchr}_raw.vcf.gz &&
             rm ${projdir}/variant_intervals_${selchr}.list &&
@@ -1656,7 +1656,7 @@ if [[ "$samples_list" == "samples_list_node_1.txt" ]]; then
 			rm vcf_header.txt all.vcf *.vcf.gz.tb* ${pop}_${ploidy}x_*_raw.vcf 2> /dev/null &&
       wait
 		else
-			if [[ "$(ls ${projdir}/snpcall/${pop}_${ploidy}x_${selchr}_raw.vcf* 2> /dev/null | wc -l)" -eq 0 ]]; then
+      if [[ -z "$(compgen -G "${projdir}/snpcall/${pop}_${ploidy}x_${selchr}_raw.vcf*")" ]]; then
 				echo $Get_Chromosome | tr ',' '\n' | awk '{print "SN:"$1}' | awk 'NR==FNR{a[$1];next}$2 in a{print $0}' - ${projdir}/refgenomes/${ref1%.fasta}.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $2":1-"$3}' > ${projdir}/refgenomes/${ref1%.fasta}.list &&
 				$GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ${projdir}/refgenomes/$ref1 -L ${projdir}/refgenomes/${ref1%.fasta}.list ${input} -ploidy $ploidy -O ${projdir}/snpcall/${pop}_${ploidy}x_raw.vcf.gz --max-reads-per-alignment-start 0 --minimum-mapping-quality $minmapq --dont-use-soft-clipped-bases $dont_use_softclip --max-num-haplotypes-in-population $((ploidy * maxHaplotype)) &&
 				cd ../snpcall
@@ -1675,7 +1675,7 @@ if [[ "$joint_calling" == false ]]&& [[ "$variant_caller" == "gatk" ]]; then
   if [[ ! -d "${projdir}"/snpcall/cohorts_1 ]]; then
   	while IFS="" read -r i || [ -n "$i" ]; do (
   		sleep $((RANDOM % 2))
-        if [[ "$(ls ${projdir}/snpcall/${pop}_${ref1%.f*}_${ploidy}x_raw.vcf* 2> /dev/null | wc -l)" -eq 0 ]]; then
+        if [[ -z "$(compgen -G "${projdir}/snpcall/${pop}_${ref1%.f*}_${ploidy}x_raw.vcf*")" ]]; then
     			if test ! -f "${projdir}/snpcall/${i%.f*}_${ref1%.f*}.g.vcf"; then
     					if [[ -z "$Get_Chromosome" ]]; then
                 if [[ -z "$interval_list" ]]; then
@@ -3604,10 +3604,10 @@ cat summary_precall.txt - > gmiss_smiss.txt &&
 rm gmiss_smiss_titration.txt eliminated_samples.txt retained_samples.txt summary_precall.txt 2> /dev/null &&
 wait
 for snpfilter_dir in */; do
-if [[ "$(ls ${snpfilter_dir}/*dose.txt 2> /dev/null | wc -l)" -eq 0 ]]; then
-rm -rf ${snpfilter_dir} &&
-wait
-fi
+  if [[ -z "$(compgen -G "${snpfilter_dir}/*dose.txt")" ]]; then
+    rm -rf ${snpfilter_dir} &&
+    wait
+  fi
 done
 wait
 ls ./*/*maf*.txt 2> /dev/null | grep -v 'maf0.txt' | grep -v 'dose' | grep -v 'binary' | xargs rm 2> /dev/null &&
@@ -3664,7 +3664,7 @@ export n="${ref1%.f*}"
             done
             wait
           fi
-          if [[ "$(ls $projdir/snpcall/*_split.vcf.gz  2> /dev/null | wc -l)" -gt 1 ]]; then
+          if (( $(compgen -G "$projdir/snpcall/*_split.vcf.gz" | wc -l) > 1 )); then
             $bcftools merge $projdir/snpcall/*_split.vcf.gz --force-samples -m all > ${i%rd*}split.vcf &&
             gzip ${i%rd*}split.vcf &&
             wait
