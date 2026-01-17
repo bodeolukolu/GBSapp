@@ -69,7 +69,7 @@ minnimap2, STAR, bwa, samtools, picard, bcftools, GATK, java, R-ggplot2, CMplot,
 Pre-install before running GBSapp:
 ----------------------------------
 - R
-- python v3.0 or greater
+- python v3.7 or greater
 ```
 
 

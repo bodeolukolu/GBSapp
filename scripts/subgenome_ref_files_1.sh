@@ -1652,29 +1652,43 @@ if [[ "$joint_calling" == false ]]&& [[ "$variant_caller" == "gatk" ]]; then
       [[ -s "$chain_out" ]] || { echo "ERROR: empty chain file"; exit 1; }
       cd ../snpcall
       vcf_file="${pop}_${ref1%.f*}_${ploidy}x_raw.vcf"
+      # compress and index
       if [[ -f "$vcf_file" ]]; then
-        $bcftools view -Oz -o "${vcf_file}.gz" "$vcf_file"
-        rm -f "$vcf_file"
-        $bcftools index "${vcf_file}.gz"
+          $bcftools view -Oz -o "${vcf_file}.gz" "$vcf_file"
+          rm -f "$vcf_file"
+          $bcftools index "${vcf_file}.gz"
       fi
+      # liftover pangenome variants
       $CrossMap vcf "$chain_out" "${vcf_file}.gz" "$primary_ref" "${vcf_file%.vcf}_lifted.vcf"
+      # compress and index lifted VCF
       $bcftools view -Oz -o "${vcf_file%.vcf}_lifted.vcf.gz" "${vcf_file%.vcf}_lifted.vcf"
       rm -f "${vcf_file%.vcf}_lifted.vcf"
       $bcftools index "${vcf_file%.vcf}_lifted.vcf.gz"
       vcf_in="${vcf_file%.vcf}_lifted.vcf.gz"
-      $bcftools view -i 'F_MISSING < 0.2' "$vcf_in" -Oz -o combined.filtmiss20perc.vcf.gz
+      # Threshold: max 80% missing (technical missingness)
+      $bcftools view -i 'F_MISSING < 0.8' "$vcf_in" -Oz -o combined.filtmiss20perc.vcf.gz
       $bcftools index combined.filtmiss20perc.vcf.gz
+      # Split pangenome vs primary
       $bcftools view -R <($bcftools query -f '%CHROM\n' combined.filtmiss20perc.vcf.gz | sort -u | grep '^pangenome_') combined.filtmiss20perc.vcf.gz -Oz -o pangenome.vcf.gz
       $bcftools index pangenome.vcf.gz
       $bcftools view -R <($bcftools query -f '%CHROM\n' combined.filtmiss20perc.vcf.gz | sort -u | grep -v '^pangenome_') combined.filtmiss20perc.vcf.gz -Oz -o primary.vcf.gz
       $bcftools index primary.vcf.gz
-      $gatk LiftoverVcf -I pangenome.vcf.gz -O pangenome_lifted.vcf.gz -CHAIN "$chain_out" -REJECT pangenome_liftover_rejected.vcf.gz -R "$primary_ref"
+      # ---- recode structural absences for pangenome loci ----
+      # Replace missing genotypes (./.) with 0/0 ONLY for pangenome loci
+      $bcftools +setGT pangenome.vcf.gz -- -t q -n 0 -O z -o pangenome_absence_recoded.vcf.gz
+      $bcftools index pangenome_absence_recoded.vcf.gz
+      # Liftover recoded pangenome loci
+      $gatk LiftoverVcf -I pangenome_absence_recoded.vcf.gz -O pangenome_lifted.vcf.gz -CHAIN "$chain_out" \
+      -REJECT pangenome_liftover_rejected.vcf.gz -R "$primary_ref"
+      # Merge with primary
       $bcftools concat -a -Oz -o merged_final.vcf.gz primary.vcf.gz pangenome_lifted.vcf.gz
       $bcftools index merged_final.vcf.gz
+      # Normalize final VCF
       $bcftools norm -f "$primary_ref" -m-any merged_final.vcf.gz -Oz -o "${pop}_${ref1%.f*}_${ploidy}x_raw.vcf.gz"
       $bcftools index "${pop}_${ref1%.f*}_${ploidy}x_raw.vcf.gz"
-      printf "pangenome projection completed\n" > "${projdir}/projection_done.txt"
-      rm -f combined.filtmiss20perc.vcf.gz* merged_final.vcf.gz*
+      printf "pangenome projection with structural absence recoded completed\n" > "${projdir}/projection_done.txt"
+      # cleanup intermediate files
+      rm -f combined.filtmiss20perc.vcf.gz* merged_final.vcf.gz* pangenome_absence_recoded.vcf.gz*
       wait
     fi
   fi
