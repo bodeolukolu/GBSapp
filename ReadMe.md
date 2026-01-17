@@ -63,13 +63,13 @@ GBSapp_dir/GBSapp install
 ```
 Installed on first run of pipeline:
 -----------------------------------
-NextGenMap (ngm), minnimap2, STAR, bwa, samtools, picard, bcftools, GATK, java, R-ggplot2, CMplot, and R-AGHmatrix
+minnimap2, STAR, bwa, samtools, picard, bcftools, GATK, java, R-ggplot2, CMplot, and R-AGHmatrix
 
 
 Pre-install before running GBSapp:
 ----------------------------------
 - R
-- python v2.6 or greater
+- python v3.0 or greater
 ```
 
 
@@ -111,7 +111,6 @@ Using a text editor, save a file containing any of the following variables as 'c
 |walkaway|true|run in walk-away or walk-through mode|true or false|Optional|
 |cluster|false|run on compute cluster node (default: slurm) or workstation|true or false|Optional|
 |nodes|1|number of nodes|integer|Optional|
-|aligner|minimap2|minimap2 (faster) or NGM|string|Optional|
 |RNA|false|RNA-seq reads as input (STAR aligner)|true or false|Optional|
 |variant_caller|gatk|gatk (recommended) or bcftools(diploid only, might be better for some genomes)|string|Optional|
 |samples_alt_dir|false|links samples in separate directory to project directory|true or false|Optional|
@@ -131,10 +130,8 @@ Using a text editor, save a file containing any of the following variables as 'c
 |Get_Chromosome|na|variant calling on specific chromosomes, scaffolds,and contigs|comma delimited string(s)|optional|
 |Exclude_Chromosome|na|variant calling to exclude specific chromosomes, scaffolds,and contigs|comma delimited string(s)|optional|
 
-**note: haploid assemblies of pangenomes and subgenomes should be in individual fasta files (up to 3 fasta files)*
+**note: haploid assemblies of pangenomes and subgenomes should be in individual fasta files*
 **note: short prefix for pangenome/subgenome pseudomolecules should be unique (i.e. >TF_Chr01 and >TL_Chr01 fasta sequence header for Ipomoea trifida and I. triloba, respectively)*
-**note: for polyploids with variable ploidy of subgenomes specify ploidy of subgenomes (e.g. hexapploid: ploidy_ref1=4 and ploidy_ref2=2)*
-**note: reference haplotype-resolved assembly (hap_ref) should be a single fasta file and should be chromosome-level assembly*
 **note: designate chromosomes of haplotype-resolved/subgenome assemblies with single character suffix (alphabets: A-Z and a-z) e.g. Chr01A*
 
 

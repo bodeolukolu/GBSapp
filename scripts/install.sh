@@ -71,7 +71,7 @@ fi
 
 main_minimap2 () {
   echo -e "${blue}\n############################################## ${yellow}\n- downloading and installing minimap2 ${blue}\n##############################################${white}"
-  git clone https://github.com/lh3/minimap2
+  git clone https://github.com/lh3/minimap2.git
   cd minimap2 && make
   cd $tools_dir
 }
@@ -82,10 +82,47 @@ else
   echo -e "${magenta}- Performing installation of dependency (minimap2) ${white}"
   main_minimap2 &>> ./log.out
   if [ ! -d $dirtool ]; then
-      echo -e "${magenta} NGM did not install properly ${white}"
+      echo -e "${magenta} minimap2 did not install properly ${white}"
   fi
 fi
 
+
+main_transanno () {
+  echo -e "${blue}\n############################################## ${yellow}\n- downloading and installing transanno ${blue}\n##############################################${white}"
+  git clone https://github.com/informationsea/transanno.git
+  cd transanno
+  curl -sSf https://sh.rustup.rs | sh -s -- -y
+  source ~/.cargo/env
+  cargo --version
+  cargo build --release
+}
+dirtool=transanno
+if [ -d $dirtool ]; then
+  :
+else
+  echo -e "${magenta}- Performing installation of dependency (transanno) ${white}"
+  main_transanno &>> ./log.out
+  if [ ! -d $dirtool ]; then
+      echo -e "${magenta} transanno did not install properly ${white}"
+  fi
+fi
+
+
+main_CrossMap () {
+  echo -e "${blue}\n############################################## ${yellow}\n- downloading and installing CrossMap ${blue}\n##############################################${white}"
+  mkdir crossmap
+  pip3 install --no-cache-dir --target ./crossmap git+https://github.com/liguowang/CrossMap.git
+}
+dirtool=CrossMap
+if [ -d $dirtool ]; then
+  :
+else
+  echo -e "${magenta}- Performing installation of dependency (CrossMap) ${white}"
+  main_CrossMap &>> ./log.out
+  if [ ! -d $dirtool ]; then
+      echo -e "${magenta} CrossMap did not install properly ${white}"
+  fi
+fi
 
 main_bcftools () {
   echo -e "${blue}\n############################################## ${yellow}\n- downloading and installing bcftools ${blue}\n##############################################${white}"
