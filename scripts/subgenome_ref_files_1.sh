@@ -564,7 +564,7 @@ main () {
 cd $projdir
 if [[ "$alignments" == 1 ]] && [[ "$snp_calling" == 1 ]]; then
   if [[ "$samples_list" == "samples_list_node_1.txt" ]]; then
-    if [[ -f compress_done.txt && -f organize_files_done.txt ]]; then
+    if [[ ! -f compress_done.txt && ! -f organize_files_done.txt && ! alignment_done.txt ]]; then
       time main 2>> ${projdir}/log.out
     fi
   fi
@@ -901,14 +901,14 @@ main () {
   shopt -s nullglob
   files=(./samples/*.f*)
   if [[ "$samples_list" == "samples_list_node_1.txt" && ${#files[@]} -gt 0 ]]; then
-		for i in samples_list_node_*.txt; do
-			:> ${i%.txt}_hold.txt
-			while IFS="" read -r line; do
-        ls -l ./samples/$line | awk '{print $5"\t"$9}' >> ${i%.txt}_hold.txt
-			done < <(grep -v '_tmp.fa' $i | grep -v _R2.f | grep -v _uniq.fasta | grep -v _uniq_R1.fasta | grep -v _uniq_R2.fasta | grep -v _uniq.hold.fasta | grep -v _uniq_R1.hold.fasta | grep -v _uniq_R2.hold.fasta | grep -v fq.gz |  awk '{gsub(/_R1.fastq/,".fastq"); gsub(/\.R1.fastq/,".fastq"); gsub(/_R1.fq/,".fq"); gsub(/\.R1.fq/,".fq"); print}' )
-			sort -nr -k1 ${i%.txt}_hold.txt | awk '{gsub(/.\/samples\//,""); print $2}' | awk 'NR>1{print prev} {prev=$0} END{printf "%s", prev}' > $i
-			rm "${i%.txt}"_hold.txt
-		done
+    for i in samples_list_node_*.txt; do
+      :> ${i%.txt}_hold.txt
+      while IFS="" read -r line; do
+        ls -l ./samples/${line}_R1_uniq.fasta.gz | awk '{print $5"\t"$9}' >> ${i%.txt}_hold.txt
+      done < <(grep -v '_tmp.fa' $i | grep -v _R2.f | grep -v _uniq.fasta | grep -v _uniq_R1.fasta | grep -v _uniq_R2.fasta | grep -v _uniq.hold.fasta | grep -v _uniq_R1.hold.fasta | grep -v _uniq_R2.hold.fasta | grep -v fq.gz |  awk '{ sub(/_R1.*/, "", $0); sub(/\.f.*/, "", $0)}1' )
+      sort -nr -k1 ${i%.txt}_hold.txt | awk '{gsub(/.\/samples\//,""); print $2}' | awk 'NR>1{print prev} {prev=$0} END{printf "%s", prev}' | awk '{ sub(/_R1.*/, "", $0);}1' > $i
+      rm "${i%.txt}"_hold.txt
+    done
 	fi
 }
 if [[ "$samples_list" == "samples_list_node_1.txt" ]]; then

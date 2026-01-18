@@ -502,7 +502,7 @@ if [[ "$string" == false ]]; then
   if [[ "$(wc -l samples_list* 2> /dev/null | awk '{if(max<$1){max=$1;line=$1}}END{print line}')"  -lt 1 ]]; then
     echo "$samples_list" | awk -F' ' '{ for (i=1;i<=NF;i+=1) print $i }' | awk '{gsub(/\.R2.f/,"_R2.f");}1' | grep -v _R2.f | grep -v _uniq.fasta | grep -v _uniq_R1.fasta | grep -v _uniq_R2.fasta | \
     grep -v _uniq.hold.fasta | grep -v _uniq_R1.hold.fasta | grep -v _uniq_R2.hold.fasta | grep -v fq.gz | \
-    a awk '{gsub(/_R1.fastq/,".fastq"); gsub(/\.R1.fastq/,".fastq"); gsub(/_R1.fq/,".fq"); gsub(/\.R1.fq/,".fq"); print}'  > samples_list_node_1.txt
+    awk '{gsub(/_R1.fastq/,".fastq"); gsub(/\.R1.fastq/,".fastq"); gsub(/_R1.fq/,".fq"); gsub(/\.R1.fq/,".fq"); print}'  > samples_list_node_1.txt
   fi
   printf "samples_list=samples_list_node_1.txt\n" >> config.sh
   cat header.txt <(grep -v '^[[:space:]]*$' config.sh | awk '{gsub(/^/,"export "); gsub(/export #/,"#");}1') fetchdir.txt "$string2" "$string3" | awk '{ sub("\r$",""); print}' > GBSapp_run.sh
