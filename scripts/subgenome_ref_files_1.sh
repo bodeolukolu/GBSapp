@@ -905,8 +905,8 @@ main () {
 			:> ${i%.txt}_hold.txt
 			while IFS="" read -r line; do
         ls -l ./samples/$line | awk '{print $5"\t"$9}' >> ${i%.txt}_hold.txt
-			done < <(grep -v '_tmp.fa' $i | grep -v _R2.f | grep -v _uniq.fasta | grep -v _uniq_R1.fasta | grep -v _uniq_R2.fasta | grep -v _uniq.hold.fasta | grep -v _uniq_R1.hold.fasta | grep -v _uniq_R2.hold.fasta | grep -v fq.gz | awk '{gsub(/_R1.f/,".f"); gsub(/\.R1.f/,".f"); print}')
-			sort -nr -k1 ${i%.txt}_hold.txt | awk '{gsub(/.\/samples\//,""); print $2}' > $i
+			done < <(grep -v '_tmp.fa' $i | grep -v _R2.f | grep -v _uniq.fasta | grep -v _uniq_R1.fasta | grep -v _uniq_R2.fasta | grep -v _uniq.hold.fasta | grep -v _uniq_R1.hold.fasta | grep -v _uniq_R2.hold.fasta | grep -v fq.gz | awk '{sub(/([._])R1(\.(fa|fasta|fq|fastq)(\.gz)?)$/, ".\\2", $0) print}')
+			sort -nr -k1 ${i%.txt}_hold.txt | awk '{gsub(/.\/samples\//,""); print $2}' | awk 'NR>1{print prev} {prev=$0} END{printf "%s", prev}' > $i
 			rm "${i%.txt}"_hold.txt
 		done
 	fi
@@ -979,7 +979,7 @@ main () {
   if [[ $nodes -gt 1 ]] && test -f ${projdir}/GBSapp_run_node_1.sh; then cd /tmp/${samples_list%.txt}/preprocess/alignment/ ; fi
   if [[ "$RNA" == "false" ]]; then
     if [[ "$aligner" == "minimap2" ]]; then
-      if test ! -f "${projdir}/precall_done.txt" && test ! -f "${projdir}/alignment_done"; then
+      if test ! -f "${projdir}/precall_done.txt" && test ! -f "${projdir}/alignment_done.txt"; then
         cd samples
         # Automated alignment with structure detection and separate mapping
         while IFS="" read -r alignfq || [ -n "$alignfq" ]; do (
@@ -1020,7 +1020,7 @@ main () {
                 echo "Structure mode for $sample_base: $detect_structure_mode"
             fi
             printf "${alignfq%.f*}:\tdetect_structure_mde = ${detect_structure_mode} \t discordant_pct = $discordant_pct \n" > tmp_sv
-            cat tmp_sv >> sv_mode.txt && rm tmp.sv
+            cat tmp_sv >> sv_mode.txt && rm -f tmp_sv
 
             if [[ "$detect_structure_mode" == "high" ]]; then
               #### Step 1: Align PE or SE reads
@@ -1082,11 +1082,12 @@ main () {
     fi
   fi
   wait
+  cat sv_mode.txt > ${projdir}/alignment_done.txt
 
   cd ${projdir}
   if [[ "$RNA" == "true" ]]; then
     mkdir -p ../preprocess/staralign
-    if test ! -f ${projdir}/precall_done.txt && test ! -f ${projdir}/alignment_done; then
+    if test ! -f ${projdir}/precall_done.txt && test ! -f ${projdir}/alignment_done.txt; then
       cd samples
       while IFS="" read -r alignfq || [ -n "$alignfq" ]; do (
           sleep $((RANDOM % 2))
@@ -1178,18 +1179,19 @@ main () {
   fi
   wait
 
-  cat sv_mode > ${projdir}/alignment_done_${samples_list}.txt
+  cat sv_mode.txt > ${projdir}/alignment_done_${samples_list}
 
   cd ${projdir}/preprocess
-  if [[ "$samples_list" == "samples_list_node_1.txt" ]] && test ! -f ${projdir}/alignment_done; then
+  if [[ "$samples_list" == "samples_list_node_1.txt" ]] && test ! -f ${projdir}/alignment_done.txt; then
     shopt -s nullglob
     while files=("${projdir}"/alignment_done_samples_list_node_*); [[ ${#files[@]} -lt "$nodes" ]]; do
       sleep 300
     done
-    cat sv_mode > touch ${projdir}/alignment_done.txt
+    cat sv_mode.txt > ${projdir}/alignment_done.txt
   fi
+  rm -f ${projdir}/samples/tmp.* ${projdir}/samples/sv_mode.txt
 
-  while [[ ! -f ${projdir}/alignment_done ]]; do
+  while [[ ! -f ${projdir}/alignment_done.txt ]]; do
     sleep 300
   done
   wait
