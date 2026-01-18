@@ -7,9 +7,8 @@ if [ -z "$threads" ]; then
 		export threads=$((threads-2))
 	fi
 fi
-if [[ -z "$aligner" ]]; then
-  export aligner=== minimap2
-fi
+export aligner=minimap2
+
 if [ -z "$RNA" ]; then
  export RNA=false
 fi
@@ -322,6 +321,7 @@ main () {
   fi
 
   cd $projdir
+  cd refgenomes
   if [[ "$aligner" == "minimap2" ]]; then
     if [[ -n "$(compgen -G "./*.mmi")" ]]; then
     	echo -e "${magenta}- indexed genome available ${white}\n"
@@ -564,7 +564,9 @@ main () {
 cd $projdir
 if [[ "$alignments" == 1 ]] && [[ "$snp_calling" == 1 ]]; then
   if [[ "$samples_list" == "samples_list_node_1.txt" ]]; then
-  	time main 2>> ${projdir}/log.out
+    if [[ -f compress_done.txt && -f organize_files_done.txt ]]; then
+      time main 2>> ${projdir}/log.out
+    fi
   fi
 fi
 
@@ -649,35 +651,47 @@ main () {
     process_dir pe
 
     shopt -s nullglob
-    for dir in "$projdir"/se "$projdir"/pe; do
+    for dir in "$projdir"/samples/se "$projdir"/samples/pe "$projdir"/samples/; do
         [[ -d "$dir" ]] || continue
         echo "Processing directory: $dir"
-        # Loop over all R2 files
+        ############################
+        # PASS 1: renaming R1 file with _R1 for Paired-end (R2-driven,)
+        ############################
         for r2 in "$dir"/*R2.*.gz "$dir"/*_R2.*.gz; do
             [[ -f "$r2" ]] || continue
-            # Strip R2 suffix to get base
             filename=$(basename "$r2")
             base="${filename%%.R2*}"
             base="${base%%_R2*}"
-            # Look for corresponding R1 (may or may not have R1 in name)
             r1=$(ls "$dir/${base}.R1."*.gz "$dir/${base}_R1."*.gz 2>/dev/null | head -n1 || true)
             if [[ -z "$r1" ]]; then
                 echo "Warning: found R2 file $filename without matching R1!"
             else
-                # Force R1 filename to include _R1 if missing
                 r1_base=$(basename "$r1")
                 if [[ "$r1_base" != *".R1."* && "$r1_base" != *"_R1."* ]]; then
-                    ext="${r1_base##*.}"       # extension (fastq.gz or fasta.gz)
-                    new_r1="$dir/${base}_R1.$ext"
+                    ext="${r1_base#${base}.}"
+                    new_r1="$dir/${base}_R1.${ext}"
                     echo "Renaming $r1 → $new_r1"
                     mv "$r1" "$new_r1"
                 fi
             fi
         done
-
+\        ############################
+        # PASS 2: renaming R1 file with _R1 for Single-end R1-only
+        ############################
+        for r1 in "$dir"/*.gz; do
+            [[ -f "$r1" ]] || continue
+            r1_base=$(basename "$r1")
+            # Skip files already containing R1/R2
+            [[ "$r1_base" == *".R1."* || "$r1_base" == *"_R1."* ]] && continue
+            [[ "$r1_base" == *".R2."* || "$r1_base" == *"_R2."* ]] && continue
+            base="${r1_base%%.*}"
+            ext="${r1_base#${base}.}"
+            new_r1="$dir/${base}_R1.${ext}"
+            echo "Renaming single-end R1 $r1 → $new_r1"
+            mv "$r1" "$new_r1"
+        done
     done
-    shopt -u nullglob
-
+    shopt -s nullglob
 
     has_pe=false
     shopt -s nullglob
@@ -993,10 +1007,10 @@ main () {
                 # Use PE if R2 exists, else SE
                 if [[ -f "$tmp_sample_r2" ]]; then
                     echo "Structure detection: PE mode for $sample_base"
-                    $minimap2 -t "$alnthreads" -ax pe "../refgenomes/${ref%.f*}.mmi" "$tmp_sample_r1" "$tmp_sample_r2" > "$tmp_aln" 2>/dev/null
+                    $minimap2 -t "$alnthreads" -ax pe "../refgenomes/${ref1%.f*}.mmi" "$tmp_sample_r1" "$tmp_sample_r2" > "$tmp_aln" 2>/dev/null
                 else
                     echo "Structure detection: SE mode for $sample_base"
-                    $minimap2 -t "$alnthreads" -ax sr "../refgenomes/${ref%.f*}.mmi" "$tmp_sample_r1" > "$tmp_aln" 2>/dev/null
+                    $minimap2 -t "$alnthreads" -ax sr "../refgenomes/${ref1%.f*}.mmi" "$tmp_sample_r1" > "$tmp_aln" 2>/dev/null
                 fi
                 discordant_pct=$(grep -v '^@' "$tmp_aln" | awk '{if($2>=256) d++} END{if(NR>0){print (d/NR)*100}else{print 0}}')
                 if (( $(echo "$discordant_pct > 10" | bc -l) )); then
@@ -1012,17 +1026,17 @@ main () {
               #### Step 1: Align PE or SE reads
               if [[ -f "$r1_file" && -f "$r2_file" && -s "$r2_file" ]]; then
                   echo "Aligning PE reads: $r1_file + $r2_file (structure: $detect_structure_mode)"
-                  $minimap2 -t $alnthreads -ax pe --secondary=yes -k15 -w5 -Y -f 0.0005 -N 8 -n 2 -m 25 "../refgenomes/${ref%.f*}.mmi" \
+                  $minimap2 -t $alnthreads -ax pe --secondary=yes -k15 -w5 -Y -f 0.0005 -N 8 -n 2 -m 25 "../refgenomes/${ref1%.f*}.mmi" \
                   "$r1_file" "$r2_file" > "${sample_base}.sam"
               else
                   echo "Aligning SE reads: $r1_file (structure: $detect_structure_mode)"
-                  $minimap2 -t $alnthreads -ax sr --secondary=yes -k15 -w5 "../refgenomes/${ref%.f*}.mmi" \
+                  $minimap2 -t $alnthreads -ax sr --secondary=yes -k15 -w5 "../refgenomes/${ref1%.f*}.mmi" \
                   "$r1_file" > "${sample_base}.sam"
               fi
               #### Step 2: Align stitched R1R2 reads separately
               if [[ -f "$r1r2_file" && -s "$r1r2_file" ]]; then
                   echo "Aligning stitched reads: $r1r2_file"
-                  $minimap2 -t $alnthreads -ax sr --secondary=yes -k15 -w5 "../refgenomes/${ref%.f*}.mmi" \
+                  $minimap2 -t $alnthreads -ax sr --secondary=yes -k15 -w5 "../refgenomes/${ref1%.f*}.mmi" \
                   "$r1r2_file" > "${sample_base}_R1R2.sam"
                   # Merge SAMs
                   cat "${sample_base}.sam" <(grep -v '^@' "${sample_base}_R1R2.sam") > "${sample_base}_all.sam"
@@ -1036,17 +1050,17 @@ main () {
               #### Step 1: Align PE or SE reads
               if [[ -f "$r1_file" && -f "$r2_file" && -s "$r2_file" ]]; then
                   echo "Aligning PE reads: $r1_file + $r2_file (structure: $detect_structure_mode)"
-                  $minimap2 -t $alnthreads -ax pe --secondary=no --sam-hit-only -Y -f 0.0005 -N 8 -n 2 -m 25 "../refgenomes/${ref%.f*}.mmi" \
+                  $minimap2 -t $alnthreads -ax pe --secondary=no --sam-hit-only -Y -f 0.0005 -N 8 -n 2 -m 25 "../refgenomes/${ref1%.f*}.mmi" \
                   "$r1_file" "$r2_file" > "${sample_base}.sam"
               else
                   echo "Aligning SE reads: $r1_file (structure: $detect_structure_mode)"
-                  $minimap2 -t $alnthreads -ax sr --secondary=no --sam-hit-only "../refgenomes/${ref%.f*}.mmi" \
+                  $minimap2 -t $alnthreads -ax sr --secondary=no --sam-hit-only "../refgenomes/${ref1%.f*}.mmi" \
                   "$r1_file" > "${sample_base}.sam"
               fi
               #### Step 2: Align stitched R1R2 reads separately
               if [[ -f "$r1r2_file" && -s "$r1r2_file" ]]; then
                   echo "Aligning stitched reads: $r1r2_file"
-                  $minimap2 -t $alnthreads -ax sr --secondary=no --sam-hit-only "../refgenomes/${ref%.f*}.mmi" \
+                  $minimap2 -t $alnthreads -ax sr --secondary=no --sam-hit-only "../refgenomes/${ref1%.f*}.mmi" \
                   "$r1r2_file" > "${sample_base}_R1R2.sam"
                   # Merge SAMs
                   cat "${sample_base}.sam" <(grep -v '^@' "${sample_base}_R1R2.sam") > "${sample_base}_all.sam"
