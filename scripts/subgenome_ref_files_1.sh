@@ -905,7 +905,7 @@ main () {
 			:> ${i%.txt}_hold.txt
 			while IFS="" read -r line; do
         ls -l ./samples/$line | awk '{print $5"\t"$9}' >> ${i%.txt}_hold.txt
-			done < <(grep -v '_tmp.fa' $i | grep -v _R2.f | grep -v _uniq.fasta | grep -v _uniq_R1.fasta | grep -v _uniq_R2.fasta | grep -v _uniq.hold.fasta | grep -v _uniq_R1.hold.fasta | grep -v _uniq_R2.hold.fasta | grep -v fq.gz | awk '{sub(/([._])R1(\.(fa|fasta|fq|fastq)(\.gz)?)$/, ".\\2", $0) print}')
+			done < <(grep -v '_tmp.fa' $i | grep -v _R2.f | grep -v _uniq.fasta | grep -v _uniq_R1.fasta | grep -v _uniq_R2.fasta | grep -v _uniq.hold.fasta | grep -v _uniq_R1.hold.fasta | grep -v _uniq_R2.hold.fasta | grep -v fq.gz |  awk '{gsub(/_R1.fastq/,".fastq"); gsub(/\.R1.fastq/,".fastq"); gsub(/_R1.fq/,".fq"); gsub(/\.R1.fq/,".fq"); print}' )
 			sort -nr -k1 ${i%.txt}_hold.txt | awk '{gsub(/.\/samples\//,""); print $2}' | awk 'NR>1{print prev} {prev=$0} END{printf "%s", prev}' > $i
 			rm "${i%.txt}"_hold.txt
 		done
@@ -975,12 +975,11 @@ main () {
 
   # Perform read alignments
   cd ${projdir}
-  if [[ $nodes -eq 1 ]]; then cd ${projdir}/preprocess/alignment/ ; fi
-  if [[ $nodes -gt 1 ]] && test -f ${projdir}/GBSapp_run_node_1.sh; then cd /tmp/${samples_list%.txt}/preprocess/alignment/ ; fi
+  if [[ $nodes -eq 1 ]]; then cd ${projdir}/samples ; fi
+  if [[ $nodes -gt 1 ]] && test -f ${projdir}/GBSapp_run_node_1.sh; then cd /tmp/${samples_list%.txt}/samples ; fi
   if [[ "$RNA" == "false" ]]; then
     if [[ "$aligner" == "minimap2" ]]; then
       if test ! -f "${projdir}/precall_done.txt" && test ! -f "${projdir}/alignment_done.txt"; then
-        cd samples
         # Automated alignment with structure detection and separate mapping
         while IFS="" read -r alignfq || [ -n "$alignfq" ]; do (
             sleep $((RANDOM % 2))
@@ -1082,7 +1081,6 @@ main () {
     fi
   fi
   wait
-  cat sv_mode.txt > ${projdir}/alignment_done.txt
 
   cd ${projdir}
   if [[ "$RNA" == "true" ]]; then
