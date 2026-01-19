@@ -906,7 +906,6 @@ main () {
   mkdir -p preprocess/alignment
 	mkdir -p snpcall/tmp
 	mkdir -p alignment_summaries
-	mkdir -p ./alignment_summaries/copy_number
   shopt -s nullglob
   files=(./samples/*.f*)
   if [[ "$samples_list" == "samples_list_node_1.txt" && ${#files[@]} -gt 0 ]]; then
