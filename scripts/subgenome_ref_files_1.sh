@@ -564,7 +564,7 @@ main () {
 cd $projdir
 if [[ "$alignments" == 1 ]] && [[ "$snp_calling" == 1 ]]; then
   if [[ "$samples_list" == "samples_list_node_1.txt" ]]; then
-    if [[ ! -f compress_done.txt && ! -f organize_files_done.txt && ! alignment_done.txt ]]; then
+    if [[ ! -f compress_done.txt && ! -f organize_files_done.txt ]]; then
       time main 2>> ${projdir}/log.out
     fi
   fi
@@ -851,9 +851,18 @@ main () {
       [[ "$i" == *_uniq.fasta.gz ]] && continue
       echo "Filtering, trimming, and counting duplicates for $i"
       zcat tmp_flat_"$i" | \
-      awk -v max="$max_seqread_len" -v minlen=$MIN_LEN '
-        length($0)>=minlen {seq=substr($0,1,max); count[seq]++}
-        END {for(s in count) print ">seq_"count[s]"\n"s}' | gzip > "${i%.f*}_uniq.fasta.gz"
+      awk -v max="$max_seqread_len" -v minlen="$MIN_LEN" '
+        length($0) >= minlen {
+          seq = substr($0, 1, max)
+          count[seq]++
+        }
+        END {
+          n = 0
+          for (s in count) {
+            n++
+            printf(">seq%d_%d\n%s\n", n, count[s], s)
+          }
+        }' | gzip > "${i%.f*}_uniq.fasta.gz"
     ) &
     while (( $(jobs -rp | wc -l) >= $gN )); do sleep 2; done
     done
@@ -1177,7 +1186,7 @@ main () {
   fi
   wait
 
-  cat sv_mode.txt > ${projdir}/alignment_done_${samples_list}
+  cat ${projdir}/samples/sv_mode.txt > ${projdir}/alignment_done_${samples_list}
 
   cd ${projdir}/preprocess
   if [[ "$samples_list" == "samples_list_node_1.txt" ]] && test ! -f ${projdir}/alignment_done.txt; then
@@ -1185,7 +1194,7 @@ main () {
     while files=("${projdir}"/alignment_done_samples_list_node_*); [[ ${#files[@]} -lt "$nodes" ]]; do
       sleep 300
     done
-    cat sv_mode.txt > ${projdir}/alignment_done.txt
+    cat ${projdir}/samples/sv_mode.txt > ${projdir}/alignment_done.txt
   fi
   rm -f ${projdir}/samples/tmp.* ${projdir}/samples/sv_mode.txt
 
@@ -1237,7 +1246,7 @@ main () {
 
   while IFS="" read -r i || [ -n "$i" ]; do (
     printf '\n###---'${i%.f*}'---###\n' > ${projdir}/alignment_summaries/${i%.f*}_summ.txt &&
-    zcat ./alignment/${i%.f*}_redun.sam.gz | grep -v '^@' | awk '{gsub(/_/,"\t",$1);}1' | awk '{gsub(/se-/,"",$2);gsub(/pe-/,"",$2);}1' | tr ' ' '\t' > ${i%.f*}_full.sam &&
+    zcat ./alignment/${i%.f*}_redun.sam.gz | grep -v '^@' | awk '{gsub(/_/,"\t",$1);}1' | tr ' ' '\t' > ${i%.f*}_full.sam &&
     split -l 10000 ${i%.f*}_full.sam ${i%.f*}_chunk_ && rm ${i%.f*}_full.sam &&
     find . -name '${i%.f*}_chunk_*' -print0 | xargs -0 -P "$gthreads" -I{} bash -c 'awk '\''{for(i=0;i<=$2-1;i++) print $0}'\'' "$1" > "$1.out"' _ {} &&
     cat ${i%.f*}_chunk_* | awk '!($2="")1' | awk '{$1=$1"_"NR}1' | awk '{gsub(/ /,"\t");}1' > ${i%.f*}_full.sam &&
@@ -1246,7 +1255,7 @@ main () {
     $samtools flagstat ${i%.f*}_full.sam.gz >> ${projdir}/alignment_summaries/${i%.f*}_summ.txt &&
     printf '########################################################################################################\n\n' >> ${projdir}/alignment_summaries/${i%.f*}_summ.txt &&
     printf 'copy_number\tFrequency\tPercentage\n' > ${projdir}/alignment_summaries/copy_number/${i%.f*}_copy_number_Read_histogram.txt &&
-    $samtools view -F4 <(zcat ${i%.f*}_full.sam.gz 2> /dev/null) | awk '{print $1}' | awk '{gsub(/_pe-/,"\t");gsub(/seq/,"");}1' | \
+    $samtools view -F4 <(zcat ${i%.f*}_full.sam.gz 2> /dev/null) | awk '{print $1}' | awk '{gsub(/_/,"\t");gsub(/seq/,"");}1' | \
     awk '{while ($2-- > 0) print $1}' | awk '{!seen[$0]++}END{for (i in seen) print seen[i]}' | awk '{!seen[$0]++}END{for (i in seen) print i, seen[i]}' > ${projdir}/alignment_summaries/copy_number/${i%.f*}_copy_number.txt  &&
     awk 'NR==FNR{sum+= $2; next;} {printf("%s\t%s\t%3.3f%%\t%3.0f\n",$1,$2,100*$2/sum,100*$2/sum)}' ${projdir}/alignment_summaries/copy_number/${i%.f*}_copy_number.txt ${projdir}/alignment_summaries/copy_number/${i%.f*}_copy_number.txt | awk '$4 > 0' > ${projdir}/alignment_summaries/copy_number/${i%.f*}_plot.txt &&
     unset IFS; printf "%s\t%s\t%s\t%*s\n" $(sed 's/$/ |/' ${projdir}/alignment_summaries/copy_number/${i%.f*}_plot.txt) | tr ' ' '|' | sort -T ./tmp/ -k1,1 -n >> ${projdir}/alignment_summaries/copy_number/${i%.f*}_copy_number_Read_histogram.txt &&
@@ -1257,7 +1266,7 @@ main () {
         awk '/@HD/ || /@SQ/{print}' <(zcat ./alignment/${i%.f*}_redun.sam.gz 2> /dev/null) > ${i%.f*}_heading.sam &&
         $samtools view -F4 <(zcat ./alignment/${i%.f*}_redun.sam.gz 2> /dev/null) | grep -v '^@' | awk '$3 != "*"' 2> /dev/null | awk '$6 != "*"' 2> /dev/null | \
         awk -v min=$minmapq -F '\t' 'BEGIN{OFS="\t"} {if ($5 == 0 || $5 >= min) {print $0}}' | awk '!h[$1] { g[$1]=$0 } { h[$1]++ } END { for(k in g) print h[k], g[k] }' | \
-        tr " " "\t" | tr '\r' '\n' | awk '$1==1{print $0}' | awk '{$1=""}1' | awk '$1=$1' | tr " " "\t" | awk '{gsub(/_pe-/,"_pe-\t",$1);}1' | awk '{print $2"\t"$0}' | \
+        tr " " "\t" | tr '\r' '\n' | awk '$1==1{print $0}' | awk '{$1=""}1' | awk '$1=$1' | tr " " "\t" | awk '{gsub(/_/,"_\t",$1);}1' | awk '{print $2"\t"$0}' | \
         awk '{$2=$3=""}1' | tr -s " " | tr " " "\t" > ${i%.f*}_uniq.sam
       fi
       if [[ "$paralogs" == true ]] && [[ "$uniquely_mapped" == true ]]; then
@@ -1269,14 +1278,14 @@ main () {
         $samtools view -F4 <(zcat ./alignment/${i%.f*}_redun.sam.gz 2> /dev/null) | grep -v '^@' | awk '$3 != "*"' 2> /dev/null | awk '$6 != "*"' 2> /dev/null | \
         awk '!h[$1] { g[$1]=$0 } { h[$1]++ } END { for(k in g) print h[k], g[k] }' | tr " " "\t" | tr '\r' '\n' | awk '$1==1 || $1<=6{print $0}' | awk '{$1=""}1' | awk '$1=$1' | tr " " "\t" | \
         awk -F '\t' 'BEGIN{OFS="\t"} {if ($5 > 0) {print $0}}' 2> /dev/null | cat - ${i%.f*}_uniqeq.sam | \
-        awk '{gsub(/_pe-/,"_pe-\t",$1);}1' | awk '{print $2"\t"$0}' | awk '{$2=$3=""}1' | tr -s " " | tr " " "\t" > ${i%.f*}_uniq.sam &&
+        awk '{gsub(/_/,"_\t",$1);}1' | awk '{print $2"\t"$0}' | awk '{$2=$3=""}1' | tr -s " " | tr " " "\t" > ${i%.f*}_uniq.sam &&
         rm ${i%.f*}_uniqeq.sam
       fi
       if [[ "$paralogs" == true ]] && [[ "$uniquely_mapped" == false ]]; then
         awk '/@HD/ || /@SQ/{print}' <(zcat ./alignment/${i%.f*}_redun.sam.gz 2> /dev/null) > ${i%.f*}_heading.sam &&
         $samtools view -F4 <(zcat ./alignment/${i%.f*}_redun.sam.gz 2> /dev/null) | grep -v '^@' | awk '$3 != "*"' 2> /dev/null | awk '$6 != "*"' 2> /dev/null | \
         awk -v min=$minmapq -F '\t' 'BEGIN{OFS="\t"} {if ($5 == 0 || $5 >= min) {print $0}}' | awk '!h[$1] { g[$1]=$0 } { h[$1]++ } END { for(k in g) print h[k], g[k] }' | \
-        tr " " "\t" | tr '\r' '\n' | awk '$1==1{print $0}' | awk '{$1=""}1' | awk '$1=$1' | tr " " "\t" | awk '{gsub(/_pe-/,"_pe-\t",$1);}1' | awk '{print $2"\t"$0}' | \
+        tr " " "\t" | tr '\r' '\n' | awk '$1==1{print $0}' | awk '{$1=""}1' | awk '$1=$1' | tr " " "\t" | awk '{gsub(/_/,"_\t",$1);}1' | awk '{print $2"\t"$0}' | \
         awk '{$2=$3=""}1' | tr -s " " | tr " " "\t" > ${i%.f*}_uniq.sampart &&
         $samtools view -F4 <(zcat ./alignment/${i%.f*}_redun.sam.gz 2> /dev/null) | grep -v '^@' | awk '$3 != "*"' 2> /dev/null | awk '$6 != "*"' 2> /dev/null | \
         awk -v min=$minmapq -F '\t' 'BEGIN{OFS="\t"} {if ($5 == 0 || $5 >= min) {print $0}}' | awk '!h[$1] { g[$1]=$0 } { h[$1]++ } END { for(k in g) print h[k], g[k] }' | \
@@ -1285,7 +1294,7 @@ main () {
         $samtools view -F4 <(zcat ./alignment/${i%.f*}_redun.sam.gz 2> /dev/null) | grep -v '^@' | awk '$3 != "*"' 2> /dev/null | awk '$6 != "*"' 2> /dev/null | \
         awk '!h[$1] { g[$1]=$0 } { h[$1]++ } END { for(k in g) print h[k], g[k] }' | tr " " "\t" | tr '\r' '\n' | awk '$1==1 || $1<=6{print $0}' | awk '{$1=""}1' | awk '$1=$1' | tr " " "\t" | \
         awk -F '\t' 'BEGIN{OFS="\t"} {if ($5 > 0) {print $0}}' 2> /dev/null | cat - ${i%.f*}_uniqeq.sam | \
-        awk '{gsub(/_pe-/,"_pe-\t",$1);}1' | awk '{print $2"\t"$0}' | awk '{$2=$3=""}1' | tr -s " " | tr " " "\t" > ${i%.f*}_uniqAll.sam &&
+        awk '{gsub(/_/,"_\t",$1);}1' | awk '{print $2"\t"$0}' | awk '{$2=$3=""}1' | tr -s " " | tr " " "\t" > ${i%.f*}_uniqAll.sam &&
         rm ${i%.f*}_uniqeq.sam &&
         awk 'NR==FNR{a[$0]=1;next}!a[$0]' ${i%.f*}_uniqpart.sam ${i%.f*}_uniqAll.sam > ${i%.f*}_uniq.sam &&
         ${i%.f*}_uniqpart.sam ${i%.f*}_uniqAll.sam
