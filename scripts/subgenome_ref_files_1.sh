@@ -184,21 +184,21 @@ main () {
   if [[ -f "${ref1%.f*}_unstitched.fasta" ]]; then
     mv "${ref1%.f*}_unstitched.fasta" ../
   fi
-  if [[ -f "unsplit_${ref1%.f*}_fasta.txt" ]]; then
+  if [[ -f "unsplit_${ref1%.f*}_fasta.txt" 2>/dev/null ]]; then
     mv "unsplit_${ref1%.f*}_fasta.txt" ../
   fi
   originalREF=$(ls *_original.fasta 2>/dev/null)
-  if [[ -f "$originalREF" ]]; then
+  if [[ -f "$originalREF" 2>/dev/null ]]; then
     mv "${ref1%.f*}_original.fasta" ../$ref1
     if [[ -d pangenomes ]]; then mv pangenomes ../; fi
     rm -rf ./*
     mv "../$ref1" ./
     mv "../pangenomes" ./
   fi
-  if [[ -f "../${ref1%.f*}_unstitched.fasta" ]]; then
+  if [[ -f "../${ref1%.f*}_unstitched.fasta" 2>/dev/null ]]; then
     mv "../${ref1%.f*}_unstitched.fasta" ./
   fi
-  if [[ -f "../unsplit_${ref1%.f*}_fasta.txt" ]]; then
+  if [[ -f "../unsplit_${ref1%.f*}_fasta.txt" 2>/dev/null]]; then
     mv "../unsplit_${ref1%.f*}_fasta.txt" ./
   fi
 
@@ -343,14 +343,16 @@ main () {
       awk '/>/{gsub(/a$/,"A");gsub(/b$/,"B");gsub(/c$/,"C");gsub(/d$/,"D");gsub(/e$/,"E");gsub(/f$/,"F");gsub(/g$/,"G");gsub(/h$/,"H");}1' > ref.txt &&
     	n=">${ref1%.f*}_" &&
     	awk '{ sub("\r$",""); print}' ref.txt | awk -v n="$n" '{gsub(n,">"); print}' | awk -v n="$n" '{gsub(/>/,n); print}' > $ref1 &&
-    	rm ref.txt &&
-      cp "$ref1" "${ref1%.f*}_original.fasta" &&
-      $samtools faidx "${ref1%.f*}_original.fasta" &&
-      $java -jar $picard CreateSequenceDictionary REFERENCE="${ref1%.f*}_original.fasta" OUTPUT="${ref1%.f*}_original.dict" &&
-      $minimap2 -d "${ref1%.f*}_original.mmi" "${ref1%.f*}_original.fasta" &&
+    	rm ref.txt && wait
 
       # processing pangenomes
       if [[ -d pangenomes ]]; then
+        cp "$ref1" "${ref1%.f*}_original.fasta" &&
+        $samtools faidx "${ref1%.f*}_original.fasta" &&
+        $java -jar $picard CreateSequenceDictionary REFERENCE="${ref1%.f*}_original.fasta" OUTPUT="${ref1%.f*}_original.dict" &&
+        $minimap2 -d "${ref1%.f*}_original.mmi" "${ref1%.f*}_original.fasta" &&
+        wait
+
         cd pangenomes
         shopt -s nullglob
         for panref in *.fa.gz *.fna.gz *.fasta.gz; do
@@ -498,17 +500,22 @@ main () {
         }' panref.raw.fa | \
         awk '/^>/ { sub(/:.*/, "", $0); print; next } { print }' > panref.fasta
         rm panref.self.paf redundant.ids panref.raw.fa
+
         $minimap2 -x asm5 -t $threads "../${ref1%.f*}_original.fasta" panref.fasta > ../pangenome2primary.paf
         mv panref.fasta ../
         cat "../${ref1}" ../panref.fasta > ref_combined.fasta &&
         mv ref_combined.fasta "../${ref1}" && wait
       fi
 
-      cd ../
-      $samtools faidx panref.fasta &&
-      $java -jar $picard CreateSequenceDictionary REFERENCE=panref.fasta OUTPUT=panref.dict &&
-      $minimap2 -d panref.mmi panref.fasta &&
-      rm ${ref1%.f*}.dict ${ref1%.f*}.fai ${ref1%.f*}.mmi
+      cd $projdir
+      cd refgenomes
+      if [[ -d pangenomes ]]; then
+        $samtools faidx panref.fasta &&
+        $java -jar $picard CreateSequenceDictionary REFERENCE=panref.fasta OUTPUT=panref.dict &&
+        $minimap2 -d panref.mmi panref.fasta
+        rm ${ref1%.f*}.dict ${ref1%.f*}.fai ${ref1%.f*}.mmi
+      fi
+
       $samtools faidx $ref1 &&
       $java -jar $picard CreateSequenceDictionary REFERENCE=$ref1 OUTPUT=${ref1%.f*}.dict &&
       $minimap2 -d ${ref1%.f*}.mmi $ref1 &&
