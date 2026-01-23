@@ -495,7 +495,8 @@ main () {
           if (!(id in drop)) {
             print ">" $0
           }
-        }' panref.raw.fa > panref.fasta
+        }' panref.raw.fa | \
+        awk '/^>/ { sub(/:.*/, "", $0); print; next } { print }' > panref.fasta
         rm panref.self.paf redundant.ids panref.raw.fa
         $minimap2 -x asm5 -t $threads "../${ref1%.f*}_original.fasta" panref.fasta > ../pangenome2primary.paf
         mv panref.fasta ../
@@ -1334,20 +1335,21 @@ main () {
 			cat *_summ.txt > alignment_summaries_reads.txt &&
       rm *_summ.txt &&
 			# Total number of reads per samples
-			awk '/###---/ || /QC-passed/{print}' alignment_summaries_reads.txt | cut -d\+ -f1 | tr -d '\n' | \
-			awk  'gsub(/---###/, "\t", $0)' | awk  'gsub(/###---/, "", $0)' | tr ' ' '\n' > total_reads.txt &&
-			# Total number of mapped reads per samples
-			cat alignment_summaries_reads.txt | tr ' ' '_' | tr '(' '_' |  tr ')' '_' | awk '/###---/ || /0_mapped/{print}' |\
-			tr -d '\n' | awk 'gsub(/###---/, "\n", $0)' | awk 'gsub(/---###/, "\t", $0)' | awk 'gsub(/_/, "", $2)' | \
-			awk 'gsub("\\+0mapped", "\t", $0)' | cut -d\: -f1 > total_reads_mapped.txt &&
-			# Total number of mapped paired reads per samples
-			cat alignment_summaries_reads.txt | tr ' ' '_' | tr '(' '_' |  tr ')' '_' | awk '/###---/ || /properly_paired/{print}' |\
-			tr -d '\n' | awk 'gsub(/###---/, "\n", $0)' | awk 'gsub(/---###/, "\t", $0)' | awk 'gsub(/_/, "", $2)' | \
-			awk 'gsub("\\+0properlypaired", "\t", $0)' | cut -d\: -f1 > total_reads_paired.txt &&
-			echo -e "Samples\tTotal\tMapped\tPerc_Mapped\tPE_Mapped\t%_PE_Mapped" > summary_precall.txt &&
-			awk 'FNR==NR{a[$1]=$2 FS $3;next} ($1 in a) {print $0,a[$1]}' total_reads_mapped.txt  total_reads.txt  | \
-			awk 'FNR==NR{a[$1]=$2 FS $3;next} ($1 in a) {print $0,a[$1]}' total_reads_paired.txt - | awk '{gsub(/ /,"\t"); print $0}' | \
-			cat summary_precall.txt - | awk '{print $1"\t"$2"\t"$3"\t"$4}' > Tabulated_Alignment_Read_Summaries.txt &&
+      awk '/###---/ || /QC-passed/{print}' alignment_summaries_reads.txt | cut -d\+ -f1 | tr -d '\n' | \
+      awk  'gsub(/---###/, "\t", $0)' | awk  'gsub(/###---/, "", $0)' | tr ' ' '\n' > total_reads.txt &&
+      # Total number of mapped reads per samples
+      cat alignment_summaries_reads.txt | tr ' ' '_' | tr '(' '_' |  tr ')' '_' | awk '/###---/ || /0_primary_mapped/{print}' |\
+      tr -d '\n' | awk 'gsub(/###---/, "\n", $0)' | awk 'gsub(/---###/, "\t", $0)' | awk 'gsub(/_/, "", $2)' | \
+      awk 'gsub("\\+0primarymapped", "\t", $0)' | cut -d\: -f1 > total_reads_mapped.txt &&
+      # Total number of mapped paired reads per samples
+      cat alignment_summaries_reads.txt | tr ' ' '_' | tr '(' '_' |  tr ')' '_' | awk '/###---/ || /properly_paired/{print}' |\
+      tr -d '\n' | awk 'gsub(/###---/, "\n", $0)' | awk 'gsub(/---###/, "\t", $0)' | awk 'gsub(/_/, "", $2)' | \
+      awk 'gsub("\\+0properlypaired", "\t", $0)' | cut -d\: -f1 > total_reads_paired.txt &&
+      echo -e "Samples\tTotal\tMapped\tPerc_Mapped\tPE_Mapped\t%_PE_Mapped" > summary_precall.txt &&
+      awk 'FNR==NR{a[$1]=$2 FS $3;next} ($1 in a) {print $0,a[$1]}' total_reads_mapped.txt  total_reads.txt  | \
+      awk 'FNR==NR{a[$1]=$2 FS $3;next} ($1 in a) {print $0,a[$1]}' total_reads_paired.txt - | awk '{gsub(/ /,"\t"); print $0}' | \
+      cat summary_precall.txt - | awk '{print $1"\t"$2"\t"$3"\t"$4}' | \
+      awk 'BEGIN{OFS="\t"} NR==1 {print; next} {printf "%s\t%d\t%d\t%.2f%%\n", $1, $2, $3, ($3/$2)*100}' > Tabulated_Alignment_Read_Summaries.txt &&
 			rm total_* summary_precall.txt &> /dev/null &&
 			rm ${projdir}/samples/metrics.txt ${projdir}/preprocess/metrics.txt &> /dev/null &&
       wait
@@ -1447,7 +1449,7 @@ if [[ "$samples_list" == "samples_list_node_1.txt" ]]; then
 		for i in *_precall.bam; do
 			k="${j} ${i}"; input="${input} ${k}"
 		done
-		Get2_Chromosome=$(awk 'NR>1{print $2,"\t",$3}' ${projdir}/refgenomes/${ref1%.*}.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $0}' | sort -k2,2 -nr | awk '{print $1}' | awk -v pat=${ref1%.f*} '$0 ~ pat')
+		Get2_Chromosome=$(awk 'NR>1{print $2,"\t",$3}' ${projdir}/refgenomes/${ref1%.*}.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $0}' | sort -k2,2 -nr | awk '{print $1}')
 		if [[ -n "$Exclude_Chromosome" ]]; then
 			for i in $(echo "$Exclude_Chromosome" | tr ',' '\n'); do
 				Get2_Chromosome=$(echo $Get2_Chromosome | awk -v i=$i '{gsub(i,"");}1')
@@ -1555,7 +1557,7 @@ if [[ "$joint_calling" == false ]]&& [[ "$variant_caller" == "gatk" ]]; then
 					k="${j} ${i}"; input="${input} ${k}"
 				done
 				if [[ -z "$Get_Chromosome" ]]; then
-					Get2_Chromosome=$(awk 'NR>1{print $2,"\t",$3}' ${projdir}/refgenomes/${ref1%.*}.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $0}' | sort -k2,2 -nr | awk '{print $1}' | awk -v pat=${ref1%.f*} '$0 ~ pat')
+					Get2_Chromosome=$(awk 'NR>1{print $2,"\t",$3}' ${projdir}/refgenomes/${ref1%.*}.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $0}' | sort -k2,2 -nr | awk '{print $1}')
 				else
 					Get2_Chromosome=$(echo $Get_Chromosome | tr ',' '\n')
 				fi
@@ -1657,54 +1659,70 @@ if [[ "$joint_calling" == false ]]&& [[ "$variant_caller" == "gatk" ]]; then
 	###########
   # perform lift over for pangenome-aware variant calling
   cd $projdir
-  if [[ -d "./refgenomes/pangenomes" ]]; then
+  if [[ -d "./refgenomes/pangenomes" ]] && find "./refgenomes/pangenomes" -type f -size +0c -print -quit | grep -q .; then
     if [[ ! -f "${projdir}/projection_done.txt" ]]; then
-      set -euo pipefail
-      primary_ref="${ref1%.f*}_original.fasta"
-      secondary_ref="panref.fasta"
-      chain_out="pangenome_to_primary.chain"
-      cd refgenomes
-      $transanno paf2chain pangenome2primary.paf "$secondary_ref" "$primary_ref" > "$chain_out"
-      [[ -s "$chain_out" ]] || { echo "ERROR: empty chain file"; exit 1; }
-      cd ../snpcall
+      cd snpcall
+      primary_ref="../refgenomes/${ref1%.f*}_original.fasta"
+      secondary_ref="../refgenomes/panref.fasta"
+      paf_file="../refgenomes/pangenome2primary.paf"
+      chain_out="../refgenomes/pangenome_to_primary.chain"
+      lifted_vcf="${vcf_file%.vcf}_lifted.vcf"
+      failed_vcf="${vcf_file%.vcf}_failed.vcf"
       vcf_file="${pop}_${ref1%.f*}_${ploidy}x_raw.vcf"
+      primary_prefix="${ref1%.f*}_Chr"
       # compress and index
       if [[ -f "$vcf_file" ]]; then
-          $bcftools view -Oz -o "${vcf_file}.gz" "$vcf_file"
-          rm -f "$vcf_file"
-          $bcftools index "${vcf_file}.gz"
+        $bcftools view -Oz -o "${vcf_file}.gz" "$vcf_file" &&
+        rm -f "$vcf_file" &&
+        $bcftools index "${vcf_file}.gz"
       fi
-      # liftover pangenome variants
-      $CrossMap vcf "$chain_out" "${vcf_file}.gz" "$primary_ref" "${vcf_file%.vcf}_lifted.vcf"
-      # compress and index lifted VCF
-      $bcftools view -Oz -o "${vcf_file%.vcf}_lifted.vcf.gz" "${vcf_file%.vcf}_lifted.vcf"
-      rm -f "${vcf_file%.vcf}_lifted.vcf"
-      $bcftools index "${vcf_file%.vcf}_lifted.vcf.gz"
-      vcf_in="${vcf_file%.vcf}_lifted.vcf.gz"
-      # Threshold: max 80% missing (technical missingness)
-      $bcftools view -i 'F_MISSING < 0.8' "$vcf_in" -Oz -o combined.filtmiss20perc.vcf.gz
-      $bcftools index combined.filtmiss20perc.vcf.gz
-      # Split pangenome vs primary
-      $bcftools view -R <($bcftools query -f '%CHROM\n' combined.filtmiss20perc.vcf.gz | sort -u | grep '^pangenome_') combined.filtmiss20perc.vcf.gz -Oz -o pangenome.vcf.gz
-      $bcftools index pangenome.vcf.gz
-      $bcftools view -R <($bcftools query -f '%CHROM\n' combined.filtmiss20perc.vcf.gz | sort -u | grep -v '^pangenome_') combined.filtmiss20perc.vcf.gz -Oz -o primary.vcf.gz
-      $bcftools index primary.vcf.gz
-      # ---- recode structural absences for pangenome loci ----
-      # Replace missing genotypes (./.) with 0/0 ONLY for pangenome loci
-      $bcftools +setGT pangenome.vcf.gz -- -t q -n 0 -O z -o pangenome_absence_recoded.vcf.gz
-      $bcftools index pangenome_absence_recoded.vcf.gz
-      # Liftover recoded pangenome loci
-      $gatk LiftoverVcf -I pangenome_absence_recoded.vcf.gz -O pangenome_lifted.vcf.gz -CHAIN "$chain_out" \
-      -REJECT pangenome_liftover_rejected.vcf.gz -R "$primary_ref"
-      # Merge with primary
-      $bcftools concat -a -Oz -o merged_final.vcf.gz primary.vcf.gz pangenome_lifted.vcf.gz
-      $bcftools index merged_final.vcf.gz
+      wait
+      sort -k6,6 -k8,8n "$paf_file" | awk '!seen[$6,$8,$9]++' > "${paf_file%.paf}.clean.paf" &&
+      python3 ${GBSapp_dir}/tools/paf2chain.py "${paf_file%.paf}.clean.paf" "$secondary_ref" "$primary_ref" "$chain_out" &&
+
+      # extract TF contig names from the primary reference
+      awk '{print $1 "\t1\t" $2}' "${primary_ref}.fai" | grep "^${primary_prefix}" > ${ref1%.f*}.regions &&
+      # subset variants strictly to primary reference contigs &&
+      $bcftools view -R ${ref1%.f*}.regions -Oz -o ${ref1%.f*}_only.tmp.vcf.gz "${vcf_file}.gz" &&
+      $bcftools index ${ref1%.f*}_only.tmp.vcf.gz &&
+      # reheader safely with full TF FASTA
+      $bcftools reheader -f "${primary_ref}.fai" -o ${ref1%.f*}_only.vcf.gz ${ref1%.f*}_only.tmp.vcf.gz &&
+      $bcftools index ${ref1%.f*}_only.vcf.gz &&
+
+      lifted_pangenome_vcf="${vcf_file%.vcf}_lifted.vcf.gz"
+      ${GBSapp_dir}/tools/transanno/target/release/transanno liftvcf \
+      --original-assembly "$primary_ref" --new-assembly "$secondary_ref" \
+      --chain "$chain_out" --vcf ${ref1%.f*}_only.vcf.gz --output "$lifted_pangenome_vcf" --fail failed.vcf.gz &&
+      bcftools sort "$lifted_pangenome_vcf" -Oz -o "${lifted_pangenome_vcf%.vcf.gz}.sorted.vcf.gz" &&
+      bcftools norm -f "$secondary_ref" -m-any "${lifted_pangenome_vcf%.vcf.gz}.sorted.vcf.gz" \
+      -Oz -o "${lifted_pangenome_vcf%.vcf.gz}.sorted.norm.vcf.gz" &&
+      bcftools view -e 'GT="./."' "${lifted_pangenome_vcf%.vcf.gz}.sorted.norm.vcf.gz" -Oz -o "$lifted_pangenome_vcf" &&
+      bcftools index "$lifted_pangenome_vcf" &&
+
+      # Filter variants with max 80% missingness
+      $bcftools view -i 'F_MISSING < 0.8' "${vcf_file}.gz" -Oz -o combined.filtmiss20perc.vcf.gz &&
+      $bcftools index combined.filtmiss20perc.vcf.gz &&
+      $bcftools view -i 'F_MISSING < 0.8' "$lifted_pangenome_vcf" -Oz -o pangenome.filtmiss20perc.vcf.gz &&
+      $bcftools index pangenome.filtmiss20perc.vcf.gz &&
+      # Pangenome SNPs
+      $bcftools view -r $($bcftools query -f '%CHROM\n' pangenome.filtmiss20perc.vcf.gz | sort -u | grep '^pangenome_' | paste -sd ',') \
+      pangenome.filtmiss20perc.vcf.gz -Oz -o pangenome.vcf.gz &&
+      bcftools index pangenome.vcf.gz &&
+      # Primary reference SNPs
+      $bcftools view -r $($bcftools query -f '%CHROM\n' combined.filtmiss20perc.vcf.gz | sort -u | grep "^${primary_prefix}" | paste -sd ',') \
+      combined.filtmiss20perc.vcf.gz -Oz -o primary.vcf.gz &&
+      $bcftools index primary.vcf.gz &&
+      # Merge pangenome and primary SNPs
+      $bcftools concat -a -Oz -o merged_final.vcf.gz primary.vcf.gz pangenome.vcf.gz &&
+      $bcftools index merged_final.vcf.gz &&
       # Normalize final VCF
-      $bcftools norm -f "$primary_ref" -m-any merged_final.vcf.gz -Oz -o "${pop}_${ref1%.f*}_${ploidy}x_raw.vcf.gz"
-      $bcftools index "${pop}_${ref1%.f*}_${ploidy}x_raw.vcf.gz"
-      printf "pangenome projection with structural absence recoded completed\n" > "${projdir}/projection_done.txt"
-      # cleanup intermediate files
-      rm -f combined.filtmiss20perc.vcf.gz* merged_final.vcf.gz* pangenome_absence_recoded.vcf.gz*
+      final_vcf="${pop}_${ref1%.f*}_${ploidy}x_raw.vcf.gz"
+      $bcftools norm -f "$primary_ref" -m-any merged_final.vcf.gz -Oz -o "$final_vcf" &&
+      $bcftools index "$final_vcf" &&
+      printf "Pangenome projection with structural absence completed\n" > "${projdir}/projection_done.txt" &&
+      rm -f "${ref1%.f*}_only.tmp.vcf.gz"* "${ref1%.f*}_only.vcf.gz"* merged_final.vcf.gz* \
+      pangenome.filtmiss20perc.vcf.gz* combined.filtmiss20perc.vcf.gz* failed.vcf.gz \
+      primary.vcf.gz* pangenome.vcf.gz* "${vcf_file%.vcf}_lifted"* "${ref1%.f*}.regions"
       wait
     fi
   fi

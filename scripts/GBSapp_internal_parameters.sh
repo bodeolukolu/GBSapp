@@ -88,7 +88,6 @@ export ngm=${GBSapp_dir}/tools/*NextGenMap*/bin/ngm*/ngm
 export star=${GBSapp_dir}/tools/STAR*/source/STAR
 export minimap2=${GBSapp_dir}/tools/minimap2*/minimap2
 export transanno=${GBSapp_dir}/tools/transanno/target/release/transanno
-export CrossMap =${GBSapp_dir}/tools/crossmap/bin/CrossMap
 export wig2bed=${GBSapp_dir}/tools/wig2bed_merged.py
 export bwa=${GBSapp_dir}/tools/bwa/bwa
 export samtools=${GBSapp_dir}/tools/samtools*/samtools && samtools=${samtools//'//'/'/'}

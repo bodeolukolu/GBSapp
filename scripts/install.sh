@@ -108,22 +108,6 @@ else
 fi
 
 
-main_CrossMap () {
-  echo -e "${blue}\n############################################## ${yellow}\n- downloading and installing CrossMap ${blue}\n##############################################${white}"
-  mkdir crossmap
-  pip3 install --no-cache-dir --target ./crossmap git+https://github.com/liguowang/CrossMap.git
-}
-dirtool=CrossMap
-if [ -d $dirtool ]; then
-  :
-else
-  echo -e "${magenta}- Performing installation of dependency (CrossMap) ${white}"
-  main_CrossMap &>> ./log.out
-  if [ ! -d $dirtool ]; then
-      echo -e "${magenta} CrossMap did not install properly ${white}"
-  fi
-fi
-
 main_bcftools () {
   echo -e "${blue}\n############################################## ${yellow}\n- downloading and installing bcftools ${blue}\n##############################################${white}"
   wget https://github.com/samtools/bcftools/releases/download/1.22/bcftools-1.22.tar.bz2 &&
