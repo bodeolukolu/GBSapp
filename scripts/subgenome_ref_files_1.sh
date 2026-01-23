@@ -184,21 +184,21 @@ main () {
   if [[ -f "${ref1%.f*}_unstitched.fasta" ]]; then
     mv "${ref1%.f*}_unstitched.fasta" ../
   fi
-  if [[ -f "unsplit_${ref1%.f*}_fasta.txt" 2>/dev/null ]]; then
+  if [[ -f "unsplit_${ref1%.f*}_fasta.txt" ]]; then
     mv "unsplit_${ref1%.f*}_fasta.txt" ../
   fi
   originalREF=$(ls *_original.fasta 2>/dev/null)
-  if [[ -f "$originalREF" 2>/dev/null ]]; then
+  if [[ -f "$originalREF" ]]; then
     mv "${ref1%.f*}_original.fasta" ../$ref1
     if [[ -d pangenomes ]]; then mv pangenomes ../; fi
     rm -rf ./*
     mv "../$ref1" ./
     mv "../pangenomes" ./
   fi
-  if [[ -f "../${ref1%.f*}_unstitched.fasta" 2>/dev/null ]]; then
+  if [[ -f "../${ref1%.f*}_unstitched.fasta"  ]]; then
     mv "../${ref1%.f*}_unstitched.fasta" ./
   fi
-  if [[ -f "../unsplit_${ref1%.f*}_fasta.txt" 2>/dev/null]]; then
+  if [[ -f "../unsplit_${ref1%.f*}_fasta.txt" ]]; then
     mv "../unsplit_${ref1%.f*}_fasta.txt" ./
   fi
 
@@ -1316,9 +1316,9 @@ main () {
       j="${i%.f*}_${ref1%.f*}.sam"
       CIGAR_FILTER='I[0-9]+I|D[0-9]+D|D[0-9]+I|I[0-9]+D'
       cat ${j} | grep -Ev "$CIGAR_FILTER"  > cleaned_${j};  mv cleaned_${j} ${j} &&
-      $java $Xmx2 -XX:ParallelGCThreads=$gthreads -Djava.io.tmpdir=${projdir}/preprocess/tmp -jar $picard SortSam I=$j O=${j%.sam*}.bam  SORT_ORDER=coordinate  VALIDATION_STRINGENCY=LENIENT TMP_DIR=${projdir}/preprocess/tmp && \
-      $java $Xmx2 -XX:ParallelGCThreads=$gthreads -jar $picard BuildBamIndex INPUT=${j%.sam*}.bam VALIDATION_STRINGENCY=LENIENT && \
-      $java $Xmx2 -XX:ParallelGCThreads=$gthreads -jar $picard AddOrReplaceReadGroups I=${j%.sam*}.bam O=${j%.sam*}_precall.bam RGLB=${i%.f*} RGPL=illumina RGPU=run RGSM=${i%.f*} VALIDATION_STRINGENCY=LENIENT && \
+      $java $Xmx2 -XX:ParallelGCThreads=$gthreads -Djava.io.tmpdir=${projdir}/preprocess/tmp -jar $picard SortSam I=$j O=${j%.sam*}.bam  SORT_ORDER=coordinate  VALIDATION_STRINGENCY=LENIENT TMP_DIR=${projdir}/preprocess/tmp >/dev/null 2>&1 && \
+      $java $Xmx2 -XX:ParallelGCThreads=$gthreads -jar $picard BuildBamIndex INPUT=${j%.sam*}.bam VALIDATION_STRINGENCY=LENIENT >/dev/null 2>&1 && \
+      $java $Xmx2 -XX:ParallelGCThreads=$gthreads -jar $picard AddOrReplaceReadGroups I=${j%.sam*}.bam O=${j%.sam*}_precall.bam RGLB=${i%.f*} RGPL=illumina RGPU=run RGSM=${i%.f*} VALIDATION_STRINGENCY=LENIENT >/dev/null 2>&1 && \
       $samtools index ${j%.sam*}_precall.bam &&
       rm $j ${j%.sam*}.bam ${j%.sam*}.bai &&
       if [[ $nodes -gt 1 ]]; then cp /tmp/${samples_list%.txt}/preprocess/${j%.sam*}_precall.bam* ${projdir}/preprocess/; fi
