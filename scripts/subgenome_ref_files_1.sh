@@ -1667,7 +1667,7 @@ if [[ "$joint_calling" == false ]]&& [[ "$variant_caller" == "gatk" ]]; then
   # perform lift over for pangenome-aware variant calling
   cd $projdir
   if [[ -d "./refgenomes/pangenomes" ]] && find "./refgenomes/pangenomes" -type f -size +0c -print -quit | grep -q .; then
-    if bcftools view -H "$vcf_file" | awk '$1 ~ /^pangenome_/{found=1; exit} END{exit !found}'; then
+    if bcftools view -H "./snpcall/${pop}_${ref1%.f*}_${ploidy}x_raw.vcf*" | awk '$1 ~ /^pangenome_/{found=1; exit} END{exit !found}'; then
       if [[ ! -f "${projdir}/projection_done.txt" ]]; then
         cd snpcall
         primary_ref="../refgenomes/${ref1%.f*}_original.fasta"
@@ -1871,17 +1871,8 @@ if [ -z $maf ]; then
 fi
 
 cd ${projdir}/snpcall
-if [ -z "$(ls -A *_DP_GT.txt 2> /dev/null)" ]; then
-	if [ -z "$(ls -A *_x.vcf 2> /dev/null)" ]; then
-		if [ -z "$(ls -A *_raw.vcf 2> /dev/null)" ]; then
-			for g in *_raw.vcf.gz; do gunzip $g;	done
-		fi
-	fi
-fi
+for g in *_raw.vcf.gz; do gunzip $g;	done
 wait
-
-
-
 
 file1xG=$( if [ "$(ls -A *_1x_DP_GT.txt 2> /dev/null)" ]; then ls *_1x_DP_GT.txt | wc -l;  else echo 0; fi )
 file1xV=$( if [ "$(ls -A *_1x_raw.vcf 2> /dev/null)" ]; then ls *_1x_raw.vcf | head -n 1 | wc -l; else echo 0; fi )
