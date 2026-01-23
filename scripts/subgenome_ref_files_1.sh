@@ -1699,7 +1699,7 @@ if [[ "$joint_calling" == false ]]&& [[ "$variant_caller" == "gatk" ]]; then
   # perform lift over for pangenome-aware variant calling
   cd $projdir
   if [[ -d "./refgenomes/pangenomes" ]] && find "./refgenomes/pangenomes" -type f -size +0c -print -quit | grep -q .; then
-    if bcftools view -H "./snpcall/${pop}_${ref1%.f*}_${ploidy}x_raw.vcf*" | awk '$1 ~ /^pangenome_/{found=1; exit} END{exit !found}'; then
+    if bcftools view -H "./snpcall/${pop}_${ref1%.f*}_${ploidy}x_raw.vcf"* | awk '$1 ~ /^pangenome_/{found=1; exit} END{exit !found}'; then
       if [[ ! -f "${projdir}/projection_done.txt" ]]; then
         cd snpcall
         primary_ref="../refgenomes/${ref1%.f*}_original.fasta"
