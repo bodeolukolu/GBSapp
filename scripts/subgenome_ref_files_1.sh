@@ -1174,7 +1174,7 @@ main () {
           $GATK SplitNCigarReads \
               -R "${projdir}/refgenomes/$ref1" \
               -I "$align_dir/${sample_base}_redun.bam" \
-              -O "$align_dir/${sample_base}_redunsplit.bam"
+              -O "$align_dir/${sample_base}_redunsplit.bam" --verbosity ERROR
           # Step 5: Compress final SAM
           $samtools view -h "$align_dir/${sample_base}_redunsplit.bam" | gzip > "$align_dir/${sample_base}_redun.sam.gz"
           # Step 6: Cleanup
@@ -1466,7 +1466,11 @@ if [[ "$samples_list" == "samples_list_node_1.txt" ]]; then
       if [[ -z "$interval_list" ]]; then
   			for selchr in $Get2_Chromosome; do (
           if [[ -z "$(compgen -G "${projdir}/snpcall/${pop}_${ploidy}x_${selchr}_raw.vcf*")" ]]; then
-  					$GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ${projdir}/refgenomes/$ref1 -L ${selchr} ${input} -ploidy $ploidy -O ${projdir}/snpcall/${pop}_${ploidy}x_${selchr}_raw.vcf.gz --max-reads-per-alignment-start 0 --minimum-mapping-quality $minmapq --dont-use-soft-clipped-bases $dont_use_softclip --disable-bam-index-caching true --max-num-haplotypes-in-population $((ploidy * maxHaplotype)) &&
+  					$GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" HaplotypeCaller \
+            -R ${projdir}/refgenomes/$ref1 -L ${selchr} ${input} -ploidy $ploidy \
+            -O ${projdir}/snpcall/${pop}_${ploidy}x_${selchr}_raw.vcf.gz --max-reads-per-alignment-start 0 \
+            --minimum-mapping-quality $minmapq --dont-use-soft-clipped-bases $dont_use_softclip \
+            --disable-bam-index-caching true --max-num-haplotypes-in-population $((ploidy * maxHaplotype)) --verbosity ERROR &&
   					gunzip ${projdir}/snpcall/${pop}_${ploidy}x_${selchr}_raw.vcf.gz
   				fi
   				) &
@@ -1476,7 +1480,11 @@ if [[ "$samples_list" == "samples_list_node_1.txt" ]]; then
         for selchr in $Get2_Chromosome; do (
           cat ${projdir}/${interval_list} | grep $selchr > ${projdir}/variant_intervals_${selchr}.list &&
           if [[ -z "$(compgen -G "${projdir}/snpcall/${pop}_${ploidy}x_${selchr}_raw.vcf*")" ]]; then
-            $GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ${projdir}/refgenomes/$ref1 -L ${projdir}/variant_intervals_${selchr}.list ${input} -ploidy $ploidy -O ${projdir}/snpcall/${pop}_${ploidy}x_${selchr}_raw.vcf.gz --max-reads-per-alignment-start 0 --minimum-mapping-quality $minmapq --dont-use-soft-clipped-bases $dont_use_softclip --disable-bam-index-caching true --max-num-haplotypes-in-population $((ploidy * maxHaplotype)) &&
+            $GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" HaplotypeCaller \
+            -R ${projdir}/refgenomes/$ref1 -L ${projdir}/variant_intervals_${selchr}.list ${input} -ploidy $ploidy \
+            -O ${projdir}/snpcall/${pop}_${ploidy}x_${selchr}_raw.vcf.gz --max-reads-per-alignment-start 0 \
+            --minimum-mapping-quality $minmapq --dont-use-soft-clipped-bases $dont_use_softclip --disable-bam-index-caching true \
+            --max-num-haplotypes-in-population $((ploidy * maxHaplotype)) --verbosity ERROR&&
             gunzip ${projdir}/snpcall/${pop}_${ploidy}x_${selchr}_raw.vcf.gz &&
             rm ${projdir}/variant_intervals_${selchr}.list
           fi
@@ -1494,7 +1502,11 @@ if [[ "$samples_list" == "samples_list_node_1.txt" ]]; then
 		else
       if [[ -z "$(compgen -G "${projdir}/snpcall/${pop}_${ploidy}x_${selchr}_raw.vcf*")" ]]; then
 				echo $Get_Chromosome | tr ',' '\n' | awk '{print "SN:"$1}' | awk 'NR==FNR{a[$1];next}$2 in a{print $0}' - ${projdir}/refgenomes/${ref1%.fasta}.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $2":1-"$3}' > ${projdir}/refgenomes/${ref1%.fasta}.list &&
-				$GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ${projdir}/refgenomes/$ref1 -L ${projdir}/refgenomes/${ref1%.fasta}.list ${input} -ploidy $ploidy -O ${projdir}/snpcall/${pop}_${ploidy}x_raw.vcf.gz --max-reads-per-alignment-start 0 --minimum-mapping-quality $minmapq --dont-use-soft-clipped-bases $dont_use_softclip --disable-bam-index-caching true --max-num-haplotypes-in-population $((ploidy * maxHaplotype)) &&
+				$GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" HaplotypeCaller \
+        -R ${projdir}/refgenomes/$ref1 -L ${projdir}/refgenomes/${ref1%.fasta}.list ${input} -ploidy $ploidy \
+        -O ${projdir}/snpcall/${pop}_${ploidy}x_raw.vcf.gz --max-reads-per-alignment-start 0 --minimum-mapping-quality $minmapq \
+        --dont-use-soft-clipped-bases $dont_use_softclip --disable-bam-index-caching true \
+        --max-num-haplotypes-in-population $((ploidy * maxHaplotype)) --verbosity ERROR &&
 				cd ../snpcall
 				gunzip ${pop}_${ploidy}x_raw.vcf.gz &&
         mv ${pop}_${ploidy}x_raw.vcf ${pop}_${ref1%.f*}_${ploidy}x_raw.vcf
@@ -1515,18 +1527,30 @@ if [[ "$joint_calling" == false ]]&& [[ "$variant_caller" == "gatk" ]]; then
     			if test ! -f "${projdir}/snpcall/${i%.f*}_${ref1%.f*}.g.vcf"; then
     					if [[ -z "$Get_Chromosome" ]]; then
                 if [[ -z "$interval_list" ]]; then
-      						$GATK --java-options "$Xmxg -Djava.io.tmpdir=../snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ../refgenomes/$ref1 -I ${i%.f*}_${ref1%.f*}_precall.bam -ploidy $ploidy -O ${projdir}/snpcall/${i%.f*}_${ref1%.f*}.hold.g.vcf.gz -ERC GVCF --max-reads-per-alignment-start 0 --minimum-mapping-quality $minmapq --dont-use-soft-clipped-bases $dont_use_softclip --disable-bam-index-caching true --max-num-haplotypes-in-population $((ploidy * maxHaplotype))
+      						$GATK --java-options "$Xmxg -Djava.io.tmpdir=../snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" HaplotypeCaller \
+                  -R ../refgenomes/$ref1 -I ${i%.f*}_${ref1%.f*}_precall.bam -ploidy $ploidy -O ${projdir}/snpcall/${i%.f*}_${ref1%.f*}.hold.g.vcf.gz \
+                  -ERC GVCF --max-reads-per-alignment-start 0 --minimum-mapping-quality $minmapq --dont-use-soft-clipped-bases $dont_use_softclip \
+                  --disable-bam-index-caching true --max-num-haplotypes-in-population $((ploidy * maxHaplotype)) --verbosity ERROR
                 else
-                  $GATK --java-options "$Xmxg -Djava.io.tmpdir=../snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ../refgenomes/$ref1 -L ${projdir}/${interval_list} -I ${i%.f*}_${ref1%.f*}_precall.bam -ploidy $ploidy -O ${projdir}/snpcall/${i%.f*}_${ref1%.f*}.hold.g.vcf.gz -ERC GVCF --max-reads-per-alignment-start 0 --minimum-mapping-quality $minmapq --dont-use-soft-clipped-bases --disable-bam-index-caching true $dont_use_softclip --max-num-haplotypes-in-population $((ploidy * maxHaplotype))
+                  $GATK --java-options "$Xmxg -Djava.io.tmpdir=../snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" HaplotypeCaller \
+                  -R ../refgenomes/$ref1 -L ${projdir}/${interval_list} -I ${i%.f*}_${ref1%.f*}_precall.bam -ploidy $ploidy \
+                  -O ${projdir}/snpcall/${i%.f*}_${ref1%.f*}.hold.g.vcf.gz -ERC GVCF --max-reads-per-alignment-start 0 \
+                  --minimum-mapping-quality $min--dont-use-soft-clipped-bases --disable-bam-index-caching $dont_use_softclip \
+                  --max-num-haplotypes-in-population $((ploidy * maxHaplotype)) --verbosity ERROR
                 fi
     					else
     						echo $Get_Chromosome | tr ',' '\n' | awk '{print "SN:"$1}' | awk 'NR==FNR{a[$1];next}$2 in a{print $0}' - ../refgenomes/${ref1%.fasta}.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $2":1-"$3}' > ../refgenomes/${ref1%.fasta}.list
-    						$GATK --java-options "$Xmxg -Djava.io.tmpdir=../snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" HaplotypeCaller -R ../refgenomes/$ref1 -L ../refgenomes/${ref1%.fasta}.list -I ${i%.f*}_${ref1%.f*}_precall.bam -ploidy $ploidy -O ${projdir}/snpcall/${i%.f*}_${ref1%.f*}.hold.g.vcf.gz -ERC GVCF --max-reads-per-alignment-start 0 --minimum-mapping-quality $minmapq --dont-use-soft-clipped-bases --disable-bam-index-caching true $dont_use_softclip --max-num-haplotypes-in-population $((ploidy * maxHaplotype))
+    						$GATK --java-options "$Xmxg -Djava.io.tmpdir=../snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" HaplotypeCaller \
+                -R ../refgenomes/$ref1 -L ../refgenomes/${ref1%.fasta}.list -I ${i%.f*}_${ref1%.f*}_precall.bam -ploidy $ploidy \
+                -O ${projdir}/snpcall/${i%.f*}_${ref1%.f*}.hold.g.vcf.gz -ERC GVCF --max-reads-per-alignment-start 0 \
+                --minimum-mapping-quality $minmapq --dont-use-soft-clipped-bases --disable-bam-index-caching $dont_use_softclip \
+                --max-num-haplotypes-in-population $((ploidy * maxHaplotype)) --verbosity ERROR
     					fi
     					mv ${projdir}/snpcall/${i%.f*}_${ref1%.f*}.hold.g.vcf.gz ${projdir}/snpcall/${i%.f*}_${ref1%.f*}.g.vcf.gz &&
               rm ${projdir}/snpcall/${i%.f*}_${ref1%.f*}.hold.g.vcf.gz.tb* 2> /dev/null &&
               gunzip ${projdir}/snpcall/${i%.f*}_${ref1%.f*}.g.vcf.gz &&
-              $GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" IndexFeatureFile -I ${projdir}/snpcall/${i%.f*}_${ref1%.f*}.g.vcf
+              $GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" IndexFeatureFile \
+              -I ${projdir}/snpcall/${i%.f*}_${ref1%.f*}.g.vcf --verbosity ERROR
     			fi
     		fi
     		mv ${projdir}/preprocess/${i%.f*}_${ref1%.f*}_precall.bam* ${projdir}/preprocess/processed/ 2> /dev/null
@@ -1580,10 +1604,14 @@ if [[ "$joint_calling" == false ]]&& [[ "$variant_caller" == "gatk" ]]; then
             rm -rf ${pop}_${ploidy}x_${selchr}_raw 2> /dev/null
             export TILEDB_DISABLE_FILE_LOCKING=1
             if [[ -z "$interval_list" ]]; then
-              $GATK --java-options "$Xmx1 -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$loopthreads" GenomicsDBImport ${input} -L ${selchr} --genomicsdb-workspace-path ${pop}_${ploidy}x_${selchr}_raw --genomicsdb-shared-posixfs-optimizations true --batch-size 50 --merge-input-intervals
+              $GATK --java-options "$Xmx1 -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$loopthreads" GenomicsDBImport \
+              ${input} -L ${selchr} --genomicsdb-workspace-path ${pop}_${ploidy}x_${selchr}_raw --genomicsdb-shared-posixfs-optimizations true \
+              --batch-size 50 --merge-input-intervals --verbosity ERROR
             else
               cat ${projdir}/${interval_list} | grep $selchr > ${projdir}/variant_intervals_${selchr}.list &&
-              $GATK --java-options "$Xmx1 -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$loopthreads" GenomicsDBImport ${input} -L ${projdir}/variant_intervals_${selchr}.list --genomicsdb-workspace-path ${pop}_${ploidy}x_${selchr}_raw --genomicsdb-shared-posixfs-optimizations true --batch-size 50 --merge-input-intervals &&
+              $GATK --java-options "$Xmx1 -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$loopthreads" GenomicsDBImport \
+              ${input} -L ${projdir}/variant_intervals_${selchr}.list --genomicsdb-workspace-path ${pop}_${ploidy}x_${selchr}_raw \
+              --genomicsdb-shared-posixfs-optimizations true --batch-size 50 --merge-input-intervals --verbosity ERROR &&
               rm ${projdir}/variant_intervals_${selchr}.list
             fi
           fi
@@ -1597,13 +1625,17 @@ if [[ "$joint_calling" == false ]]&& [[ "$variant_caller" == "gatk" ]]; then
           export TILEDB_DISABLE_FILE_LOCKING=1
 					if [[ ! -f "${pop}_${ploidy}x_${selchr}_raw.vcf.gz.tbi" ]]; then
             if [[ -z "$interval_list" ]]; then
-  						$GATK --java-options "$Xmx1 -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$loopthreads" GenotypeGVCFs -R ${projdir}/refgenomes/$ref1 -L ${selchr} -V gendb://${pop}_${ploidy}x_${selchr}_raw -O ${pop}_${ploidy}x_${selchr}_raw.hold.vcf.gz &&
+  						$GATK --java-options "$Xmx1 -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$loopthreads" GenotypeGVCFs \
+              -R ${projdir}/refgenomes/$ref1 -L ${selchr} -V gendb://${pop}_${ploidy}x_${selchr}_raw \
+              -O ${pop}_${ploidy}x_${selchr}_raw.hold.vcf.gz --verbosity ERROR &&
   						rm -r ${pop}_${ploidy}x_${selchr}_raw &&
   						mv ${pop}_${ploidy}x_${selchr}_raw.hold.vcf.gz ${pop}_${ploidy}x_${selchr}_raw.vcf.gz &&
   						mv ${pop}_${ploidy}x_${selchr}_raw.hold.vcf.gz.tbi ${pop}_${ploidy}x_${selchr}_raw.vcf.gz.tbi
             else
               cat ${projdir}/${interval_list} | grep $selchr > ${projdir}/variant_intervals_${selchr}.list &&
-              $GATK --java-options "$Xmx1 -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$loopthreads" GenotypeGVCFs -R ${projdir}/refgenomes/$ref1 -L ${projdir}/variant_intervals_${selchr}.list -V gendb://${pop}_${ploidy}x_${selchr}_raw -O ${pop}_${ploidy}x_${selchr}_raw.hold.vcf.gz &&
+              $GATK --java-options "$Xmx1 -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$loopthreads" \
+              GenotypeGVCFs -R ${projdir}/refgenomes/$ref1 -L ${projdir}/variant_intervals_${selchr}.list \
+              -V gendb://${pop}_${ploidy}x_${selchr}_raw -O ${pop}_${ploidy}x_${selchr}_raw.hold.vcf.gz --verbosity ERROR &&
               rm ${projdir}/variant_intervals_${selchr}.list &&
               rm -r ${pop}_${ploidy}x_${selchr}_raw &&
               mv ${pop}_${ploidy}x_${selchr}_raw.hold.vcf.gz ${pop}_${ploidy}x_${selchr}_raw.vcf.gz &&
@@ -1889,8 +1921,11 @@ if [[ "${file1xG}" -lt 1 ]]; then
         mv ${i}.tmp ${i} &&
 
         wait
-        $GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" IndexFeatureFile -I $i &&
-  			$GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" LeftAlignAndTrimVariants -R ${projdir}/refgenomes/$refg -V $i -O ${i%.vcf}0.vcf --split-multi-allelics  --dont-trim-alleles --keep-original-ac &&
+        $GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" \
+        IndexFeatureFile -I $i  --verbosity ERROR&&
+  			$GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" \
+        LeftAlignAndTrimVariants -R ${projdir}/refgenomes/$refg -V $i -O ${i%.vcf}0.vcf --split-multi-allelics  \
+        --dont-trim-alleles --keep-original-ac --verbosity ERROR &&
   			wait
   			awk '!/^##/' ${i%.vcf}0.vcf | awk '{gsub(/^#/,""); print $0}' > ${i%.vcf}trim.vcf &&
   			awk -v file=${i%.vcf} 'BEGIN{getline f;}NR%10000==2{x=file"1x_rawSPLIT"++i".vcf";a[i]=x;print f>x;}{print > x}' ${i%.vcf}trim.vcf & PID=$!
@@ -1933,8 +1968,11 @@ if [[ "${file2xG}" -lt 1 ]]; then
           wait
         fi
         wait
-        $GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" IndexFeatureFile -I $i &&
-  			$GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" LeftAlignAndTrimVariants -R ${projdir}/refgenomes/$refg -V $i -O ${i%.vcf}0.vcf --split-multi-allelics  --dont-trim-alleles --keep-original-ac &&
+        $GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" \
+        IndexFeatureFile -I $i --verbosity ERROR &&
+  			$GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" \
+        LeftAlignAndTrimVariants -R ${projdir}/refgenomes/$refg -V $i -O ${i%.vcf}0.vcf --split-multi-allelics  --dont-trim-alleles \
+        --keep-original-ac --verbosity ERROR &&
   			wait
   			awk '!/^##/' ${i%.vcf}0.vcf | awk '{gsub(/^#/,""); print $0}' > ${i%.vcf}trim.vcf &&
   			awk -v file=${i%.vcf} 'BEGIN{getline f;}NR%10000==2{x=file"2x_rawSPLIT"++i".vcf";a[i]=x;print f>x;}{print > x}' ${i%.vcf}trim.vcf & PID=$!
@@ -1980,8 +2018,11 @@ if [[ "${file4xG}" -lt 1 ]]; then
           wait
         fi
         wait
-        $GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" IndexFeatureFile -I $i &&
-  			$GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" LeftAlignAndTrimVariants -R ${projdir}/refgenomes/$refg -V $i -O ${i%.vcf}0.vcf --split-multi-allelics  --dont-trim-alleles --keep-original-ac &&
+        $GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" \
+        IndexFeatureFile -I $i --verbosity ERROR &&
+  			$GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" \
+        LeftAlignAndTrimVariants -R ${projdir}/refgenomes/$refg -V $i -O ${i%.vcf}0.vcf --split-multi-allelics  --dont-trim-alleles \
+        --keep-original-ac --verbosity ERROR &&
   			wait
   			awk '!/^##/' ${i%.vcf}0.vcf | awk '{gsub(/^#/,""); print $0}' > ${i%.vcf}trim.vcf &&
   			awk -v file=${i%.vcf} 'BEGIN{getline f;}NR%10000==2{x=file"4x_rawSPLIT"++i".vcf";a[i]=x;print f>x;}{print > x}' ${i%.vcf}trim.vcf & PID=$!
@@ -2027,8 +2068,11 @@ if [[ "${file6xG}" -lt 1 ]]; then
           wait
         fi
         wait
-        $GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" IndexFeatureFile -I $i &&
-  			$GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" LeftAlignAndTrimVariants -R ${projdir}/refgenomes/$refg -V $i -O ${i%.vcf}0.vcf --split-multi-allelics  --dont-trim-alleles --keep-original-ac &&
+        $GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" \
+        IndexFeatureFile -I $i --verbosity ERROR &&
+  			$GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" \
+        LeftAlignAndTrimVariants -R ${projdir}/refgenomes/$refg -V $i -O ${i%.vcf}0.vcf --split-multi-allelics  --dont-trim-alleles \
+        --keep-original-ac --verbosity ERROR &&
         wait
   			awk '!/^##/' ${i%.vcf}0.vcf | awk '{gsub(/^#/,""); print $0}' > ${i%.vcf}trim.vcf &&
   			awk -v file=${i%.vcf} 'BEGIN{getline f;}NR%10000==2{x=file"6x_rawSPLIT"++i".vcf";a[i]=x;print f>x;}{print > x}' ${i%.vcf}trim.vcf & PID=$!
@@ -2074,8 +2118,11 @@ if [[ "${file8xG}" -lt 1 ]]; then
           wait
         fi
         wait
-        $GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" IndexFeatureFile -I $i &&
-  			$GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" LeftAlignAndTrimVariants -R ${projdir}/refgenomes/$refg -V $i -O ${i%.vcf}0.vcf --split-multi-allelics  --dont-trim-alleles --keep-original-ac &&
+        $GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" \
+        IndexFeatureFile -I $i --verbosity ERROR &&
+  			$GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" \
+        LeftAlignAndTrimVariants -R ${projdir}/refgenomes/$refg -V $i -O ${i%.vcf}0.vcf --split-multi-allelics  --dont-trim-alleles \
+        --keep-original-ac --verbosity ERROR &&
         wait
   			awk '!/^##/' ${i%.vcf}0.vcf | awk '{gsub(/^#/,""); print $0}' > ${i%.vcf}trim.vcf &&
   			awk -v file=${i%.vcf} 'BEGIN{getline f;}NR%10000==2{x=file"8x_rawSPLIT"++i".vcf";a[i]=x;print f>x;}{print > x}' ${i%.vcf}trim.vcf & PID=$!
@@ -3410,8 +3457,11 @@ export n="${ref1%.f*}"
             wait
             for split in $projdir/snpcall/*${vcfdose}.vcf; do
               refg=${split%_*} && refg=${refg##*/} && refg=${refg#*_} && refg=${refg%%_*}.fasta
-            	$GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" IndexFeatureFile -I $split &&
-            	$GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" LeftAlignAndTrimVariants -R ${projdir}/refgenomes/$refg -V $split -O ${split%.vcf}_split.vcf --split-multi-allelics  --dont-trim-alleles --keep-original-ac &&
+            	$GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" \
+              IndexFeatureFile -I $split --verbosity ERROR &&
+            	$GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" \
+              LeftAlignAndTrimVariants -R ${projdir}/refgenomes/$refg -V $split -O ${split%.vcf}_split.vcf --split-multi-allelics  \
+              --dont-trim-alleles --keep-original-ac --verbosity ERROR &&
             	gzip $split &&
               $bcftools view -I ${split%.vcf}_split.vcf -O z -o ${split%.vcf}_split.vcf.gz &&
               $bcftools index ${split%.vcf}_split.vcf.gz &&
