@@ -60,7 +60,7 @@ if [ -z "${haplome_number:-}" ]; then
 	export haplome_number=1
 fi
 if [ -z "${p2:-}" ]; then
-  if   [ "$p1" ]; then
+  if   [ "${p1:-}" ]; then
 	 export p2=$p1
  fi
 fi
@@ -642,7 +642,7 @@ main () {
           *) exit 0 ;;
         esac
         R2=$(ls "$dir/${base}.R2."*.gz "$dir/${base}_R2."*.gz 2>/dev/null | head -n1 || true)
-        if [[ -n "$R2" ]]; then
+        if [[ -n "${R2:-}" ]]; then
           # Normal orphan merge
           zcat "$f" "$R2" | gzip > "$dir/${base}_R1R2.$out_ext"
           rm -f "$f" "$R2"
@@ -1450,7 +1450,7 @@ main () {
   cd $projdir
   cd preprocess
   mkdir -p processed
-  if [[ ! -s $interval_list ]]; then export interval_list=""; fi
+  if [[ ! -s ${interval_list:-} ]]; then export interval_list=""; fi
 
   if [[ "$samples_list" == "samples_list_node_1.txt" ]]; then
   	if [[ "$joint_calling" == true ]] && [[ "$variant_caller" == "gatk" ]]; then
@@ -1459,7 +1459,7 @@ main () {
   			k="${j} ${i}"; input="${input} ${k}"
   		done
   		Get2_Chromosome=$(awk 'NR>1{print $2,"\t",$3}' ${projdir}/refgenomes/${ref1%.*}.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $0}' | sort -k2,2 -nr | awk '{print $1}')
-  		if [[ -n "$Exclude_Chromosome" ]]; then
+  		if [[ -n "${Exclude_Chromosome:-}" ]]; then
   			for i in $(echo "$Exclude_Chromosome" | tr ',' '\n'); do
   				Get2_Chromosome=$(echo $Get2_Chromosome | awk -v i=$i '{gsub(i,"");}1')
   			done
@@ -1594,7 +1594,7 @@ main () {
   				else
   					Get2_Chromosome=$(echo $Get_Chromosome | tr ',' '\n')
   				fi
-  				if [[ -n "$Exclude_Chromosome" ]]; then
+  				if [[ -n "${Exclude_Chromosome:-}" ]]; then
   					for i in $(echo "$Exclude_Chromosome" | tr ',' '\n'); do
   						Get2_Chromosome=$(echo $Get2_Chromosome | awk -v i=$i '{gsub(i,"");}1')
   					done
@@ -2240,7 +2240,7 @@ main () {
           # Extract sequence context of variants
           mv ${projdir}/preprocess/processed/*_precall.bam ${projdir}/preprocess/ 2> /dev/null
           if [[ "$lib_type" =~ "RRS" ]] || [[ "$lib_type" =~ "rrs" ]]; then
-            if [[ -n "$RE1" ]] || [[ -n "$RE2" ]]; then
+            if [[ -n "${RE1:-}" ]] || [[ -n "${RE2:-}" ]]; then
               awk '{print $1"\t"$2"\t"$3}' ${pop}_1x_rd${minRD_1x}_maf${maf}_dose.txt > snplist.txt &&
               awk '{print $2"\t"$3}' snplist.txt | awk '{$2=sprintf("%d00",$2/100)}1' > snplist_round.txt &&
               awk '{$1":"$2}' snplist_round.txt > snplist_haps.txt &&
@@ -2254,7 +2254,7 @@ main () {
               rm snplist_round.txt &&
               wait
             fi
-            if [[ -n "$RE1" ]]; then
+            if [[ -n "${RE1:-}" ]]; then
               mkdir -p seq_context_"${RE1}" &&
               while IFS="" read -r i || [ -n "$i" ]; do
                 sleep $((RANDOM % 2))
@@ -2264,7 +2264,7 @@ main () {
                 wait
               done < <(cat ${projdir}/fetch_samples_seq.txt)
             fi
-            if [[ -n "$RE2" ]]; then
+            if [[ -n "${RE2:-}" ]]; then
               mkdir -p seq_context_"${RE2}" &&
               while IFS="" read -r i || [ -n "$i" ]; do
                 sleep $((RANDOM % 2))
@@ -2274,7 +2274,7 @@ main () {
                 wait
               done < <(cat ${projdir}/fetch_samples_seq.txt)
             fi
-            if [[ -n "$RE1" ]] || [[ -n "$RE2" ]]; then
+            if [[ -n "${RE1:-}" ]] || [[ -n "${RE2:-}" ]]; then
               mkdir consensus_seq_context
               while IFS="" read -r i || [ -n "$i" ]; do
                 sleep $((RANDOM % 2))
@@ -2369,7 +2369,7 @@ main () {
           # Extract sequence context of variants
           mv ${projdir}/preprocess/processed/*_precall.bam ${projdir}/preprocess/ 2> /dev/null
           if [[ "$lib_type" =~ "RRS" ]] || [[ "$lib_type" =~ "rrs" ]]; then
-            if [[ -n "$RE1" ]] || [[ -n "$RE2" ]]; then
+            if [[ -n "${RE1:-}" ]] || [[ -n "${RE2:-}" ]]; then
               awk '{print $1"\t"$2"\t"$3}' ${pop}_2x_rd${minRD_2x}_maf${maf}_dose.txt > snplist.txt &&
               awk '{print $2"\t"$3}' snplist.txt | awk '{$2=sprintf("%d00",$2/100)}1' > snplist_round.txt &&
               awk '{$1":"$2}' snplist_round.txt > snplist_haps.txt &&
@@ -2384,7 +2384,7 @@ main () {
               rm snplist_round.txt &&
               wait
             fi
-            if [[ -n "$RE1" ]]; then
+            if [[ -n "${RE1:-}" ]]; then
               mkdir -p seq_context_"${RE1}" &&
               wait
               while IFS="" read -r i || [ -n "$i" ]; do
@@ -2395,7 +2395,7 @@ main () {
                 wait
               done < <(awk 'NR==1{print $0}' ${pop}_2x_rd${minRD_2x}_maf${maf}_dose.txt | awk '{gsub(/SNP\tCHROM\tPOS\tREF\tALT\t/,""); gsub(/\t/,".fastq.gz\n");}1')
             fi
-            if [[ -n "$RE2" ]]; then
+            if [[ -n "${RE2:-}" ]]; then
               mkdir -p seq_context_"${RE2}" &&
               wait
               while IFS="" read -r i || [ -n "$i" ]; do
@@ -2406,7 +2406,7 @@ main () {
                 wait
               done < <(awk 'NR==1{print $0}' ${pop}_2x_rd${minRD_2x}_maf${maf}_dose.txt | awk '{gsub(/SNP\tCHROM\tPOS\tREF\tALT\t/,""); gsub(/\t/,".fastq.gz\n");}1')
             fi
-            if [[ -n "$RE1" ]] || [[ -n "$RE2" ]]; then
+            if [[ -n "${RE1:-}" ]] || [[ -n "${RE2:-}" ]]; then
               mkdir consensus_seq_context &&
               wait
               while IFS="" read -r i || [ -n "$i" ]; do
@@ -2501,7 +2501,7 @@ main () {
           # Extract sequence context of variants
           mv ${projdir}/preprocess/processed/*_precall.bam ${projdir}/preprocess/ 2> /dev/null
           if [[ "$lib_type" =~ "RRS" ]] || [[ "$lib_type" =~ "rrs" ]]; then
-            if [[ -n "$RE1" ]] || [[ -n "$RE2" ]]; then
+            if [[ -n "${RE1:-}" ]] || [[ -n "${RE2:-}" ]]; then
               awk '{print $1"\t"$2"\t"$3}' ${pop}_4x_rd${minRD_4x}_maf${maf}_dose.txt > snplist.txt &&
               awk '{print $2"\t"$3}' snplist.txt | awk '{$2=sprintf("%d00",$2/100)}1' > snplist_round.txt &&
               awk '{$1":"$2}' snplist_round.txt > snplist_haps.txt &&
@@ -2515,7 +2515,7 @@ main () {
               rm snplist_round.txt &&
               wait
             fi
-            if [[ -n "$RE1" ]]; then
+            if [[ -n "${RE1:-}" ]]; then
               mkdir -p seq_context_${RE1} &&
               wait
               while IFS="" read -r i || [ -n "$i" ]; do
@@ -2526,7 +2526,7 @@ main () {
                 wait
               done < <(cat ${projdir}/fetch_samples_seq.txt)
             fi
-            if [[ -n "$RE2" ]]; then
+            if [[ -n "${RE2:-}" ]]; then
               mkdir -p seq_context_${RE2} &&
               wait
               while IFS="" read -r i || [ -n "$i" ]; do
@@ -2537,7 +2537,7 @@ main () {
                 wait
               done < <(cat ${projdir}/fetch_samples_seq.txt)
             fi
-            if [[ -n "$RE1" ]] || [[ -n "$RE2" ]]; then
+            if [[ -n "${RE1:-}" ]] || [[ -n "${RE2:-}" ]]; then
               mkdir consensus_seq_context &&
               wait
               while IFS="" read -r i || [ -n "$i" ]; do
@@ -2629,7 +2629,7 @@ main () {
           # Extract sequence context of variants
           mv ${projdir}/preprocess/processed/*_precall.bam ${projdir}/preprocess/ 2> /dev/null
           if [[ "$lib_type" =~ "RRS" ]] || [[ "$lib_type" =~ "rrs" ]]; then
-            if [[ -n "$RE1" ]] || [[ -n "$RE2" ]]; then
+            if [[ -n "${RE1:-}" ]] || [[ -n "${RE2:-}" ]]; then
               awk '{print $1"\t"$2"\t"$3}' ${pop}_6x_rd${minRD_6x}_maf${maf}_dose.txt > snplist.txt &&
               awk '{print $2"\t"$3}' snplist.txt | awk '{$2=sprintf("%d00",$2/100)}1' > snplist_round.txt &&
               awk '{$1":"$2}' snplist_round.txt > snplist_haps.txt &&
@@ -2643,7 +2643,7 @@ main () {
               rm snplist_round.txt &&
               wait
             fi
-            if [[ -n "$RE1" ]]; then
+            if [[ -n "${RE1:-}" ]]; then
               mkdir -p seq_context_${RE1} &&
               wait
               while IFS="" read -r i || [ -n "$i" ]; do
@@ -2653,7 +2653,7 @@ main () {
                 wait
               done < <(cat ${projdir}/fetch_samples_seq.txt)
             fi
-            if [[ -n "$RE2" ]]; then
+            if [[ -n "${RE2:-}" ]]; then
               mkdir -p seq_context_${RE2}
               while IFS="" read -r i || [ -n "$i" ]; do
                 sleep $((RANDOM % 2))
@@ -2662,7 +2662,7 @@ main () {
                 wait
               done < <(cat ${projdir}/fetch_samples_seq.txt)
             fi
-            if [[ -n "$RE1" ]] || [[ -n "$RE2" ]]; then
+            if [[ -n "${RE1:-}" ]] || [[ -n "${RE2:-}" ]]; then
               mkdir consensus_seq_context &&
               wait
               while IFS="" read -r i || [ -n "$i" ]; do
@@ -2758,7 +2758,7 @@ main () {
           # Extract sequence context of variants
           mv ${projdir}/preprocess/processed/*_precall.bam ${projdir}/preprocess/ 2> /dev/null
           if [[ "$lib_type" =~ "RRS" ]] || [[ "$lib_type" =~ "rrs" ]]; then
-            if [[ -n "$RE1" ]] || [[ -n "$RE2" ]]; then
+            if [[ -n "${RE1:-}" ]] || [[ -n "${RE2:-}" ]]; then
               awk '{print $1"\t"$2"\t"$3}' ${pop}_8x_rd${minRD_8x}_maf${maf}_dose.txt > snplist.txt &&
               awk '{print $2"\t"$3}' snplist.txt | awk '{$2=sprintf("%d00",$2/100)}1' > snplist_round.txt &&
               awk '{$1":"$2}' snplist_round.txt > snplist_haps.txt &&
@@ -2773,7 +2773,7 @@ main () {
               rm snplist_round.txt &&
               wait
             fi
-            if [[ -n "$RE1" ]]; then
+            if [[ -n "${RE1:-}" ]]; then
               mkdir -p seq_context_${RE1} &&
               wait
               while IFS="" read -r i || [ -n "$i" ]; do
@@ -2784,7 +2784,7 @@ main () {
                 wait
               done < <(cat ${projdir}/fetch_samples_seq.txt)
             fi
-            if [[ -n "$RE2" ]]; then
+            if [[ -n "${RE2:-}" ]]; then
               mkdir -p seq_context_${RE2} &&
               wait
               while IFS="" read -r i || [ -n "$i" ]; do
@@ -2795,7 +2795,7 @@ main () {
                 wait
               done < <(cat ${projdir}/fetch_samples_seq.txt)
             fi
-            if [[ -n "$RE1" ]] || [[ -n "$RE2" ]]; then
+            if [[ -n "${RE1:-}" ]] || [[ -n "${RE2:-}" ]]; then
               mkdir consensus_seq_context &&
               wait
               while IFS="" read -r i || [ -n "$i" ]; do
@@ -2894,7 +2894,7 @@ main () {
           # Extract sequence context of variants
           mv ${projdir}/preprocess/processed/*_precall.bam ${projdir}/preprocess/ 2> /dev/null
           if [[ "$lib_type" =~ "RRS" ]] || [[ "$lib_type" =~ "rrs" ]]; then
-            if [[ -n "$RE1" ]] || [[ -n "$RE2" ]]; then
+            if [[ -n "${RE1:-}" ]] || [[ -n "${RE2:-}" ]]; then
               awk '{print $1"\t"$2"\t"$3}' ${pop}_2x_rd${minRD_2x}_noSDdose.txt > snplist.txt &&
               awk '{print $2"\t"$3}' snplist.txt | awk '{$2=sprintf("%d00",$2/100)}1' > snplist_round.txt &&
               awk '{$1":"$2}' snplist_round.txt > snplist_haps.txt &&
@@ -2908,7 +2908,7 @@ main () {
               rm snplist_round.txt &&
               wait
             fi
-            if [[ -n "$RE1" ]]; then
+            if [[ -n "${RE1:-}" ]]; then
               mkdir -p seq_context_"${RE1}" &&
               while IFS="" read -r i || [ -n "$i" ]; do
                 sleep $((RANDOM % 2))
@@ -2918,7 +2918,7 @@ main () {
                 wait
               done < <(cat ${projdir}/fetch_samples_seq.txt)
             fi
-            if [[ -n "$RE2" ]]; then
+            if [[ -n "${RE2:-}" ]]; then
               mkdir -p seq_context_"${RE2}" &&
               wait
               while IFS="" read -r i || [ -n "$i" ]; do
@@ -2929,7 +2929,7 @@ main () {
                 wait
               done < <(cat ${projdir}/fetch_samples_seq.txt)
             fi
-            if [[ -n "$RE1" ]] || [[ -n "$RE2" ]]; then
+            if [[ -n "${RE1:-}" ]] || [[ -n "${RE2:-}" ]]; then
               mkdir consensus_seq_context &&
               wait
               while IFS="" read -r i || [ -n "$i" ]; do
@@ -3025,7 +3025,7 @@ main () {
           # Extract sequence context of variants
           mv ${projdir}/preprocess/processed/*_precall.bam ${projdir}/preprocess/ 2> /dev/null
           if [[ "$lib_type" =~ "RRS" ]] || [[ "$lib_type" =~ "rrs" ]]; then
-            if [[ -n "$RE1" ]] || [[ -n "$RE2" ]]; then
+            if [[ -n "${RE1:-}" ]] || [[ -n "${RE2:-}" ]]; then
               awk '{print $1"\t"$2"\t"$3}' ${pop}_4x_rd${minRD_4x}_noSDdose.txt > snplist.txt &&
               awk '{print $2"\t"$3}' snplist.txt | awk '{$2=sprintf("%d00",$2/100)}1' > snplist_round.txt &&
               awk '{$1":"$2}' snplist_round.txt > snplist_haps.txt &&
@@ -3039,7 +3039,7 @@ main () {
               rm snplist_round.txt &&
               wait
             fi
-            if [[ -n "$RE1" ]]; then
+            if [[ -n "${RE1:-}" ]]; then
               mkdir -p seq_context_${RE1} &&
               wait
               while IFS="" read -r i || [ -n "$i" ]; do
@@ -3050,7 +3050,7 @@ main () {
                 wait
               done < <(cat ${projdir}/fetch_samples_seq.txt)
             fi
-            if [[ -n "$RE2" ]]; then
+            if [[ -n "${RE2:-}" ]]; then
               mkdir -p seq_context_${RE2} &&
               wait
               while IFS="" read -r i || [ -n "$i" ]; do
@@ -3061,7 +3061,7 @@ main () {
                 wait
               done < <(cat ${projdir}/fetch_samples_seq.txt)
             fi
-            if [[ -n "$RE1" ]] || [[ -n "$RE2" ]]; then
+            if [[ -n "${RE1:-}" ]] || [[ -n "${RE2:-}" ]]; then
               mkdir consensus_seq_context &&
               wait
               while IFS="" read -r i || [ -n "$i" ]; do
@@ -3156,7 +3156,7 @@ main () {
           # Extract sequence context of variants
           mv ${projdir}/preprocess/processed/*_precall.bam ${projdir}/preprocess/ 2> /dev/null
           if [[ "$lib_type" =~ "RRS" ]] || [[ "$lib_type" =~ "rrs" ]]; then
-            if [[ -n "$RE1" ]] || [[ -n "$RE2" ]]; then
+            if [[ -n "${RE1:-}" ]] || [[ -n "${RE2:-}" ]]; then
               awk '{print $1"\t"$2"\t"$3}' ${pop}_6x_rd${minRD_6x}_noSDdose.txt > snplist.txt &&
               awk '{print $2"\t"$3}' snplist.txt | awk '{$2=sprintf("%d00",$2/100)}1' > snplist_round.txt &&
               awk '{$1":"$2}' snplist_round.txt > snplist_haps.txt &&
@@ -3171,7 +3171,7 @@ main () {
               rm snplist_round.txt &&
               wait
             fi
-            if [[ -n "$RE1" ]]; then
+            if [[ -n "${RE1:-}" ]]; then
               mkdir -p seq_context_${RE1}
               while IFS="" read -r i || [ -n "$i" ]; do
                 sleep $((RANDOM % 2))
@@ -3181,7 +3181,7 @@ main () {
                 wait
               done < <(cat ${projdir}/fetch_samples_seq.txt)
             fi
-            if [[ -n "$RE2" ]]; then
+            if [[ -n "${RE2:-}" ]]; then
               mkdir -p seq_context_${RE2} &&
               wait
               while IFS="" read -r i || [ -n "$i" ]; do
@@ -3192,7 +3192,7 @@ main () {
                 wait
               done < <(cat ${projdir}/fetch_samples_seq.txt)
             fi
-            if [[ -n "$RE1" ]] || [[ -n "$RE2" ]]; then
+            if [[ -n "${RE1:-}" ]] || [[ -n "${RE2:-}" ]]; then
               mkdir consensus_seq_context &&
               wait
               while IFS="" read -r i || [ -n "$i" ]; do
@@ -3288,7 +3288,7 @@ main () {
           # Extract sequence context of variants
           mv ${projdir}/preprocess/processed/*_precall.bam ${projdir}/preprocess/ 2> /dev/null
           if [[ "$lib_type" =~ "RRS" ]] || [[ "$lib_type" =~ "rrs" ]]; then
-            if [[ -n "$RE1" ]] || [[ -n "$RE2" ]]; then
+            if [[ -n "${RE1:-}" ]] || [[ -n "${RE2:-}" ]]; then
               awk '{print $1"\t"$2"\t"$3}' ${pop}_8x_rd${minRD_8x}_noSDdose.txt > snplist.txt &&
               awk '{print $2"\t"$3}' snplist.txt | awk '{$2=sprintf("%d00",$2/100)}1' > snplist_round.txt &&
               awk '{$1":"$2}' snplist_round.txt > snplist_haps.txt &&
@@ -3303,7 +3303,7 @@ main () {
               rm snplist_round.txt &&
               wait
             fi
-            if [[ -n "$RE1" ]]; then
+            if [[ -n "${RE1:-}" ]]; then
               mkdir -p seq_context_${RE1} &&
               wait
               while IFS="" read -r i || [ -n "$i" ]; do
@@ -3314,7 +3314,7 @@ main () {
                 wait
               done < <(cat ${projdir}/fetch_samples_seq.txt)
             fi
-            if [[ -n "$RE2" ]]; then
+            if [[ -n "${RE2:-}" ]]; then
               mkdir -p seq_context_${RE2} &&
               wait
               while IFS="" read -r i || [ -n "$i" ]; do
@@ -3325,7 +3325,7 @@ main () {
                 wait
               done < <(cat ${projdir}/fetch_samples_seq.txt)
             fi
-            if [[ -n "$RE1" ]] || [[ -n "$RE2" ]]; then
+            if [[ -n "${RE1:-}" ]] || [[ -n "${RE2:-}" ]]; then
               mkdir consensus_seq_context &&
               wait
               while IFS="" read -r i || [ -n "$i" ]; do
