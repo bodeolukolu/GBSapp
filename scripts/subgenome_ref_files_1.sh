@@ -2204,7 +2204,7 @@ main () {
       		mkdir visualizations && mv ./*.tiff ./visualizations/ 2> /dev/null &&
           wait
 
-          if [[ "$variant_intervals" == true ]]; then
+          if [[ "${variant_intervals:-}" == true ]]; then
             mkdir -p variant_intervals &&
             cd variant_intervals &&
             wait
@@ -2333,7 +2333,7 @@ main () {
       		mkdir visualizations && mv ./*.tiff ./visualizations/ 2> /dev/null &&
           wait
 
-          if [[ "$variant_intervals" == true ]]; then
+          if [[ "${variant_intervals:-}" == true ]]; then
             mkdir -p variant_intervals &&
             cd variant_intervals &&
             wait
@@ -2466,7 +2466,7 @@ main () {
       		mkdir visualizations && mv ./*.tiff ./visualizations/ 2> /dev/null &&
           wait
 
-          if [[ "$variant_intervals" == true ]]; then
+          if [[ "${variant_intervals:-}" == true ]]; then
             mkdir -p variant_intervals &&
             cd variant_intervals &&
             wait
@@ -2594,7 +2594,7 @@ main () {
       		mkdir visualizations && mv ./*.tiff ./visualizations/ 2> /dev/null &&
           wait
 
-          if [[ "$variant_intervals" == true ]]; then
+          if [[ "${variant_intervals:-}" == true ]]; then
             mkdir -p variant_intervals
             cd variant_intervals
             while IFS="" read -r p || [ -n "$p" ]; do
@@ -2722,7 +2722,7 @@ main () {
       		mkdir visualizations && mv ./*.tiff ./visualizations/ 2> /dev/null &&
           wait
 
-          if [[ "$variant_intervals" == true ]]; then
+          if [[ "${variant_intervals:-}" == true ]]; then
             mkdir -p variant_intervals &&
             cd variant_intervals &&
             wait
@@ -2858,7 +2858,7 @@ main () {
       		mkdir visualizations && mv ./*.tiff ./visualizations/ 2> /dev/null &&
           wait
 
-          if [[ "$variant_intervals" == true ]]; then
+          if [[ "${variant_intervals:-}" == true ]]; then
             mkdir -p variant_intervals &&
             cd variant_intervals &&
             wait
@@ -2989,7 +2989,7 @@ main () {
       		mkdir visualizations && mv ./*.tiff ./visualizations/ 2> /dev/null &&
           wait
 
-          if [[ "$variant_intervals" == true ]]; then
+          if [[ "${variant_intervals:-}" == true ]]; then
             mkdir -p variant_intervals &&
             cd variant_intervals &&
             wait
@@ -3121,7 +3121,7 @@ main () {
       		mkdir visualizations && mv ./*.tiff ./visualizations/ 2> /dev/null &&
           wait
 
-          if [[ "$variant_intervals" == true ]]; then
+          if [[ "${variant_intervals:-}" == true ]]; then
             mkdir -p variant_intervals &&
             cd variant_intervals &&
             wait
@@ -3252,7 +3252,7 @@ main () {
       		mkdir visualizations && mv ./*.tiff ./visualizations/ 2> /dev/null &&
           wait
 
-          if [[ "$variant_intervals" == true ]]; then
+          if [[ "${variant_intervals:-}" == true ]]; then
             mkdir -p variant_intervals &&
             cd variant_intervals &&
             wait
