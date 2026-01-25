@@ -1,9 +1,9 @@
 set -euo pipefail
 
-if [ -z "$slurm_module" ]; then
+if [ -z "${slurm_module:-}" ]; then
  export slurm_module=true
 fi
-if [ -z "$threads" ]; then
+if [ -z "${threads:-}" ]; then
 	export threads=$(nproc --all)
 	if [[ "$threads" -ge 4 ]]; then
 		export threads=$((threads-2))
@@ -11,10 +11,10 @@ if [ -z "$threads" ]; then
 fi
 export aligner=minimap2
 
-if [ -z "$RNA" ]; then
+if [ -z "${RNA:-}" ]; then
  export RNA=false
 fi
-if [ -z "$variant_caller" ]; then
+if [ -z "${variant_caller:-}" ]; then
  export variant_caller=gatk
 fi
 if [ "$variant_caller" == "GATK" ]; then
@@ -26,45 +26,45 @@ fi
 if [ "$variant_caller" == "bcftools" ]; then
  export ploidy=2
 fi
-if [ -z "$lib_type" ]; then
+if [ -z "${lib_type:-}" ]; then
  export lib_type=RRS
 fi
-if [ -z "$subsample_WGS_in_silico_qRRS" ]; then
+if [ -z "${subsample_WGS_in_silico_qRRS:-}" ]; then
  export subsample_WGS_in_silico_qRRS=false
 fi
-if [ -z "$nodes" ]; then
+if [ -z "${nodes:-}" ]; then
  export nodes=1
 fi
-if [ -z "$biallelic" ]; then
+if [ -z "${biallelic:-}" ]; then
 	export biallelic=false
 fi
-if [ -z "$paralogs" ]; then
+if [ -z "${paralogs:-}" ]; then
 	export paralogs=false
 fi
-if [ -z "$max_pseudoMol" ]; then
+if [ -z "${max_pseudoMol:-}" ]; then
 	export max_pseudoMol=5000
 fi
-if [ -z "$uniquely_mapped" ]; then
+if [ -z "${uniquely_mapped:-}" ]; then
 	export uniquely_mapped=true
 fi
-if [ -z "$minmapq" ]; then
+if [ -z "${minmapq:-}" ]; then
 	export minmapq=20
 fi
 if [ "$RNA" == "true" ]; then
 	export minmapq=1
 fi
-if [ -z "$maxHaplotype" ]; then
+if [ -z "${maxHaplotype:-}" ]; then
 	export maxHaplotype=128
 fi
-if [ -z "$haplome_number" ]; then
+if [ -z "${haplome_number:-}" ]; then
 	export haplome_number=1
 fi
-if [ -z "$p2" ]; then
+if [ -z "${p2:-}" ]; then
   if   [ "$p1" ]; then
 	 export p2=$p1
  fi
 fi
-if [ -z "$use_softclip" ]; then
+if [ -z "${use_softclip:-}" ]; then
 	export use_softclip=false
 fi
 if [ "$use_softclip" == "false" ]; then
@@ -74,19 +74,19 @@ if [ "$use_softclip" == "true" ]; then
 	export dont_use_softclip=false
 fi
 
-if [ -z "$joint_calling" ]; then
+if [ -z "${joint_calling:-}" ]; then
 	export joint_calling=false
 fi
-if [ -z "$keep_gVCF" ]; then
+if [ -z "${keep_gVCF:-}" ]; then
 	export keep_gVCF=false
 fi
-if [ -z "$filter_ExcHet" ]; then
+if [ -z "${filter_ExcHet:-}" ]; then
   filter_ExcHet=false
 fi
-if [ -z "$filtered_vcf" ]; then
+if [ -z "${filtered_vcf:-}" ]; then
   filtered_vcf=true
 fi
-if [ -z "$genomecov_est" ]; then
+if [ -z "${genomecov_est:-}" ]; then
   genomecov_est=false
 fi
 mkdir -p "${projdir}"/tmp
@@ -213,7 +213,7 @@ main () {
   		echo -e "${magenta}- GBSapp will quit in 5 seconds ${white}\n"
   		sleep 5 && exit 1
   	fi
-  	if [ -z "$ref1" ]; then
+  	if [ -z "${ref1:-}" ]; then
   		for ref in *.f*; do
   			sleep $((RANDOM % 2))
         ref1=${ref%.fa*}.fasta
@@ -327,7 +327,7 @@ main () {
   if [[ "$aligner" == "minimap2" ]]; then
     if [[ -n "$(compgen -G "./*.mmi")" ]]; then
     	echo -e "${magenta}- indexed genome available ${white}\n"
-    	if [ -z "$ref1" ]; then
+    	if [ -z "${ref1:-}" ]; then
     		for ref in *.f*; do
     			sleep $((RANDOM % 2))
           ref1=${ref%%.f*}.fasta
@@ -335,7 +335,7 @@ main () {
     	fi
     else
     	echo -e "${magenta}- indexing single reference subgenome ${white}\n"
-    	if [ -z "$ref1" ]; then
+    	if [ -z "${ref1:-}" ]; then
     		for ref in *.f*; do
     			sleep $((RANDOM % 2))
           ref1=${ref%%.f*}.fasta
@@ -673,7 +673,7 @@ main () {
             base="${filename%%.R2*}"
             base="${base%%_R2*}"
             r1=$(ls "$dir/${base}.R1."*.gz "$dir/${base}_R1."*.gz 2>/dev/null | head -n1 || true)
-            if [[ -z "$r1" ]]; then
+            if [[ -z "${r1:-}" ]]; then
                 echo "Warning: found R2 file $filename without matching R1!"
             else
                 r1_base=$(basename "$r1")
@@ -936,7 +936,7 @@ if [[ "$(cat ${projdir}/samples_list_node_* | wc -l)" -lt 5 ]]; then
   export p1=""
   export p2=""
 fi
-if [[ "$(cat ${projdir}/samples_list_node_* | wc -l)" -lt 50 ]] && [[ -z $maf ]]; then
+if [[ "$(cat ${projdir}/samples_list_node_* | wc -l)" -lt 50 ]] && [[ -z ${maf:-} ]]; then
   maf=0
 fi
 
@@ -1218,35 +1218,35 @@ main () {
     touch ${projdir}/compress_done.txt
   fi
   if [[ "$ploidy" -eq 1 ]]; then
-    if [[ -z "$downsample_1x" ]]; then
+    if [[ -z "${downsample_1x:-}" ]]; then
       downsample=50
     else
       downsample="$downsample_1x"
     fi
   fi
   if [[ "$ploidy" -eq 2 ]]; then
-    if [[ -z "$downsample_2x" ]]; then
+    if [[ -z "${downsample_2x:-}" ]]; then
       downsample=100
     else
       downsample="$downsample_2x"
     fi
   fi
   if [[ "$ploidy" -eq 4 ]]; then
-    if [[ -z "$downsample_4x" ]]; then
+    if [[ -z "${downsample_4x:-}" ]]; then
       downsample=200
     else
       downsample="$downsample_4x"
     fi
   fi
   if [[ "$ploidy" -eq 6 ]]; then
-    if [[ -z "$downsample_6x" ]]; then
+    if [[ -z "${downsample_6x:-}" ]]; then
       downsample=300
     else
       downsample=$downsample_6x
     fi
   fi
   if [[ "$ploidy" -eq 8 ]]; then
-    if [[ -z "$downsample_8x" ]]; then
+    if [[ -z "${downsample_8x:-}" ]]; then
       downsample=400
     else
       downsample=$downsample_8x
@@ -1464,8 +1464,8 @@ main () {
   				Get2_Chromosome=$(echo $Get2_Chromosome | awk -v i=$i '{gsub(i,"");}1')
   			done
   		fi
-  		if [[ -z "$Get_Chromosome" ]]; then
-        if [[ -z "$interval_list" ]]; then
+  		if [[ -z "${Get_Chromosome:-}" ]]; then
+        if [[ -z "${interval_list:-}" ]]; then
     			for selchr in $Get2_Chromosome; do (
             if [[ -z "$(compgen -G "${projdir}/snpcall/${pop}_${ploidy}x_${selchr}_raw.vcf*")" ]]; then
     					$GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" HaplotypeCaller \
@@ -1527,8 +1527,8 @@ main () {
     		sleep $((RANDOM % 2))
           if [[ -z "$(compgen -G "${projdir}/snpcall/${pop}_${ref1%.f*}_${ploidy}x_raw.vcf*")" ]]; then
       			if test ! -f "${projdir}/snpcall/${i%.f*}_${ref1%.f*}.g.vcf"; then
-      					if [[ -z "$Get_Chromosome" ]]; then
-                  if [[ -z "$interval_list" ]]; then
+      					if [[ -z "${Get_Chromosome:-}" ]]; then
+                  if [[ -z "${interval_list:-}" ]]; then
         						$GATK --java-options "$Xmxg -Djava.io.tmpdir=../snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" HaplotypeCaller \
                     -R ../refgenomes/$ref1 -I ${i%.f*}_${ref1%.f*}_precall.bam -ploidy $ploidy -O ${projdir}/snpcall/${i%.f*}_${ref1%.f*}.hold.g.vcf.gz \
                     -ERC GVCF --max-reads-per-alignment-start 0 --minimum-mapping-quality $minmapq --dont-use-soft-clipped-bases $dont_use_softclip \
@@ -1589,7 +1589,7 @@ main () {
   				for i in *.g.vcf; do
   					k="${j} ${i}"; input="${input} ${k}"
   				done
-  				if [[ -z "$Get_Chromosome" ]]; then
+  				if [[ -z "${Get_Chromosome:-}" ]]; then
   					Get2_Chromosome=$(awk 'NR>1{print $2,"\t",$3}' ${projdir}/refgenomes/${ref1%.*}.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $0}' | sort -k2,2 -nr | awk '{print $1}')
   				else
   					Get2_Chromosome=$(echo $Get_Chromosome | tr ',' '\n')
@@ -1605,7 +1605,7 @@ main () {
               rm -rf ${pop}_${ploidy}x_${selchr}_raw.hold.vcf.gz 2> /dev/null
               rm -rf ${pop}_${ploidy}x_${selchr}_raw 2> /dev/null
               export TILEDB_DISABLE_FILE_LOCKING=1
-              if [[ -z "$interval_list" ]]; then
+              if [[ -z "${interval_list:-}" ]]; then
                 $GATK --java-options "$Xmx1 -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$loopthreads" GenomicsDBImport \
                 ${input} -L ${selchr} --genomicsdb-workspace-path ${pop}_${ploidy}x_${selchr}_raw --genomicsdb-shared-posixfs-optimizations true \
                 --batch-size 50 --merge-input-intervals --verbosity ERROR
@@ -1626,7 +1626,7 @@ main () {
   				for selchr in $Get2_Chromosome; do (
             export TILEDB_DISABLE_FILE_LOCKING=1
   					if [[ ! -f "${pop}_${ploidy}x_${selchr}_raw.vcf.gz.tbi" ]]; then
-              if [[ -z "$interval_list" ]]; then
+              if [[ -z "${interval_list:-}" ]]; then
     						$GATK --java-options "$Xmx1 -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$loopthreads" GenotypeGVCFs \
                 -R ${projdir}/refgenomes/$ref1 -L ${selchr} -V gendb://${pop}_${ploidy}x_${selchr}_raw \
                 -O ${pop}_${ploidy}x_${selchr}_raw.hold.vcf.gz --verbosity ERROR &&
@@ -1853,53 +1853,53 @@ main () {
   	mkdir 8x
   fi
 
-  if [ -z $genotype_missingness ]; then
+  if [ -z "${genotype_missingness:-}" ]; then
   	genotype_missingness=1
   else
   	genotype_missingness=$( echo $genotype_missingness | awk '{gsub(/,/," ")}1' )
   fi
-  if [ -z $sample_missingness ]; then
+  if [ -z "${sample_missingness:-}" ]; then
   	sample_missingness=1
   else
   	sample_missingness=$( echo $sample_missingness | awk '{gsub(/,/," ")}1' )
   fi
-  if [ -z $exclude_samples ]; then
+  if [ -z "${exclude_samples:-}" ]; then
   	exclude_samples=NULL
   fi
-  if [ -z $select_samples ]; then
+  if [ -z "${select_samples:-}" ]; then
   	select_samples=NULL
   fi
-  if [[ -z "$select_samples" ]]; then export select_samples=NULL; fi
-  if [[ ! -z "${projdir}/$select_samples" ]]; then
+  if [[ -z "${select_samples:-}" ]]; then export select_samples=NULL; fi
+  if [[ -f "${projdir}/$select_samples" ]]; then
     awk 'BEGIN {FS = "\t";OFS = ""}{print $0,".fasta.gz"}' "${projdir}/$select_samples" | \
     awk '{gsub(/.fasta.gz.fasta.gz/,".fasta.gz");}1' > "${projdir}"/fetch_samples_seq.txt
   fi
-  if [[ -z "${projdir}/$select_samples" ]]; then cat "${projdir}"/samples_list_node_* > "${projdir}"/fetch_samples_seq.txt; fi
-  if [[ -z "${projdir}/$select_samples" ]] && [[ "$exclude_samples" ]]; then
+  if [[ ! -f "${projdir}/$select_samples" ]]; then cat "${projdir}"/samples_list_node_* > "${projdir}"/fetch_samples_seq.txt; fi
+  if [[ ! -f "${projdir}/$select_samples" ]] && [[ "$exclude_samples" ]]; then
     echo $exclude_samples | tr ',' '\n' | awk 'BEGIN {FS = "\t";OFS = ""}{print $0,".fasta.gz"}' > "${projdir}"/fetch_excluded.txt
     grep -vFf "${projdir}"/fetch_excluded.txt "${projdir}"/fetch_samples_seq.txt > "${projdir}"/fetch_samples_seq0.txt
     mv "${projdir}"/fetch_samples_seq0.txt "${projdir}"/fetch_samples_seq.txt
   fi
 
-  if [ -z $minRD_1x ]; then
+  if [ -z "${minRD_1x:-}" ]; then
   	minRD_1x=2
   fi
-  if [ -z $minRD_2x ]; then
+  if [ -z "${minRD_2x:-}" ]; then
   	minRD_2x=6
   fi
-  if [ -z $minRD_4x ]; then
+  if [ -z "${minRD_4x:-}" ]; then
   	minRD_4x=25
   fi
-  if [ -z $minRD_6x ]; then
+  if [ -z "${minRD_6x:-}" ]; then
   	minRD_6x=45
   fi
-  if [ -z $minRD_8x ]; then
+  if [ -z "${minRD_8x:-}" ]; then
   	minRD_8x=100
   fi
-  if [ -z $pseg ]; then
+  if [ -z "${pseg:-}" ]; then
   	pseg=0.001
   fi
-  if [ -z $maf ]; then
+  if [ -z "${maf:-}" ]; then
   	maf=0.02
   fi
 
@@ -2194,7 +2194,7 @@ main () {
 
   for smiss in ${sample_missingness//,/ }; do
     for gmiss in ${genotype_missingness//,/ }; do
-      if [[ -z "$p1" ]]; then
+      if [[ -z "${p1:-}" ]]; then
       	if [ -d "${projdir}/snpfilter/1x" ]; then
       		cd ${projdir}/snpfilter &&
       		cp -r 1x 1x_diversity_gmiss"${gmiss}"_smiss"${smiss}" &&
@@ -3826,8 +3826,8 @@ for snpfilter_dir in */; do
 	rm ./paralog_haplo_filter/SNP_files.txt
 
 	touch ./paralog_haplo_filter/consensus_haplos.txt
-	if [ -z "$p1" ]; then
-		if [ -z "$p2" ]; then
+	if [ -z "${p1:-}" ]; then
+		if [ -z "${p2:-}" ]; then
 			for i in ./paralog_haplo_filter/*_hapmissingSNP.txt; do
 				awk '{print $3}' $i  | awk '{gsub("/","\t"); print}' | paste -d '\t' ./paralog_haplo_filter/consensus_haplos.txt - > consensus_haplos1.txt
 				cat consensus_haplos1.txt | while read -r line; do
