@@ -1702,23 +1702,24 @@ main () {
     set -euo pipefail
     cd $projdir
     if [[ -d "./refgenomes/pangenomes" ]] && find "./refgenomes/pangenomes" -type f -size +0c -print -quit | grep -q .; then
-      if bcftools view -H "./snpcall/${pop}_${ref1%.f*}_${ploidy}x_raw.vcf"* | awk '$1 ~ /^pangenome_/{found=1; exit} END{exit !found}'; then
+      if [[ "$(zcat "./snpcall/${pop}_${ref1%.f*}_${ploidy}x_raw.vcf"* | awk '$1 ~ /^pangenome_/ {print 1}' | head | wc -l)" -gt 0 ]] ; then
         if [[ ! -f "${projdir}/projection_done.txt" ]]; then
           cd snpcall
+          primary_prefix="${ref1%.f*}_Chr"
           primary_ref="../refgenomes/${ref1%.f*}_original.fasta"
           secondary_ref="../refgenomes/panref.fasta"
           paf_file="../refgenomes/pangenome2primary.paf"
           chain_out="../refgenomes/pangenome_to_primary.chain"
+          vcf_file="${pop}_${ref1%.f*}_${ploidy}x_raw.vcf"
           lifted_vcf="${vcf_file%.vcf}_lifted.vcf"
           failed_vcf="${vcf_file%.vcf}_failed.vcf"
-          vcf_file="${pop}_${ref1%.f*}_${ploidy}x_raw.vcf"
-          primary_prefix="${ref1%.f*}_Chr"
           # compress and index
-          if [[ -f "$vcf_file" ]]; then
-            $bcftools view -Oz -o "${vcf_file}.gz" "$vcf_file" &&
-            rm -f "$vcf_file" &&
-            $bcftools index "${vcf_file}.gz"
+          if [[ -f "${vcf_file}.gz" ]]; then
+            gunzip "${vcf_file}.gz"
           fi
+          $bcftools view -Oz -o "${vcf_file}.gz" "$vcf_file" &&
+          $bcftools index "${vcf_file}.gz"
+          rm -f "$vcf_file"
           wait
           sort -k6,6 -k8,8n "$paf_file" | awk '!seen[$6,$8,$9]++' > "${paf_file%.paf}.clean.paf" &&
           python3 ${GBSapp_dir}/tools/paf2chain.py "${paf_file%.paf}.clean.paf" "$secondary_ref" "$primary_ref" "$chain_out" &&
@@ -1761,8 +1762,8 @@ main () {
           # Normalize final VCF
           final_vcf="${pop}_${ref1%.f*}_${ploidy}x_raw.vcf.gz"
           $bcftools norm -f "$primary_ref" -m-any merged_final.vcf.gz -Oz -o "$final_vcf" &&
-          $bcftools index "$final_vcf" &&
-          printf "Pangenome projection with structural absence completed\n" > "${projdir}/projection_done.txt" &&
+          $bcftools index "$final_vcf"
+          printf "Pangenome projection with structural absence completed\n" > "${projdir}/projection_done.txt"
           rm -f "${ref1%.f*}_only.tmp.vcf.gz"* "${ref1%.f*}_only.vcf.gz"* merged_final.vcf.gz* \
           pangenome.filtmiss20perc.vcf.gz* combined.filtmiss20perc.vcf.gz* failed.vcf.gz \
           primary.vcf.gz* pangenome.vcf.gz* "${vcf_file%.vcf}_lifted"* "${ref1%.f*}.regions"
