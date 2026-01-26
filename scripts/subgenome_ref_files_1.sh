@@ -1704,74 +1704,77 @@ main () {
     if [[ -d "./refgenomes/pangenomes" ]] && find "./refgenomes/pangenomes" -type f -size +0c -print -quit | grep -q .; then
       if [[ "$(zcat "./snpcall/${pop}_${ref1%.f*}_${ploidy}x_raw.vcf"* | awk '$1 ~ /^pangenome_/ {print 1}' | head | wc -l)" -gt 0 ]] ; then
         if [[ ! -f "${projdir}/projection_done.txt" ]]; then
-          cd snpcall
-          primary_prefix="${ref1%.f*}_Chr"
-          primary_ref="../refgenomes/${ref1%.f*}_original.fasta"
-          secondary_ref="../refgenomes/panref.fasta"
-          paf_file="../refgenomes/pangenome2primary.paf"
-          chain_out="../refgenomes/pangenome_to_primary.chain"
-          vcf_file="${pop}_${ref1%.f*}_${ploidy}x_raw.vcf"
-          lifted_vcf="${vcf_file%.vcf}_lifted.vcf"
-          failed_vcf="${vcf_file%.vcf}_failed.vcf"
-          # compress and index
-          if [[ -f "${vcf_file}.gz" ]]; then
-            gunzip "${vcf_file}.gz"
-          fi
-          $bcftools view -Oz -o "${vcf_file}.gz" "$vcf_file" &&
-          $bcftools index "${vcf_file}.gz"
-          rm -f "$vcf_file"
-          wait
-          sort -k6,6 -k8,8n "$paf_file" | awk '!seen[$6,$8,$9]++' > "${paf_file%.paf}.clean.paf" &&
-          python3 ${GBSapp_dir}/tools/paf2chain.py "${paf_file%.paf}.clean.paf" "$secondary_ref" "$primary_ref" "$chain_out" &&
+        cd snpcall
+        primary_prefix="${ref1%.f*}_Chr"
+        primary_ref="../refgenomes/${ref1%.f*}_original.fasta"
+        secondary_ref="../refgenomes/panref.fasta"
+        paf_file="../refgenomes/pangenome2primary.paf"
+        chain_out="../refgenomes/pangenome_to_primary.chain"
+        vcf_file="${pop}_${ref1%.f*}_${ploidy}x_raw.vcf"
+        lifted_vcf="${vcf_file%.vcf}_lifted.vcf"
+        failed_vcf="${vcf_file%.vcf}_failed.vcf"
+        # compress and index
+        if [[ -f "${vcf_file}.gz" ]]; then
+          gunzip "${vcf_file}.gz"
+        fi
+        $bcftools view -Oz -o "${vcf_file}.gz" "$vcf_file" &&
+        $bcftools index "${vcf_file}.gz"
+        rm -f "$vcf_file"
+        wait
+        sort -k6,6 -k8,8n "$paf_file" | awk '!seen[$6,$8,$9]++' > "${paf_file%.paf}.clean.paf" &&
+        python3 ${GBSapp_dir}/tools/paf2chain.py "${paf_file%.paf}.clean.paf" "$secondary_ref" "$primary_ref" "$chain_out" &&
 
-          # extract TF contig names from the primary reference
-          awk '{print $1 "\t1\t" $2}' "${primary_ref}.fai" | grep "^${primary_prefix}" > ${ref1%.f*}.regions &&
-          # subset variants strictly to primary reference contigs &&
-          $bcftools view -R ${ref1%.f*}.regions -Oz -o ${ref1%.f*}_only.tmp.vcf.gz "${vcf_file}.gz" &&
-          $bcftools index ${ref1%.f*}_only.tmp.vcf.gz &&
-          # reheader safely with full TF FASTA
-          $bcftools reheader -f "${primary_ref}.fai" -o ${ref1%.f*}_only.vcf.gz ${ref1%.f*}_only.tmp.vcf.gz &&
-          $bcftools index ${ref1%.f*}_only.vcf.gz &&
+        # extract TF contig names from the primary reference
+        awk '{print $1 "\t1\t" $2}' "${primary_ref}.fai" | grep "^${primary_prefix}" > ${ref1%.f*}.regions &&
+        # subset variants strictly to primary reference contigs &&
+        $bcftools view -R ${ref1%.f*}.regions -Oz -o ${ref1%.f*}_only.tmp.vcf.gz "${vcf_file}.gz" &&
+        $bcftools index ${ref1%.f*}_only.tmp.vcf.gz &&
+        # reheader safely with full TF FASTA
+        $bcftools reheader -f "${primary_ref}.fai" -o ${ref1%.f*}_only.vcf.gz ${ref1%.f*}_only.tmp.vcf.gz &&
+        $bcftools index ${ref1%.f*}_only.vcf.gz &&
 
-          lifted_pangenome_vcf="${vcf_file%.vcf}_lifted.vcf.gz"
-          ${GBSapp_dir}/tools/transanno/target/release/transanno liftvcf \
-          --original-assembly "$primary_ref" --new-assembly "$secondary_ref" \
-          --chain "$chain_out" --vcf ${ref1%.f*}_only.vcf.gz --output "$lifted_pangenome_vcf" --fail failed.vcf.gz &&
-          bcftools sort "$lifted_pangenome_vcf" -Oz -o "${lifted_pangenome_vcf%.vcf.gz}.sorted.vcf.gz" &&
-          bcftools norm -f "$secondary_ref" -m-any "${lifted_pangenome_vcf%.vcf.gz}.sorted.vcf.gz" \
-          -Oz -o "${lifted_pangenome_vcf%.vcf.gz}.sorted.norm.vcf.gz" &&
-          bcftools view -e 'GT="./."' "${lifted_pangenome_vcf%.vcf.gz}.sorted.norm.vcf.gz" -Oz -o "$lifted_pangenome_vcf" &&
-          bcftools index "$lifted_pangenome_vcf" &&
+        lifted_pangenome_vcf="${vcf_file%.vcf}_lifted.vcf.gz"
+        ${GBSapp_dir}/tools/transanno/target/release/transanno liftvcf \
+        --original-assembly "$primary_ref" --new-assembly "$secondary_ref" \
+        --chain "$chain_out" --vcf ${ref1%.f*}_only.vcf.gz --output "$lifted_pangenome_vcf" --fail failed.vcf.gz &&
+        $bcftools sort "$lifted_pangenome_vcf" -Oz -o "${lifted_pangenome_vcf%.vcf.gz}.sorted.vcf.gz" &&
+        $bcftools norm -f "$secondary_ref" -m-any "${lifted_pangenome_vcf%.vcf.gz}.sorted.vcf.gz" \
+        -Oz -o "${lifted_pangenome_vcf%.vcf.gz}.sorted.norm.vcf.gz" &&
+        $bcftools view -e 'GT="./."' "${lifted_pangenome_vcf%.vcf.gz}.sorted.norm.vcf.gz" -Oz -o "$lifted_pangenome_vcf" &&
+        $bcftools index "$lifted_pangenome_vcf" &&
 
-          # Filter variants with max 80% missingness
-          $bcftools view -i 'F_MISSING < 0.8' "${vcf_file}.gz" -Oz -o combined.filtmiss20perc.vcf.gz &&
-          $bcftools index combined.filtmiss20perc.vcf.gz &&
-          $bcftools view -i 'F_MISSING < 0.8' "$lifted_pangenome_vcf" -Oz -o pangenome.filtmiss20perc.vcf.gz &&
-          $bcftools index pangenome.filtmiss20perc.vcf.gz &&
-          # Pangenome SNPs
-          $bcftools view -r $($bcftools query -f '%CHROM\n' pangenome.filtmiss20perc.vcf.gz | sort -u | grep '^pangenome_' | paste -sd ',') \
-          pangenome.filtmiss20perc.vcf.gz -Oz -o pangenome.vcf.gz &&
-          bcftools index pangenome.vcf.gz &&
-          # Primary reference SNPs
-          $bcftools view -r $($bcftools query -f '%CHROM\n' combined.filtmiss20perc.vcf.gz | sort -u | grep "^${primary_prefix}" | paste -sd ',') \
-          combined.filtmiss20perc.vcf.gz -Oz -o primary.vcf.gz &&
-          $bcftools index primary.vcf.gz &&
-          # Merge pangenome and primary SNPs
-          $bcftools concat -a -Oz -o merged_final.vcf.gz primary.vcf.gz pangenome.vcf.gz &&
-          $bcftools index merged_final.vcf.gz &&
-          # Normalize final VCF
-          final_vcf="${pop}_${ref1%.f*}_${ploidy}x_raw.vcf.gz"
-          $bcftools norm -f "$primary_ref" -m-any merged_final.vcf.gz -Oz -o "$final_vcf" &&
-          $bcftools index "$final_vcf"
-          printf "Pangenome projection with structural absence completed\n" > "${projdir}/projection_done.txt"
-          rm -f "${ref1%.f*}_only.tmp.vcf.gz"* "${ref1%.f*}_only.vcf.gz"* merged_final.vcf.gz* \
-          pangenome.filtmiss20perc.vcf.gz* combined.filtmiss20perc.vcf.gz* failed.vcf.gz \
-          primary.vcf.gz* pangenome.vcf.gz* "${vcf_file%.vcf}_lifted"* "${ref1%.f*}.regions"
-          wait
+        # Filter variants with max 80% missingness
+        $bcftools view -i 'F_MISSING < 0.8' "${vcf_file}.gz" -Oz -o combined.filtmiss20perc.vcf.gz &&
+        $bcftools index combined.filtmiss20perc.vcf.gz &&
+        $bcftools view -i 'F_MISSING < 0.8' "$lifted_pangenome_vcf" -Oz -o pangenome.filtmiss20perc.vcf.gz &&
+        $bcftools index pangenome.filtmiss20perc.vcf.gz &&
+        # Pangenome SNPs
+        $bcftools view -r $($bcftools query -f '%CHROM\n' pangenome.filtmiss20perc.vcf.gz | sort -u | grep '^pangenome_' | paste -sd ',') \
+        pangenome.filtmiss20perc.vcf.gz -Oz -o pangenome.vcf.gz &&
+        bcftools index pangenome.vcf.gz &&
+        # Primary reference SNPs
+        $bcftools view -r $($bcftools query -f '%CHROM\n' combined.filtmiss20perc.vcf.gz | sort -u | grep "^${primary_prefix}" | paste -sd ',') \
+        combined.filtmiss20perc.vcf.gz -Oz -o primary.vcf.gz &&
+        $bcftools index primary.vcf.gz &&
+        # Normalize primary
+        $bcftools norm -f "$primary_ref" -m-any primary.vcf.gz -Oz -o primary.norm.vcf.gz &&
+        $bcftools index primary.norm.vcf.gz &&
+        # Normalize pangenome
+        $bcftools norm -f "$secondary_ref" -m-any pangenome.vcf.gz -Oz -o pangenome.norm.vcf.gz &&
+        $bcftools index pangenome.norm.vcf.gz &&
+        # Merge AFTER normalization
+        final_vcf="${pop}_${ref1%.f*}_${ploidy}x_raw.vcf.gz"
+        $bcftools concat -a -Oz -o "$final_vcf" primary.norm.vcf.gz pangenome.norm.vcf.gz &&
+        $bcftools index  "$final_vcf"
+        printf "Pangenome projection with structural absence completed\n" > "${projdir}/projection_done.txt"
+        rm -f "${ref1%.f*}_only.tmp.vcf.gz"* "${ref1%.f*}_only.vcf.gz"* merged_final.vcf.gz* \
+        pangenome.filtmiss20perc.vcf.gz* combined.filtmiss20perc.vcf.gz* failed.vcf.gz \
+        primary.vcf.gz* pangenome.vcf.gz* primary.norm.vcf.gz* pangenome.norm.vcf.gz* \
+        "${vcf_file%.vcf}_lifted"* "${ref1%.f*}.regions"
+        wait
         fi
       fi
     fi
-
     ###########
 
   	if [[ $nodes -gt 1 ]] && test -f ${projdir}/GBSapp_run_node_1.sh; then
