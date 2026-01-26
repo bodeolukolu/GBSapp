@@ -1910,10 +1910,13 @@ main () {
 
   cd ${projdir}/snpcall
   for g in *_raw.vcf.gz; do gunzip $g;	done
+  rm *_raw.vcf.gz.csi 2> /dev/null || true
   wait
 
-  file1xG=$(ls 2> /dev/null | grep '_1x_DP_GT' || true | head -n 1 | wc -l)
-  file1xV=$(ls 2> /dev/null | grep '_1x_raw' || true | head -n 1 | wc -l)
+  files1xG=(*_1x_DP_GT.txt)
+  files1xV=(*_1x_raw.vcf)
+  file1xG=${#files1xG[@]}
+  file1xV=${#files1xV[@]}
   if [[ "${file1xG}" -lt 1 ]]; then
   	if [[ "${file1xV}" -gt 0 ]]; then
       if test ! -f ${projdir}/vcf1x_trimmed.txt; then
@@ -1957,8 +1960,10 @@ main () {
   	fi
   fi
   wait
-  file2xG=$(ls 2> /dev/null | grep '_2x_DP_GT' || true | head -n 1 | wc -l)
-  file2xV=$(ls 2> /dev/null | grep '_2x_raw' || true | head -n 1 | wc -l)
+  files2xG=(*_2x_DP_GT.txt)
+  files2xV=(*_2x_raw.vcf)
+  file2xG=${#files2xG[@]}
+  file2xV=${#files2xV[@]}
   if [[ "${file2xG}" -lt 1 ]]; then
   	if [[ "${file2xV}" -gt 0 ]]; then
       if test ! -f ${projdir}/vcf2x_trimmed.txt; then
@@ -2007,8 +2012,10 @@ main () {
   	fi
   fi
   wait
-  file4xG=$(ls 2> /dev/null | grep '_4x_DP_GT' || true | head -n 1 | wc -l)
-  file4xV=$(ls 2> /dev/null | grep '_4x_raw' || true | head -n 1 | wc -l)
+  files4xG=(*_4x_DP_GT.txt)
+  files4xV=(*_4x_raw.vcf)
+  file4xG=${#files4xG[@]}
+  file4xV=${#files4xV[@]}
   if [[ "${file4xG}" -lt 1 ]]; then
   	if [[ "${file4xV}" -gt 0 ]]; then
       if test ! -f ${projdir}/vcf4x_trimmed.txt; then
@@ -2057,8 +2064,10 @@ main () {
   	fi
   fi
   wait
-  file6xG=$(ls 2> /dev/null | grep '_6x_DP_GT' || true | head -n 1 | wc -l)
-  file6xV=$(ls 2> /dev/null | grep '_6x_raw' || true | head -n 1 | wc -l)
+  files6xG=(*_6x_DP_GT.txt)
+  files6xV=(*_6x_raw.vcf)
+  file6xG=${#files6xG[@]}
+  file6xV=${#files6xV[@]}
   if [[ "${file6xG}" -lt 1 ]]; then
   	if [[ "${file6xV}" -gt 0 ]]; then
       if test ! -f ${projdir}/vcf6x_trimmed.txt; then
@@ -2107,8 +2116,10 @@ main () {
   	fi
   fi
   wait
-  file8xG=$(ls 2> /dev/null | grep '_8x_DP_GT' || true | head -n 1 | wc -l)
-  file8xV=$(ls 2> /dev/null | grep '_8x_raw' || true | head -n 1 | wc -l)
+  files8xG=(*_8x_DP_GT.txt)
+  files8xV=(*_8x_raw.vcf)
+  file8xG=${#files8xG[@]}
+  file8xV=${#files8xV[@]}
   if [[ "${file8xG}" -lt 1 ]]; then
   	if [[ "${file8xV}" -gt 0 ]]; then
       if test ! -f ${projdir}/vcf8x_trimmed.txt; then
@@ -3452,11 +3463,11 @@ main () {
       			awk -v pat1="${n}_Chr" -v pat2="${n}_chr" '{gsub(pat1,"Chr");gsub(pat2,"Chr");gsub(/CHROM_POS/,"SNP");}1' > ${i%.txt}_AR_metric.txt &&
             wait
 
+            shopt -s nullglob
             if test ! -f $projdir/split_done.txt; then
               export vcfdose=${i%_rd*}; vcfdose=${vcfdose#*_} &&
-              for gunv in $projdir/snpcall/*x.vcf.gz; do
-                gunzip $gunv &&
-                wait
+              for gunv in "$projdir"/snpcall/*x.vcf.gz; do
+                gunzip "$gunv"
               done
               wait
               for split in $projdir/snpcall/*${vcfdose}.vcf; do
@@ -3466,22 +3477,25 @@ main () {
               	$GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" \
                 LeftAlignAndTrimVariants -R ${projdir}/refgenomes/$refg -V $split -O ${split%.vcf}_split.vcf --split-multi-allelics  \
                 --dont-trim-alleles --keep-original-ac --verbosity ERROR &&
-              	gzip $split &&
                 $bcftools view -I ${split%.vcf}_split.vcf -O z -o ${split%.vcf}_split.vcf.gz &&
-                $bcftools index ${split%.vcf}_split.vcf.gz &&
-                :> $projdir/split_done.txt &&
+                $bcftools index ${split%.vcf}_split.vcf.gz
+                rm ${split%.vcf}_split.vcf
                 wait
               done
+              :> $projdir/split_done.txt
               wait
             fi
-            if (( $(compgen -G "$projdir/snpcall/*_split.vcf.gz" | wc -l) > 1 )); then
-              $bcftools merge $projdir/snpcall/*_split.vcf.gz --force-samples -m all > ${i%rd*}split.vcf &&
-              gzip ${i%rd*}split.vcf &&
-              wait
+
+            # Merge logic
+            split_vcfs=( "$projdir"/snpcall/*_split.vcf.gz )
+            if (( ${#split_vcfs[@]} > 1 )); then
+                $bcftools merge "${split_vcfs[@]}" --force-samples -m all -O z -o "${i%rd*}split.vcf.gz"
+            elif (( ${#split_vcfs[@]} == 1 )); then
+                cp "${split_vcfs[0]}" "./${i%rd*}split.vcf.gz"
             else
-              for k in $projdir/snpcall/*_split.vcf.gz; do cp $k ./${i%rd*}split.vcf.gz; wait; done
+                echo "ERROR: No *_split.vcf.gz files found" >&2
             fi
-            wait
+            wait || true
 
             for i in *dose*; do
               awk -v pat1="${n}_Chr" -v pat2="${n}_chr" '{gsub(pat1,"Chr");gsub(pat2,"Chr"); print $0}' $i > ${i%.txt}_hold.txt &&
