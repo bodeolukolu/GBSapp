@@ -1699,6 +1699,7 @@ main () {
 
   	###########
     # perform lift over for pangenome-aware variant calling
+    set -euo pipefail
     cd $projdir
     if [[ -d "./refgenomes/pangenomes" ]] && find "./refgenomes/pangenomes" -type f -size +0c -print -quit | grep -q .; then
       if bcftools view -H "./snpcall/${pop}_${ref1%.f*}_${ploidy}x_raw.vcf"* | awk '$1 ~ /^pangenome_/{found=1; exit} END{exit !found}'; then
