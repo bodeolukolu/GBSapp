@@ -1912,8 +1912,8 @@ main () {
   for g in *_raw.vcf.gz; do gunzip $g;	done
   wait
 
-  file1xG=$( if [ "$(ls -A *_1x_DP_GT.txt 2> /dev/null)" ]; then ls *_1x_DP_GT.txt | wc -l;  else echo 0; fi )
-  file1xV=$( if [ "$(ls -A *_1x_raw.vcf 2> /dev/null)" ]; then ls *_1x_raw.vcf | head -n 1 | wc -l; else echo 0; fi )
+  file1xG=$(ls 2> /dev/null | grep '_1x_DP_GT' || true | head -n 1 | wc -l)
+  file1xV=$(ls 2> /dev/null | grep '_1x_raw' || true | head -n 1 | wc -l)
   if [[ "${file1xG}" -lt 1 ]]; then
   	if [[ "${file1xV}" -gt 0 ]]; then
       if test ! -f ${projdir}/vcf1x_trimmed.txt; then
@@ -1957,8 +1957,8 @@ main () {
   	fi
   fi
   wait
-  file2xG=$( if [ "$(ls -A *_2x_DP_GT.txt 2> /dev/null)" ]; then ls *_2x_DP_GT.txt | wc -l;  else echo 0; fi )
-  file2xV=$( if [ "$(ls -A *_2x_raw.vcf 2> /dev/null)" ]; then ls *_2x_raw.vcf | head -n 1 | wc -l; else echo 0; fi )
+  file2xG=$(ls 2> /dev/null | grep '_2x_DP_GT' || true | head -n 1 | wc -l)
+  file2xV=$(ls 2> /dev/null | grep '_2x_raw' || true | head -n 1 | wc -l)
   if [[ "${file2xG}" -lt 1 ]]; then
   	if [[ "${file2xV}" -gt 0 ]]; then
       if test ! -f ${projdir}/vcf2x_trimmed.txt; then
@@ -2007,8 +2007,8 @@ main () {
   	fi
   fi
   wait
-  file4xG=$( if [ "$(ls -A *_4x_DP_GT.txt 2> /dev/null)" ]; then ls *_4x_DP_GT.txt | wc -l;  else echo 0; fi )
-  file4xV=$( if [ "$(ls -A *_4x_raw.vcf 2> /dev/null)" ]; then ls *_4x_raw.vcf | head -n 1 | wc -l; else echo 0; fi )
+  file4xG=$(ls 2> /dev/null | grep '_4x_DP_GT' || true | head -n 1 | wc -l)
+  file4xV=$(ls 2> /dev/null | grep '_4x_raw' || true | head -n 1 | wc -l)
   if [[ "${file4xG}" -lt 1 ]]; then
   	if [[ "${file4xV}" -gt 0 ]]; then
       if test ! -f ${projdir}/vcf4x_trimmed.txt; then
@@ -2057,8 +2057,8 @@ main () {
   	fi
   fi
   wait
-  file6xG=$( if [ "$(ls -A *_6x_DP_GT.txt 2> /dev/null)" ]; then ls *_6x_DP_GT.txt | wc -l;  else echo 0; fi )
-  file6xV=$( if [ "$(ls -A *_6x_raw.vcf 2> /dev/null)" ]; then ls *_6x_raw.vcf | head -n 1 | wc -l; else echo 0; fi )
+  file6xG=$(ls 2> /dev/null | grep '_6x_DP_GT' || true | head -n 1 | wc -l)
+  file6xV=$(ls 2> /dev/null | grep '_6x_raw' || true | head -n 1 | wc -l)
   if [[ "${file6xG}" -lt 1 ]]; then
   	if [[ "${file6xV}" -gt 0 ]]; then
       if test ! -f ${projdir}/vcf6x_trimmed.txt; then
@@ -2107,8 +2107,8 @@ main () {
   	fi
   fi
   wait
-  file8xG=$( if [ "$(ls -A *_8x_DP_GT.txt 2> /dev/null)" ]; then ls *_8x_DP_GT.txt | wc -l;  else echo 0; fi )
-  file8xV=$( if [ "$(ls -A *_8x_raw.vcf 2> /dev/null)" ]; then ls *_8x_raw.vcf | head -n 1 | wc -l; else echo 0; fi )
+  file8xG=$(ls 2> /dev/null | grep '_8x_DP_GT' || true | head -n 1 | wc -l)
+  file8xV=$(ls 2> /dev/null | grep '_8x_raw' || true | head -n 1 | wc -l)
   if [[ "${file8xG}" -lt 1 ]]; then
   	if [[ "${file8xV}" -gt 0 ]]; then
       if test ! -f ${projdir}/vcf8x_trimmed.txt; then
