@@ -268,6 +268,25 @@ else
   fi
 fi
 
+
+main_whatshap () {
+  echo -e "${green}\n############################################## \n- downloading WhatsHap \n##############################################${white}"
+  mkdir -p whatshap
+  pip3 install --target="${tools_dir}/whatshap" whatshap
+  cd $tools_dir
+}
+dirtool=whatshap
+if [ -d $dirtool ]; then
+  :
+else
+  echo -e "${magenta}- Performing installation of dependency (WhatsHap) ${white}"
+  main_whatshap &>> ./log.out
+  if [ ! -d $dirtool ]; then
+      echo -e "${magenta} WhatsHap did not install properly ${white}"
+  fi
+fi
+
+
 main_bwa () {
   echo -e "${white}\n############################################## ${orange}\n- downloading and installing BWA aligner ${white}\n##############################################${white}"
   git clone https://github.com/lh3/bwa.git

@@ -89,6 +89,7 @@ export star=${GBSapp_dir}/tools/STAR*/source/STAR
 export minimap2=${GBSapp_dir}/tools/minimap2*/minimap2
 export transanno=${GBSapp_dir}/tools/transanno/target/release/transanno
 export wig2bed=${GBSapp_dir}/tools/wig2bed_merged.py
+export whatshap=${GBSapp_dir}/tools/whatshap/bin/whatshap
 export bwa=${GBSapp_dir}/tools/bwa/bwa
 export samtools=${GBSapp_dir}/tools/samtools*/samtools && samtools=${samtools//'//'/'/'}
 export bcftools=${GBSapp_dir}/tools/bcftools*/bcftools && bcftools=${bcftools//'//'/'/'}

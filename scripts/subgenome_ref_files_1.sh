@@ -881,6 +881,7 @@ main () {
 
     # Step 4: Filter, trim, deduplicate → FASTA with counts
     for i in *.f*.gz; do
+      [[ "$i" == tmp_flat_* ]] && continue
       [[ "$i" == *_uniq.fasta.gz ]] && continue
       (
         echo "Filtering, trimming, counting duplicates for $i"
@@ -1036,6 +1037,7 @@ main () {
             r2_file="${sample_base}_R2_uniq.fasta.gz"
             r1r2_file="${sample_base}_R1R2_uniq.fasta.gz"
             tmp_sv=$(mktemp "${projdir}/samples/tmp.XXXXXX")
+            sv_out="${projdir}/sv_mode.txt"
 
             #### Step 0: Structure detection (sample 1% reads, min 1000)
             detect_structure_mode="low"  # default
@@ -1052,7 +1054,7 @@ main () {
                 fi
                 tmp_aln="${sample_base}_structure_check.sam"
                 # Use PE if R2 exists, else SE
-                if [[ -f "$tmp_sample_r2" ]]; then
+                if [[ -f "${tmp_sample_r2:-}" ]]; then
                     echo "Structure detection: PE mode for $sample_base"
                     $minimap2 -t "$alnthreads" -ax pe "../refgenomes/${ref1%.f*}.mmi" "$tmp_sample_r1" "$tmp_sample_r2" > "$tmp_aln" 2>/dev/null
                 else
@@ -1063,11 +1065,11 @@ main () {
                 if (( $(echo "$discordant_pct > 10" | bc -l) )); then
                     detect_structure_mode="high"
                 fi
-                rm -f "$tmp_sample_r1" "$tmp_sample_r2" "$tmp_aln"
+                rm -f "${tmp_sample_r1:-}" "${tmp_sample_r2:-}" "${tmp_aln:-}"
                 echo "Structure mode for $sample_base: $detect_structure_mode"
             fi
-            printf "${alignfq%.f*}:\tdetect_structure_mde = ${detect_structure_mode} \t discordant_pct = $discordant_pct \n" > tmp_sv
-            cat tmp_sv >> sv_mode.txt && rm -f tmp_sv
+            printf "${alignfq%.f*}:\tdetect_structure_mde = ${detect_structure_mode} \t discordant_pct = $discordant_pct \n" > "$tmp_sv"
+            cat "$tmp_sv" >> "$sv_out" && rm -f "$tmp_sv"
 
             if [[ "$detect_structure_mode" == "high" ]]; then
               #### Step 1: Align PE or SE reads
@@ -1225,7 +1227,7 @@ main () {
   fi
   wait
 
-  cat ${projdir}/samples/sv_mode.txt > ${projdir}/alignment_done_${samples_list}
+  cat ${projdir}sv_mode.txt > ${projdir}/alignment_done_${samples_list}
 
   cd ${projdir}/preprocess
   if [[ "$samples_list" == "samples_list_node_1.txt" ]] && test ! -f ${projdir}/alignment_done.txt; then
@@ -1233,9 +1235,9 @@ main () {
     while files=("${projdir}"/alignment_done_samples_list_node_*); [[ ${#files[@]} -lt "$nodes" ]]; do
       sleep 300
     done
-    cat ${projdir}/samples/sv_mode.txt > ${projdir}/alignment_done.txt
+    cat ${projdir}/sv_mode.txt > ${projdir}/alignment_done.txt
   fi
-  rm -f ${projdir}/samples/tmp.* ${projdir}/samples/sv_mode.txt
+  rm -f ${projdir}/samples/tmp.* ${projdir}/sv_mode.txt
 
   while [[ ! -f ${projdir}/alignment_done.txt ]]; do
     sleep 300
@@ -3495,26 +3497,25 @@ main () {
 
             shopt -s nullglob
             if test ! -f $projdir/split_done.txt; then
-              export vcfdose=${i%_rd*}; vcfdose=${vcfdose#*_} &&
-              for gunv in "$projdir"/snpcall/*x.vcf.gz; do
-                gunzip "$gunv"
-              done
-              wait
-              for split in $projdir/snpcall/*${vcfdose}.vcf; do
-                refg=${split%_*} && refg=${refg##*/} && refg=${refg#*_} && refg=${refg%%_*}.fasta
-              	$GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" \
-                IndexFeatureFile -I $split --verbosity ERROR &&
-              	$GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" \
-                LeftAlignAndTrimVariants -R ${projdir}/refgenomes/$refg -V $split -O ${split%.vcf}_split.vcf --split-multi-allelics  \
-                --dont-trim-alleles --keep-original-ac --verbosity ERROR &&
-                $bcftools view -I ${split%.vcf}_split.vcf -O z -o ${split%.vcf}_split.vcf.gz &&
-                $bcftools index ${split%.vcf}_split.vcf.gz
-                rm ${split%.vcf}_split.vcf
-                wait
-              done
-              :> $projdir/split_done.txt
-              wait
+              split_files=( "$projdir"/snpcall/*"${vcfdose}".vcf )
+              if (( ${#split_files[@]} == 0 )); then
+                  echo "WARNING: No VCFs to process for dose ${vcfdose}" >&2
+              else
+                  for split in "${split_files[@]}"; do
+                      refg=${split%_*}; refg=${refg##*/}; refg=${refg#*_}; refg=${refg%%_*}.fasta
+                      $GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" \
+                          IndexFeatureFile -I "$split" --verbosity ERROR
+                      $GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" \
+                          LeftAlignAndTrimVariants -R "${projdir}/refgenomes/$refg" -V "$split" -O "${split%.vcf}_split.vcf" \
+                          --split-multi-allelics --dont-trim-alleles --keep-original-ac --verbosity ERROR
+                      $bcftools view -I "${split%.vcf}_split.vcf" -O z -o "${split%.vcf}_split.vcf.gz"
+                      $bcftools index "${split%.vcf}_split.vcf.gz"
+                      rm -f "${split%.vcf}_split.vcf"
+                  done
+              fi
             fi
+            shopt -u nullglob
+            :> "$projdir/split_done.txt"
 
             # Merge logic
             split_vcfs=( "$projdir"/snpcall/*_split.vcf.gz )
@@ -3523,9 +3524,11 @@ main () {
             elif (( ${#split_vcfs[@]} == 1 )); then
                 cp "${split_vcfs[0]}" "./${i%rd*}split.vcf.gz"
             else
-                echo "ERROR: No *_split.vcf.gz files found" >&2
+                echo "WARNING: No *_split.vcf.gz files found in $projdir/snpcall/, creating empty placeholder" >&2
+                touch "./${i%rd*}split.vcf.gz"
             fi
             wait || true
+
 
             for i in *dose*; do
               awk -v pat1="${n}_Chr" -v pat2="${n}_chr" '{gsub(pat1,"Chr");gsub(pat2,"Chr"); print $0}' $i > ${i%.txt}_hold.txt &&
