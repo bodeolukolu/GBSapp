@@ -2216,12 +2216,13 @@ main () {
   wait
 
 
-  filetest=*x.vcf*
-  if [ -z "$(ls -A *x.vcf* 2> /dev/null)" ]; then
+  shopt -s nullglob
+  files=( *x.vcf* )
+  shopt -u nullglob
+  if (( ${#files[@]} == 0 )); then
     for v in *_DP_GT.txt; do
       vcfdose=${v%_DP*}
       vcfdose=${vcfdose#*_}
-      export vcfdose
       shopt -s nullglob
       raw_vcfs=( *"${vcfdose}"_raw.vcf )
       shopt -u nullglob
@@ -3597,7 +3598,7 @@ main () {
             shopt -s nullglob
             if test ! -f $projdir/split_done.txt; then
               shopt -s nullglob
-              split_files=( "$projdir"/snpcall/*"${vcfdose}".vcf )
+              split_files=( "$projdir"/snpcall/*x.vcf* )
               shopt -u nullglob
               if (( ${#split_files[@]} == 0 )); then
                   echo "WARNING: No VCFs to process for dose ${vcfdose}" >&2
