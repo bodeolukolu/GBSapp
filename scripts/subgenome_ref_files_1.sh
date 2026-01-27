@@ -3596,31 +3596,34 @@ main () {
 
 
             shopt -s nullglob
-            if test ! -f $projdir/split_done.txt; then
-              shopt -s nullglob
-              split_files=( "$projdir"/snpcall/*x.vcf* )
-              shopt -u nullglob
-              if (( ${#split_files[@]} == 0 )); then
-                  echo "WARNING: No VCFs to process for dose ${vcfdose}" >&2
-              else
-                  for split in "${split_files[@]}"; do
-                      refg=${split%_*}; refg=${refg##*/}; refg=${refg#*_}; refg=${refg%%_*}.fasta
-                      ungzipped="${split%.gz}"
-                      gunzip -c "$split" > "$ungzipped"
-                      $GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" \
-                          IndexFeatureFile -I "$ungzipped" --verbosity ERROR
-                      $GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" \
-                          LeftAlignAndTrimVariants -R "${projdir}/refgenomes/$refg" -V "$ungzipped" -O "${split%.vcf}_split.vcf" \
-                          --split-multi-allelics --dont-trim-alleles --keep-original-ac --verbosity ERROR
-                      $bcftools view -I "${split%.vcf}_split.vcf" -O z -o "${split%.vcf}_split.vcf.gz"
-                      $bcftools index "${split%.vcf}_split.vcf.gz"
-                      rm -f "${split%.vcf}_split.vcf"
-                      [[ "$split" != "$ungzipped" ]] && rm -f "$ungzipped"
-                  done
-              fi
+            if [[ ! -f "$projdir/split_done.txt" ]]; then
+                split_files=( "$projdir"/snpcall/*x.vcf* )
+                if (( ${#split_files[@]} == 0 )); then
+                    echo "WARNING: No VCFs to process for dose ${vcfdose}" >&2
+                else
+                    for split in "${split_files[@]}"; do
+                        # Extract reference genome name
+                        refg="${split##*/}"          # filename only
+                        refg="${refg#*_}"            # remove prefix up to first underscore
+                        refg="${refg%%_*}.fasta"     # remove suffix after next underscore, append .fasta
+                        ungzipped="${split%.gz}"
+                        gunzip -c "$split" > "$ungzipped"
+                        $GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" \
+                            IndexFeatureFile -I "$ungzipped" --verbosity ERROR
+                        # Left-align and trim variants
+                        $GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" \
+                            LeftAlignAndTrimVariants -R "${projdir}/refgenomes/$refg" -V "$ungzipped" -O "${split%.vcf}_split.vcf" \
+                            --split-multi-allelics --dont-trim-alleles --keep-original-ac --verbosity ERROR
+                        $bcftools view -I "${split%.vcf}_split.vcf" -O z -o "${split%.vcf}_split.vcf.gz"
+                        $bcftools index "${split%.vcf}_split.vcf.gz"
+                        rm -f "${split%.vcf}_split.vcf"
+                        [[ "$split" != "$ungzipped" ]] && rm -f "$ungzipped"
+                    done
+                fi
+                :> "$projdir/split_done.txt"
             fi
             shopt -u nullglob
-            :> "$projdir/split_done.txt"
+
 
             # Merge logic
             split_vcfs=( "$projdir"/snpcall/*_split.vcf.gz )
