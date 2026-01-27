@@ -3582,9 +3582,12 @@ main () {
       			awk -v pat1="${n}_Chr" -v pat2="${n}_chr" '{gsub(pat1,"Chr");gsub(pat2,"Chr");gsub(/CHROM_POS/,"SNP");}1' > ${i%.txt}_AR_metric.txt &&
             wait
 
+
             shopt -s nullglob
             if test ! -f $projdir/split_done.txt; then
+              shopt -s nullglob
               split_files=( "$projdir"/snpcall/*"${vcfdose}".vcf )
+              shopt -u nullglob
               if (( ${#split_files[@]} == 0 )); then
                   echo "WARNING: No VCFs to process for dose ${vcfdose}" >&2
               else
