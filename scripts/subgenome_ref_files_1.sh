@@ -2218,16 +2218,26 @@ main () {
 
   filetest=*x.vcf*
   if [ -z "$(ls -A *x.vcf* 2> /dev/null)" ]; then
-  	for v in *_DP_GT.txt; do
-  		vcfdose=${v%_DP*}; vcfdose=${vcfdose#*_}; out=$(ls *${vcfdose}_raw.vcf)
+    for v in *_DP_GT.txt; do
+      vcfdose=${v%_DP*}
+      vcfdose=${vcfdose#*_}
       export vcfdose
-  		for raw in $out; do
-  			grep '^#' $raw  > ${raw%_raw.vcf}.vcf &&
-  			awk 'FNR==NR{a[$1,$2]=$0;next}{if(b=a[$1,$2]){print b}}' $raw <(awk '{print $1"\t"$2}' $v | awk '!seen[$0] {print} {++seen[$0]}') >> ${raw%_raw.vcf}.vcf &&
-        $bcftools sort ${raw%_raw.vcf}.vcf | gzip > ${raw%_raw.vcf}.vcf.gz &&
-        rm -f ${raw%_raw.vcf}.vcf
-  		done
-  	done
+      shopt -s nullglob
+      raw_vcfs=( *"${vcfdose}"_raw.vcf )
+      shopt -u nullglob
+      if (( ${#raw_vcfs[@]} == 0 )); then
+        echo "WARNING: no raw VCF for dose ${vcfdose}" >&2
+        continue
+      fi
+      for raw in "${raw_vcfs[@]}"; do
+        grep '^#' "$raw" > "${raw%_raw.vcf}.vcf" &&
+        awk 'FNR==NR{a[$1,$2]=$0;next}{if(b=a[$1,$2]){print b}}' \
+            "$raw" <(awk '{print $1"\t"$2}' "$v" | awk '!seen[$0]++') \
+            >> "${raw%_raw.vcf}.vcf" &&
+        $bcftools sort "${raw%_raw.vcf}.vcf" | gzip > "${raw%_raw.vcf}.vcf.gz" &&
+        rm -f "${raw%_raw.vcf}.vcf"
+      done
+    done
   	wait
   fi
 
@@ -3667,8 +3677,8 @@ main () {
     done
     wait
   } & PID_genvcf=$!
-  wait $PID_genvcf
-  wait
+  [[ -n "$PID_genvcf" ]] && wait "$PID_genvcf"
+
   rm -f ${projdir}/snpcall/*_split.vcf*
   rm -f $projdir/split_done.txt
   wait
