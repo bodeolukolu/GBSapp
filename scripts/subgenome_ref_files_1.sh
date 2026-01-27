@@ -1,4 +1,3 @@
-set -euo pipefail
 
 if [ -z "${slurm_module:-}" ]; then
  export slurm_module=true
@@ -176,10 +175,12 @@ main () {
   for f in $(ls *.FFN 2> /dev/null); do if [[ "$f" == *.FFN ]]; then echo -e "${magenta}- changing upper case FFN extension of reference genome(s) to lower case"; mv $f ${f%.FFN}.ffn  2> /dev/null; fi; done
   for f in $(ls *.FAA 2> /dev/null); do if [[ "$f" == *.FAA ]]; then echo -e "${magenta}- changing upper case FAA extension of reference genome(s) to lower case"; mv $f ${f%.FAA}.faa  2> /dev/null; fi; done
   wait
+  shopt -s nullglob
   for i in *.gz; do
-  	sleep $((RANDOM % 2))
-    gunzip $i >/dev/null 2>&1
+      sleep $((RANDOM % 2))
+      gunzip "$i" >/dev/null 2>&1 || true
   done
+  shopt -u nullglob
 
   cd $projdir
   cd refgenomes
@@ -580,6 +581,7 @@ if [[ "$alignments" == 1 ]] && [[ "$snp_calling" == 1 ]]; then
   fi
 fi
 
+set -euo pipefail
 echo -e "${blue}\n############################################################################## ${yellow}\n- Organizing sample fastq files \n${blue}##############################################################################${white}\n"
 main () {
 	cd $projdir
@@ -685,7 +687,7 @@ main () {
                 fi
             fi
         done
-\        ############################
+        ############################
         # PASS 2: renaming R1 file with _R1 for Single-end R1-only
         ############################
         for r1 in "$dir"/*.gz; do
@@ -803,86 +805,114 @@ main () {
   wait
 
   # flush at read end, compress and index fasta file
+  shopt -s nullglob
   if [[ ! -f flushed_reads.txt ]]; then
+    # Helpers
+    # Detect format from first character
     seq_format() {
-      zcat "$1" | head -n1 | cut -c1
+      zcat "$1" 2>/dev/null | head -n1 | cut -c1 || echo ""
     }
-    # Step 0: Parameters
-    MIN_LEN=64
-    SAMPLE_PERCENT=1   # sample 1% for length distribution
-    shopt -s nullglob
-    # Step 1: Convert fastq -> fasta if needed, trim homopolymers, flatten
-    for i in *.f*.gz; do (
-      [[ "$i" == *_uniq.fasta.gz ]] && continue
-      fmt=$(seq_format "$i")
-      echo "Processing $i ($fmt)"
-      # Flatten + trim homopolymers
+    # Convert FASTQ or FASTA (multi-line allowed) → single-line sequences
+    to_singleline_seqs() {
+      local file="$1"
+      local fmt="$2"
+
       if [[ "$fmt" == "@" ]]; then
-        # FASTQ -> FASTA, flatten, trim polyNs at start/end
-        zcat "$i" | awk 'NR%4==2 {
+        # FASTQ → sequences only
+        zcat "$file" | awk 'NR % 4 == 2'
+      elif [[ "$fmt" == ">" ]]; then
+        # FASTA → flatten sequences
+        zcat "$file" | awk '
+          /^>/ {if (seq) print seq; seq=""; next}
+          {seq=seq $0}
+          END {if (seq) print seq}
+        '
+      else
+        return 1
+      fi
+    }
+    # Parameters
+    MIN_LEN=64
+    SAMPLE_PERCENT=1
+    : "${gN:=4}"
+
+    # Step 1: Convert → single-line, trim homopolymers
+    for i in *.f*.gz; do
+      [[ "$i" == *_uniq.fasta.gz ]] && continue
+      (
+        fmt=$(seq_format "$i")
+        [[ "$fmt" == "@" || "$fmt" == ">" ]] || exit 0
+        echo "Processing $i ($fmt)"
+        to_singleline_seqs "$i" "$fmt" |
+        awk '{
           seq=$0
           gsub(/^(A{10,}|C{10,}|G{10,}|T{10,})/,"",seq)
           gsub(/(A{10,}|C{10,}|G{10,}|T{10,})$/,"",seq)
           print seq
-        }' | gzip > tmp_flat_"$i"
-      elif [[ "$fmt" == ">" ]]; then
-        # FASTA -> flatten, trim polyNs
-        zcat "$i" | awk '
-          /^>/ {if(seq) print seq; seq=""; next}
-          {seq=seq $0}
-          END {print seq}' | \
-        awk '{gsub(/^(A{10,}|C{10,}|G{10,}|T{10,})/,""); gsub(/(A{10,}|C{10,}|G{10,}|T{10,})$/,""); print}' | gzip > tmp_flat_"$i"
-      fi
-    ) &
-    while (( $(jobs -rp | wc -l) >= $gN )); do sleep 2; done
+        }' | gzip > "tmp_flat_$i"
+      ) &
+      while (( $(jobs -rp | wc -l) >= gN )); do sleep 1; done
     done
     wait
 
-    # Step 2: Determine length distribution and filter reads
-    for i in *.f*.gz; do (
+    # Step 2: Length distribution sampling
+    for i in *.f*.gz; do
       [[ "$i" == *_uniq.fasta.gz ]] && continue
-      total_reads=$(zcat tmp_flat_"$i" | wc -l)
-      sample_size=$(( total_reads * SAMPLE_PERCENT / 100 ))
-      (( sample_size < 1 )) && sample_size=1
-      zcat tmp_flat_"$i" | shuf -n "$sample_size" > "${i}_length_distribution.txt"
-    ) &
-    while (( $(jobs -rp | wc -l) >= $gN )); do sleep 2; done
+      (
+        tmp="tmp_flat_$i"
+        total_reads=$(zcat "$tmp" | wc -l)
+        (( total_reads > 0 )) || exit 0
+        sample_size=$(( total_reads * SAMPLE_PERCENT / 100 ))
+        (( sample_size < 1 )) && sample_size=1
+        zcat "$tmp" | shuf -n "$sample_size" > "${i}_length_distribution.txt"
+      ) &
+      while (( $(jobs -rp | wc -l) >= gN )); do sleep 1; done
     done
     wait
-    # Compute max read length (95th percentile)
-    awk '{print length($0)}' *_length_distribution.txt | awk -v minlen=$MIN_LEN '$1>=minlen' | sort -n > length_distribution.txt
+
+    # Step 3: Compute max read length (95th percentile)
+    awk '{print length($0)}' *_length_distribution.txt | awk -v minlen="$MIN_LEN" '$1 >= minlen' | sort -n > length_distribution.txt
     max_seqread_len=$(awk '{a[NR]=$1} END{print a[int(NR*0.95)]}' length_distribution.txt)
-    rm *_length_distribution.txt length_distribution.txt
-    printf "converted flatten fasta and trimm polymers\n" > ${projdir}/organize_files_done.txt
-    printf "cut-off for maximum read length to partially flush read ends: ${max_seqread_len}\n" >> ${projdir}/organize_files_done.txt
+    if [[ -z "${max_seqread_len:-}" ]]; then
+      echo "ERROR: no reads passed MIN_LEN=$MIN_LEN" >&2
+      exit 1
+    fi
+    rm -f *_length_distribution.txt length_distribution.txt
 
-    # Step 3 & 4: Filter reads < MIN_LEN, trim to max length, count duplicates, generate fasta with counts in header
-    for i in *.f*.gz; do (
+    # Step 4: Filter, trim, deduplicate → FASTA with counts
+    for i in *.f*.gz; do
       [[ "$i" == *_uniq.fasta.gz ]] && continue
-      echo "Filtering, trimming, and counting duplicates for $i"
-      zcat tmp_flat_"$i" | \
-      awk -v max="$max_seqread_len" -v minlen="$MIN_LEN" '
-        length($0) >= minlen {
-          seq = substr($0, 1, max)
-          count[seq]++
-        }
-        END {
-          n = 0
-          for (s in count) {
-            n++
-            printf(">seq%d_%d\n%s\n", n, count[s], s)
+      (
+        echo "Filtering, trimming, counting duplicates for $i"
+        zcat "tmp_flat_$i" |
+        awk -v max="$max_seqread_len" -v minlen="$MIN_LEN" '
+          length($0) >= minlen {
+            seq = substr($0, 1, max)
+            count[seq]++
           }
-        }' | gzip > "${i%.f*}_uniq.fasta.gz"
-    ) &
-    while (( $(jobs -rp | wc -l) >= $gN )); do sleep 2; done
+          END {
+            n = 0
+            for (s in count) {
+              n++
+              printf(">seq%d_%d\n%s\n", n, count[s], s)
+            }
+          }' | gzip > "${i%.f*}_uniq.fasta.gz"
+      ) &
+      while (( $(jobs -rp | wc -l) >= $gN )); do sleep 1; done
     done
     wait
-    printf "fasta compression and indexing" > ${projdir}/compress_done.txt
-    rm tmp_flat_*.gz
-    printf "Improvement in flushed reads already implemented\n" > flushed_reads.txt
-    shopt -u nullglob
-  fi
 
+    # Cleanup & bookkeeping
+    rm -f tmp_flat_*.gz
+    {
+      echo "Converted FASTA/FASTQ → single-line sequences"
+      echo "Trimmed homopolymers"
+      echo "MIN_LEN = $MIN_LEN"
+      echo "95th percentile max length = $max_seqread_len"
+    } > "${projdir}/organize_files_done.txt"
+    echo "Improvement in flushed reads already implemented" > flushed_reads.txt
+  fi
+  shopt -u nullglob
 }
 cd $projdir
 cd samples
