@@ -1986,7 +1986,10 @@ main () {
         wait
       done
       wait
-  		Rscript "${GBSapp_dir}"/scripts/R/VCF_2_DP_GT.R "${pop}" 1x "${GBSapp_dir}/tools/R" "1" "$filter_ExcHet" 2> /dev/null &&
+  		if ! Rscript "${GBSapp_dir}"/scripts/R/VCF_2_DP_GT.R "${pop}" 1x "${GBSapp_dir}/tools/R" "1" "$filter_ExcHet"; then
+        echo "Warning: Rscript failed for $pop — continuing pipeline"
+      fi
+      wait
       rm "${projdir}"/vcf1x_trimmed.txt 2> /dev/null &&
       wait
   	fi
@@ -2038,7 +2041,10 @@ main () {
         wait
       fi
       wait
-  		Rscript "${GBSapp_dir}"/scripts/R/VCF_2_DP_GT.R "${pop}" 2x "${GBSapp_dir}/tools/R" "1" "$filter_ExcHet" 2> /dev/null &&
+  		if ! Rscript "${GBSapp_dir}"/scripts/R/VCF_2_DP_GT.R "${pop}" 2x "${GBSapp_dir}/tools/R" "1" "$filter_ExcHet"; then
+        echo "Warning: Rscript failed for $pop — continuing pipeline"
+      fi
+      wait
       rm ${projdir}/vcf2x_trimmed.txt 2> /dev/null &&
       wait
   	fi
@@ -2090,7 +2096,10 @@ main () {
         wait
       fi
       wait
-  		Rscript "${GBSapp_dir}"/scripts/R/VCF_2_DP_GT.R "${pop}" 4x "${GBSapp_dir}/tools/R" "1" "$filter_ExcHet" 2> /dev/null &&
+  		if ! Rscript "${GBSapp_dir}"/scripts/R/VCF_2_DP_GT.R "${pop}" 4x "${GBSapp_dir}/tools/R" "1" "$filter_ExcHet"; then
+        echo "Warning: Rscript failed for $pop — continuing pipeline"
+      fi
+      wait
       rm ${projdir}/vcf4x_trimmed.txt 2> /dev/null &&
       wait
   	fi
@@ -2142,7 +2151,10 @@ main () {
         wait
       fi
       wait
-  		Rscript "${GBSapp_dir}"/scripts/R/VCF_2_DP_GT.R "${pop}" 6x "${GBSapp_dir}/tools/R" "1" "$filter_ExcHet" 2> /dev/null &&
+  		if ! Rscript "${GBSapp_dir}"/scripts/R/VCF_2_DP_GT.R "${pop}" 6x "${GBSapp_dir}/tools/R" "1" "$filter_ExcHet"; then
+        echo "Warning: Rscript failed for $pop — continuing pipeline"
+      fi
+      wait
       rm ${projdir}/vcf6x_trimmed.txt 2> /dev/null &&
       wait
   	fi
@@ -2194,7 +2206,10 @@ main () {
         wait
       fi
       wait
-  		Rscript "${GBSapp_dir}"/scripts/R/VCF_2_DP_GT.R "${pop}" 8x "${GBSapp_dir}/tools/R" "1" "$filter_ExcHet" 2> /dev/null &&
+  		if ! Rscript "${GBSapp_dir}"/scripts/R/VCF_2_DP_GT.R "${pop}" 8x "${GBSapp_dir}/tools/R" "1" "$filter_ExcHet"; then
+        echo "Warning: Rscript failed for $pop — continuing pipeline"
+      fi
+      wait
       rm ${projdir}/vcf8x_trimmed.txt 2> /dev/null &&
       wait
   	fi
@@ -2247,9 +2262,12 @@ main () {
       		cd ${projdir}/snpfilter &&
       		cp -r 1x 1x_diversity_gmiss"${gmiss}"_smiss"${smiss}" &&
       		cd ./1x_diversity_gmiss"${gmiss}"_smiss"${smiss}" &&
-      		Rscript "${GBSapp_dir}"/scripts/R/GBSapp_Filter_diversity_1x.R $pop $gmiss $smiss $minRD_1x $exclude_samples "${GBSapp_dir}/tools/R" $maf $haplome_number $biallelic $select_samples 2> /dev/null &&
+      		if ! Rscript "${GBSapp_dir}"/scripts/R/GBSapp_Filter_diversity_1x.R $pop $gmiss $smiss $minRD_1x $exclude_samples "${GBSapp_dir}/tools/R" $maf $haplome_number $biallelic $select_samples; then
+            echo "Warning: Rscript failed for $pop — continuing pipeline"
+          fi
+          wait
       		rm "${pop}"_1x_rawRD"${minRD_1x}"_DP_GT.txt "${pop}"_1x_DP_GT.txt "${pop}"_1x_rd"${minRD_1x}".txt &&
-      		mkdir visualizations && mv ./*.tiff ./visualizations/ 2> /dev/null &&
+      		mkdir -p visualizations && mv ./*.tiff ./visualizations/ 2> /dev/null &&
           wait
 
           if [[ "${variant_intervals:-}" == true ]]; then
@@ -2376,9 +2394,12 @@ main () {
       		cd ${projdir}/snpfilter &&
       		cp -r 2x 2x_diversity_gmiss"${gmiss}"_smiss"${smiss}" &&
       		cd ./2x_diversity_gmiss"${gmiss}"_smiss"${smiss}" &&
-      		Rscript "${GBSapp_dir}"/scripts/R/GBSapp_Filter_diversity_2x.R $pop $gmiss $smiss $minRD_2x $exclude_samples "${GBSapp_dir}/tools/R" $maf $haplome_number $biallelic $select_samples 2> /dev/null &&
+      		if ! Rscript "${GBSapp_dir}"/scripts/R/GBSapp_Filter_diversity_2x.R $pop $gmiss $smiss $minRD_2x $exclude_samples "${GBSapp_dir}/tools/R" $maf $haplome_number $biallelic $select_samples; then
+            echo "Warning: Rscript failed for $pop — continuing pipeline"
+          fi
+          wait
       		rm "${pop}"_2x_rawRD"${minRD_2x}"_DP_GT.txt "${pop}"_2x_DP_GT.txt "${pop}"_2x_rd"${minRD_2x}".txt &&
-      		mkdir visualizations && mv ./*.tiff ./visualizations/ 2> /dev/null &&
+      		mkdir -p visualizations && mv ./*.tiff ./visualizations/ 2> /dev/null &&
           wait
 
           if [[ "${variant_intervals:-}" == true ]]; then
@@ -2509,9 +2530,12 @@ main () {
       		cd ${projdir}/snpfilter &&
       		cp -r 4x 4x_diversity_gmiss"${gmiss}"_smiss"${smiss}" &&
       		cd ./4x_diversity_gmiss"${gmiss}"_smiss"${smiss}" &&
-      		Rscript "${GBSapp_dir}"/scripts/R/GBSapp_Filter_diversity_4x.R $pop $gmiss $smiss $minRD_4x $exclude_samples "${GBSapp_dir}/tools/R" $maf $haplome_number $biallelic $select_samples 2> /dev/null &&
+      		if ! Rscript "${GBSapp_dir}"/scripts/R/GBSapp_Filter_diversity_4x.R $pop $gmiss $smiss $minRD_4x $exclude_samples "${GBSapp_dir}/tools/R" $maf $haplome_number $biallelic $select_samples; then
+            echo "Warning: Rscript failed for $pop — continuing pipeline"
+          fi
+          wait
       		rm ${pop}_4x_rawRD${minRD_4x}_DP_GT.txt ${pop}_4x_DP_GT.txt ${pop}_4x_rd${minRD_4x}.txt 2> /dev/null &&
-      		mkdir visualizations && mv ./*.tiff ./visualizations/ 2> /dev/null &&
+      		mkdir -p visualizations && mv ./*.tiff ./visualizations/ 2> /dev/null &&
           wait
 
           if [[ "${variant_intervals:-}" == true ]]; then
@@ -2637,9 +2661,12 @@ main () {
       		cd ${projdir}/snpfilter &&
       		cp -r 6x 6x_diversity_gmiss"${gmiss}"_smiss"${smiss}" &&
       		cd ./6x_diversity_gmiss"${gmiss}"_smiss"${smiss}" &&
-      		Rscript "${GBSapp_dir}"/scripts/R/GBSapp_Filter_diversity_6x.R $pop $gmiss $smiss $minRD_6x $exclude_samples "${GBSapp_dir}/tools/R" $maf $haplome_number $biallelic $select_samples 2> /dev/null &&
+      		if ! Rscript "${GBSapp_dir}"/scripts/R/GBSapp_Filter_diversity_6x.R $pop $gmiss $smiss $minRD_6x $exclude_samples "${GBSapp_dir}/tools/R" $maf $haplome_number $biallelic $select_samples; then
+            echo "Warning: Rscript failed for $pop — continuing pipeline"
+          fi
+          wait
       		rm ${pop}_6x_rawRD${minRD_6x}_DP_GT.txt ${pop}_6x_DP_GT.txt ${pop}_6x_rd${minRD_6x}.txt 2> /dev/null &&
-      		mkdir visualizations && mv ./*.tiff ./visualizations/ 2> /dev/null &&
+      		mkdir -p visualizations && mv ./*.tiff ./visualizations/ 2> /dev/null &&
           wait
 
           if [[ "${variant_intervals:-}" == true ]]; then
@@ -2765,9 +2792,12 @@ main () {
       		cd ${projdir}/snpfilter &&
       		cp -r 8x 8x_diversity_gmiss"${gmiss}"_smiss"${smiss}" &&
       		cd ./8x_diversity_gmiss"${gmiss}"_smiss"${smiss}" &&
-      		Rscript "${GBSapp_dir}"/scripts/R/GBSapp_Filter_diversity_8x.R $pop $gmiss $smiss $minRD_8x $exclude_samples "${GBSapp_dir}/tools/R" $maf $haplome_number $biallelic $select_samples 2> /dev/null &&
+      		if ! Rscript "${GBSapp_dir}"/scripts/R/GBSapp_Filter_diversity_8x.R $pop $gmiss $smiss $minRD_8x $exclude_samples "${GBSapp_dir}/tools/R" $maf $haplome_number $biallelic $select_samples; then
+            echo "Warning: Rscript failed for $pop — continuing pipeline"
+          fi
+          wait
       		rm ${pop}_8x_rawRD${minRD_8x}_DP_GT.txt ${pop}_8x_DP_GT.txt ${pop}_8x_rd${minRD_8x}.txt 2> /dev/null &&
-      		mkdir visualizations && mv ./*.tiff ./visualizations/ 2> /dev/null &&
+      		mkdir -p visualizations && mv ./*.tiff ./visualizations/ 2> /dev/null &&
           wait
 
           if [[ "${variant_intervals:-}" == true ]]; then
@@ -2901,9 +2931,12 @@ main () {
       		cd ${projdir}/snpfilter &&
       		cp -r 2x 2x_biparental_gmiss"${gmiss}"_smiss"${smiss}" &&
       		cd ./2x_biparental_gmiss"${gmiss}"_smiss"${smiss}" &&
-      		Rscript "${GBSapp_dir}"/scripts/R/GBSapp_Filter_2x.R "$pop" "$p1" "$p2" "$gmiss" "$smiss" "$minRD_2x" "$exclude_samples" "${GBSapp_dir}/tools/R" "$pseg" "$haplome_number" $biallelic $select_samples 2> /dev/null &&
+      		if ! Rscript "${GBSapp_dir}"/scripts/R/GBSapp_Filter_2x.R "$pop" "$p1" "$p2" "$gmiss" "$smiss" "$minRD_2x" "$exclude_samples" "${GBSapp_dir}/tools/R" "$pseg" "$haplome_number" $biallelic $select_samples; then
+            echo "Warning: Rscript failed for $pop — continuing pipeline"
+          fi
+          wait
       		rm "${pop}"_2x_rawRD"${minRD_2x}"_DP_GT.txt "${pop}"_2x_DP_GT.txt "${pop}"_2x_rd"${minRD_2x}".txt 2> /dev/null &&
-      		mkdir visualizations && mv ./*.tiff ./visualizations/ 2> /dev/null &&
+      		mkdir -p visualizations && mv ./*.tiff ./visualizations/ 2> /dev/null &&
           wait
 
           if [[ "${variant_intervals:-}" == true ]]; then
@@ -3032,9 +3065,12 @@ main () {
       		cd ${projdir}/snpfilter &&
       		cp -r 4x 4x_biparental_gmiss"${gmiss}"_smiss"${smiss}" &&
       		cd ./4x_biparental_gmiss"${gmiss}"_smiss"${smiss}" &&
-      		Rscript "${GBSapp_dir}"/scripts/R/GBSapp_Filter_4x.R "$pop" "$p1" "$p2" "$gmiss" "$smiss" "$minRD_4x" "$exclude_samples" "${GBSapp_dir}/tools/R" "$pseg" "$haplome_number" $biallelic $select_samples 2> /dev/null &&
+      		if ! Rscript "${GBSapp_dir}"/scripts/R/GBSapp_Filter_4x.R "$pop" "$p1" "$p2" "$gmiss" "$smiss" "$minRD_4x" "$exclude_samples" "${GBSapp_dir}/tools/R" "$pseg" "$haplome_number" $biallelic $select_samples; then
+            echo "Warning: Rscript failed for $pop — continuing pipeline"
+          fi
+          wait
       		rm ${pop}_4x_rawRD${minRD_4x}_DP_GT.txt ${pop}_4x_DP_GT.txt ${pop}_4x_rd${minRD_4x}.txt 2> /dev/null &&
-      		mkdir visualizations && mv ./*.tiff ./visualizations/ 2> /dev/null &&
+      		mkdir -p visualizations && mv ./*.tiff ./visualizations/ 2> /dev/null &&
           wait
 
           if [[ "${variant_intervals:-}" == true ]]; then
@@ -3164,9 +3200,12 @@ main () {
       		cd ${projdir}/snpfilter &&
       		cp -r 6x 6x_biparental_gmiss"${gmiss}"_smiss"${smiss}" &&
       		cd ./6x_biparental_gmiss"${gmiss}"_smiss"${smiss}" &&
-      		Rscript "${GBSapp_dir}"/scripts/R/GBSapp_Filter_6x.R "$pop" "$p1" "$p2" "$gmiss" "$smiss" "$minRD_6x" "$exclude_samples" "${GBSapp_dir}/tools/R" "$pseg" "$haplome_number" $biallelic $select_samples 2> /dev/null &&
+      		if ! Rscript "${GBSapp_dir}"/scripts/R/GBSapp_Filter_6x.R "$pop" "$p1" "$p2" "$gmiss" "$smiss" "$minRD_6x" "$exclude_samples" "${GBSapp_dir}/tools/R" "$pseg" "$haplome_number" $biallelic $select_samples; then
+            echo "Warning: Rscript failed for $pop — continuing pipeline"
+          fi
+          wait
       		rm ${pop}_6x_rawRD${minRD_6x}_DP_GT.txt ${pop}_6x_DP_GT.txt ${pop}_6x_rd${minRD_6x}.txt 2> /dev/null &&
-      		mkdir visualizations && mv ./*.tiff ./visualizations/ 2> /dev/null &&
+      		mkdir -p visualizations && mv ./*.tiff ./visualizations/ 2> /dev/null &&
           wait
 
           if [[ "${variant_intervals:-}" == true ]]; then
@@ -3295,9 +3334,12 @@ main () {
       		cd ${projdir}/snpfilter &&
       		cp -r 8x 8x_biparental_gmiss"${gmiss}"_smiss"${smiss}" &&
       		cd ./8x_biparental_gmiss"${gmiss}"_smiss"${smiss}" &&
-      		Rscript "${GBSapp_dir}"/scripts/R/GBSapp_Filter_8x.R "$pop" "$p1" "$p2" "$gmiss" "$smiss" "$minRD_8x" "$exclude_samples" "${GBSapp_dir}/tools/R" "$pseg" "$haplome_number" $biallelic $select_samples 2> /dev/null &&
+      		if ! Rscript "${GBSapp_dir}"/scripts/R/GBSapp_Filter_8x.R "$pop" "$p1" "$p2" "$gmiss" "$smiss" "$minRD_8x" "$exclude_samples" "${GBSapp_dir}/tools/R" "$pseg" "$haplome_number" $biallelic $select_samples; then
+            echo "Warning: Rscript failed for $pop — continuing pipeline"
+          fi
+          wait
       		rm ${pop}_8x_rawRD${minRD_8x}_DP_GT.txt ${pop}_8x_DP_GT.txt ${pop}_8x_rd${minRD_8x}.txt 2> /dev/null &&
-      		mkdir visualizations && mv ./*.tiff ./visualizations/ 2> /dev/null &&
+      		mkdir -p visualizations && mv ./*.tiff ./visualizations/ 2> /dev/null &&
           wait
 
           if [[ "${variant_intervals:-}" == true ]]; then
@@ -3437,32 +3479,50 @@ main () {
   for snpfilter_dir in */; do
   	cd $snpfilter_dir &&
     mkdir -p visualizations &&
-    for tiff in ./*.tiff; do if [ -f "$tiff" ]; then mv ./*.tiff ./visualizations/; fi; done
-  	smmiss_thresh=${snpfilter_dir#*smiss} &&
+    mkdir -p visualizations
+    mv ./*.tiff ./visualizations/ 2>/dev/null || true
+    smmiss_thresh=${snpfilter_dir#*smiss} &&
   	smmiss_thresh=${smmiss_thresh%*/} &&
-  	smmiss_thresh=$(echo "$smmiss_thresh * 100" | bc) &&
-  	awk -v smisst=$smmiss_thresh '(NR>1) && ($2 <= smisst)' sample_missing_rate* > retained_samples.txt 2> /dev/null &&
-  	cd ../ &&
+  	smmiss_thresh=$(echo "$smmiss_thresh * 100" | bc 2>/dev/null) || smmiss_t
+    if compgen -G "sample_missing_rate*" > /dev/null; then
+        awk -v smisst=$smmiss_thresh '(NR>1) && ($2 <= smisst)' sample_missing_rate* > retained_samples.txt
+    else
+        echo "" > retained_samples.txt
+    fi
+  	cd ../
     wait
   done
   wait
-  wc -l *gmiss*/*dose.txt | awk '{print $2"\t"$1-1}' | grep -v "total" | awk '{sub(/\/.*$/,"",$1); print $1"\t"$2}' > gmiss_smiss_titration.txt &&
-  wc -l *gmiss*/eliminated* | awk '{print $2"\t"$1-1}' | grep -v "total" | awk '{sub(/\/.*$/,"",$1); print $1"\t"$2}' > eliminated_samples.txt &&
-  wc -l *gmiss*/retained_samples.txt | awk '{print $2"\t"$1}' | grep -v "total" | awk '{sub(/\/.*$/,"",$1); print $1"\t"$2}' > retained_samples.txt &&
+  shopt -s nullglob
+  files=(*gmiss*/*dose.txt)
+  if (( ${#files[@]} )); then
+      wc -l "${files[@]}" | awk '{print $2"\t"$1-1}' | grep -v "total" | awk '{sub(/\/.*$/,"",$1); print $1"\t"$2}' > gmiss_smiss_titration.txt
+  fi
+  files=(*gmiss*/eliminated*)
+  if (( ${#files[@]} )); then
+      wc -l "${files[@]}" | awk '{print $2"\t"$1-1}' | grep -v "total" | awk '{sub(/\/.*$/,"",$1); print $1"\t"$2}' > eliminated_samples.txt
+  fi
+  files=(*gmiss*/retained_samples.txt)
+  if (( ${#files[@]} )); then
+      wc -l "${files[@]}" | awk '{print $2"\t"$1}' | grep -v "total" | awk '{sub(/\/.*$/,"",$1); print $1"\t"$2}' > retained_samples.txt
+  fi
   echo -e "gmiss_smiss_thresholds\t#_of_retained_samples\t#_of_SNPs\t#_of_eliminated_samples\n----------------------\t-----------------------\t---------\t-----------------------" > summary_precall.txt &&
   awk 'FNR==NR{a[$1]=$2;next} ($1 in a) {print $1,"\t",a[$1],"\t",$2}' gmiss_smiss_titration.txt eliminated_samples.txt | \
   awk 'FNR==NR{a[$1]=$2;next} ($1 in a) {print $1,"\t",a[$1],"\t",$2,"\t",$3}' retained_samples.txt - | \
   cat summary_precall.txt - > gmiss_smiss.txt &&
   rm gmiss_smiss_titration.txt eliminated_samples.txt retained_samples.txt summary_precall.txt 2> /dev/null &&
   wait
-  for snpfilter_dir in */; do
-    if [[ -z "$(compgen -G "${snpfilter_dir}/*dose.txt")" ]]; then
-      rm -rf ${snpfilter_dir} &&
-      wait
-    fi
-  done
+  if [[ -z "$(compgen -G "${snpfilter_dir}/*dose.txt")" ]]; then
+    rm -rf ${snpfilter_dir}
+  fi
   wait
-  ls ./*/*maf*.txt 2> /dev/null | grep -v 'maf0.txt' | grep -v 'dose' | grep -v 'binary' | xargs rm 2> /dev/null &&
+  shopt -s nullglob
+  for f in ./*/*maf*.txt; do
+      [[ "$f" == *maf0.txt ]] && continue
+      [[ "$f" == *dose* ]] && continue
+      [[ "$f" == *binary* ]] && continue
+      rm -f "$f"
+  done
   ls ./*/*_plusSD.txt 2> /dev/null | xargs rm 2> /dev/null &&
   ls ./*/*SD_1_G*G*.txt 2> /dev/null | xargs rm 2> /dev/null &&
   wait
@@ -3490,7 +3550,10 @@ main () {
             if [[ -s darr2.txt ]]; then printf "999_999_999\n" > darr2.txt; fi
             wait
 
-      			Rscript "${GBSapp_dir}"/scripts/R/heterozygote_vs_allele_ratio.R "$i" "$ARfile" "${ploidydir}x" "1" "darr2.txt" "${GBSapp_dir}/tools/R" 2> /dev/null &&
+      			if ! Rscript "${GBSapp_dir}"/scripts/R/heterozygote_vs_allele_ratio.R "$i" "$ARfile" "${ploidydir}x" "1" "darr2.txt" "${GBSapp_dir}/tools/R"; then
+              echo "Warning: Rscript failed for $pop — continuing pipeline"
+            fi
+            wait
       			awk 'FNR==NR{a[$1,$2]=$0;next}{if(b=a[$2,$3]){print b}}' $ARfile $i | awk '{gsub(/NA/,"na"); print $1"_"$2"\t"$0}' | \
       			awk -v pat1="${n}_Chr" -v pat2="${n}_chr" '{gsub(pat1,"Chr");gsub(pat2,"Chr");gsub(/CHROM_POS/,"SNP");}1' > ${i%.txt}_AR_metric.txt &&
             wait
@@ -3541,25 +3604,6 @@ main () {
             sort -Vk1,1 -Vk2,2 | cat ${i%.txt}_header.vcf - > ${i%dose.txt}.vcf &&
             rm ${i%.txt}_header.vcf 2> /dev/null &&
             rm ${i%rd*}split.vcf.gz 2> /dev/null &&
-
-            # grep '^##' ${i%dose.txt}.vcf > ${i%.txt}_header.vcf &&
-            # grep -v '^##' ${i%dose.txt}.vcf | awk '{gsub(/#CHROM/,"CHROM");}1' > ${i%dose.txt}_tmp.vcf &&
-            # rm ${i%dose.txt}.vcf &&
-            # {
-            #   Rscript "${GBSapp_dir}"/scripts/R/recode_vcf.R "${i%dose.txt}_tmp.vcf" "$i" "${i%.txt}_AR_metric.txt" "${ploidy}x" "darr.txt" "$filter_ExcHet" "${GBSapp_dir}/tools/R"
-            # } & PID_AR=$!
-            # wait $PID_AR
-            # cat <(grep '^##' ${i%.txt}_header.vcf) <(awk '{gsub(/CHROM/,"#CHROM");}1' dose_temp.vcf) | \
-            # awk '{gsub(/0,0:.:.:./,"0,0:.:."); gsub(/0,0,0,0:.:.:./,"0,0:.:."); gsub(/0,0,0,0,0,0:.:.:./,"0,0:.:."); gsub(/0,0,0,0,0,0,0,0:.:.:./,"0,0:.:."); }1' 2> /dev/null > ${i%dose.txt}.vcf &&
-            # mv AR_temp.txt ${i%.txt}_AR_metric.txt &&
-            # rm ${i%.txt}_header.vcf 2> /dev/null &&
-            # rm ${i%dose.txt}_tmp.vcf dose_temp.vcf 2> /dev/null &&
-            # wait
-            #
-      			# grep -v 'CHROM' ${i%.txt}_AR_metric.txt | awk -F'\t' '{$1=$2=$3=$4=$5=""}1' | awk -F'\t' '{gsub(/na/,"0");}1' | \
-      			# awk '{gsub(/\t/," ");}1' | awk '{gsub(/-/,"");}1' | awk '{gsub(/ /,",");}1' | awk '{gsub(/0,/,",");}1' | awk '{gsub(/,0$/,",");}1' | \
-      			# awk -F',' -v OFS=',' -v OFMT='%0.3g' '{s=0; numFields=0; for(i=2; i<=NF;i++){if(length($i)){s+=$i; numFields++}} print (numFields ? s/numFields : 0)}' | \
-      			# cat <(printf "Allele_ratio_mean\n") - | paste <(awk '{print $1"\t"$2"\t"$3}' ${i%.txt}_AR_metric.txt) - > ${i%.txt}_AR_mean.txt &&
             gzip "${i%dose.txt}".vcf 2> /dev/null &&
             if ls *_.vcf.gz 1> /dev/null 2>&1; then mv ${i%dose.txt}.vcf.gz ${i%_dose.txt}.vcf.gz; fi
             wait
@@ -3574,7 +3618,10 @@ main () {
           wait
 
     			if [[ "$ploidy" -le 2 ]]; then
-            Rscript "${GBSapp_dir}"/scripts/R/hapmap_format.R "$i" "${GBSapp_dir}/tools/R" 2> /dev/null &&
+            if ! Rscript "${GBSapp_dir}"/scripts/R/hapmap_format.R "$i" "${GBSapp_dir}/tools/R"; then
+              echo "Warning: Rscript failed for $pop — continuing pipeline"
+            fi
+            wait
             mv outfile.hmp.txt "${i%dose.txt}.hmp.txt" 2> /dev/null &&
             wait
           fi
@@ -3587,74 +3634,6 @@ main () {
     		done
     		wait
 
-        # for i in ./*/*vcf.gz; do zcat $i | awk 'BEGIN {OFS = FS} {sub(/,.*/,"",$5); print}' | gzip > ${i%.vcf.gz}_1alt_allele.vcf.gz; done
-    		# cd unique_mapped
-    		# for i in $(ls *dose_unique_mapped.txt 2> /dev/null); do
-    		# 	ARselect=${i%rd*}
-    		# 	ARfile=$(ls ../../../snpcall/${ARselect}*AR.txt 2> /dev/null)
-    		# 	Rscript "${GBSapp_dir}"/scripts/R/heterozygote_vs_allele_ratio_uniqfiltered.R "$i" "$ARfile" "${ploidy}x" "1" "${GBSapp_dir}/tools/R"
-    		# 	awk 'FNR==NR{a[$1,$2]=$0;next}{if(b=a[$2,$3]){print b}}' $ARfile $i | awk '{gsub(/NA/,"na"); print $1"_"$2"\t"$0}' | \
-    		# 	awk -v n="$n" '{gsub(n,""); gsub(/CHROM_POS/,"SNP");}1' > ${i%.txt}_AR_metric.txt
-        #
-    		# 	vcfdose=${i%_rd*}; vcfdose=${vcfdose#*_}
-    		# 	zcat ../../../snpcall/*${vcfdose}.vcf.gz | grep '^#' > ${i%.txt}.vcf
-    		# 	awk 'FNR==NR{a[$1,$2]=$0;next}{if(b=a[$2,$3]){print b}}' <(zcat ../../../snpcall/*${vcfdose}.vcf.gz) $i >> ${i%.txt}.vcf
-    		# 	arr=$(grep "CHROM" $i | awk '{$1=$2=$3=$4=$5=""}1' | tr -s ' ' | awk '{gsub(/ pvalue/,"");}1' | awk '{gsub(/\t/,",");gsub(/ /,",");gsub(/^,/,"");}1')
-    		# 	$bcftools view -s "$arr2" ${i%.txt}.vcf > tmp.vcf && mv tmp.vcf ${i%.txt}.vcf
-        #
-    		# 	grep -v '^##' ${i%.txt}.vcf | awk '{gsub(/#CHROM/,"CHROM");}1' > ${i%.txt}_tmp.vcf
-    		# 	Rscript "${GBSapp_dir}"/scripts/R/recode_vcf.R "${i%.txt}_tmp.vcf" "$i" "${i%.txt}_AR_metric.txt" "${ploidy}x" "${GBSapp_dir}/tools/R"
-    		# 	grep '^##' ${i%.txt}.vcf | cat - <(awk '{gsub(/CHROM/,"#CHROM");}1' dose_temp.vcf) > ${i%.txt}.vcf
-    		# 	mv AR_temp.txt ${i%.txt}_AR_metric.txt
-    		# 	rm ${i%.txt}_tmp.vcf dose_temp.vcf
-    		# 	gzip ${i%.txt}.vcf
-        #
-    		# 	grep -v 'CHROM' ${i%.txt}_AR_metric.txt | awk -F'\t' '{$1=$2=$3=$4=$5=""}1' | awk -F'\t' '{gsub(/na/,"0");}1' | \
-    		# 	awk '{gsub(/\t/," ");}1' | awk '{gsub(/-/,"");}1' | awk '{gsub(/ /,",");}1' | awk '{gsub(/0,/,",");}1' | awk '{gsub(/,0$/,",");}1' | \
-    		# 	awk -F',' -v OFS=',' -v OFMT='%0.3g' '{s=0; numFields=0; for(i=2; i<=NF;i++){if(length($i)){s+=$i; numFields++}} print (numFields ? s/numFields : 0)}' | \
-    		# 	cat <(printf "Allele_ratio_mean\n") - | paste <(awk '{print $1"\t"$2"\t"$3}' ${i%.txt}_AR_metric.txt) - > ${i%.txt}_AR_mean.txt
-        #
-    		# 	Rscript "${GBSapp_dir}"/scripts/R/hapmap_format.R "$i" "${GBSapp_dir}/tools/R"
-        #   mv outfile.hmp.txt "${i%.txt}.hmp.txt"
-        #   wait
-    		# done
-    		# wait
-        #
-    		# for i in $(ls *dose_multi_mapped.txt 2> /dev/null); do
-    		# 	ARselect=${i%rd*}
-    		# 	ARfile=$(ls ../../../snpcall/${ARselect}*AR.txt 2> /dev/null)
-    		# 	Rscript "${GBSapp_dir}"/scripts/R/heterozygote_vs_allele_ratio_multifiltered.R "$i" "$ARfile" "${ploidy}x" "1" "${GBSapp_dir}/tools/R"
-    		# 	awk 'FNR==NR{a[$1,$2]=$0;next}{if(b=a[$2,$3]){print b}}' $ARfile $i | awk '{gsub(/NA/,"na"); print $1"_"$2"\t"$0}' | \
-    		# 	awk -v n="$n" '{gsub(n,""); gsub(/CHROM_POS/,"SNP");}1' > ${i%.txt}_AR_metric.txt
-        #
-    		# 	vcfdose=${i%_rd*}; vcfdose=${vcfdose#*_}
-    		# 	zcat ../../../snpcall/*${vcfdose}.vcf.gz | grep '^#' > ${i%.txt}.vcf
-    		# 	awk 'FNR==NR{a[$1,$2]=$0;next}{if(b=a[$2,$3]){print b}}' <(zcat ../../../snpcall/*${vcfdose}.vcf.gz) $i >> ${i%.txt}.vcf
-    		# 	arr=$(grep "CHROM" $i | awk '{$1=$2=$3=$4=$5=""}1' | tr -s ' ' | awk '{gsub(/ pvalue/,"");}1' | awk '{gsub(/\t/,",");gsub(/ /,",");gsub(/^,/,"");}1')
-    		# 	$bcftools view -s "$arr2" ${i%.txt}.vcf > tmp.vcf && mv tmp.vcf ${i%.txt}.vcf
-        #
-    		# 	grep -v '^##' ${i%.txt}.vcf | awk '{gsub(/#CHROM/,"CHROM");}1' > ${i%.txt}_tmp.vcf
-    		# 	Rscript "${GBSapp_dir}"/scripts/R/recode_vcf.R "${i%.txt}_tmp.vcf" "$i" "${i%.txt}_AR_metric.txt" "${ploidy}x" "${GBSapp_dir}/tools/R"
-    		# 	grep '^##' ${i%.txt}.vcf | cat - <(awk '{gsub(/CHROM/,"#CHROM");}1' dose_temp.vcf) > ${i%.txt}.vcf
-    		# 	mv AR_temp.txt ${i%.txt}_AR_metric.txt
-    		# 	rm ${i%.txt}_tmp.vcf dose_temp.vcf
-    		# 	gzip ${i%.txt}.vcf
-        #
-    		# 	grep -v 'CHROM' ${i%.txt}_AR_metric.txt | awk -F'\t' '{$1=$2=$3=$4=$5=""}1' | awk -F'\t' '{gsub(/na/,"0");}1' | \
-    		# 	awk '{gsub(/\t/," ");}1' | awk '{gsub(/-/,"");}1' | awk '{gsub(/ /,",");}1' | awk '{gsub(/0,/,",");}1' | awk '{gsub(/,0$/,",");}1' | \
-    		# 	awk -F',' -v OFS=',' -v OFMT='%0.3g' '{s=0; numFields=0; for(i=2; i<=NF;i++){if(length($i)){s+=$i; numFields++}} print (numFields ? s/numFields : 0)}' | \
-    		# 	cat <(printf "Allele_ratio_mean\n") - | paste <(awk '{print $1"\t"$2"\t"$3}' ${i%.txt}_AR_metric.txt) - > ${i%.txt}_AR_mean.txt
-        #
-        #   Rscript "${GBSapp_dir}"/scripts/R/hapmap_format.R "$i" "${GBSapp_dir}/tools/R"
-        #   mv outfile.hmp.txt "${i%.txt}.hmp.txt"
-        #   wait
-    		# done
-    		# wait
-        #
-    		# for i in $(ls *dose* 2> /dev/null); do
-    		# 	awk -v n="$n" '{gsub(n,""); print $0}' $i > ${i%.txt}_hold.txt
-    		# 	mv ${i%.txt}_hold.txt $i
-    		# done
 
     		rm *tmp.vcf *header.vcf darr.txt darr2.txt 2> /dev/null &&
         wait
