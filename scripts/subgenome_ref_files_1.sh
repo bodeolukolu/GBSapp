@@ -581,7 +581,8 @@ if [[ "$alignments" == 1 ]] && [[ "$snp_calling" == 1 ]]; then
   fi
 fi
 
-set -euo pipefail
+set -Eeuo pipefail
+trap 'echo "FAILED at line $LINENO"' ERR
 echo -e "${blue}\n############################################################################## ${yellow}\n- Organizing sample fastq files \n${blue}##############################################################################${white}\n"
 main () {
 	cd $projdir
@@ -2303,7 +2304,13 @@ main () {
           fi
 
           # Extract sequence context of variants
-          mv ${projdir}/preprocess/processed/*_precall.bam ${projdir}/preprocess/ 2> /dev/null
+          shopt -s nullglob
+          bam_files=( "${projdir}/preprocess/processed/"*_precall.bam )
+          if (( ${#bam_files[@]} )); then
+            mv "${bam_files[@]}" "${projdir}/preprocess/"
+          fi
+          shopt -u nullglob
+
           if [[ "$lib_type" =~ "RRS" ]] || [[ "$lib_type" =~ "rrs" ]]; then
             if [[ -n "${RE1:-}" ]] || [[ -n "${RE2:-}" ]]; then
               awk '{print $1"\t"$2"\t"$3}' ${pop}_1x_rd${minRD_1x}_maf${maf}_dose.txt > snplist.txt &&
@@ -2431,7 +2438,13 @@ main () {
           fi
 
           # Extract sequence context of variants
-          mv ${projdir}/preprocess/processed/*_precall.bam ${projdir}/preprocess/ 2> /dev/null
+          shopt -s nullglob
+          bam_files=( "${projdir}/preprocess/processed/"*_precall.bam )
+          if (( ${#bam_files[@]} )); then
+            mv "${bam_files[@]}" "${projdir}/preprocess/"
+          fi
+          shopt -u nullglob
+
           if [[ "$lib_type" =~ "RRS" ]] || [[ "$lib_type" =~ "rrs" ]]; then
             if [[ -n "${RE1:-}" ]] || [[ -n "${RE2:-}" ]]; then
               awk '{print $1"\t"$2"\t"$3}' ${pop}_2x_rd${minRD_2x}_maf${maf}_dose.txt > snplist.txt &&
@@ -2565,7 +2578,13 @@ main () {
           fi
 
           # Extract sequence context of variants
-          mv ${projdir}/preprocess/processed/*_precall.bam ${projdir}/preprocess/ 2> /dev/null
+          shopt -s nullglob
+          bam_files=( "${projdir}/preprocess/processed/"*_precall.bam )
+          if (( ${#bam_files[@]} )); then
+            mv "${bam_files[@]}" "${projdir}/preprocess/"
+          fi
+          shopt -u nullglob
+
           if [[ "$lib_type" =~ "RRS" ]] || [[ "$lib_type" =~ "rrs" ]]; then
             if [[ -n "${RE1:-}" ]] || [[ -n "${RE2:-}" ]]; then
               awk '{print $1"\t"$2"\t"$3}' ${pop}_4x_rd${minRD_4x}_maf${maf}_dose.txt > snplist.txt &&
@@ -2692,7 +2711,13 @@ main () {
           fi
 
           # Extract sequence context of variants
-          mv ${projdir}/preprocess/processed/*_precall.bam ${projdir}/preprocess/ 2> /dev/null
+          shopt -s nullglob
+          bam_files=( "${projdir}/preprocess/processed/"*_precall.bam )
+          if (( ${#bam_files[@]} )); then
+            mv "${bam_files[@]}" "${projdir}/preprocess/"
+          fi
+          shopt -u nullglob
+
           if [[ "$lib_type" =~ "RRS" ]] || [[ "$lib_type" =~ "rrs" ]]; then
             if [[ -n "${RE1:-}" ]] || [[ -n "${RE2:-}" ]]; then
               awk '{print $1"\t"$2"\t"$3}' ${pop}_6x_rd${minRD_6x}_maf${maf}_dose.txt > snplist.txt &&
@@ -2822,7 +2847,13 @@ main () {
           fi
 
           # Extract sequence context of variants
-          mv ${projdir}/preprocess/processed/*_precall.bam ${projdir}/preprocess/ 2> /dev/null
+          shopt -s nullglob
+          bam_files=( "${projdir}/preprocess/processed/"*_precall.bam )
+          if (( ${#bam_files[@]} )); then
+            mv "${bam_files[@]}" "${projdir}/preprocess/"
+          fi
+          shopt -u nullglob
+
           if [[ "$lib_type" =~ "RRS" ]] || [[ "$lib_type" =~ "rrs" ]]; then
             if [[ -n "${RE1:-}" ]] || [[ -n "${RE2:-}" ]]; then
               awk '{print $1"\t"$2"\t"$3}' ${pop}_8x_rd${minRD_8x}_maf${maf}_dose.txt > snplist.txt &&
@@ -2957,7 +2988,13 @@ main () {
           fi
 
           # Extract sequence context of variants
-          mv ${projdir}/preprocess/processed/*_precall.bam ${projdir}/preprocess/ 2> /dev/null
+          shopt -s nullglob
+          bam_files=( "${projdir}/preprocess/processed/"*_precall.bam )
+          if (( ${#bam_files[@]} )); then
+            mv "${bam_files[@]}" "${projdir}/preprocess/"
+          fi
+          shopt -u nullglob
+
           if [[ "$lib_type" =~ "RRS" ]] || [[ "$lib_type" =~ "rrs" ]]; then
             if [[ -n "${RE1:-}" ]] || [[ -n "${RE2:-}" ]]; then
               awk '{print $1"\t"$2"\t"$3}' ${pop}_2x_rd${minRD_2x}_noSDdose.txt > snplist.txt &&
@@ -3087,7 +3124,13 @@ main () {
           fi
 
           # Extract sequence context of variants
-          mv ${projdir}/preprocess/processed/*_precall.bam ${projdir}/preprocess/ 2> /dev/null
+          shopt -s nullglob
+          bam_files=( "${projdir}/preprocess/processed/"*_precall.bam )
+          if (( ${#bam_files[@]} )); then
+            mv "${bam_files[@]}" "${projdir}/preprocess/"
+          fi
+          shopt -u nullglob
+
           if [[ "$lib_type" =~ "RRS" ]] || [[ "$lib_type" =~ "rrs" ]]; then
             if [[ -n "${RE1:-}" ]] || [[ -n "${RE2:-}" ]]; then
               awk '{print $1"\t"$2"\t"$3}' ${pop}_4x_rd${minRD_4x}_noSDdose.txt > snplist.txt &&
@@ -3218,7 +3261,13 @@ main () {
           fi
 
           # Extract sequence context of variants
-          mv ${projdir}/preprocess/processed/*_precall.bam ${projdir}/preprocess/ 2> /dev/null
+          shopt -s nullglob
+          bam_files=( "${projdir}/preprocess/processed/"*_precall.bam )
+          if (( ${#bam_files[@]} )); then
+            mv "${bam_files[@]}" "${projdir}/preprocess/"
+          fi
+          shopt -u nullglob
+
           if [[ "$lib_type" =~ "RRS" ]] || [[ "$lib_type" =~ "rrs" ]]; then
             if [[ -n "${RE1:-}" ]] || [[ -n "${RE2:-}" ]]; then
               awk '{print $1"\t"$2"\t"$3}' ${pop}_6x_rd${minRD_6x}_noSDdose.txt > snplist.txt &&
@@ -3350,7 +3399,13 @@ main () {
           fi
 
           # Extract sequence context of variants
-          mv ${projdir}/preprocess/processed/*_precall.bam ${projdir}/preprocess/ 2> /dev/null
+          shopt -s nullglob
+          bam_files=( "${projdir}/preprocess/processed/"*_precall.bam )
+          if (( ${#bam_files[@]} )); then
+            mv "${bam_files[@]}" "${projdir}/preprocess/"
+          fi
+          shopt -u nullglob
+
           if [[ "$lib_type" =~ "RRS" ]] || [[ "$lib_type" =~ "rrs" ]]; then
             if [[ -n "${RE1:-}" ]] || [[ -n "${RE2:-}" ]]; then
               awk '{print $1"\t"$2"\t"$3}' ${pop}_8x_rd${minRD_8x}_noSDdose.txt > snplist.txt &&
