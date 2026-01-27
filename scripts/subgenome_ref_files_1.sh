@@ -2220,6 +2220,7 @@ main () {
   if [ -z "$(ls -A *x.vcf* 2> /dev/null)" ]; then
   	for v in *_DP_GT.txt; do
   		vcfdose=${v%_DP*}; vcfdose=${vcfdose#*_}; out=$(ls *${vcfdose}_raw.vcf)
+      export vcfdose
   		for raw in $out; do
   			grep '^#' $raw  > ${raw%_raw.vcf}.vcf &&
   			awk 'FNR==NR{a[$1,$2]=$0;next}{if(b=a[$1,$2]){print b}}' $raw <(awk '{print $1"\t"$2}' $v | awk '!seen[$0] {print} {++seen[$0]}') >> ${raw%_raw.vcf}.vcf &&
