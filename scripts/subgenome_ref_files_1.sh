@@ -3605,14 +3605,17 @@ main () {
               else
                   for split in "${split_files[@]}"; do
                       refg=${split%_*}; refg=${refg##*/}; refg=${refg#*_}; refg=${refg%%_*}.fasta
+                      ungzipped="${split%.gz}"
+                      gunzip -c "$split" > "$ungzipped"
                       $GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" \
-                          IndexFeatureFile -I "$split" --verbosity ERROR
+                          IndexFeatureFile -I "$ungzipped" --verbosity ERROR
                       $GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" \
-                          LeftAlignAndTrimVariants -R "${projdir}/refgenomes/$refg" -V "$split" -O "${split%.vcf}_split.vcf" \
+                          LeftAlignAndTrimVariants -R "${projdir}/refgenomes/$refg" -V "$ungzipped" -O "${split%.vcf}_split.vcf" \
                           --split-multi-allelics --dont-trim-alleles --keep-original-ac --verbosity ERROR
                       $bcftools view -I "${split%.vcf}_split.vcf" -O z -o "${split%.vcf}_split.vcf.gz"
                       $bcftools index "${split%.vcf}_split.vcf.gz"
                       rm -f "${split%.vcf}_split.vcf"
+                      [[ "$split" != "$ungzipped" ]] && rm -f "$ungzipped"
                   done
               fi
             fi
