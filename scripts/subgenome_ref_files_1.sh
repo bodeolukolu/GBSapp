@@ -3602,24 +3602,31 @@ main () {
               if (( ${#split_files[@]} == 0 )); then
                   echo "WARNING: No VCFs to process for dose ${vcfdose}" >&2
               else
-                  for split in "${split_files[@]}"; do
-                      # Extract reference genome name
-                      refg="${split##*/}"          # filename only
-                      refg="${refg#*_}"            # remove prefix up to first underscore
-                      refg="${refg%%_*}.fasta"     # remove suffix after next underscore, append .fasta
-                      ungzipped="${split%.gz}"
-                      gunzip -c "$split" > "$ungzipped"
-                      $GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" \
-                          IndexFeatureFile -I "$ungzipped" --verbosity ERROR
-                      # Left-align and trim variants
-                      $GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" \
-                          LeftAlignAndTrimVariants -R "${projdir}/refgenomes/$refg" -V "$ungzipped" -O "${split%.vcf}_split.vcf" \
-                          --split-multi-allelics --dont-trim-alleles --keep-original-ac --verbosity ERROR
-                      $bcftools view -I "${split%.vcf}_split.vcf" -O z -o "${split%.vcf}_split.vcf.gz"
-                      $bcftools index "${split%.vcf}_split.vcf.gz"
-                      rm -f "${split%.vcf}_split.vcf"
-                      [[ "$split" != "$ungzipped" ]] && rm -f "$ungzipped"
-                  done
+                for split in "${split_files[@]}"; do
+                    refg="${split##*/}"
+                    refg="${refg#*_}"
+                    refg="${refg%%_*}.fasta"
+                    base="${split%.vcf}"
+                    base="${base%.vcf.gz}"
+                    split_out="${base}_split.vcf"
+                    # Determine input VCF (ungzip if needed)
+                    if [[ "$split" == *.gz ]]; then
+                        ungzipped="${base}.vcf"
+                        gunzip -c "$split" > "$ungzipped"
+                        input_vcf="$ungzipped"
+                    else
+                        input_vcf="$split"
+                    fi
+                    $GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" \
+                        IndexFeatureFile -I "$input_vcf" --verbosity ERROR
+                    $GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" \
+                        LeftAlignAndTrimVariants -R "${projdir}/refgenomes/$refg" -V "$input_vcf" -O "$split_out" \
+                        --split-multi-allelics --dont-trim-alleles --keep-original-ac --verbosity ERROR
+                    bgzip -c "$split_out" > "${split_out%.vcf}.vcf.gz"
+                    $bcftools index "${split_out%.vcf}.vcf.gz"
+                    rm -f "$split_out"
+                    [[ -n "$ungzipped" && "$ungzipped" != "$split" ]] && rm -f "$ungzipped"
+                done
               fi
               :> "$projdir/split_done.txt"
             fi
@@ -3670,9 +3677,8 @@ main () {
                     echo "ERROR: Header extraction failed for $merged_vcf" >&2
                     exit 1
                 }
-                awk 'NR>1{keep[$2,$3]=1} END{for(k in keep) print k}' "$dose" | \
-                awk 'BEGIN{FS=OFS="\t"} FNR==NR{keep[$1,$2]; next} !/^#/ && ($1,$2) in keep' - <(zcat "$merged_vcf" | \
-                awk -v pat1="${n}_Chr" -v pat2="${n}_chr" '!/^#/ {gsub(pat1,"Chr"); gsub(pat2,"Chr"); gsub(/^chr/,"Chr"); print}') | \
+                awk 'NR>1 {gsub(/\r/,"",$2); gsub(/\r/,"",$3); keep[$2,$3]=1}' "$dose" | \
+                awk 'BEGIN{FS=OFS="\t"} FNR==NR{keep[$1,$2]; next} !/^#/ && ($1,$2) in keep' - <(zcat "$merged_vcf") | \
                 sort -Vk1,1 -Vk2,2 | cat "$header_vcf" - > "${prefix}.vcf"
                 [[ -s "${prefix}.vcf" ]] || {
                     echo "ERROR: VCF construction failed for $dose" >&2
