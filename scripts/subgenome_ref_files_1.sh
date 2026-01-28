@@ -3603,24 +3603,31 @@ main () {
                   echo "WARNING: No VCFs to process for dose ${vcfdose}" >&2
               else
                 for split in "${split_files[@]}"; do
-                    [[ "$split" =~ \.vcf(\.gz)?$ ]] || continue
-                    if ! bcftools view -H "$split" | head -n 1 >/dev/null 2>&1; then
-                        echo "Skipping empty or non-VCF: $split" >&2
-                        continue
-                    fi
+                    unset ungzipped
                     refg="${split##*/}"
                     refg="${refg#*_}"
                     refg="${refg%%_*}.fasta"
                     base="${split%.vcf}"
                     base="${base%.vcf.gz}"
                     split_out="${base}_split.vcf"
-                    input_vcf="$split"
+                    if [[ "$split" == *.gz ]]; then
+                        ungzipped="${base}.vcf"
+                        gunzip -c "$split" > "$ungzipped"
+                        input_vcf="$ungzipped"
+                    else
+                        input_vcf="$split"
+                    fi
+                    bcftools view -h "$input_vcf" >/dev/null 2>&1 || {
+                        echo "Skipping non-VCF: $input_vcf" >&2
+                        continue
+                    }
                     $GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" \
                         LeftAlignAndTrimVariants -R "${projdir}/refgenomes/$refg" -V "$input_vcf" -O "$split_out" \
                         --split-multi-allelics --dont-trim-alleles --keep-original-ac --verbosity ERROR
                     bcftools view -Oz -o "${split_out}.gz" "$split_out"
                     bcftools index "${split_out}.gz"
                     rm -f "$split_out"
+                    [[ -n "$ungzipped" ]] && rm -f "$ungzipped"
                 done
               fi
               :> "$projdir/split_done.txt"
