@@ -3679,8 +3679,7 @@ main () {
                     echo "ERROR: Header extraction failed for $merged_vcf" >&2
                     exit 1
                 }
-                awk 'NR>1 {gsub(/\r/,"",$2); gsub(/\r/,"",$3); keep[$2,$3]=1}' "$dose" | \
-                awk 'BEGIN{FS=OFS="\t"} FNR==NR{keep[$1,$2]; next} !/^#/ && ($1,$2) in keep' - <(zcat "$merged_vcf") | \
+                awk 'BEGIN{FS=OFS="\t"} NR==FNR&&FNR>1{gsub(/\r/,"",$2);gsub(/\r/,"",$3);keep[$2,$3]=1;next} !/^#/&&($1,$2) in keep{print}' "$dose" <(zcat "$merged_vcf") | \
                 sort -Vk1,1 -Vk2,2 | cat "$header_vcf" - > "${prefix}.vcf"
                 [[ -s "${prefix}.vcf" ]] || {
                     echo "ERROR: VCF construction failed for $dose" >&2
