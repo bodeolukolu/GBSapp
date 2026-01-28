@@ -3650,7 +3650,7 @@ main () {
             }
             for dose in "${dose_files[@]}"; do
                 echo "Processing $dose" >&2
-                prefix="${dose%dose.txt}"
+                prefix="${dose%_dose.txt}"
                 # Normalize chromosome names in dose file
                 awk -v pat1="${n}_Chr" -v pat2="${n}_chr" '
                     { gsub(pat1,"Chr"); gsub(pat2,"Chr"); print }
@@ -3670,20 +3670,30 @@ main () {
                     echo "ERROR: Header extraction failed for $merged_vcf" >&2
                     exit 1
                 }
-                awk 'FNR==NR { seen[$0]++; next } !seen[$0] { print }' "$dose" "$dose" | awk 'FNR==NR { a[$1,$2]=$0; next }
-                       ($2,$3) in a { print a[$2,$3] }' <(zcat "$merged_vcf" | \
-                       awk -v pat1="${n}_Chr" -v pat2="${n}_chr" '
+                awk '!seen[$0]++ { print }' "$dose" |
+                awk 'FNR==NR { keep[$1,$2]=1; next }
+                     ($2,$3) in keep { print }' \
+                    - \
+                    <(
+                        zcat "$merged_vcf" |
+                        awk -v pat1="${n}_Chr" -v pat2="${n}_chr" '
                             !/^#/ {
                                 gsub(pat1,"Chr");
                                 gsub(pat2,"Chr");
                                 gsub(/chr/,"Chr");
                                 print
-                            }' ) - | sort -Vk1,1 -Vk2,2 | cat "$header_vcf" - > "${prefix}.vcf"
+                            }
+                        '
+                    ) | sort -Vk1,1 -Vk2,2 | cat "$header_vcf" - > "${prefix}.vcf"
                 [[ -s "${prefix}.vcf" ]] || {
                     echo "ERROR: VCF construction failed for $dose" >&2
                     exit 1
                 }
                 gzip -f "${prefix}.vcf"
+                if ! zcat "${prefix}.vcf.gz" | grep -qv '^#'; then
+                    echo "ERROR: VCF contains no variants for $dose" >&2
+                    exit 1
+                fi
 
                 # Optional hapmap conversion
                 if (( ploidy <= 2 )); then
