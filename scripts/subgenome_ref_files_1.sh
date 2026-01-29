@@ -3578,26 +3578,39 @@ main () {
           exit 1
       }
       filtered_vcf="${vcfs[0]}"
-      if [[ "$filtered_vcf" != *.gz ]]; then
-          $bcftools view -Oz -o "${filtered_vcf}.gz" "$filtered_vcf"
-          filtered_vcf="${filtered_vcf}.gz"
+      if [[ "$filtered_vcf" == *.gz ]]; then
+          gunzip -f "$filtered_vcf"
+          filtered_vcf="${filtered_vcf%.gz}"
       fi
+      $bcftools view -Oz -o "${filtered_vcf}.gz" "$filtered_vcf"
+      filtered_vcf="${filtered_vcf}.gz"
       $bcftools index -f "$filtered_vcf"
 
-      # Strip ${n}_ prefix from contigs PROPERLY
+      # ---- Build chromosome rename map (strip ${n}_ prefix) ----
       chrmap="chr_rename_${ploidydir}x.map"
       $bcftools view -h "$filtered_vcf" \
-        | awk -v n="$n" '
-          /^##contig=<ID=/ {
-            match($0, /ID=([^,>]+)/, a)
-            old=a[1]; new=old
-            sub("^" n "_", "", new)
-            if (old != new) print old "\t" new
-          }' > "$chrmap"
-      [[ -s "$chrmap" ]] || {
-          echo "ERROR: chromosome rename map empty" >&2
-          exit 1
-      }
+      | awk -v n="$n" '
+        /^##contig=<ID=/ {
+          id=$0
+          sub(/^##contig=<ID=/,"",id)
+          sub(/,.*/,"",id)
+
+          new=id
+          sub("^" n "_","",new)
+
+          if (id != new)
+            print id "\t" new
+        }
+      ' > "$chrmap"
+      # ---- Apply rename only if needed ----
+      if [[ -s "$chrmap" ]]; then
+          $bcftools annotate --rename-chrs "$chrmap" \
+              -Oz -o "${filtered_vcf%.gz}.renamed.vcf.gz" "$filtered_vcf"
+
+          mv "${filtered_vcf%.gz}.renamed.vcf.gz" "$filtered_vcf"
+          $bcftools index -f "$filtered_vcf"
+      fi
+
       norm_vcf="${filtered_vcf%.vcf.gz}.chrnorm.vcf.gz"
       $bcftools annotate --rename-chrs "$chrmap" -Oz -o "$norm_vcf" "$filtered_vcf"
       $bcftools index -f "$norm_vcf"
