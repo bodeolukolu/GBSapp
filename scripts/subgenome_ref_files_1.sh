@@ -3568,61 +3568,88 @@ main () {
       cd "${projdir}/snpfilter/$snpfilter_dir" || continue
       export ploidydir=${snpfilter_dir:0:1}
       shopt -s nullglob
-      # Identify filtered VCF
-      vcfs=( "$projdir"/snpcall/*"${ploidydir}"x.vcf* )
+      # Identify exactly one filtered VCF (ignore index files)
+      vcfs=( "$projdir"/snpcall/*"${ploidydir}"x.vcf "$projdir"/snpcall/*"${ploidydir}"x.vcf.gz )
+      vcfs=( "${vcfs[@]%.csi}" )
+      vcfs=( "${vcfs[@]%.tbi}" )
       (( ${#vcfs[@]} == 1 )) || {
           echo "ERROR: Expected exactly one filtered VCF, found ${#vcfs[@]}" >&2
           printf '%s\n' "${vcfs[@]}" >&2
           exit 1
       }
       filtered_vcf="${vcfs[0]}"
-      # Strip $n prefix from VCF CHROM
-      if [[ "$filtered_vcf" == *.gz ]]; then
-          gunzip -f "$filtered_vcf"
-          filtered_vcf="${filtered_vcf%.gz}"
+      if [[ "$filtered_vcf" != *.gz ]]; then
+          $bcftools view -Oz -o "${filtered_vcf}.gz" "$filtered_vcf"
+          filtered_vcf="${filtered_vcf}.gz"
       fi
-      tmp_vcf="${filtered_vcf%.vcf}_no_prefix.vcf"
-      awk -v prefix="$n" -F'\t' 'BEGIN{OFS="\t"} /^#/ {print; next} {gsub("^"prefix"_","",$1); print}' "$filtered_vcf" > "$tmp_vcf"
-      mv "$tmp_vcf" "$filtered_vcf"
-      $bcftools view -Oz -o "${filtered_vcf}.gz" "$filtered_vcf"
-      filtered_vcf="${filtered_vcf}.gz"
       $bcftools index -f "$filtered_vcf"
+
+      # Strip ${n}_ prefix from contigs PROPERLY
+      chrmap="chr_rename_${ploidydir}x.map"
+      $bcftools view -h "$filtered_vcf" \
+        | awk -v n="$n" '
+          /^##contig=<ID=/ {
+            match($0, /ID=([^,>]+)/, a)
+            old=a[1]; new=old
+            sub("^" n "_", "", new)
+            if (old != new) print old "\t" new
+          }' > "$chrmap"
+      [[ -s "$chrmap" ]] || {
+          echo "ERROR: chromosome rename map empty" >&2
+          exit 1
+      }
+      norm_vcf="${filtered_vcf%.vcf.gz}.chrnorm.vcf.gz"
+      $bcftools annotate --rename-chrs "$chrmap" -Oz -o "$norm_vcf" "$filtered_vcf"
+      $bcftools index -f "$norm_vcf"
+      filtered_vcf="$norm_vcf"
 
       # Process dose files
       dose_files=( *dose.txt )
-      (( ${#dose_files[@]} )) || { echo "ERROR: No dose files found" >&2; exit 1; }
+      (( ${#dose_files[@]} )) || {
+          echo "ERROR: No dose files found" >&2
+          exit 1
+      }
       for dose in "${dose_files[@]}"; do
           echo "Processing dose file: $dose" >&2
           prefix="${dose%_dose.txt}"
-          # Normalize dose CHROM to match VCF
-          vcf_chr_prefix=$(zcat "$filtered_vcf" | grep -v '^##' | head -n1 | cut -f1 | sed 's/[0-9]*$//')
-          awk -v prefix="$vcf_chr_prefix" 'NR==1{print; next} {$2 = prefix $2; print}' "$dose" > "${dose}.tmp"
-          mv "${dose}.tmp" "$dose"
-          matches=$(awk 'NR>1 {print $2":"$3}' "$dose" | grep -Ff - <(zcat "$filtered_vcf" | grep -v '^#' | awk '{print $1":"$2}') | wc -l)
-          if [[ "$matches" -eq 0 ]]; then
+          # Sanity check: do SNPs match?
+          matches=$(
+            awk 'NR>1{print $2 ":" $3}' "$dose" | sort -u | comm -12 - \
+                <($bcftools query -f '%CHROM:%POS\n' "$filtered_vcf" | sort -u) \
+            | wc -l
+          )
+          if (( matches == 0 )); then
               echo "ERROR: No SNPs from dose file match VCF for $dose" >&2
               continue
           fi
 
-          # Build updated VCF using R script (dose → GT + AR metrics)
+          # Build updated VCF using R
           Rscript "${GBSapp_dir}/scripts/R/update_vcf_from_dose.R" \
               "$filtered_vcf" "$dose" "$ploidydir" "${ARfile:-}" "${prefix}.vcf" "${GBSapp_dir}/tools/R"
-          [[ -s "${prefix}.vcf" ]] || { echo "ERROR: VCF construction failed for $dose" >&2; exit 1; }
+          [[ -s "${prefix}.vcf" ]] || {
+              echo "ERROR: VCF construction failed for $dose" >&2
+              exit 1
+          }
           $bcftools view -Oz -o "${prefix}.vcf.gz" "${prefix}.vcf"
           $bcftools index -f "${prefix}.vcf.gz"
           rm -f "${prefix}.vcf"
 
-          # Optional HapMap conversion (ploidy 2)
+          # Optional HapMap conversion (diploids only)
           if (( ploidydir <= 2 )); then
-              Rscript "${GBSapp_dir}/scripts/R/hapmap_format.R" "$dose" "${GBSapp_dir}/tools/R"
-              [[ -s outfile.hmp.txt ]] || { echo "ERROR: hapmap_format.R failed for $dose" >&2; exit 1; }
+              Rscript "${GBSapp_dir}/scripts/R/hapmap_format.R" \
+                  "$dose" \
+                  "${GBSapp_dir}/tools/R"
+              [[ -s outfile.hmp.txt ]] || {
+                  echo "ERROR: hapmap_format.R failed for $dose" >&2
+                  exit 1
+              }
               mv outfile.hmp.txt "${prefix}.hmp.txt"
           fi
-          # Clean temporary AR files if any
           rm -f darr.txt darr2.txt
       done
       shopt -u nullglob
   done
+
 
 
 
