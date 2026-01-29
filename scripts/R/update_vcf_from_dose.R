@@ -5,6 +5,10 @@
 # Works with ploidy 2,4,6,8
 # Uses base R (no optparse, no data.table)
 
+args <- commandArgs(trailingOnly = TRUE)
+libdir <- args[6]
+.libPaths( c( .libPaths(), libdir) )
+
 suppressPackageStartupMessages({
   library(vcfR)
 })
@@ -12,7 +16,6 @@ suppressPackageStartupMessages({
 # ----------------------------
 # Parse command-line arguments (base R)
 # ----------------------------
-args <- commandArgs(trailingOnly = TRUE)
 if (length(args) < 4) {
   stop("Usage: Rscript update_vcf_from_dose.R <vcf> <dose> <ploidy> <outfile> [arfile]")
 }
