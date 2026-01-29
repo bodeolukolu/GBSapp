@@ -3598,8 +3598,7 @@ main () {
           [[ -s "$header_vcf" ]] || { echo "ERROR: header extraction failed for $filtered_vcf" >&2; exit 1; }
 
           # Build updated VCF using R script for dose→GT conversion + AR metrics
-          Rscript "${GBSapp_dir}/scripts/R/update_vcf_from_dose.R" --vcf "$filtered_vcf" --dose "$dose" \
-            --ploidy "$ploidydir" --arfile "${ARfile:-}" --outfile "${prefix}.vcf" "${GBSapp_dir}/tools/R"
+          Rscript "${GBSapp_dir}/scripts/R/update_vcf_from_dose.R" "$filtered_vcf" "$dose" "$ploidydir" "${ARfile:-}" "${prefix}.vcf" "${GBSapp_dir}/tools/R"
           [[ -s "${prefix}.vcf" ]] || { echo "ERROR: VCF construction failed for $dose" >&2; exit 1; }
           bgzip -f "${prefix}.vcf"
           bcftools index -f "${prefix}.vcf.gz"
