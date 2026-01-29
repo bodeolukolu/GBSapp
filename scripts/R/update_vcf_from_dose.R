@@ -2,35 +2,35 @@
 
 # update_vcf_from_dose.R
 # Purpose: Update VCF genotypes using dose file and optionally AR metrics, ploidy-aware
+# Works with ploidy 2,4,6,8
+# Uses base R (no optparse, no data.table)
 
 suppressPackageStartupMessages({
-  library(optparse)
-  library(data.table)
   library(vcfR)
 })
 
-option_list <- list(
-  make_option(c("--vcf"), type="character", help="Input VCF (.gz supported)"),
-  make_option(c("--dose"), type="character", help="Dose file (tab-delimited, first 3 cols: SNP, CHROM, POS, rest samples)"),
-  make_option(c("--ploidy"), type="integer", help="Ploidy level (2,4,6,8)"),
-  make_option(c("--arfile"), type="character", default=NULL, help="Optional allele ratio metric file"),
-  make_option(c("--outfile"), type="character", help="Output VCF path")
-)
+# ----------------------------
+# Parse command-line arguments (base R)
+# ----------------------------
+args <- commandArgs(trailingOnly = TRUE)
+if (length(args) < 4) {
+  stop("Usage: Rscript update_vcf_from_dose.R <vcf> <dose> <ploidy> <outfile> [arfile]")
+}
 
-opt <- parse_args(OptionParser(option_list=option_list))
+vcf_file   <- args[1]
+dose_file  <- args[2]
+ploidy     <- as.integer(args[3])
+outfile    <- args[4]
+ar_file    <- ifelse(length(args) >= 5, args[5], NA)
 
 # ----------------------------
 # Helper functions
 # ----------------------------
-
 dose_to_gt <- function(dose, ploidy) {
   # Convert numeric dose to VCF GT string
-  # 0 -> 0/0, 1 -> 0/1 (ploidy=2)
-  # 0..ploidy
   if (is.na(dose)) {
     return(paste(rep(".", ploidy), collapse="/"))
   }
-  # Generate genotype: reference allele is 0, alternate allele is 1
   alt_count <- as.integer(dose)
   ref_count <- ploidy - alt_count
   gt <- c(rep(0, ref_count), rep(1, alt_count))
@@ -40,7 +40,7 @@ dose_to_gt <- function(dose, ploidy) {
 # ----------------------------
 # Load dose file
 # ----------------------------
-dose_dt <- fread(opt$dose, header=TRUE, sep="\t", na.strings=c("NA","NaN"))
+dose_dt <- read.table(dose_file, header = TRUE, sep = "\t", stringsAsFactors = FALSE, na.strings = c("NA","NaN"))
 
 # First three columns: SNP, CHROM, POS
 snp_col <- names(dose_dt)[1]
@@ -48,54 +48,49 @@ chr_col <- names(dose_dt)[2]
 pos_col <- names(dose_dt)[3]
 
 samples <- names(dose_dt)[-(1:3)]
-dose_dt <- dose_dt[, c(snp_col, chr_col, pos_col, samples), with=FALSE]
 
 # ----------------------------
 # Load VCF
 # ----------------------------
-vcf <- read.vcfR(opt$vcf, verbose=FALSE)
-
-vcf_samples <- colnames(vcf@gt)[-1] # skip GT
-vcf_pos <- data.table(CHROM=vcf@fix[,"CHROM"], POS=as.integer(vcf@fix[,"POS"]), row_idx=1:nrow(vcf@fix))
+vcf <- read.vcfR(vcf_file, verbose = FALSE)
+vcf_samples <- colnames(vcf@gt)[-1] # skip GT column
+vcf_pos <- data.frame(CHROM = vcf@fix[,"CHROM"],
+                      POS   = as.integer(vcf@fix[,"POS"]),
+                      row_idx = 1:nrow(vcf@fix),
+                      stringsAsFactors = FALSE)
 
 # ----------------------------
 # Match SNPs
 # ----------------------------
-dose_dt[, POS := as.integer(get(pos_col))]
-setkeyv(dose_dt, c(chr_col, "POS"))
-setkey(vcf_pos, CHROM, POS)
-matched <- dose_dt[vcf_pos, nomatch=0] # dose SNPs that exist in VCF
+dose_pos <- dose_dt[, c(chr_col, pos_col)]
+names(dose_pos) <- c("CHROM","POS")
+dose_pos$idx <- 1:nrow(dose_pos)
 
-if (nrow(matched)==0) {
-  stop("No SNPs from dose file match VCF")
-}
-
-# Map row indices of matched SNPs in VCF
-row_indices <- matched$row_idx
+# Merge dose positions with VCF positions
+matched <- merge(dose_pos, vcf_pos, by = c("CHROM","POS"))
+if (nrow(matched) == 0) stop("No SNPs from dose file match VCF")
 
 # ----------------------------
 # Update genotypes
 # ----------------------------
 for (sample in intersect(samples, vcf_samples)) {
-  for (i in seq_along(row_indices)) {
-    r <- row_indices[i]
-    dose_val <- matched[[sample]][i]
-    vcf@gt[r, sample] <- dose_to_gt(dose_val, opt$ploidy)
+  dose_vals <- dose_dt[matched$idx, sample]
+  for (i in seq_len(nrow(matched))) {
+    r <- matched$row_idx[i]
+    vcf@gt[r, sample] <- dose_to_gt(dose_vals[i], ploidy)
   }
 }
 
 # ----------------------------
-# Optional: incorporate AR metrics
+# Optional AR metrics (placeholder)
 # ----------------------------
-if (!is.null(opt$arfile) && file.exists(opt$arfile)) {
-  ar_dt <- fread(opt$arfile, header=TRUE)
-  # Optional: could filter or annotate VCF using AR values
-  # e.g., force genotype to 0/0 or 1/1 if AR ~0 or 1
-  # This can be implemented based on your AR metric format
+if (!is.na(ar_file) && file.exists(ar_file)) {
+  ar_dt <- read.table(ar_file, header=TRUE, sep="\t", stringsAsFactors=FALSE)
+  # Optional: use AR metrics to correct genotypes
 }
 
 # ----------------------------
-# Write output
+# Write updated VCF
 # ----------------------------
-write.vcf(vcf, file=opt$outfile, overwrite=TRUE)
-cat("Updated VCF written to:", opt$outfile, "\n")
+write.vcf(vcf, file = outfile, overwrite = TRUE)
+cat("Updated VCF written to:", outfile, "\n")
