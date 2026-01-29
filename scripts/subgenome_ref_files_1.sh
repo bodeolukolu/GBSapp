@@ -3565,95 +3565,58 @@ main () {
   cd "$projdir"/snpfilter
   export n="${ref1%.f*}"
   for snpfilter_dir in */; do
-    cd "$projdir/snpfilter/$snpfilter_dir" || continue
-    export ploidydir="${snpfilter_dir:0:1}"
-    echo "Processing directory: $snpfilter_dir (ploidy ${ploidydir}x)" >&2
-    # Identify and normalize filtered VCF ONCE
-    shopt -s nullglob
-    vcfs=( "$projdir"/snpcall/*"${ploidydir}"x*.vcf* )
-    (( ${#vcfs[@]} == 1 )) || {
-        echo "ERROR: Expected exactly one filtered VCF, found ${#vcfs[@]}" >&2
-        printf '%s\n' "${vcfs[@]}" >&2
-        exit 1
-    }
-    filtered_vcf="${vcfs[0]}"
-    if [[ "$filtered_vcf" == *.gz ]]; then
-        gunzip -f "$filtered_vcf"
-        filtered_vcf="${filtered_vcf%.gz}"
-    fi
-    bgzip -f "$filtered_vcf"
-    filtered_vcf="${filtered_vcf}.gz"
-    bcftools index -f "$filtered_vcf"
+      cd "${projdir}/snpfilter/$snpfilter_dir" || continue
+      export ploidydir=${snpfilter_dir:0:1}
+      # Identify filtered VCF
+      shopt -s nullglob
+      vcfs=( "$projdir"/snpcall/*"${ploidydir}"x.vcf* )
+      (( ${#vcfs[@]} == 1 )) || {
+          echo "ERROR: Expected exactly one filtered VCF, found ${#vcfs[@]}" >&2
+          printf '%s\n' "${vcfs[@]}" >&2
+          exit 1
+      }
+      filtered_vcf="${vcfs[0]}"
+      if [[ "$filtered_vcf" == *.gz ]]; then
+          gunzip -f "$filtered_vcf"
+          filtered_vcf="${filtered_vcf%.gz}"
+      fi
+      bgzip -f "$filtered_vcf"
+      filtered_vcf="${filtered_vcf}.gz"
+      bcftools index -f "$filtered_vcf"
 
-    # Process each dose file independently
-    dose_files=( *dose*.txt )
-    (( ${#dose_files[@]} )) || {
-        echo "ERROR: No *dose*.txt files found in $snpfilter_dir" >&2
-        exit 1
-    }
-    for dose in "${dose_files[@]}"; do
-        echo "Processing dose file: $dose" >&2
-        prefix="${dose%_dose.txt}"
-        # 1. Normalize dose chromosome naming
-        awk -v pat1="${n}_Chr" -v pat2="${n}_chr" 'NR==1 { print; next }
-            {
-              gsub(pat1,"Chr",$2)
-              gsub(pat2,"Chr",$2)
-              gsub(/^chr/,"Chr",$2)
-              print
-            }' "$dose" > "${dose}.tmp" && mv "${dose}.tmp" "$dose"
+      # Process each dose file
+      dose_files=( *dose.txt )
+      (( ${#dose_files[@]} )) || { echo "ERROR: No dose files found" >&2; exit 1; }
+      for dose in "${dose_files[@]}"; do
+          echo "Processing dose file: $dose" >&2
+          prefix="${dose%_dose.txt}"
+          # Normalize chromosome names in dose file
+          awk -v pat1="${n}_Chr" -v pat2="${n}_chr" '{gsub(pat1,"Chr"); gsub(pat2,"Chr"); print}' "$dose" > "${dose}.tmp"
+          mv "${dose}.tmp" "$dose"
+          header_vcf="${prefix}_header.vcf"
+          zcat "$filtered_vcf" | awk -v pat1="${n}_Chr" -v pat2="${n}_chr" '/^#/ {gsub(pat1,"Chr"); gsub(pat2,"Chr"); print}' > "$header_vcf"
+          [[ -s "$header_vcf" ]] || { echo "ERROR: header extraction failed for $filtered_vcf" >&2; exit 1; }
 
-        # 2. Build SNP site list (VCF-style, not BED)
-        #    CHROM POS
-        sites="${prefix}.sites"
-        awk 'NR>1 && $2!="" && $3!="" { print $2 "\t" $3 }' "$dose" | sort -u > "$sites"
-        [[ -s "$sites" ]] || {
-            echo "WARNING: No valid SNPs in $dose — skipping" >&2
-            rm -f "$sites"
-            continue
-        }
+          # Build updated VCF using R script for dose→GT conversion + AR metrics
+          Rscript "${GBSapp_dir}/scripts/R/update_vcf_from_dose.R" --vcf "$filtered_vcf" --dose "$dose" \
+            --ploidy "$ploidydir" --arfile "${ARfile:-}" --outfile "${prefix}.vcf"
+          [[ -s "${prefix}.vcf" ]] || { echo "ERROR: VCF construction failed for $dose" >&2; exit 1; }
+          bgzip -f "${prefix}.vcf"
+          bcftools index -f "${prefix}.vcf.gz"
 
-        # 3. Subset VCF using bcftools -R
-        outvcf="${prefix}.vcf.gz"
-        bcftools view -R "$sites" -Oz -o "$outvcf" "$filtered_vcf"
-        bcftools index -f "$outvcf"
-        if ! bcftools view -H "$outvcf" | head -n1 >/dev/null; then
-            echo "ERROR: No variants retained for $dose" >&2
-            exit 1
-        fi
-
-        # 4. Generate AR metrics (dose-consistent)
-        ARselect=$(echo "$dose" | awk -F'rd' '{print $1}')
-        ARfile=$(ls "$projdir"/snpcall/${ARselect}*AR.txt 2>/dev/null)
-        if [[ -n "$ARfile" ]]; then
-            awk 'FNR==NR { keep[$1,$2]; next }
-                 ($1,$2) in keep { print }' \
-                "$sites" "$ARfile" \
-            | awk '{ gsub(/NA/,"na"); print }' \
-            > "${prefix}_AR_metric.txt"
-        else
-            echo "WARNING: No AR file found for $dose" >&2
-        fi
-
-        # 5. Optional HapMap conversion
-        if (( ploidydir <= 2 )); then
-            if ! Rscript "${GBSapp_dir}/scripts/R/hapmap_format.R" \
-                "$dose" "${GBSapp_dir}/tools/R"; then
-                echo "ERROR: hapmap_format.R failed for $dose" >&2
-                exit 1
-            fi
-            [[ -s outfile.hmp.txt ]] || {
-                echo "ERROR: outfile.hmp.txt missing for $dose" >&2
-                exit 1
-            }
-            mv outfile.hmp.txt "${prefix}.hmp.txt"
-        fi
-        rm -f "$sites"
-    done
-    shopt -u nullglob
+          # Optional HapMap conversion
+          if (( ploidydir <= 2 )); then
+              Rscript "${GBSapp_dir}/scripts/R/hapmap_format.R" "$dose" "${GBSapp_dir}/tools/R"
+              [[ -s outfile.hmp.txt ]] || { echo "ERROR: hapmap_format.R failed for $dose" >&2; exit 1; }
+              mv outfile.hmp.txt "${prefix}.hmp.txt"
+          fi
+          rm -f darr.txt darr2.txt
+      done
+      shopt -u nullglob
   done
 
-  
+
+
   # cd "$projdir"/snpfilter
   # export n="${ref1%.f*}"
   # {
