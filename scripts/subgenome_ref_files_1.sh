@@ -3562,13 +3562,13 @@ main () {
   ###############################################################################
   # Subset filtered VCF by (CHROM, POS) per dose file — clean & robust
   ###############################################################################
-  cd "$projdir"/snpfilter
+  cd "$projdir/snpfilter" || exit 1
   export n="${ref1%.f*}"
   for snpfilter_dir in */; do
       cd "${projdir}/snpfilter/$snpfilter_dir" || continue
       export ploidydir=${snpfilter_dir:0:1}
-      # Identify filtered VCF
       shopt -s nullglob
+      # Identify filtered VCF
       vcfs=( "$projdir"/snpcall/*"${ploidydir}"x.vcf* )
       (( ${#vcfs[@]} == 1 )) || {
           echo "ERROR: Expected exactly one filtered VCF, found ${#vcfs[@]}" >&2
@@ -3576,43 +3576,55 @@ main () {
           exit 1
       }
       filtered_vcf="${vcfs[0]}"
+      # Strip $n prefix from VCF CHROM
       if [[ "$filtered_vcf" == *.gz ]]; then
           gunzip -f "$filtered_vcf"
           filtered_vcf="${filtered_vcf%.gz}"
       fi
-      bgzip -f "$filtered_vcf"
+      tmp_vcf="${filtered_vcf%.vcf}_no_prefix.vcf"
+      awk -v prefix="$n" -F'\t' 'BEGIN{OFS="\t"} /^#/ {print; next} {gsub("^"prefix"_","",$1); print}' "$filtered_vcf" > "$tmp_vcf"
+      mv "$tmp_vcf" "$filtered_vcf"
+      $bcftools view -Oz -o "${filtered_vcf}.gz" "$filtered_vcf"
       filtered_vcf="${filtered_vcf}.gz"
-      bcftools index -f "$filtered_vcf"
+      $bcftools index -f "$filtered_vcf"
 
-      # Process each dose file
+      # Process dose files
       dose_files=( *dose.txt )
       (( ${#dose_files[@]} )) || { echo "ERROR: No dose files found" >&2; exit 1; }
       for dose in "${dose_files[@]}"; do
           echo "Processing dose file: $dose" >&2
           prefix="${dose%_dose.txt}"
-          # Normalize chromosome names in dose file
-          awk -v pat1="${n}_Chr" -v pat2="${n}_chr" '{gsub(pat1,"Chr"); gsub(pat2,"Chr"); print}' "$dose" > "${dose}.tmp"
+          # Normalize dose CHROM to match VCF
+          vcf_chr_prefix=$(zcat "$filtered_vcf" | grep -v '^##' | head -n1 | cut -f1 | sed 's/[0-9]*$//')
+          awk -v prefix="$vcf_chr_prefix" 'NR==1{print; next} {$2 = prefix $2; print}' "$dose" > "${dose}.tmp"
           mv "${dose}.tmp" "$dose"
-          header_vcf="${prefix}_header.vcf"
-          zcat "$filtered_vcf" | awk -v pat1="${n}_Chr" -v pat2="${n}_chr" '/^#/ {gsub(pat1,"Chr"); gsub(pat2,"Chr"); print}' > "$header_vcf"
-          [[ -s "$header_vcf" ]] || { echo "ERROR: header extraction failed for $filtered_vcf" >&2; exit 1; }
+          matches=$(awk 'NR>1 {print $2":"$3}' "$dose" | grep -Ff - <(zcat "$filtered_vcf" | grep -v '^#' | awk '{print $1":"$2}') | wc -l)
+          if [[ "$matches" -eq 0 ]]; then
+              echo "ERROR: No SNPs from dose file match VCF for $dose" >&2
+              continue
+          fi
 
-          # Build updated VCF using R script for dose→GT conversion + AR metrics
-          Rscript "${GBSapp_dir}/scripts/R/update_vcf_from_dose.R" "$filtered_vcf" "$dose" "$ploidydir" "${ARfile:-}" "${prefix}.vcf" "${GBSapp_dir}/tools/R"
+          # Build updated VCF using R script (dose → GT + AR metrics)
+          Rscript "${GBSapp_dir}/scripts/R/update_vcf_from_dose.R" \
+              "$filtered_vcf" "$dose" "$ploidydir" "${ARfile:-}" "${prefix}.vcf" "${GBSapp_dir}/tools/R"
           [[ -s "${prefix}.vcf" ]] || { echo "ERROR: VCF construction failed for $dose" >&2; exit 1; }
-          bgzip -f "${prefix}.vcf"
-          bcftools index -f "${prefix}.vcf.gz"
+          $bcftools view -Oz -o "${prefix}.vcf.gz" "${prefix}.vcf"
+          $bcftools index -f "${prefix}.vcf.gz"
+          rm -f "${prefix}.vcf"
 
-          # Optional HapMap conversion
+          # Optional HapMap conversion (ploidy 2)
           if (( ploidydir <= 2 )); then
               Rscript "${GBSapp_dir}/scripts/R/hapmap_format.R" "$dose" "${GBSapp_dir}/tools/R"
               [[ -s outfile.hmp.txt ]] || { echo "ERROR: hapmap_format.R failed for $dose" >&2; exit 1; }
               mv outfile.hmp.txt "${prefix}.hmp.txt"
           fi
+          # Clean temporary AR files if any
           rm -f darr.txt darr2.txt
       done
       shopt -u nullglob
   done
+
+
 
 
 
