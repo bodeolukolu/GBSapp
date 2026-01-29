@@ -3558,228 +3558,323 @@ main () {
   rm -f ./*/*SD_1_G*G*.txt 2>/dev/null
   wait
 
+
+  ###############################################################################
+  # Subset filtered VCF by (CHROM, POS) per dose file — clean & robust
+  ###############################################################################
   cd "$projdir"/snpfilter
   export n="${ref1%.f*}"
-  {
-    for snpfilter_dir in */; do
-      if [ -d "${projdir}/snpfilter/${snpfilter_dir}" ]; then
-        cd "${projdir}/snpfilter/${snpfilter_dir}" &&
-        export ploidydir=${snpfilter_dir:0:1} &&
+  for snpfilter_dir in */; do
+    cd "$projdir/snpfilter/$snpfilter_dir" || continue
+    export ploidydir="${snpfilter_dir:0:1}"
+    echo "Processing directory: $snpfilter_dir (ploidy ${ploidydir}x)" >&2
+    # Identify and normalize filtered VCF ONCE
+    shopt -s nullglob
+    vcfs=( "$projdir"/snpcall/*"${ploidydir}"x*.vcf* )
+    (( ${#vcfs[@]} == 1 )) || {
+        echo "ERROR: Expected exactly one filtered VCF, found ${#vcfs[@]}" >&2
+        printf '%s\n' "${vcfs[@]}" >&2
+        exit 1
+    }
+    filtered_vcf="${vcfs[0]}"
+    if [[ "$filtered_vcf" == *.gz ]]; then
+        gunzip -f "$filtered_vcf"
+        filtered_vcf="${filtered_vcf%.gz}"
+    fi
+    bgzip -f "$filtered_vcf"
+    filtered_vcf="${filtered_vcf}.gz"
+    bcftools index -f "$filtered_vcf"
 
-    		for i in $(ls *dose.txt); do
-          if [[ "$filtered_vcf" == "true" ]]; then
-      			export ARselect=$( echo $i | awk -v FS='rd' '{print $1}') &&
-      			export ARfile=$(ls ../../snpcall/${ARselect}*AR.txt 2> /dev/null) &&
-            export arr=$(cat ${projdir}/samples_list_node_* | awk '{gsub(/.fastq/,"\t.fastq");gsub(/.fq/,"\t.fq");}1' | awk '{print $1}' | tr '\n' ',' | awk '{gsub(/\t/,",");gsub(/ /,",");gsub(/^,/,"");gsub(/,$/,"");}1') &&
-            export arr2=$(grep "CHROM" $i | awk '{$1=$2=$3=$4=$5=""}1' | tr -s ' ' | awk '{gsub(/ pvalue/,"");}1' | awk '{gsub(/\t/,",");gsub(/ /,",");gsub(/^,/,"");gsub(/,$/,"");}1') &&
-            export darr=$(echo ${arr[@]},${arr2[@]} | tr ',' '\n' | sort | uniq -u | tr '\n' ',' | awk '{gsub(/\t/,",");gsub(/ /,",");gsub(/^,/,"");gsub(/,$/,"");}1') &&
-            export darr2=$(echo ${arr[@]},${arr2[@]} | tr ',' '\n' | sort | uniq -u | awk '!/^$/' | awk '{print $1"_AR"}' | tr '\n' ',' | awk '{gsub(/\t/,",");gsub(/ /,",");gsub(/^,/,"");gsub(/,$/,"");}1') &&
-            echo $darr | tr ',' '\n' > darr.txt &&
-            echo $darr2 | tr ',' '\n' > darr2.txt &&
-            if [[ -s darr.txt ]]; then printf "999_999_999\n" > darr.txt; fi
-            wait
-            if [[ -s darr2.txt ]]; then printf "999_999_999\n" > darr2.txt; fi
-            wait
+    # Process each dose file independently
+    dose_files=( *dose*.txt )
+    (( ${#dose_files[@]} )) || {
+        echo "ERROR: No *dose*.txt files found in $snpfilter_dir" >&2
+        exit 1
+    }
+    for dose in "${dose_files[@]}"; do
+        echo "Processing dose file: $dose" >&2
+        prefix="${dose%_dose.txt}"
+        # 1. Normalize dose chromosome naming
+        awk -v pat1="${n}_Chr" -v pat2="${n}_chr" 'NR==1 { print; next }
+            {
+              gsub(pat1,"Chr",$2)
+              gsub(pat2,"Chr",$2)
+              gsub(/^chr/,"Chr",$2)
+              print
+            }' "$dose" > "${dose}.tmp" && mv "${dose}.tmp" "$dose"
 
-      			if ! Rscript "${GBSapp_dir}"/scripts/R/heterozygote_vs_allele_ratio.R "$i" "$ARfile" "${ploidydir}x" "1" "darr2.txt" "${GBSapp_dir}/tools/R"; then
-              echo "Warning: Rscript failed for $pop — continuing pipeline"
-            fi
-            wait
-      			awk 'FNR==NR{a[$1,$2]=$0;next}{if(b=a[$2,$3]){print b}}' $ARfile $i | awk '{gsub(/NA/,"na"); print $1"_"$2"\t"$0}' | \
-      			awk -v pat1="${n}_Chr" -v pat2="${n}_chr" '{gsub(pat1,"Chr");gsub(pat2,"Chr");gsub(/CHROM_POS/,"SNP");}1' > ${i%.txt}_AR_metric.txt &&
-            wait
+        # 2. Build SNP site list (VCF-style, not BED)
+        #    CHROM POS
+        sites="${prefix}.sites"
+        awk 'NR>1 && $2!="" && $3!="" { print $2 "\t" $3 }' "$dose" | sort -u > "$sites"
+        [[ -s "$sites" ]] || {
+            echo "WARNING: No valid SNPs in $dose — skipping" >&2
+            rm -f "$sites"
+            continue
+        }
 
+        # 3. Subset VCF using bcftools -R
+        outvcf="${prefix}.vcf.gz"
+        bcftools view -R "$sites" -Oz -o "$outvcf" "$filtered_vcf"
+        bcftools index -f "$outvcf"
+        if ! bcftools view -H "$outvcf" | head -n1 >/dev/null; then
+            echo "ERROR: No variants retained for $dose" >&2
+            exit 1
+        fi
 
-            shopt -s nullglob
-            if [[ ! -f "$projdir/split_done.txt" ]]; then
-              split_files=( "$projdir"/snpcall/*x.vcf* )
-              filtered=()
-              for f in "${split_files[@]}"; do
-                  [[ $f == *.idx ]] || filtered+=( "$f" )
-              done
-              split_files=( "${filtered[@]}" )
+        # 4. Generate AR metrics (dose-consistent)
+        ARselect=$(echo "$dose" | awk -F'rd' '{print $1}')
+        ARfile=$(ls "$projdir"/snpcall/${ARselect}*AR.txt 2>/dev/null)
+        if [[ -n "$ARfile" ]]; then
+            awk 'FNR==NR { keep[$1,$2]; next }
+                 ($1,$2) in keep { print }' \
+                "$sites" "$ARfile" \
+            | awk '{ gsub(/NA/,"na"); print }' \
+            > "${prefix}_AR_metric.txt"
+        else
+            echo "WARNING: No AR file found for $dose" >&2
+        fi
 
-              if (( ${#split_files[@]} == 0 )); then
-                  echo "WARNING: No VCFs to process for dose ${vcfdose}" >&2
-              else
-                for split in "${split_files[@]}"; do
-                    unset ungzipped
-                    refg="${split##*/}"
-                    refg="${refg#*_}"
-                    refg="${refg%%_*}.fasta"
-                    base="${split%.vcf}"
-                    base="${base%.vcf.gz}"
-                    split_out="${base}_split.vcf"
-                    if [[ "$split" == *.gz ]]; then
-                        ungzipped="${base}.vcf"
-                        gunzip -c "$split" > "$ungzipped"
-                        input_vcf="$ungzipped"
-                    else
-                        input_vcf="$split"
-                    fi
-                    bcftools view -h "$input_vcf" >/dev/null 2>&1 || {
-                        echo "Skipping non-VCF: $input_vcf" >&2
-                        continue
-                    }
-                    $GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" \
-                        LeftAlignAndTrimVariants -R "${projdir}/refgenomes/$refg" -V "$input_vcf" -O "$split_out" \
-                        --split-multi-allelics --dont-trim-alleles --keep-original-ac --verbosity ERROR
-                    bcftools view -Oz -o "${split_out}.gz" "$split_out"
-                    bcftools index "${split_out}.gz"
-                    rm -f "$split_out"
-                    [[ -n "$ungzipped" ]] && rm -f "$ungzipped"
-                done
-              fi
-              :> "$projdir/split_done.txt"
-            fi
-            shopt -u nullglob
-
-            shopt -s nullglob
-            split_vcfs=( "$projdir"/snpcall/*_split.vcf.gz )
-            if (( ${#split_vcfs[@]} == 0 )); then
-                echo "ERROR: No *_split.vcf.gz files found in $projdir/snpcall" >&2
+        # 5. Optional HapMap conversion
+        if (( ploidydir <= 2 )); then
+            if ! Rscript "${GBSapp_dir}/scripts/R/hapmap_format.R" \
+                "$dose" "${GBSapp_dir}/tools/R"; then
+                echo "ERROR: hapmap_format.R failed for $dose" >&2
                 exit 1
             fi
-            merge_prefix="${i%rd*}"
-            merged_vcf="${merge_prefix}split.vcf.gz"
-            if (( ${#split_vcfs[@]} > 1 )); then
-                $bcftools merge "${split_vcfs[@]}" --force-samples -m all -O z -o "$merged_vcf"
-            else
-                cp "${split_vcfs[0]}" "$merged_vcf"
-            fi
-            [[ -s "$merged_vcf" ]] || {
-                echo "ERROR: merged VCF is empty: $merged_vcf" >&2
+            [[ -s outfile.hmp.txt ]] || {
+                echo "ERROR: outfile.hmp.txt missing for $dose" >&2
                 exit 1
             }
-            # Process each dose file
-            dose_files=( *dose*.txt )
-            (( ${#dose_files[@]} )) || {
-                echo "ERROR: No *dose*.txt files found" >&2
-                exit 1
-            }
-            for dose in "${dose_files[@]}"; do
-                echo "Processing $dose" >&2
-                prefix="${dose%_dose.txt}"
-                # Normalize chromosome names in dose file
-                awk -v pat1="${n}_Chr" -v pat2="${n}_chr" '
-                    { gsub(pat1,"Chr"); gsub(pat2,"Chr"); print }
-                ' "$dose" > "${dose}.tmp"
-                mv "${dose}.tmp" "$dose"
-
-                # Build VCF for this dose
-                header_vcf="${prefix}_header.vcf"
-                zcat "$merged_vcf" | awk -v pat1="${n}_Chr" -v pat2="${n}_chr" '
-                      /^#/ {
-                          gsub(pat1,"Chr");
-                          gsub(pat2,"Chr");
-                          gsub(/chr/,"Chr");
-                          print
-                      }' > "$header_vcf"
-                [[ -s "$header_vcf" ]] || {
-                    echo "ERROR: Header extraction failed for $merged_vcf" >&2
-                    exit 1
-                }
-                awk 'BEGIN{FS=OFS="\t"} NR==FNR&&FNR>1{gsub(/\r/,"",$2);gsub(/\r/,"",$3);keep[$2,$3]=1;next} !/^#/&&($1,$2) in keep{print}' "$dose" <(zcat "$merged_vcf") | \
-                sort -Vk1,1 -Vk2,2 | cat "$header_vcf" - > "${prefix}.vcf"
-                [[ -s "${prefix}.vcf" ]] || {
-                    echo "ERROR: VCF construction failed for $dose" >&2
-                    exit 1
-                }
-                gzip -f "${prefix}.vcf"
-                if ! zcat "${prefix}.vcf.gz" | grep -qv '^#'; then
-                    echo "ERROR: VCF contains no variants for $dose" >&2
-                    exit 1
-                fi
-
-                # Optional hapmap conversion
-                if (( ploidy <= 2 )); then
-                    if ! Rscript "${GBSapp_dir}/scripts/R/hapmap_format.R" \
-                        "${dose}" "${GBSapp_dir}/tools/R"; then
-                        echo "ERROR: hapmap_format.R failed for $dose" >&2
-                        exit 1
-                    fi
-                    [[ -s outfile.hmp.txt ]] || {
-                        echo "ERROR: outfile.hmp.txt missing after Rscript" >&2
-                        exit 1
-                    }
-                    mv outfile.hmp.txt "${prefix}.hmp.txt"
-                fi
-
-                # Metrics cleanup
-                for f in "${dose%.txt}"_AR_{metric,mean}.txt; do
-                    [[ -f "$f" ]] && mv "$f" "${prefix}_${f##*_}"
-                done
-            done
-
-            # Cleanup
-            rm -f "$merged_vcf"
-            rm -f *tmp.vcf *header.vcf darr.txt darr2.txt
-            shopt -u nullglob
-          fi
-
-
-            # # Merge logic
-            # shopt -s nullglob
-            # split_vcfs=( "$projdir"/snpcall/*_split.vcf.gz )
-            # shopt -s nullglob
-            # if (( ${#split_vcfs[@]} > 1 )); then
-            #     $bcftools merge "${split_vcfs[@]}" --force-samples -m all -O z -o "${i%rd*}split.vcf.gz"
-            # elif (( ${#split_vcfs[@]} == 1 )); then
-            #     cp "${split_vcfs[0]}" "./${i%rd*}split.vcf.gz"
-            # else
-            #     echo "WARNING: No *_split.vcf.gz files found in $projdir/snpcall/, creating empty placeholder" >&2
-            #     touch "./${i%rd*}split.vcf.gz"
-            # fi
-            # wait || true
-            #
-            # for i in *dose*; do
-            #   awk -v pat1="${n}_Chr" -v pat2="${n}_chr" '{gsub(pat1,"Chr");gsub(pat2,"Chr"); print $0}' $i > ${i%.txt}_hold.txt &&
-            #   mv ${i%.txt}_hold.txt $i &&
-            #   wait
-            # done
-            # wait
-            # zcat ${i%rd*}split.vcf.gz | grep '^#' | awk -v pat1="${n}_Chr" -v pat2="${n}_chr" '{gsub(pat1,"Chr");gsub(pat2,"Chr");gsub(/chr/,"Chr");}1' > ${i%.txt}_header.vcf &&
-            # awk 'FNR==NR{a[$1,$2]=$0;next}{if(b=a[$2,$3]){print b}}' <(zcat ${i%rd*}split.vcf.gz | grep -v '^#' | awk -v pat1="${n}_Chr" -v pat2="${n}_chr" '{gsub(pat1,"Chr");gsub(pat2,"Chr");gsub(/chr/,"Chr");}1') <(awk '!seen[$0] {print} {++seen[$0]}' $i) | \
-            # sort -Vk1,1 -Vk2,2 | cat ${i%.txt}_header.vcf - > ${i%dose.txt}.vcf &&
-            # rm -f ${i%.txt}_header.vcf
-            # rm -f ${i%rd*}split.vcf.gz
-            # gzip "${i%dose.txt}".vcf 2> /dev/null &&
-            # if ls *_.vcf.gz 1> /dev/null 2>&1; then mv ${i%dose.txt}.vcf.gz ${i%_dose.txt}.vcf.gz; fi
-            # wait
-
-          # else
-          #   for i in *dose*; do
-          #     awk -v pat1="${n}_Chr" -v pat2="${n}_chr" '{gsub(pat1,"Chr");gsub(pat2,"Chr"); print $0}' $i > ${i%.txt}_hold.txt &&
-          #     mv ${i%.txt}_hold.txt $i &&
-          #     wait
-          #   done
-          # fi
-          # wait
-
-    			# if [[ "$ploidy" -le 2 ]]; then
-          #   if ! Rscript "${GBSapp_dir}"/scripts/R/hapmap_format.R "$i" "${GBSapp_dir}/tools/R"; then
-          #     echo "Warning: Rscript failed for $pop — continuing pipeline"
-          #   fi
-          #   wait
-          #   mv outfile.hmp.txt "${i%dose.txt}.hmp.txt" 2> /dev/null &&
-          #   wait
-          # fi
-          #
-          # mv ${i%.txt}_AR_metric.txt ${i%dose.txt}_AR_metric.txt 2> /dev/null &&
-          # mv ${i%.txt}_AR_mean.txt ${i%dose.txt}_AR_mean.txt 2> /dev/null &&
-          # find . -type f -empty -delete
-          # rm -f AR*.txt
-          # wait
-    		done
-    		rm -f *tmp.vcf *header.vcf darr.txt darr2.txt
-    	fi
+            mv outfile.hmp.txt "${prefix}.hmp.txt"
+        fi
+        rm -f "$sites"
     done
-  } & PID_genvcf=$!
-  [[ -n "$PID_genvcf" ]] && wait "$PID_genvcf"
+    shopt -u nullglob
+  done
 
-  rm -f ${projdir}/snpcall/*_split.vcf*
-  rm -f $projdir/split_done.txt
-  wait
+  
+  # cd "$projdir"/snpfilter
+  # export n="${ref1%.f*}"
+  # {
+  #   for snpfilter_dir in */; do
+  #     if [ -d "${projdir}/snpfilter/${snpfilter_dir}" ]; then
+  #       cd "${projdir}/snpfilter/${snpfilter_dir}" &&
+  #       export ploidydir=${snpfilter_dir:0:1} &&
+  #
+  #   		for i in $(ls *dose.txt); do
+  #         if [[ "$filtered_vcf" == "true" ]]; then
+  #     			export ARselect=$( echo $i | awk -v FS='rd' '{print $1}') &&
+  #     			export ARfile=$(ls ../../snpcall/${ARselect}*AR.txt 2> /dev/null) &&
+  #           export arr=$(cat ${projdir}/samples_list_node_* | awk '{gsub(/.fastq/,"\t.fastq");gsub(/.fq/,"\t.fq");}1' | awk '{print $1}' | tr '\n' ',' | awk '{gsub(/\t/,",");gsub(/ /,",");gsub(/^,/,"");gsub(/,$/,"");}1') &&
+  #           export arr2=$(grep "CHROM" $i | awk '{$1=$2=$3=$4=$5=""}1' | tr -s ' ' | awk '{gsub(/ pvalue/,"");}1' | awk '{gsub(/\t/,",");gsub(/ /,",");gsub(/^,/,"");gsub(/,$/,"");}1') &&
+  #           export darr=$(echo ${arr[@]},${arr2[@]} | tr ',' '\n' | sort | uniq -u | tr '\n' ',' | awk '{gsub(/\t/,",");gsub(/ /,",");gsub(/^,/,"");gsub(/,$/,"");}1') &&
+  #           export darr2=$(echo ${arr[@]},${arr2[@]} | tr ',' '\n' | sort | uniq -u | awk '!/^$/' | awk '{print $1"_AR"}' | tr '\n' ',' | awk '{gsub(/\t/,",");gsub(/ /,",");gsub(/^,/,"");gsub(/,$/,"");}1') &&
+  #           echo $darr | tr ',' '\n' > darr.txt &&
+  #           echo $darr2 | tr ',' '\n' > darr2.txt &&
+  #           if [[ -s darr.txt ]]; then printf "999_999_999\n" > darr.txt; fi
+  #           wait
+  #           if [[ -s darr2.txt ]]; then printf "999_999_999\n" > darr2.txt; fi
+  #           wait
+  #
+  #     			if ! Rscript "${GBSapp_dir}"/scripts/R/heterozygote_vs_allele_ratio.R "$i" "$ARfile" "${ploidydir}x" "1" "darr2.txt" "${GBSapp_dir}/tools/R"; then
+  #             echo "Warning: Rscript failed for $pop — continuing pipeline"
+  #           fi
+  #           wait
+  #     			awk 'FNR==NR{a[$1,$2]=$0;next}{if(b=a[$2,$3]){print b}}' $ARfile $i | awk '{gsub(/NA/,"na"); print $1"_"$2"\t"$0}' | \
+  #     			awk -v pat1="${n}_Chr" -v pat2="${n}_chr" '{gsub(pat1,"Chr");gsub(pat2,"Chr");gsub(/CHROM_POS/,"SNP");}1' > ${i%.txt}_AR_metric.txt &&
+  #           wait
+  #
+  #
+  #           shopt -s nullglob
+  #           if [[ ! -f "$projdir/split_done.txt" ]]; then
+  #             split_files=( "$projdir"/snpcall/*x.vcf* )
+  #             filtered=()
+  #             for f in "${split_files[@]}"; do
+  #                 [[ $f == *.idx ]] || filtered+=( "$f" )
+  #             done
+  #             split_files=( "${filtered[@]}" )
+  #
+  #             if (( ${#split_files[@]} == 0 )); then
+  #                 echo "WARNING: No VCFs to process for dose ${vcfdose}" >&2
+  #             else
+  #               for split in "${split_files[@]}"; do
+  #                   unset ungzipped
+  #                   refg="${split##*/}"
+  #                   refg="${refg#*_}"
+  #                   refg="${refg%%_*}.fasta"
+  #                   base="${split%.vcf}"
+  #                   base="${base%.vcf.gz}"
+  #                   split_out="${base}_split.vcf"
+  #                   if [[ "$split" == *.gz ]]; then
+  #                       ungzipped="${base}.vcf"
+  #                       gunzip -c "$split" > "$ungzipped"
+  #                       input_vcf="$ungzipped"
+  #                   else
+  #                       input_vcf="$split"
+  #                   fi
+  #                   bcftools view -h "$input_vcf" >/dev/null 2>&1 || {
+  #                       echo "Skipping non-VCF: $input_vcf" >&2
+  #                       continue
+  #                   }
+  #                   $GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" \
+  #                       LeftAlignAndTrimVariants -R "${projdir}/refgenomes/$refg" -V "$input_vcf" -O "$split_out" \
+  #                       --split-multi-allelics --dont-trim-alleles --keep-original-ac --verbosity ERROR
+  #                   bcftools view -Oz -o "${split_out}.gz" "$split_out"
+  #                   bcftools index "${split_out}.gz"
+  #                   rm -f "$split_out"
+  #                   [[ -n "$ungzipped" ]] && rm -f "$ungzipped"
+  #               done
+  #             fi
+  #             :> "$projdir/split_done.txt"
+  #           fi
+  #           shopt -u nullglob
+  #
+  #           shopt -s nullglob
+  #           split_vcfs=( "$projdir"/snpcall/*_split.vcf.gz )
+  #           if (( ${#split_vcfs[@]} == 0 )); then
+  #               echo "ERROR: No *_split.vcf.gz files found in $projdir/snpcall" >&2
+  #               exit 1
+  #           fi
+  #           merge_prefix="${i%rd*}"
+  #           merged_vcf="${merge_prefix}split.vcf.gz"
+  #           if (( ${#split_vcfs[@]} > 1 )); then
+  #               $bcftools merge "${split_vcfs[@]}" --force-samples -m all -O z -o "$merged_vcf"
+  #           else
+  #               cp "${split_vcfs[0]}" "$merged_vcf"
+  #           fi
+  #           [[ -s "$merged_vcf" ]] || {
+  #               echo "ERROR: merged VCF is empty: $merged_vcf" >&2
+  #               exit 1
+  #           }
+  #           # Process each dose file
+  #           dose_files=( *dose*.txt )
+  #           (( ${#dose_files[@]} )) || {
+  #               echo "ERROR: No *dose*.txt files found" >&2
+  #               exit 1
+  #           }
+  #           for dose in "${dose_files[@]}"; do
+  #               echo "Processing $dose" >&2
+  #               prefix="${dose%_dose.txt}"
+  #               # Normalize chromosome names in dose file
+  #               awk -v pat1="${n}_Chr" -v pat2="${n}_chr" '
+  #                   { gsub(pat1,"Chr"); gsub(pat2,"Chr"); print }
+  #               ' "$dose" > "${dose}.tmp"
+  #               mv "${dose}.tmp" "$dose"
+  #
+  #               # Build VCF for this dose
+  #               header_vcf="${prefix}_header.vcf"
+  #               zcat "$merged_vcf" | awk -v pat1="${n}_Chr" -v pat2="${n}_chr" '
+  #                     /^#/ {
+  #                         gsub(pat1,"Chr");
+  #                         gsub(pat2,"Chr");
+  #                         gsub(/chr/,"Chr");
+  #                         print
+  #                     }' > "$header_vcf"
+  #               [[ -s "$header_vcf" ]] || {
+  #                   echo "ERROR: Header extraction failed for $merged_vcf" >&2
+  #                   exit 1
+  #               }
+  #               awk 'BEGIN{FS=OFS="\t"} NR==FNR&&FNR>1{gsub(/\r/,"",$2);gsub(/\r/,"",$3);keep[$2,$3]=1;next} !/^#/&&($1,$2) in keep{print}' "$dose" <(zcat "$merged_vcf") | \
+  #               sort -Vk1,1 -Vk2,2 | cat "$header_vcf" - > "${prefix}.vcf"
+  #               [[ -s "${prefix}.vcf" ]] || {
+  #                   echo "ERROR: VCF construction failed for $dose" >&2
+  #                   exit 1
+  #               }
+  #               gzip -f "${prefix}.vcf"
+  #               if ! zcat "${prefix}.vcf.gz" | grep -qv '^#'; then
+  #                   echo "ERROR: VCF contains no variants for $dose" >&2
+  #                   exit 1
+  #               fi
+  #
+  #               # Optional hapmap conversion
+  #               if (( ploidy <= 2 )); then
+  #                   if ! Rscript "${GBSapp_dir}/scripts/R/hapmap_format.R" \
+  #                       "${dose}" "${GBSapp_dir}/tools/R"; then
+  #                       echo "ERROR: hapmap_format.R failed for $dose" >&2
+  #                       exit 1
+  #                   fi
+  #                   [[ -s outfile.hmp.txt ]] || {
+  #                       echo "ERROR: outfile.hmp.txt missing after Rscript" >&2
+  #                       exit 1
+  #                   }
+  #                   mv outfile.hmp.txt "${prefix}.hmp.txt"
+  #               fi
+  #
+  #               # Metrics cleanup
+  #               for f in "${dose%.txt}"_AR_{metric,mean}.txt; do
+  #                   [[ -f "$f" ]] && mv "$f" "${prefix}_${f##*_}"
+  #               done
+  #           done
+  #
+  #           # Cleanup
+  #           rm -f "$merged_vcf"
+  #           rm -f *tmp.vcf *header.vcf darr.txt darr2.txt
+  #           shopt -u nullglob
+  #         fi
+  #
+  #
+  #           # # Merge logic
+  #           # shopt -s nullglob
+  #           # split_vcfs=( "$projdir"/snpcall/*_split.vcf.gz )
+  #           # shopt -s nullglob
+  #           # if (( ${#split_vcfs[@]} > 1 )); then
+  #           #     $bcftools merge "${split_vcfs[@]}" --force-samples -m all -O z -o "${i%rd*}split.vcf.gz"
+  #           # elif (( ${#split_vcfs[@]} == 1 )); then
+  #           #     cp "${split_vcfs[0]}" "./${i%rd*}split.vcf.gz"
+  #           # else
+  #           #     echo "WARNING: No *_split.vcf.gz files found in $projdir/snpcall/, creating empty placeholder" >&2
+  #           #     touch "./${i%rd*}split.vcf.gz"
+  #           # fi
+  #           # wait || true
+  #           #
+  #           # for i in *dose*; do
+  #           #   awk -v pat1="${n}_Chr" -v pat2="${n}_chr" '{gsub(pat1,"Chr");gsub(pat2,"Chr"); print $0}' $i > ${i%.txt}_hold.txt &&
+  #           #   mv ${i%.txt}_hold.txt $i &&
+  #           #   wait
+  #           # done
+  #           # wait
+  #           # zcat ${i%rd*}split.vcf.gz | grep '^#' | awk -v pat1="${n}_Chr" -v pat2="${n}_chr" '{gsub(pat1,"Chr");gsub(pat2,"Chr");gsub(/chr/,"Chr");}1' > ${i%.txt}_header.vcf &&
+  #           # awk 'FNR==NR{a[$1,$2]=$0;next}{if(b=a[$2,$3]){print b}}' <(zcat ${i%rd*}split.vcf.gz | grep -v '^#' | awk -v pat1="${n}_Chr" -v pat2="${n}_chr" '{gsub(pat1,"Chr");gsub(pat2,"Chr");gsub(/chr/,"Chr");}1') <(awk '!seen[$0] {print} {++seen[$0]}' $i) | \
+  #           # sort -Vk1,1 -Vk2,2 | cat ${i%.txt}_header.vcf - > ${i%dose.txt}.vcf &&
+  #           # rm -f ${i%.txt}_header.vcf
+  #           # rm -f ${i%rd*}split.vcf.gz
+  #           # gzip "${i%dose.txt}".vcf 2> /dev/null &&
+  #           # if ls *_.vcf.gz 1> /dev/null 2>&1; then mv ${i%dose.txt}.vcf.gz ${i%_dose.txt}.vcf.gz; fi
+  #           # wait
+  #
+  #         # else
+  #         #   for i in *dose*; do
+  #         #     awk -v pat1="${n}_Chr" -v pat2="${n}_chr" '{gsub(pat1,"Chr");gsub(pat2,"Chr"); print $0}' $i > ${i%.txt}_hold.txt &&
+  #         #     mv ${i%.txt}_hold.txt $i &&
+  #         #     wait
+  #         #   done
+  #         # fi
+  #         # wait
+  #
+  #   			# if [[ "$ploidy" -le 2 ]]; then
+  #         #   if ! Rscript "${GBSapp_dir}"/scripts/R/hapmap_format.R "$i" "${GBSapp_dir}/tools/R"; then
+  #         #     echo "Warning: Rscript failed for $pop — continuing pipeline"
+  #         #   fi
+  #         #   wait
+  #         #   mv outfile.hmp.txt "${i%dose.txt}.hmp.txt" 2> /dev/null &&
+  #         #   wait
+  #         # fi
+  #         #
+  #         # mv ${i%.txt}_AR_metric.txt ${i%dose.txt}_AR_metric.txt 2> /dev/null &&
+  #         # mv ${i%.txt}_AR_mean.txt ${i%dose.txt}_AR_mean.txt 2> /dev/null &&
+  #         # find . -type f -empty -delete
+  #         # rm -f AR*.txt
+  #         # wait
+  #   		done
+  #   		rm -f *tmp.vcf *header.vcf darr.txt darr2.txt
+  #   	fi
+  #   done
+  # } & PID_genvcf=$!
+  # [[ -n "$PID_genvcf" ]] && wait "$PID_genvcf"
+  # rm -f ${projdir}/snpcall/*_split.vcf*
+  # rm -f $projdir/split_done.txt
+  # wait
 
 }
 cd $projdir
