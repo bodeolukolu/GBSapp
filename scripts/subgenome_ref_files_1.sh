@@ -3820,7 +3820,32 @@ main () {
 
     echo "Running Beagle imputation and LD phasing..."
     $java -jar $beagle nthreads="$threads" gt="$beagle_input" out="${vcf_file%.vcf.gz}_LDphased" impute=true
-    rm -f *_dedup.vcf.gz*
+    $bcftools index "${vcf_file%.vcf.gz}_LDphased.vcf.gz"
+    $bcftools annotate -a "$beagle_input" -c FORMAT/DP,FORMAT/AD "${vcf_file%.vcf.gz}_LDphased.vcf.gz" -Oz -o "${vcf_file%.vcf.gz}_LDphasedDP.vcf.gz"
+    rm -f "${vcf_file%.vcf.gz}_LDphased.vcf.gz"*
+    $bcftools index "${vcf_file%.vcf.gz}_LDphasedDP.vcf.gz"
+
+    $bcftools view -h "${vcf_file%.vcf.gz}_LDphasedDP.vcf.gz" > header.vcf
+    awk 'BEGIN{OFS="\t"} /^#/ {print; next} FNR==NR {for(i=10;i<=NF;i++) gt[FNR,i]=$i; next} {
+      printf "%s", $1
+      for(j=2;j<=9;j++) printf "\t%s",$j
+      for(j=10;j<=NF;j++){
+      split($j,f,":")    # fields from imputed VCF
+      split(gt[FNR,j],g,":") # fields from original VCF
+      if(g[1]!="./.") f[1]=g[1]  # only replace GT if original is non-missing
+      printf "\t%s", f[1]
+      for(k=2;k<=length(f);k++) printf ":%s", f[k]  # append other FORMAT fields
+      }
+      print ""
+    }' \
+    <(zcat "$beagle_input" | grep -v '^#') <(zcat "${vcf_file%.vcf.gz}_LDphased.vcf.gz" | grep -v '^#') | \
+    cat header.vcf - > "${vcf_file%.vcf.gz}_LDphased.vcf"
+    rm -f header.vcf "${vcf_file%.vcf.gz}_LDphased.vcf.gz"*
+    rm -f "$beagle_input"*  "${vcf_file%.vcf.gz}_LDphasedDP.vcf.gz"*
+    $bcftools view -Oz -o "${vcf_file%.vcf.gz}_LDphased.vcf.gz" "${vcf_file%.vcf.gz}_LDphased.vcf" &&
+    $bcftools index "${vcf_file%.vcf.gz}_LDphased.vcf.gz"
+    rm -f "${vcf_file%.vcf.gz}_LDphased.vcf"
+
 
     for bam in "$bam_dir"/*.bam; do
       (
@@ -3830,7 +3855,6 @@ main () {
         phased_vcfgz="$micro_dir/${sample}.phased.vcf.gz"
         $samtools view -b -L "${vcf_file%.vcf*}.bed" "${bam_dir}/${sample}.bam" > "${micro_dir}/${sample}.bam" || true
         samtools index "${micro_dir}/${sample}.bam" || true
-
         "$whatshap" phase --reference "$ref" --output "$phased_vcf" "${vcf_file%.vcf.gz}_LDphased.vcf.gz" "${micro_dir}/${sample}.bam" &&
         rm -f "${micro_dir}/${sample}.bam*"
         $bcftools view -Oz -o "$phased_vcfgz" "$phased_vcf" &&
@@ -3852,7 +3876,31 @@ main () {
     $bcftools index "$PHASED"
     $java -jar $beagle nthreads="$threads" gt="$PHASED" out="${PHASEDfinal}" impute=true
     $bcftools index "${PHASEDfinal}.vcf.gz"
-    rm -f "${PHASED}*"
+    #rm -f "${PHASED}*"
+    $bcftools annotate -a "$PHASED" -c FORMAT/DP,FORMAT/AD "${PHASEDfinal}.vcf.gz" -Oz -o "${PHASEDfinal}_DP.vcf.gz"
+    rm -f "${PHASEDfinal}.vcf.gz"*
+    $bcftools index "${PHASEDfinal}_DP.vcf.gz"
+
+    $bcftools view -h "${PHASEDfinal}_DP.vcf.gz" > header.vcf
+    awk 'BEGIN{OFS="\t"} /^#/ {print; next} FNR==NR {for(i=10;i<=NF;i++) gt[FNR,i]=$i; next} {
+      printf "%s", $1
+      for(j=2;j<=9;j++) printf "\t%s",$j
+      for(j=10;j<=NF;j++){
+      split($j,f,":")    # fields from imputed VCF
+      split(gt[FNR,j],g,":") # fields from original VCF
+      if(g[1]!="./.") f[1]=g[1]  # only replace GT if original is non-missing
+      printf "\t%s", f[1]
+      for(k=2;k<=length(f);k++) printf ":%s", f[k]  # append other FORMAT fields
+      }
+      print ""
+    }' \
+    <(zcat "$PHASED" | grep -v '^#') <(zcat "${PHASEDfinal}_DP.vcf.gz" | grep -v '^#') | \
+    cat header.vcf - > "${PHASEDfinal}.vcf"
+    rm -f header.vcf "${PHASEDfinal}.vcf.gz"*
+    rm -f "$PHASED"*  "${PHASEDfinal}_DP.vcf.gz"*
+    $bcftools view -Oz -o "${PHASEDfinal}.vcf.gz" "${PHASEDfinal}.vcf" &&
+    $bcftools index "${PHASEDfinal}.vcf.gz"
+    rm -f "${PHASEDfinal}.vcf"
 
     ##########################################
     # MICROHAP WINDOWING (PRESERVES BOTH HAPLOTYPES)
