@@ -18,20 +18,18 @@ if (ploidy == "1x"){
     file.names <- dir(path, pattern ="1x_rawSPLIT.*\\.vcf")
     subgenome_1 <- NULL
     for(i in 1:length(file.names)){
-      all_content <- readLines(file.names[i])
-      vcffile <- read.table(textConnection(all_content), header = TRUE, check.names = FALSE)
+      vcffile <- read.table(file.names[i], header = TRUE, check.names = FALSE)
       vcffile <- subset(vcffile, select=-c(ID,QUAL,FILTER,INFO,FORMAT))
       cnames <- colnames(vcffile)
       vcffile_GT <- vcffile; vcffile_DP <- vcffile
-      all_content <- NULL
-      
+
       vcffile_GT[,5:length(cnames)] <- lapply(vcffile_GT[,5:length(cnames)], sub, pattern = ":.*", replacement = "")
       vcffile_AR[,5:length(cnames)] <- lapply(vcffile_AR[,5:length(cnames)], sub, pattern = "^[^:]*:", replacement = "")
       vcffile_AR[,5:length(cnames)] <- lapply(vcffile_AR[,5:length(cnames)], sub, pattern = ":.*", replacement = "")
       vcffile_DP[,5:length(cnames)] <- lapply(vcffile_DP[,5:length(cnames)], sub, pattern = "^[^:]*:", replacement = "")
       vcffile_DP[,5:length(cnames)] <- lapply(vcffile_DP[,5:length(cnames)], sub, pattern = "^[^:]*:", replacement = "")
       vcffile_DP[,5:length(cnames)] <- lapply(vcffile_DP[,5:length(cnames)], sub, pattern = ":.*", replacement = "")
-      
+
       names(vcffile_GT)[5:length(cnames)] <- paste(colnames(vcffile_GT[,5:length(cnames)]), "_GT", sep="")
       names(vcffile_DP)[5:length(cnames)] <- paste(colnames(vcffile_DP[,5:length(cnames)]), "_DP", sep="")
       vcffile_DP[,5:ncol(vcffile_DP)] <- lapply(vcffile_DP[,5:ncol(vcffile_DP)], gsub, pattern = "\\.", replacement = "0")
@@ -67,12 +65,10 @@ if (ploidy == "2x"){
     file.names <- dir(path, pattern ="2x_rawSPLIT.*\\.vcf")
     subgenome_1 <- NULL
     for(i in 1:length(file.names)){
-      all_content <- readLines(file.names[i])
-      vcffile <- read.table(textConnection(all_content), header = TRUE, check.names = FALSE)
+      vcffile <- read.table(file.names[i], header = TRUE, check.names = FALSE)
       vcffile <- subset(vcffile, select=-c(ID,QUAL,FILTER,INFO,FORMAT))
       cnames <- colnames(vcffile)
       vcffile_GT <- vcffile; vcffile_DP <- vcffile; vcffile_AR <- vcffile
-      all_content <- NULL
 
       vcffile_GT[,5:length(cnames)] <- lapply(vcffile_GT[,5:length(cnames)], sub, pattern = ":.*", replacement = "")
       vcffile_AR[,5:length(cnames)] <- lapply(vcffile_AR[,5:length(cnames)], sub, pattern = "^[^:]*:", replacement = "")
@@ -81,29 +77,28 @@ if (ploidy == "2x"){
       vcffile_DP[,5:length(cnames)] <- lapply(vcffile_DP[,5:length(cnames)], sub, pattern = "^[^:]*:", replacement = "")
       vcffile_DP[,5:length(cnames)] <- lapply(vcffile_DP[,5:length(cnames)], sub, pattern = ":.*", replacement = "")
 
-      vcffile_AR_label <- vcffile_AR[,1:4]
       vcffile_AR[,5:ncol(vcffile_AR)] <- lapply(vcffile_AR[,5:ncol(vcffile_AR)], gsub, pattern = "\\.", replacement = "0,0")
-      nosplit <- vcffile_AR_label
-      for (k in c(5:(ncol(vcffile_AR)))) {
-        splitAR <- strsplit(as.character(vcffile_AR[,k]),",")
-        suppressWarnings(splitAR <- as.data.frame(do.call(rbind, splitAR)))
-        suppressWarnings(splitAR <- as.data.frame(as.numeric(splitAR$V1) / as.numeric(splitAR$V2)))
-        splitAR[][splitAR[]=="NaN"] <- NA
-        splitAR[][splitAR[]=="Inf"] <- "0"
-        splitAR <- cbind(vcffile_AR_label,splitAR)
-        names(splitAR)[5] <- colnames(vcffile_AR[k])
-        splitAR[,5] <- as.numeric(splitAR[,5])
-        # splitAR_na <- splitAR[is.na(splitAR[,5]),]
-        # splitAR_na[splitAR_na=='NA'] <- NA
-        splitAR_pos <- subset(splitAR, splitAR[,5] <= 1)
-        splitAR_neg <- subset(splitAR, splitAR[,5] > 1)
-        splitAR_neg[,5] <- -(1/as.numeric(splitAR_neg[,5]))
-        splitAR <- rbind(splitAR_pos, splitAR_neg)
-        # splitAR <- rbind(splitAR, splitAR_na)
-        nosplit <- merge(nosplit,splitAR, by=c("CHROM","POS","REF","ALT"))
+
+
+      vcffile_AR_label <- vcffile_AR[,1:4]
+      AR_list_cols <- vector("list", ncol(vcffile_AR) - 4)
+      names(AR_list_cols) <- colnames(vcffile_AR)[5:ncol(vcffile_AR)]
+      for (k in 5:ncol(vcffile_AR)) {
+        vals <- gsub("\\.", "0,0", vcffile_AR[,k])
+        sp <- strsplit(as.character(vals), ",")
+        ref <- suppressWarnings(as.numeric(sapply(sp, `[`, 1)))
+        alt <- suppressWarnings(as.numeric(sapply(sp, `[`, 2)))
+        ratio <- ref / alt
+        ratio[is.nan(ratio)] <- NA
+        ratio[is.infinite(ratio)] <- 0
+        idx <- which(ratio > 1)
+        ratio[idx] <- -(1 / ratio[idx])
+        AR_list_cols[[k-4]] <- ratio
       }
-      vcffile_AR <- nosplit
-      
+      AR_df <- as.data.frame(AR_list_cols, check.names = FALSE)
+      vcffile_AR <- cbind(vcffile_AR_label, AR_df)
+
+
       names(vcffile_GT)[5:length(cnames)] <- paste(colnames(vcffile_GT[,5:length(cnames)]), "_GT", sep="")
       names(vcffile_DP)[5:length(cnames)] <- paste(colnames(vcffile_DP[,5:length(cnames)]), "_DP", sep="")
       vcffile_DP[,5:ncol(vcffile_DP)] <- lapply(vcffile_DP[,5:ncol(vcffile_DP)], gsub, pattern = "\\.", replacement = "0")
@@ -126,7 +121,7 @@ if (ploidy == "2x"){
       subgenome_1 <- rbind(subgenome_1,vcffile)
       gc()
     }
-    
+
     GTincre <- (ARend-ARstart) + 1
     for (m in c(ARstart:ARend)) {
       n <- m-GTincre
@@ -148,8 +143,8 @@ if (ploidy == "2x"){
     vcffile_DP <- NULL
     vcffile_GT <- NULL
     unlink(paste("*2x_rawSPLIT*",sep=""))
-    
-    
+
+
     AR$propHet <- (rowSums(AR == "0/1" | AR == "0|1", na.rm = TRUE)) / (GTincre - (rowSums(AR == "./.", na.rm = TRUE)))
     AR <- AR[,c(ARstart:ARend,ncol(AR))]
     AR <- subset(AR, AR$propHet != 0)
@@ -157,7 +152,7 @@ if (ploidy == "2x"){
     AR <- AR[,c(which(colnames(AR)=="propHet"),which(colnames(AR)!="propHet"))]
     suppressWarnings(AR <- na.omit(cbind(AR[1], stack(AR[-1]), row.names = NULL)))
     AR <- AR[,1:2]; names(AR) <- c("propHet","Allele_Ratio")
-    
+
     ARplot <- ggplot(AR,aes(x=propHet,y=Allele_Ratio))+
       geom_point(aes(x = propHet, y = Allele_Ratio, color = Allele_Ratio), size = 1, pch=19, alpha=0.1)+
       geom_density_2d(bins=50)+
@@ -165,21 +160,17 @@ if (ploidy == "2x"){
       scale_x_continuous(expand=c(0,0))+
       scale_y_continuous(expand=c(0,0))+
       scale_colour_gradient2(low="darkorange3", mid="darkgoldenrod1", high ="cornflowerblue",
-                             breaks=c(0.75,-0.75), limits=c(-1,1), 
+                             breaks=c(0.75,-0.75), limits=c(-1,1),
                              labels=c("Minor Allele: Ref","Minor Allele: Alt"))+
-      theme(legend.title = element_blank())+
-      # geom_hline(yintercept = 0.2, color="tomato", size=0.5, linetype="dashed")+ 
-      geom_hline(yintercept = 0, color="grey20", size=0.5, linetype="dashed")+ 
-      # geom_hline(yintercept = -0.2, color="tomato", size=0.5, linetype="dashed")+ 
-      geom_hline(yintercept = 1, color="grey20", size=0.5, linetype="dashed")+ 
-      geom_hline(yintercept = -1, color="grey20", size=0.5, linetype="dashed")+ 
-      annotate("text", x=0.92, y=0, label="Homozygote", vjust=-0.5, fontface="italic")+
-      annotate("text", x=0.85, y=1, label="Heterozygote (balanced allele ratio)", vjust=1.0, fontface="italic")+
-      annotate("text", x=0.85, y=-1, label="Heterozygote (balanced allele ratio)", vjust=-1.0, fontface="italic")+
-      # annotate("text", x=0.86, y=0.2, label="Allele Ratio filter threshold (> 0.2)", vjust=-0.5, fontface="italic")+
-      # annotate("text", x=0.86, y=-0.2, label="Allele Ratio filter threshold (< -0.2)", vjust=1.2, fontface="italic")+
+      theme(legend.position = "none")+
+      geom_hline(yintercept = 0, color="grey20", size=0.5, linetype="dashed")+
+      geom_hline(yintercept = 1, color="grey20", size=0.5, linetype="dashed")+
+      geom_hline(yintercept = -1, color="grey20", size=0.5, linetype="dashed")+
+      annotate("label", x=0.92, y=0, label="Extreme Imbalance", vjust=-0.5, fontface="italic")+
+      annotate("label", x=0.85, y=1, label="ALT-dominant (balanced = +1)", vjust=1.0)+
+      annotate("label", x=0.85, y=-1, label="REF-dominant (balanced = -1)", vjust=-1.0)+
       xlab("Proportion of Heterozygote per Locus (diploid)") +
-      ylab("Allele Read Depth Ratio per Genotype")
+      ylab("Allele Imbalance Metric")
     ggsave(file=paste("raw2x_Allele_Ratio_Heterozygosity_plot",".tiff",sep=""), plot=ARplot, width=12, height=4, units=("in"), dpi=300, compression = "lzw")
   }
   vcf_to_DP_GT_2x()
@@ -192,43 +183,38 @@ if (ploidy == "3x"){
     file.names <- dir(path, pattern ="3x_rawSPLIT.*\\.vcf")
     subgenome_1 <- NULL
     for(i in 1:length(file.names)){
-      all_content <- readLines(file.names[i])
-      vcffile <- read.table(textConnection(all_content), header = TRUE, check.names = FALSE)
+      vcffile <- read.table(file.names[i], header = TRUE, check.names = FALSE)
       vcffile <- subset(vcffile, select=-c(ID,QUAL,FILTER,INFO,FORMAT))
       cnames <- colnames(vcffile)
       vcffile_GT <- vcffile; vcffile_DP <- vcffile; vcffile_AR <- vcffile
-      all_content <- NULL
-      
+
       vcffile_GT[,5:length(cnames)] <- lapply(vcffile_GT[,5:length(cnames)], sub, pattern = ":.*", replacement = "")
       vcffile_AR[,5:length(cnames)] <- lapply(vcffile_AR[,5:length(cnames)], sub, pattern = "^[^:]*:", replacement = "")
       vcffile_AR[,5:length(cnames)] <- lapply(vcffile_AR[,5:length(cnames)], sub, pattern = ":.*", replacement = "")
       vcffile_DP[,5:length(cnames)] <- lapply(vcffile_DP[,5:length(cnames)], sub, pattern = "^[^:]*:", replacement = "")
       vcffile_DP[,5:length(cnames)] <- lapply(vcffile_DP[,5:length(cnames)], sub, pattern = "^[^:]*:", replacement = "")
       vcffile_DP[,5:length(cnames)] <- lapply(vcffile_DP[,5:length(cnames)], sub, pattern = ":.*", replacement = "")
-      
-      vcffile_AR_label <- vcffile_AR[,1:4]
+
       vcffile_AR[,5:ncol(vcffile_AR)] <- lapply(vcffile_AR[,5:ncol(vcffile_AR)], gsub, pattern = "\\.", replacement = "0,0")
-      nosplit <- vcffile_AR_label
-      for (k in c(5:(ncol(vcffile_AR)))) {
-        splitAR <- strsplit(as.character(vcffile_AR[,k]),",")
-        suppressWarnings(splitAR <- as.data.frame(do.call(rbind, splitAR)))
-        suppressWarnings(splitAR <- as.data.frame(as.numeric(splitAR$V1) / as.numeric(splitAR$V2)))
-        splitAR[][splitAR[]=="NaN"] <- NA
-        splitAR[][splitAR[]=="Inf"] <- "0"
-        splitAR <- cbind(vcffile_AR_label,splitAR)
-        names(splitAR)[5] <- colnames(vcffile_AR[k])
-        splitAR[,5] <- as.numeric(splitAR[,5])
-        # splitAR_na <- splitAR[is.na(splitAR[,5]),]
-        # splitAR_na[splitAR_na=='NA'] <- NA
-        splitAR_pos <- subset(splitAR, splitAR[,5] <= 1)
-        splitAR_neg <- subset(splitAR, splitAR[,5] > 1)
-        splitAR_neg[,5] <- -(1/as.numeric(splitAR_neg[,5]))
-        splitAR <- rbind(splitAR_pos, splitAR_neg)
-        # splitAR <- rbind(splitAR, splitAR_na)
-        nosplit <- merge(nosplit,splitAR, by=c("CHROM","POS","REF","ALT"))
+
+      vcffile_AR_label <- vcffile_AR[,1:4]
+      AR_list_cols <- vector("list", ncol(vcffile_AR) - 4)
+      names(AR_list_cols) <- colnames(vcffile_AR)[5:ncol(vcffile_AR)]
+      for (k in 5:ncol(vcffile_AR)) {
+        vals <- gsub("\\.", "0,0", vcffile_AR[,k])
+        sp <- strsplit(as.character(vals), ",")
+        ref <- suppressWarnings(as.numeric(sapply(sp, `[`, 1)))
+        alt <- suppressWarnings(as.numeric(sapply(sp, `[`, 2)))
+        ratio <- ref / alt
+        ratio[is.nan(ratio)] <- NA
+        ratio[is.infinite(ratio)] <- 0
+        idx <- which(ratio > 1)
+        ratio[idx] <- -(1 / ratio[idx])
+        AR_list_cols[[k-4]] <- ratio
       }
-      vcffile_AR <- nosplit
-      
+      AR_df <- as.data.frame(AR_list_cols, check.names = FALSE)
+      vcffile_AR <- cbind(vcffile_AR_label, AR_df)
+
       names(vcffile_GT)[5:length(cnames)] <- paste(colnames(vcffile_GT[,5:length(cnames)]), "_GT", sep="")
       names(vcffile_DP)[5:length(cnames)] <- paste(colnames(vcffile_DP[,5:length(cnames)]), "_DP", sep="")
       vcffile_DP[,5:ncol(vcffile_DP)] <- lapply(vcffile_DP[,5:ncol(vcffile_DP)], gsub, pattern = "\\.", replacement = "0")
@@ -273,10 +259,10 @@ if (ploidy == "3x"){
     vcffile_DP <- NULL
     vcffile_GT <- NULL
     unlink(paste("*3x_rawSPLIT*",sep=""))
-    
-    
-    
-    AR$propHet <- (rowSums(AR == "0/0/1" | AR == "0/1/1" | 
+
+
+
+    AR$propHet <- (rowSums(AR == "0/0/1" | AR == "0/1/1" |
                              AR == "0|0|1" | AR == "0|1|1" , na.rm = TRUE)) / (GTincre - (rowSums(AR == "././.", na.rm = TRUE)))
     AR <- AR[,c(ARstart:ARend,ncol(AR))]
     AR <- subset(AR, AR$propHet != 0)
@@ -284,7 +270,7 @@ if (ploidy == "3x"){
     AR <- AR[,c(which(colnames(AR)=="propHet"),which(colnames(AR)!="propHet"))]
     suppressWarnings(AR <- na.omit(cbind(AR[1], stack(AR[-1]), row.names = NULL)))
     AR <- AR[,1:2]; names(AR) <- c("propHet","Allele_Ratio")
-    
+
     ARplot <- ggplot(AR,aes(x=propHet,y=Allele_Ratio))+
       geom_point(aes(x = propHet, y = Allele_Ratio, color = Allele_Ratio), size = 1, pch=19, alpha=0.1)+
       geom_density_2d(bins=50)+
@@ -292,27 +278,27 @@ if (ploidy == "3x"){
       scale_x_continuous(expand=c(0,0))+
       scale_y_continuous(expand=c(0,0))+
       scale_colour_gradient2(low="darkorange3", mid="darkgoldenrod1", high ="cornflowerblue",
-                             breaks=c(0.75,-0.75), limits=c(-1,1), 
+                             breaks=c(0.75,-0.75), limits=c(-1,1),
                              labels=c("Minor Allele: Ref","Minor Allele: Alt"))+
-      theme(legend.title = element_blank())+
-      # geom_hline(yintercept = 0.17, color="tomato", size=0.5, linetype="dashed")+ 
-      geom_hline(yintercept = 0, color="grey20", size=0.5, linetype="dashed")+ 
-      # geom_hline(yintercept = -0.17, color="tomato", size=0.5, linetype="dashed")+ 
-      geom_hline(yintercept = 1, color="grey20", size=0.5, linetype="dashed")+ 
-      # geom_hline(yintercept = 0.33, color="grey20", size=0.5, linetype="dashed")+ 
-      # geom_hline(yintercept = -0.33, color="grey20", size=0.5, linetype="dashed")+ 
-      geom_hline(yintercept = -1, color="grey20", size=0.5, linetype="dashed")+ 
-      annotate("text", x=0.92, y=0, label="Homozygote", vjust=-0.5, fontface="italic")+
-      # annotate("text", x=0.89, y=0.33, label="Heterozygote (0/0/0/1)", vjust=-0.5, fontface="italic")+
-      annotate("text", x=0.85, y=1, label="Heterozygote (balanced allele ratio)", vjust=1, fontface="italic")+
-      annotate("text", x=0.85, y=-1, label="Heterozygote (balanced allele ratio)", vjust=-1, fontface="italic")+
-      # annotate("text", x=0.89, y=-0.33, label="Heterozygote (0/1/1/1)", vjust=0.5, fontface="italic")+
-      # annotate("text", x=0.85, y=0.17, label="Allele Ratio filter threshold (> 0.17)", vjust=-0.5, fontface="italic")+
-      # annotate("text", x=0.85, y=-0.17, label="Allele Ratio filter threshold (< -0.17)", vjust=1.2, fontface="italic")+
+      theme(legend.position = "none")+
+      # geom_hline(yintercept = 0.17, color="tomato", size=0.5, linetype="dashed")+
+      geom_hline(yintercept = 0, color="grey20", size=0.5, linetype="dashed")+
+      # geom_hline(yintercept = -0.17, color="tomato", size=0.5, linetype="dashed")+
+      geom_hline(yintercept = 1, color="grey20", size=0.5, linetype="dashed")+
+      # geom_hline(yintercept = 0.33, color="grey20", size=0.5, linetype="dashed")+
+      # geom_hline(yintercept = -0.33, color="grey20", size=0.5, linetype="dashed")+
+      geom_hline(yintercept = -1, color="grey20", size=0.5, linetype="dashed")+
+      annotate("label", x=0.92, y=0, label="Extreme Imbalance", vjust=-0.5, fontface="italic")+
+      # annotate("label", x=0.89, y=0.33, label="Heterozygote (0/0/0/1)", vjust=-0.5, fontface="italic")+
+      annotate("label", x=0.85, y=1, label="ALT-dominant (balanced = +1)", vjust=1, fontface="italic")+
+      annotate("label", x=0.85, y=-1, label="REF-dominant (balanced = -1)", vjust=-1, fontface="italic")+
+      # annotate("label", x=0.89, y=-0.33, label="Heterozygote (0/1/1/1)", vjust=0.5, fontface="italic")+
+      # annotate("label", x=0.85, y=0.17, label="Allele Ratio filter threshold (> 0.17)", vjust=-0.5, fontface="italic")+
+      # annotate("label", x=0.85, y=-0.17, label="Allele Ratio filter threshold (< -0.17)", vjust=1.2, fontface="italic")+
       xlab("Proportion of Heterozygote per Locus (tetraploid)") +
-      ylab("Allele Read Depth Ratio per Genotype")
+      ylab("Allele Imbalance Metric")
     ggsave(file=paste("raw3x_Allele_Ratio_Heterozygosity_plot",".tiff",sep=""), plot=ARplot, width=12, height=4, units=("in"), dpi=300, compression = "lzw")
-    
+
   }
   vcf_to_DP_GT_3x()
 }
@@ -324,44 +310,39 @@ if (ploidy == "4x"){
     file.names <- dir(path, pattern ="4x_rawSPLIT.*\\.vcf")
     subgenome_1 <- NULL
     for(i in 1:length(file.names)){
-      all_content <- readLines(file.names[i])
-      vcffile <- read.table(textConnection(all_content), header = TRUE, check.names = FALSE)
+      vcffile <- read.table(file.names[i], header = TRUE, check.names = FALSE)
       vcffile <- subset(vcffile, select=-c(ID,QUAL,FILTER,INFO,FORMAT))
       cnames <- colnames(vcffile)
       vcffile_GT <- vcffile; vcffile_DP <- vcffile; vcffile_AR <- vcffile
-      all_content <- NULL
-      
+
       vcffile_GT[,5:length(cnames)] <- lapply(vcffile_GT[,5:length(cnames)], sub, pattern = ":.*", replacement = "")
       vcffile_AR[,5:length(cnames)] <- lapply(vcffile_AR[,5:length(cnames)], sub, pattern = "^[^:]*:", replacement = "")
       vcffile_AR[,5:length(cnames)] <- lapply(vcffile_AR[,5:length(cnames)], sub, pattern = ":.*", replacement = "")
       vcffile_DP[,5:length(cnames)] <- lapply(vcffile_DP[,5:length(cnames)], sub, pattern = "^[^:]*:", replacement = "")
       vcffile_DP[,5:length(cnames)] <- lapply(vcffile_DP[,5:length(cnames)], sub, pattern = "^[^:]*:", replacement = "")
       vcffile_DP[,5:length(cnames)] <- lapply(vcffile_DP[,5:length(cnames)], sub, pattern = ":.*", replacement = "")
-      
-      vcffile_AR_label <- vcffile_AR[,1:4]
+
       vcffile_AR[,5:ncol(vcffile_AR)] <- lapply(vcffile_AR[,5:ncol(vcffile_AR)], gsub, pattern = "\\.", replacement = "0,0")
-      nosplit <- vcffile_AR_label
-      for (k in c(5:(ncol(vcffile_AR)))) {
-        splitAR <- strsplit(as.character(vcffile_AR[,k]),",")
-        suppressWarnings(splitAR <- as.data.frame(do.call(rbind, splitAR)))
-        suppressWarnings(splitAR <- as.data.frame(as.numeric(splitAR$V1) / as.numeric(splitAR$V2)))
-        splitAR[][splitAR[]=="NaN"] <- NA
-        splitAR[][splitAR[]=="Inf"] <- "0"
-        splitAR <- cbind(vcffile_AR_label,splitAR)
-        names(splitAR)[5] <- colnames(vcffile_AR[k])
-        splitAR[,5] <- as.numeric(splitAR[,5])
-        # splitAR_na <- splitAR[is.na(splitAR[,5]),]
-        # splitAR_na[splitAR_na=='NA'] <- NA
-        splitAR_pos <- subset(splitAR, splitAR[,5] <= 1)
-        splitAR_neg <- subset(splitAR, splitAR[,5] > 1)
-        splitAR_neg[,5] <- -(1/as.numeric(splitAR_neg[,5]))
-        splitAR <- rbind(splitAR_pos, splitAR_neg)
-        # splitAR <- rbind(splitAR, splitAR_na)
-        nosplit <- merge(nosplit,splitAR, by=c("CHROM","POS","REF","ALT"))
+
+      vcffile_AR_label <- vcffile_AR[,1:4]
+      AR_list_cols <- vector("list", ncol(vcffile_AR) - 4)
+      names(AR_list_cols) <- colnames(vcffile_AR)[5:ncol(vcffile_AR)]
+      for (k in 5:ncol(vcffile_AR)) {
+        vals <- gsub("\\.", "0,0", vcffile_AR[,k])
+        sp <- strsplit(as.character(vals), ",")
+        ref <- suppressWarnings(as.numeric(sapply(sp, `[`, 1)))
+        alt <- suppressWarnings(as.numeric(sapply(sp, `[`, 2)))
+        ratio <- ref / alt
+        ratio[is.nan(ratio)] <- NA
+        ratio[is.infinite(ratio)] <- 0
+        idx <- which(ratio > 1)
+        ratio[idx] <- -(1 / ratio[idx])
+        AR_list_cols[[k-4]] <- ratio
       }
-      vcffile_AR <- nosplit
-      
-      
+      AR_df <- as.data.frame(AR_list_cols, check.names = FALSE)
+      vcffile_AR <- cbind(vcffile_AR_label, AR_df)
+
+
       names(vcffile_GT)[5:length(cnames)] <- paste(colnames(vcffile_GT[,5:length(cnames)]), "_GT", sep="")
       names(vcffile_DP)[5:length(cnames)] <- paste(colnames(vcffile_DP[,5:length(cnames)]), "_DP", sep="")
       vcffile_DP[,5:ncol(vcffile_DP)] <- lapply(vcffile_DP[,5:ncol(vcffile_DP)], gsub, pattern = "\\.", replacement = "0")
@@ -407,10 +388,10 @@ if (ploidy == "4x"){
     vcffile_DP <- NULL
     vcffile_GT <- NULL
     unlink(paste("*4x_rawSPLIT*",sep=""))
-    
-    
 
-    AR$propHet <- (rowSums(AR == "0/0/0/1" | AR == "0/0/1/1" | AR == "0/1/1/1" | 
+
+
+    AR$propHet <- (rowSums(AR == "0/0/0/1" | AR == "0/0/1/1" | AR == "0/1/1/1" |
                            AR == "0|0|0|1" | AR == "0|0|1|1" | AR == "0|1|1|1", na.rm = TRUE)) / (GTincre - (rowSums(AR == "./././.", na.rm = TRUE)))
     AR <- AR[,c(ARstart:ARend,ncol(AR))]
     AR <- subset(AR, AR$propHet != 0)
@@ -418,7 +399,7 @@ if (ploidy == "4x"){
     AR <- AR[,c(which(colnames(AR)=="propHet"),which(colnames(AR)!="propHet"))]
     suppressWarnings(AR <- na.omit(cbind(AR[1], stack(AR[-1]), row.names = NULL)))
     AR <- AR[,1:2]; names(AR) <- c("propHet","Allele_Ratio")
-    
+
     ARplot <- ggplot(AR,aes(x=propHet,y=Allele_Ratio))+
       geom_point(aes(x = propHet, y = Allele_Ratio, color = Allele_Ratio), size = 1, pch=19, alpha=0.1)+
       geom_density_2d(bins=50)+
@@ -426,27 +407,27 @@ if (ploidy == "4x"){
       scale_x_continuous(expand=c(0,0))+
       scale_y_continuous(expand=c(0,0))+
       scale_colour_gradient2(low="darkorange3", mid="darkgoldenrod1", high ="cornflowerblue",
-                             breaks=c(0.75,-0.75), limits=c(-1,1), 
+                             breaks=c(0.75,-0.75), limits=c(-1,1),
                              labels=c("Minor Allele: Ref","Minor Allele: Alt"))+
-      theme(legend.title = element_blank())+
-      # geom_hline(yintercept = 0.17, color="tomato", size=0.5, linetype="dashed")+ 
-      geom_hline(yintercept = 0, color="grey20", size=0.5, linetype="dashed")+ 
-      # geom_hline(yintercept = -0.17, color="tomato", size=0.5, linetype="dashed")+ 
-      geom_hline(yintercept = 1, color="grey20", size=0.5, linetype="dashed")+ 
-      # geom_hline(yintercept = 0.33, color="grey20", size=0.5, linetype="dashed")+ 
-      # geom_hline(yintercept = -0.33, color="grey20", size=0.5, linetype="dashed")+ 
-      geom_hline(yintercept = -1, color="grey20", size=0.5, linetype="dashed")+ 
-      annotate("text", x=0.92, y=0, label="Homozygote", vjust=-0.5, fontface="italic")+
-      # annotate("text", x=0.89, y=0.33, label="Heterozygote (0/0/0/1)", vjust=-0.5, fontface="italic")+
-      annotate("text", x=0.85, y=1, label="Heterozygote (balanced allele ratio)", vjust=1, fontface="italic")+
-      annotate("text", x=0.85, y=-1, label="Heterozygote (balanced allele ratio)", vjust=-1, fontface="italic")+
-      # annotate("text", x=0.89, y=-0.33, label="Heterozygote (0/1/1/1)", vjust=0.5, fontface="italic")+
-      # annotate("text", x=0.85, y=0.17, label="Allele Ratio filter threshold (> 0.17)", vjust=-0.5, fontface="italic")+
-      # annotate("text", x=0.85, y=-0.17, label="Allele Ratio filter threshold (< -0.17)", vjust=1.2, fontface="italic")+
+      theme(legend.position = "none")+
+      # geom_hline(yintercept = 0.17, color="tomato", size=0.5, linetype="dashed")+
+      geom_hline(yintercept = 0, color="grey20", size=0.5, linetype="dashed")+
+      # geom_hline(yintercept = -0.17, color="tomato", size=0.5, linetype="dashed")+
+      geom_hline(yintercept = 1, color="grey20", size=0.5, linetype="dashed")+
+      # geom_hline(yintercept = 0.33, color="grey20", size=0.5, linetype="dashed")+
+      # geom_hline(yintercept = -0.33, color="grey20", size=0.5, linetype="dashed")+
+      geom_hline(yintercept = -1, color="grey20", size=0.5, linetype="dashed")+
+      annotate("label", x=0.92, y=0, label="Extreme Imbalance", vjust=-0.5, fontface="italic")+
+      # annotate("label", x=0.89, y=0.33, label="Heterozygote (0/0/0/1)", vjust=-0.5, fontface="italic")+
+      annotate("label", x=0.85, y=1, label="ALT-dominant (balanced = +1)", vjust=1, fontface="italic")+
+      annotate("label", x=0.85, y=-1, label="REF-dominant (balanced = -1)", vjust=-1, fontface="italic")+
+      # annotate("label", x=0.89, y=-0.33, label="Heterozygote (0/1/1/1)", vjust=0.5, fontface="italic")+
+      # annotate("label", x=0.85, y=0.17, label="Allele Ratio filter threshold (> 0.17)", vjust=-0.5, fontface="italic")+
+      # annotate("label", x=0.85, y=-0.17, label="Allele Ratio filter threshold (< -0.17)", vjust=1.2, fontface="italic")+
       xlab("Proportion of Heterozygote per Locus (tetraploid)") +
-      ylab("Allele Read Depth Ratio per Genotype")
+      ylab("Allele Imbalance Metric")
     ggsave(file=paste("raw4x_Allele_Ratio_Heterozygosity_plot",".tiff",sep=""), plot=ARplot, width=12, height=4, units=("in"), dpi=300, compression = "lzw")
-    
+
   }
   vcf_to_DP_GT_4x()
 }
@@ -458,22 +439,21 @@ if (ploidy == "6x"){
     file.names <- dir(path, pattern ="6x_rawSPLIT.*\\.vcf")
     subgenome_1 <- NULL
     for(i in 1:length(file.names)){
-      all_content <- readLines(file.names[i])
-      vcffile <- read.table(textConnection(all_content), header = TRUE, check.names = FALSE)
+      vcffile <- read.table(file.names[i], header = TRUE, check.names = FALSE)
       vcffile <- subset(vcffile, select=-c(ID,QUAL,FILTER,INFO,FORMAT))
       cnames <- colnames(vcffile)
       vcffile_GT <- vcffile; vcffile_DP <- vcffile; vcffile_AR <- vcffile
-      all_content <- NULL
-      
+
       vcffile_GT[,5:length(cnames)] <- lapply(vcffile_GT[,5:length(cnames)], sub, pattern = ":.*", replacement = "")
       vcffile_AR[,5:length(cnames)] <- lapply(vcffile_AR[,5:length(cnames)], sub, pattern = "^[^:]*:", replacement = "")
       vcffile_AR[,5:length(cnames)] <- lapply(vcffile_AR[,5:length(cnames)], sub, pattern = ":.*", replacement = "")
       vcffile_DP[,5:length(cnames)] <- lapply(vcffile_DP[,5:length(cnames)], sub, pattern = "^[^:]*:", replacement = "")
       vcffile_DP[,5:length(cnames)] <- lapply(vcffile_DP[,5:length(cnames)], sub, pattern = "^[^:]*:", replacement = "")
       vcffile_DP[,5:length(cnames)] <- lapply(vcffile_DP[,5:length(cnames)], sub, pattern = ":.*", replacement = "")
-      
-      vcffile_AR_label <- vcffile_AR[,1:4]
+
+
       vcffile_AR[,5:ncol(vcffile_AR)] <- lapply(vcffile_AR[,5:ncol(vcffile_AR)], gsub, pattern = "\\.", replacement = "0,0")
+
       nosplit <- vcffile_AR_label
       for (k in c(5:(ncol(vcffile_AR)))) {
         splitAR <- strsplit(as.character(vcffile_AR[,k]),",")
@@ -494,8 +474,8 @@ if (ploidy == "6x"){
         nosplit <- merge(nosplit,splitAR, by=c("CHROM","POS","REF","ALT"))
       }
       vcffile_AR <- nosplit
-      
-      
+
+
       names(vcffile_GT)[5:length(cnames)] <- paste(colnames(vcffile_GT[,5:length(cnames)]), "_GT", sep="")
       names(vcffile_DP)[5:length(cnames)] <- paste(colnames(vcffile_DP[,5:length(cnames)]), "_DP", sep="")
       vcffile_DP[,5:ncol(vcffile_DP)] <- lapply(vcffile_DP[,5:ncol(vcffile_DP)], gsub, pattern = "\\.", replacement = "0")
@@ -514,11 +494,11 @@ if (ploidy == "6x"){
       vcffile[, 5:DPend] <- lapply(5:DPend, function(x) as.numeric(vcffile[[x]]))
       # vcffile <- vcffile[rowSums(vcffile[, 5:DPend] < minRD, na.rm = TRUE) <= ((ncol(vcffile)-4)/3)*0.8, ]
       vcffile$GTsum <- (rowSums(!is.na(vcffile))-(4 + sample_size + sample_size))
-      vcffile[vcffile=="1/0/0/0/0/0" | vcffile=="0/1/0/0/0/0" | 
+      vcffile[vcffile=="1/0/0/0/0/0" | vcffile=="0/1/0/0/0/0" |
                     vcffile=="0/0/1/0/0/0" | vcffile=="0/0/0/1/0/0" | vcffile=="0/0/0/0/1/0" ] <- "0/0/0/0/0/1"
-      vcffile[vcffile=="1/1/0/0/0/0" | vcffile=="0/1/1/0/0/0" | 
+      vcffile[vcffile=="1/1/0/0/0/0" | vcffile=="0/1/1/0/0/0" |
                     vcffile=="0/0/1/1/0/0" | vcffile=="0/0/0/1/1/0"] <- "0/0/0/0/1/1"
-      vcffile[vcffile=="1/1/1/0/0/0" | vcffile=="0/1/1/1/0/0" | 
+      vcffile[vcffile=="1/1/1/0/0/0" | vcffile=="0/1/1/1/0/0" |
                     vcffile=="0/0/1/1/1/0"] <- "0/0/0/1/1/1"
       vcffile[vcffile=="1/1/1/1/0/0" | vcffile=="0/1/1/1/1/0"] <- "0/0/1/1/1/1"
       vcffile[vcffile=="1/1/1/1/1/0"] <- "0/1/1/1/1/1"
@@ -546,9 +526,9 @@ if (ploidy == "6x"){
     vcffile_DP <- NULL
     vcffile_GT <- NULL
     unlink(paste("*6x_rawSPLIT*",sep=""))
-    
-    
-    AR$propHet <- (rowSums(AR == "0/0/0/0/0/1" | AR == "0/0/0/0/1/1" | AR == "0/0/0/1/1/1" | AR == "0/0/0/1/1/1" | AR == "0/0/1/1/1/1" | AR == "0/1/1/1/1/1" | 
+
+
+    AR$propHet <- (rowSums(AR == "0/0/0/0/0/1" | AR == "0/0/0/0/1/1" | AR == "0/0/0/1/1/1" | AR == "0/0/0/1/1/1" | AR == "0/0/1/1/1/1" | AR == "0/1/1/1/1/1" |
                              AR == "0|0|0|0|0|1" | AR == "0|0|0|0|1|1" | AR == "0|0|0|1|1|1" | AR == "0|0|0|0|0|1" | AR == "0|0|0|0|1|1" | AR == "0|0|0|1|1|1", na.rm = TRUE)) / (GTincre - (rowSums(AR == "./././././.", na.rm = TRUE)))
     AR <- AR[,c(ARstart:ARend,ncol(AR))]
     AR <- subset(AR, AR$propHet != 0)
@@ -556,7 +536,7 @@ if (ploidy == "6x"){
     AR <- AR[,c(which(colnames(AR)=="propHet"),which(colnames(AR)!="propHet"))]
     suppressWarnings(AR <- na.omit(cbind(AR[1], stack(AR[-1]), row.names = NULL)))
     AR <- AR[,1:2]; names(AR) <- c("propHet","Allele_Ratio")
-    
+
     ARplot <- ggplot(AR,aes(x=propHet,y=Allele_Ratio))+
       geom_point(aes(x = propHet, y = Allele_Ratio, color = Allele_Ratio), size = 1, pch=19, alpha=0.1)+
       geom_density_2d(bins=50)+
@@ -564,79 +544,76 @@ if (ploidy == "6x"){
       scale_x_continuous(expand=c(0,0))+
       scale_y_continuous(expand=c(0,0))+
       scale_colour_gradient2(low="darkorange3", mid="darkgoldenrod1", high ="cornflowerblue",
-                             breaks=c(0.75,-0.75), limits=c(-1,1), 
+                             breaks=c(0.75,-0.75), limits=c(-1,1),
                              labels=c("Minor Allele: Ref","Minor Allele: Alt"))+
-      theme(legend.title = element_blank())+
-      # geom_hline(yintercept = 0.14, color="tomato", size=0.5, linetype="dashed")+ 
-      geom_hline(yintercept = 0, color="grey20", size=0.5, linetype="dashed")+ 
-      # geom_hline(yintercept = -0.14, color="tomato", size=0.5, linetype="dashed")+ 
-      geom_hline(yintercept = 1, color="grey20", size=0.5, linetype="dashed")+ 
+      theme(legend.position = "none")+
+      # geom_hline(yintercept = 0.14, color="tomato", size=0.5, linetype="dashed")+
+      geom_hline(yintercept = 0, color="grey20", size=0.5, linetype="dashed")+
+      # geom_hline(yintercept = -0.14, color="tomato", size=0.5, linetype="dashed")+
+      geom_hline(yintercept = 1, color="grey20", size=0.5, linetype="dashed")+
       # geom_hline(yintercept = 0.2, color="grey20", size=0.5, linetype="dashed")+
       # geom_hline(yintercept = 0.5, color="grey20", size=0.5, linetype="dashed")+
-      # geom_hline(yintercept = -0.2, color="grey20", size=0.5, linetype="dashed")+ 
-      # geom_hline(yintercept = -0.5, color="grey20", size=0.5, linetype="dashed")+ 
-      geom_hline(yintercept = -1, color="grey20", size=0.5, linetype="dashed")+ 
-      annotate("text", x=0.92, y=0, label="Homozygote", vjust=-0.5, fontface="italic")+
-      # annotate("text", x=0.88, y=0.2, label="Heterozygote (0/0/0/0/0/1)", vjust=-0.5, fontface="italic")+
-      # annotate("text", x=0.88, y=0.5, label="Heterozygote (0/0/0/0/1/1)", vjust=-0.5, fontface="italic")+
-      annotate("text", x=0.85, y=1, label="Heterozygote (balanced allele ratio)", vjust=1, fontface="italic")+
-      annotate("text", x=0.85, y=-1, label="Heterozygote (balanced allele ratio)", vjust=-1, fontface="italic")+
-      # annotate("text", x=0.88, y=-0.5, label="Heterozygote (0/0/1/1/1/1)", vjust=0.5, fontface="italic")+
-      # annotate("text", x=0.88, y=-0.2, label="Heterozygote (0/1/1/1/1/1)", vjust=0.5, fontface="italic")+
-      # annotate("text", x=0.85, y=0.14, label="Allele Ratio filter threshold (< 0.14)", vjust=-0.5, fontface="italic")+
-      # annotate("text", x=0.85, y=-0.14, label="Allele Ratio filter threshold (> -0.14)", vjust=1.2, fontface="italic")+
+      # geom_hline(yintercept = -0.2, color="grey20", size=0.5, linetype="dashed")+
+      # geom_hline(yintercept = -0.5, color="grey20", size=0.5, linetype="dashed")+
+      geom_hline(yintercept = -1, color="grey20", size=0.5, linetype="dashed")+
+      annotate("label", x=0.92, y=0, label="Extreme Imbalance", vjust=-0.5, fontface="italic")+
+      # annotate("label", x=0.88, y=0.2, label="Heterozygote (0/0/0/0/0/1)", vjust=-0.5, fontface="italic")+
+      # annotate("label", x=0.88, y=0.5, label="Heterozygote (0/0/0/0/1/1)", vjust=-0.5, fontface="italic")+
+      annotate("label", x=0.85, y=1, label="ALT-dominant (balanced = +1)", vjust=1, fontface="italic")+
+      annotate("label", x=0.85, y=-1, label="REF-dominant (balanced = -1)", vjust=-1, fontface="italic")+
+      # annotate("label", x=0.88, y=-0.5, label="Heterozygote (0/0/1/1/1/1)", vjust=0.5, fontface="italic")+
+      # annotate("label", x=0.88, y=-0.2, label="Heterozygote (0/1/1/1/1/1)", vjust=0.5, fontface="italic")+
+      # annotate("label", x=0.85, y=0.14, label="Allele Ratio filter threshold (< 0.14)", vjust=-0.5, fontface="italic")+
+      # annotate("label", x=0.85, y=-0.14, label="Allele Ratio filter threshold (> -0.14)", vjust=1.2, fontface="italic")+
       xlab("Proportion of Heterozygote per Locus (hexaploid)") +
-      ylab("Allele Read Depth Ratio per Genotype")
+      ylab("Allele Imbalance Metric")
     ggsave(file=paste("raw6x_Allele_Ratio_Heterozygosity_plot",".tiff",sep=""), plot=ARplot, width=12, height=4, units=("in"), dpi=300, compression = "lzw")
 
   }
   vcf_to_DP_GT_6x()
 }
 
-if (ploidy == "8x"){  
+if (ploidy == "8x"){
   vcf_to_DP_GT_8x <- function() {
     #Let's load data (information retrieved from vcf files)
     path <- getwd()
     file.names <- dir(path, pattern ="8x_rawSPLIT.*\\.vcf")
     subgenome_1 <- NULL
     for(i in 1:length(file.names)){
-      all_content <- readLines(file.names[i])
-      vcffile <- read.table(textConnection(all_content), header = TRUE, check.names = FALSE)
+      vcffile <- read.table(file.names[i], header = TRUE, check.names = FALSE)
       vcffile <- subset(vcffile, select=-c(ID,QUAL,FILTER,INFO,FORMAT))
       cnames <- colnames(vcffile)
       vcffile_GT <- vcffile; vcffile_DP <- vcffile; vcffile_AR <- vcffile
-      all_content <- NULL
-      
+
       vcffile_GT[,5:length(cnames)] <- lapply(vcffile_GT[,5:length(cnames)], sub, pattern = ":.*", replacement = "")
       vcffile_AR[,5:length(cnames)] <- lapply(vcffile_AR[,5:length(cnames)], sub, pattern = "^[^:]*:", replacement = "")
       vcffile_AR[,5:length(cnames)] <- lapply(vcffile_AR[,5:length(cnames)], sub, pattern = ":.*", replacement = "")
       vcffile_DP[,5:length(cnames)] <- lapply(vcffile_DP[,5:length(cnames)], sub, pattern = "^[^:]*:", replacement = "")
       vcffile_DP[,5:length(cnames)] <- lapply(vcffile_DP[,5:length(cnames)], sub, pattern = "^[^:]*:", replacement = "")
-      vcffile_DP[,5:length(cnames)] <- lapply(vcffile_DP[,5:length(cnames)], sub, pattern = ":.*", replacement = "")      
+      vcffile_DP[,5:length(cnames)] <- lapply(vcffile_DP[,5:length(cnames)], sub, pattern = ":.*", replacement = "")
+
+      vcffile_AR[,5:ncol(vcffile_AR)] <- lapply(vcffile_AR[,5:ncol(vcffile_AR)], gsub, pattern = "\\.", replacement = "0,0")
+
 
       vcffile_AR_label <- vcffile_AR[,1:4]
-      nosplit <- vcffile_AR_label
-      for (k in c(5:(ncol(vcffile_AR)))) {
-        splitAR <- strsplit(as.character(vcffile_AR[,k]),",")
-        suppressWarnings(splitAR <- as.data.frame(do.call(rbind, splitAR)))
-        suppressWarnings(splitAR <- as.data.frame(as.numeric(splitAR$V1) / as.numeric(splitAR$V2)))
-        splitAR[][splitAR[]=="NaN"] <- NA
-        splitAR[][splitAR[]=="Inf"] <- "0"
-        splitAR <- cbind(vcffile_AR_label,splitAR)
-        names(splitAR)[5] <- colnames(vcffile_AR[k])
-        splitAR[,5] <- as.numeric(splitAR[,5])
-        # splitAR_na <- splitAR[is.na(splitAR[,5]),]
-        # splitAR_na[splitAR_na=='NA'] <- NA
-        splitAR_pos <- subset(splitAR, splitAR[,5] <= 1)
-        splitAR_neg <- subset(splitAR, splitAR[,5] > 1)
-        splitAR_neg[,5] <- -(1/as.numeric(splitAR_neg[,5]))
-        splitAR <- rbind(splitAR_pos, splitAR_neg)
-        # splitAR <- rbind(splitAR, splitAR_na)
-        nosplit <- merge(nosplit,splitAR, by=c("CHROM","POS","REF","ALT"))
+      AR_list_cols <- vector("list", ncol(vcffile_AR) - 4)
+      names(AR_list_cols) <- colnames(vcffile_AR)[5:ncol(vcffile_AR)]
+      for (k in 5:ncol(vcffile_AR)) {
+        vals <- gsub("\\.", "0,0", vcffile_AR[,k])
+        sp <- strsplit(as.character(vals), ",")
+        ref <- suppressWarnings(as.numeric(sapply(sp, `[`, 1)))
+        alt <- suppressWarnings(as.numeric(sapply(sp, `[`, 2)))
+        ratio <- ref / alt
+        ratio[is.nan(ratio)] <- NA
+        ratio[is.infinite(ratio)] <- 0
+        idx <- which(ratio > 1)
+        ratio[idx] <- -(1 / ratio[idx])
+        AR_list_cols[[k-4]] <- ratio
       }
-      vcffile_AR <- nosplit
-      
-      
+      AR_df <- as.data.frame(AR_list_cols, check.names = FALSE)
+      vcffile_AR <- cbind(vcffile_AR_label, AR_df)
+
+
       names(vcffile_GT)[5:length(cnames)] <- paste(colnames(vcffile_GT[,5:length(cnames)]), "_GT", sep="")
       names(vcffile_DP)[5:length(cnames)] <- paste(colnames(vcffile_DP[,5:length(cnames)]), "_DP", sep="")
       vcffile_DP[,5:ncol(vcffile_DP)] <- lapply(vcffile_DP[,5:ncol(vcffile_DP)], gsub, pattern = "\\.", replacement = "0")
@@ -655,17 +632,17 @@ if (ploidy == "8x"){
       vcffile[, 5:DPend] <- lapply(5:DPend, function(x) as.numeric(vcffile[[x]]))
       # vcffile <- vcffile[rowSums(vcffile[, 5:DPend] < minRD, na.rm = TRUE) <= ((ncol(vcffile)-4)/3)*0.8, ]
       vcffile$GTsum <- (rowSums(!is.na(vcffile))-(4 + sample_size + sample_size))
-      vcffile[vcffile=="1/0/0/0/0/0/0/0" | vcffile=="0/1/0/0/0/0/0/0" | 
+      vcffile[vcffile=="1/0/0/0/0/0/0/0" | vcffile=="0/1/0/0/0/0/0/0" |
                     vcffile=="0/0/1/0/0/0/0/0" | vcffile=="0/0/0/1/0/0/0/0" | vcffile=="0/0/0/0/1/0/0/0" |
                     vcffile=="0/0/0/0/0/1/0/0" | vcffile=="0/0/0/0/0/0/1/0"] <- "0/0/0/0/0/0/0/1"
-      vcffile[vcffile=="1/1/0/0/0/0/0/0" | vcffile=="0/1/1/0/0/0/0/0" | 
+      vcffile[vcffile=="1/1/0/0/0/0/0/0" | vcffile=="0/1/1/0/0/0/0/0" |
                     vcffile=="0/0/1/1/0/0/0/0" | vcffile=="0/0/0/1/1/0/0/0" | vcffile=="0/0/0/0/1/1/0/0" |
                     vcffile=="0/0/0/0/0/1/1/0"] <- "0/0/0/0/0/0/1/1"
-      vcffile[vcffile=="1/1/1/0/0/0/0/0" | vcffile=="0/1/1/1/0/0/0/0" | 
+      vcffile[vcffile=="1/1/1/0/0/0/0/0" | vcffile=="0/1/1/1/0/0/0/0" |
                     vcffile=="0/0/1/1/1/0/0/0" | vcffile=="0/0/0/1/1/1/0/0" | vcffile=="0/0/0/0/1/1/1/0"] <- "0/0/0/0/0/1/1/1"
-      vcffile[vcffile=="1/1/1/1/0/0/0/0" | vcffile=="0/1/1/1/1/0/0/0" | 
+      vcffile[vcffile=="1/1/1/1/0/0/0/0" | vcffile=="0/1/1/1/1/0/0/0" |
                     vcffile=="0/0/1/1/1/1/0/0" | vcffile=="0/0/0/1/1/1/1/0"] <- "0/0/0/0/1/1/1/1"
-      vcffile[vcffile=="1/1/1/1/1/0/0/0" | vcffile=="0/1/1/1/1/1/0/0" | 
+      vcffile[vcffile=="1/1/1/1/1/0/0/0" | vcffile=="0/1/1/1/1/1/0/0" |
                     vcffile=="0/0/1/1/1/1/1/0"] <- "0/0/0/1/1/1/1/1"
       vcffile[vcffile=="1/1/1/1/1/1/0/0" | vcffile=="0/1/1/1/1/1/1/0"] <- "0/0/1/1/1/1/1/1"
       vcffile[vcffile=="1/1/1/1/1/1/1/0"] <- "0/1/1/1/1/1/1/1"
@@ -693,9 +670,9 @@ if (ploidy == "8x"){
     vcffile_DP <- NULL
     vcffile_GT <- NULL
     unlink(paste("*8x_rawSPLIT*",sep=""))
-    
-    
-    AR$propHet <- (rowSums(AR == "0/0/0/0/0/0/0/1" | AR == "0/0/0/0/0/0/1/1" | AR == "0/0/0/0/0/1/1/1" | AR == "0/0/0/0/1/1/1/1" | AR == "0/0/0/1/1/1/1/1" | AR == "0/0/1/1/1/1/1/1" | AR == "0/1/1/1/1/1/1/1" | 
+
+
+    AR$propHet <- (rowSums(AR == "0/0/0/0/0/0/0/1" | AR == "0/0/0/0/0/0/1/1" | AR == "0/0/0/0/0/1/1/1" | AR == "0/0/0/0/1/1/1/1" | AR == "0/0/0/1/1/1/1/1" | AR == "0/0/1/1/1/1/1/1" | AR == "0/1/1/1/1/1/1/1" |
                              AR == "0|0|0|0|0|0|0|1" | AR == "0|0|0|0|0|0|1|1" | AR == "0|0|0|0|0|1|1|1" | AR == "0|0|0|0|1|1|1|1" | AR == "0|0|0|1|1|1|1|1" | AR == "0|0|1|1|1|1|1|1" | AR == "0|1|1|1|1|1|1|1", na.rm = TRUE)) / (GTincre - (rowSums(AR == "./././././.", na.rm = TRUE)))
     AR <- AR[,c(ARstart:ARend,ncol(AR))]
     AR <- subset(AR, AR$propHet != 0)
@@ -703,7 +680,7 @@ if (ploidy == "8x"){
     AR <- AR[,c(which(colnames(AR)=="propHet"),which(colnames(AR)!="propHet"))]
     suppressWarnings(AR <- na.omit(cbind(AR[1], stack(AR[-1]), row.names = NULL)))
     AR <- AR[,1:2]; names(AR) <- c("propHet","Allele_Ratio")
-    
+
     ARplot <- ggplot(AR,aes(x=propHet,y=Allele_Ratio))+
       geom_point(aes(x = propHet, y = Allele_Ratio, color = Allele_Ratio), size = 1, pch=19, alpha=0.1)+
       geom_density_2d(bins=50)+
@@ -711,35 +688,35 @@ if (ploidy == "8x"){
       scale_x_continuous(expand=c(0,0))+
       scale_y_continuous(expand=c(0,0))+
       scale_colour_gradient2(low="darkorange3", mid="darkgoldenrod1", high ="cornflowerblue",
-                             breaks=c(0.75,-0.75), limits=c(-1,1), 
+                             breaks=c(0.75,-0.75), limits=c(-1,1),
                              labels=c("Minor Allele: Ref","Minor Allele: Alt"))+
-      theme(legend.title = element_blank())+
-      # geom_hline(yintercept = 0.09, color="tomato", size=0.5, linetype="dashed")+ 
-      geom_hline(yintercept = 0, color="grey20", size=0.5, linetype="dashed")+ 
-      # geom_hline(yintercept = -0.09, color="tomato", size=0.5, linetype="dashed")+ 
-      geom_hline(yintercept = 1, color="grey20", size=0.5, linetype="dashed")+ 
+      theme(legend.position = "none")+
+      # geom_hline(yintercept = 0.09, color="tomato", size=0.5, linetype="dashed")+
+      geom_hline(yintercept = 0, color="grey20", size=0.5, linetype="dashed")+
+      # geom_hline(yintercept = -0.09, color="tomato", size=0.5, linetype="dashed")+
+      geom_hline(yintercept = 1, color="grey20", size=0.5, linetype="dashed")+
       # geom_hline(yintercept = 0.6, color="grey20", size=0.5, linetype="dashed")+
       # geom_hline(yintercept = 0.33, color="grey20", size=0.5, linetype="dashed")+
       # geom_hline(yintercept = 0.14, color="grey20", size=0.5, linetype="dashed")+
-      # geom_hline(yintercept = -0.6, color="grey20", size=0.5, linetype="dashed")+ 
-      # geom_hline(yintercept = -0.33, color="grey20", size=0.5, linetype="dashed")+ 
-      # geom_hline(yintercept = -0.14, color="grey20", size=0.5, linetype="dashed")+ 
-      geom_hline(yintercept = -1, color="grey20", size=0.5, linetype="dashed")+ 
-      annotate("text", x=0.92, y=0, label="Homozygote", vjust=-0.5, fontface="italic")+
-      # annotate("text", x=0.87, y=0.14, label="Heterozygote (0/0/0/0/0/0/0/1)", vjust=-0.5, fontface="italic")+
-      # annotate("text", x=0.87, y=0.33, label="Heterozygote (0/0/0/0/0/0/1/1)", vjust=-0.5, fontface="italic")+
-      # annotate("text", x=0.87, y=0.6, label="Heterozygote (0/0/0/0/0/1/1/1)", vjust=-0.5, fontface="italic")+
-      annotate("text", x=0.85, y=1, label="Heterozygote (balanced allele ratio)", vjust=1, fontface="italic")+
-      annotate("text", x=0.85, y=-1, label="Heterozygote (balanced allele ratio)", vjust=-1, fontface="italic")+
-      # annotate("text", x=0.87, y=-0.6, label="Heterozygote (0/0/0/0/1/1/1/1)", vjust=0.5, fontface="italic")+
-      # annotate("text", x=0.87, y=-0.33, label="Heterozygote (0/0/1/1/1/1/1/1)", vjust=0.5, fontface="italic")+
-      # annotate("text", x=0.87, y=-0.14, label="Heterozygote (0/1/1/1/1/1/1/1)", vjust=0.5, fontface="italic")+
-      # annotate("text", x=0.85, y=0.09, label="Allele Ratio filter threshold (< 0.09)", vjust=-0.5, fontface="italic")+
-      # annotate("text", x=0.85, y=-0.09, label="Allele Ratio filter threshold (> -0.09)", vjust=1.2, fontface="italic")+
+      # geom_hline(yintercept = -0.6, color="grey20", size=0.5, linetype="dashed")+
+      # geom_hline(yintercept = -0.33, color="grey20", size=0.5, linetype="dashed")+
+      # geom_hline(yintercept = -0.14, color="grey20", size=0.5, linetype="dashed")+
+      geom_hline(yintercept = -1, color="grey20", size=0.5, linetype="dashed")+
+      annotate("label", x=0.92, y=0, label="Extreme Imbalance", vjust=-0.5, fontface="italic")+
+      # annotate("label", x=0.87, y=0.14, label="Heterozygote (0/0/0/0/0/0/0/1)", vjust=-0.5, fontface="italic")+
+      # annotate("label", x=0.87, y=0.33, label="Heterozygote (0/0/0/0/0/0/1/1)", vjust=-0.5, fontface="italic")+
+      # annotate("label", x=0.87, y=0.6, label="Heterozygote (0/0/0/0/0/1/1/1)", vjust=-0.5, fontface="italic")+
+      annotate("label", x=0.85, y=1, label="ALT-dominant (balanced = +1)", vjust=1, fontface="italic")+
+      annotate("label", x=0.85, y=-1, label="REF-dominant (balanced = -1)", vjust=-1, fontface="italic")+
+      # annotate("label", x=0.87, y=-0.6, label="Heterozygote (0/0/0/0/1/1/1/1)", vjust=0.5, fontface="italic")+
+      # annotate("label", x=0.87, y=-0.33, label="Heterozygote (0/0/1/1/1/1/1/1)", vjust=0.5, fontface="italic")+
+      # annotate("label", x=0.87, y=-0.14, label="Heterozygote (0/1/1/1/1/1/1/1)", vjust=0.5, fontface="italic")+
+      # annotate("label", x=0.85, y=0.09, label="Allele Ratio filter threshold (< 0.09)", vjust=-0.5, fontface="italic")+
+      # annotate("label", x=0.85, y=-0.09, label="Allele Ratio filter threshold (> -0.09)", vjust=1.2, fontface="italic")+
       xlab("Proportion of Heterozygote per Locus (octaploid)") +
-      ylab("Allele Read Depth Ratio per Genotype")
+      ylab("Allele Imbalance Metric")
     ggsave(file=paste("raw8x_Allele_Ratio_Heterozygosity_plot",".tiff",sep=""), plot=ARplot, width=12, height=4, units=("in"), dpi=300, compression = "lzw")
-    
+
   }
   vcf_to_DP_GT_8x()
 }

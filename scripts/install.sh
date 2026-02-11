@@ -270,20 +270,37 @@ fi
 
 
 main_whatshap () {
-  echo -e "${green}\n############################################## \n- downloading WhatsHap \n##############################################${white}"
-  mkdir -p whatshap
-  pip3 install --target="${tools_dir}/whatshap" whatshap
-  cd $tools_dir
+echo -e "${green}\n############################################## \n- downloading WhatsHap \n##############################################${white}"
+conda create -y -p "$tools_dir/whatshap/conda_env" -c conda-forge -c bioconda python=3.8 whatshap
+cd $tools_dir
 }
 dirtool=whatshap
 if [ -d $dirtool ]; then
-  :
+:
 else
-  echo -e "${magenta}- Performing installation of dependency (WhatsHap) ${white}"
-  main_whatshap &>> ./log.out
-  if [ ! -d $dirtool ]; then
-      echo -e "${magenta} WhatsHap did not install properly ${white}"
-  fi
+echo -e "${magenta}- Performing installation of dependency (WhatsHap) ${white}"
+main_whatshap &>> ./log.out
+if [ ! -d $dirtool ]; then
+    echo -e "${magenta} WhatsHap did not install properly ${white}"
+fi
+fi
+
+
+main_beagle () {
+echo -e "${green}\n############################################## \n- downloading Beagle \n##############################################${white}"
+wget https://faculty.washington.edu/browning/beagle/beagle.28Jun21.220.jar
+mv beagle.28Jun21.220.jar beagle.jar
+cd $tools_dir
+}
+dirtool=beagle
+if [ -d $dirtool ]; then
+:
+else
+echo -e "${magenta}- Performing installation of dependency (Beagle) ${white}"
+main_beagle &>> ./log.out
+if [ ! -d $dirtool ]; then
+    echo -e "${magenta} Beagle did not install properly ${white}"
+fi
 fi
 
 
@@ -364,6 +381,23 @@ else
 fi
 
 
+main_MASS () {
+  echo -e "${blue}\n############################################## \n- installing R-package: MASS  ${blue}\n##############################################${white}"
+  R -e 'install.packages("MASS", dependencies = TRUE, lib="./")'
+  cd $R_dir
+}
+dirtool=./MASS
+if [ -d $dirtool ]; then
+  :
+else
+  echo -e "${magenta}- Performing installation of R-package: MASS ${white}"
+  main_MASS &>> ./log.out
+  cd $R_dir
+  if [ ! -d $dirtool ]; then
+      echo -e "${magenta} R-package: MASS did not install properly ${white}"
+  fi
+fi
+
 main_ggplot2 () {
   echo -e "${blue}\n############################################## \n- installing R-package: ggplot2  ${blue}\n##############################################${white}"
   R -e 'install.packages("ggplot2", dependencies = TRUE, repos="http://cran.r-project.org", lib="./")'
@@ -378,6 +412,59 @@ else
   cd $R_dir
   if [ ! -d $dirtool ]; then
       echo -e "${magenta} R-package: ggplot2 did not install properly ${white}"
+  fi
+fi
+
+main_vcfR () {
+  echo -e "${blue}\n############################################## \n- installing R-package: vcfR  ${blue}\n##############################################${white}"
+  R -e 'install.packages("vcfR", dependencies = TRUE, repos="http://cran.r-project.org", lib="./")'
+  cd ../
+}
+dirtool=./vcfR
+if [ -d $dirtool ]; then
+  :
+else
+  echo -e "${magenta}- Performing installation of R-package: vcfR ${white}"
+  main_vcfR &>> ./log.out
+  cd $R_dir
+  if [ ! -d $dirtool ]; then
+      echo -e "${magenta} R-package: vcfR did not install properly ${white}"
+  fi
+fi
+
+
+main_data.table () {
+  echo -e "${blue}\n############################################## \n- installing R-package: data.table  ${blue}\n##############################################${white}"
+  R -e 'install.packages("data.table", dependencies = TRUE, repos="http://cran.r-project.org", lib="./")'
+  cd ../
+}
+dirtool=./data.table
+if [ -d $dirtool ]; then
+  :
+else
+  echo -e "${magenta}- Performing installation of R-package: data.table ${white}"
+  main_data.table &>> ./log.out
+  cd $R_dir
+  if [ ! -d $dirtool ]; then
+      echo -e "${magenta} R-package: data.table did not install properly ${white}"
+  fi
+fi
+
+
+main_future.apply () {
+  echo -e "${blue}\n############################################## \n- installing R-package: future.apply  ${blue}\n##############################################${white}"
+  R -e 'install.packages("future.apply", dependencies = TRUE, repos="http://cran.r-project.org", lib="./")'
+  cd ../
+}
+dirtool=./future.apply
+if [ -d $dirtool ]; then
+  :
+else
+  echo -e "${magenta}- Performing installation of R-package: future.apply ${white}"
+  main_future.apply &>> ./log.out
+  cd $R_dir
+  if [ ! -d $dirtool ]; then
+      echo -e "${magenta} R-package: future.apply did not install properly ${white}"
   fi
 fi
 
@@ -396,5 +483,41 @@ else
   cd $R_dir
   if [ ! -d $dirtool ]; then
       echo -e "${magenta} R-package: CMplot did not install properly ${white}"
+  fi
+fi
+
+
+main_polyRAD () {
+  echo -e "${blue}\n############################################## \n- installing R-package: polyRAD  ${blue}\n##############################################${white}"
+  R -e '.libPaths(c("./", .libPaths())); if(!require(BiocManager, quietly=TRUE)) install.packages("BiocManager", repos="http://cran.r-project.org", lib="./"); BiocManager::install(c("pcaMethods","GenomeInfoDb"), ask=FALSE, lib="./")'
+  R -e 'install.packages("polyRAD", dependencies = TRUE, repos="http://cran.r-project.org", lib="./")'
+  cd ../
+}
+dirtool=./polyRAD
+if [ -d $dirtool ]; then
+  :
+else
+  echo -e "${magenta}- Performing installation of R-package: polyRAD ${white}"
+  main_polyRAD &>> ./log.out
+  cd $R_dir
+  if [ ! -d $dirtool ]; then
+      echo -e "${magenta} R-package: polyRAD did not install properly ${white}"
+  fi
+fi
+
+main_optparse () {
+  echo -e "${blue}\n############################################## \n- installing R-package: optparse  ${blue}\n##############################################${white}"
+  R -e 'install.packages("optparse", dependencies = TRUE, repos="http://cran.r-project.org", lib="./")'
+  cd ../
+}
+dirtool=./optparse
+if [ -d $dirtool ]; then
+  :
+else
+  echo -e "${magenta}- Performing installation of R-package: optparse ${white}"
+  main_optparse &>> ./log.out
+  cd $R_dir
+  if [ ! -d $dirtool ]; then
+      echo -e "${magenta} R-package: optparse did not install properly ${white}"
   fi
 fi

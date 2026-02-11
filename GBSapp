@@ -575,18 +575,18 @@ if [[ "$string" == true ]]; then
         echo -e "${white}\n##############################################################################\n"
       fi
 
-      printf "SNPaccuracy_ReadDepth=0 \n" >> steps.tmp
-      printf "paralogfiltering_haplotyping=0 \n" >> steps.tmp
+      printf "Ploidy_Estimation=0 \n" >> steps.tmp
+      printf "micro_macro_haplotyping=0 \n" >> steps.tmp
     # echo -e "${magenta}- Do you want to generate visualizations for genotype accuracy and ploidy estimation? ${white}"
     # read -p "- y(YES) or n(NO) " -n 1 -r
     # if [[ ! $REPLY =~ ^[Yy]$ ]]; then
     # 	printf '\n'
-  	# printf "SNPaccuracy_ReadDepth=0 \n" >> steps.tmp
+  	# printf "Ploidy_Estimation=0 \n" >> steps.tmp
     # 	echo -e "${magenta}- skipping visualizations for genotype accuracy and ploidy estimation ${white}"
     #   echo -e "${white}\n##############################################################################\n"
     # else
     #   printf '\n'
-    #   printf "SNPaccuracy_ReadDepth=1 \n" >> steps.tmp
+    #   printf "Ploidy_Estimation=1 \n" >> steps.tmp
     #   echo -e "${white}\n##############################################################################\n"
     # fi
     #
@@ -594,12 +594,12 @@ if [[ "$string" == true ]]; then
     # read -p "- y(YES) or n(NO) " -n 1 -r
     # if [[ ! $REPLY =~ ^[Yy]$ ]]; then
     # 	printf '\n'
-  	# printf "paralogfiltering_haplotyping=0 \n" >> steps.tmp
+  	# printf "micro_macro_haplotyping=0 \n" >> steps.tmp
     # 	echo -e "${magenta}- skipping sequence-based haplotyping and filtering ${white}"
     #   echo -e "${white}\n##############################################################################\n"
     # else
     #   printf '\n'
-    #   printf "paralogfiltering_haplotyping=1 \n" >> steps.tmp
+    #   printf "micro_macro_haplotyping=1 \n" >> steps.tmp
     #   echo -e "${white}\n##############################################################################\n"
     # fi
     fi
@@ -690,18 +690,18 @@ if [[ "$string" == true ]]; then
         echo -e "${white}\n##############################################################################\n"
       fi
 
-      printf "SNPaccuracy_ReadDepth=0 \n" >> steps.tmp
-      printf "paralogfiltering_haplotyping=0 \n" >> steps.tmp
+      printf "Ploidy_Estimation=0 \n" >> steps.tmp
+      printf "micro_macro_haplotyping=0 \n" >> steps.tmp
       # echo -e "${magenta}- Do you want to generate visualizations for genotype accuracy and ploidy estimation? ${white}"
       # read -p "- y(YES) or n(NO) " -n 1 -r
       # if [[ ! $REPLY =~ ^[Yy]$ ]]; then
       # 	printf '\n'
-    	# printf "SNPaccuracy_ReadDepth=0 \n" >> steps.tmp
+    	# printf "Ploidy_Estimation=0 \n" >> steps.tmp
       # 	echo -e "${magenta}- skipping visualizations for genotype accuracy and ploidy estimation ${white}"
       #   echo -e "${white}\n##############################################################################\n"
       # else
       #   printf '\n'
-      #   printf "SNPaccuracy_ReadDepth=1 \n" >> steps.tmp
+      #   printf "Ploidy_Estimation=1 \n" >> steps.tmp
       #   echo -e "${white}\n##############################################################################\n"
       # fi
       #
@@ -709,12 +709,12 @@ if [[ "$string" == true ]]; then
       # read -p "- y(YES) or n(NO) " -n 1 -r
       # if [[ ! $REPLY =~ ^[Yy]$ ]]; then
       # 	printf '\n'
-    	# printf "paralogfiltering_haplotyping=0 \n" >> steps.tmp
+    	# printf "micro_macro_haplotyping=0 \n" >> steps.tmp
       # 	echo -e "${magenta}- skipping sequence-based haplotyping and filtering ${white}"
       #   echo -e "${white}\n##############################################################################\n"
       # else
       #   printf '\n'
-      #   printf "paralogfiltering_haplotyping=1 \n" >> steps.tmp
+      #   printf "micro_macro_haplotyping=1 \n" >> steps.tmp
       #   echo -e "${white}\n##############################################################################\n"
       # fi
     fi
@@ -738,7 +738,7 @@ if [[ "$string" == true ]]; then
         grep -v '^samples_list=' config.sh > config_node.sh
         printf "samples_list=samples_list_node_${i}.txt\n" >> config_node.sh
         if [[ "$i" -gt 1 ]]; then
-          awk '{gsub(/snp_filtering=1/,"snp_filtering=0"); gsub(/SNPaccuracy_ReadDepth=1/,"SNPaccuracy_ReadDepth=0"); gsub(/paralogfiltering_haplotyping=1/,"paralogfiltering_haplotyping=0"); print}' steps.txt > steps_node.txt
+          awk '{gsub(/snp_filtering=1/,"snp_filtering=0"); gsub(/Ploidy_Estimation=1/,"Ploidy_Estimation=0"); gsub(/micro_macro_haplotyping=1/,"micro_macro_haplotyping=0"); print}' steps.txt > steps_node.txt
         else
           cp steps.txt steps_node.txt
         fi

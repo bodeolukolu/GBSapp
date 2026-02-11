@@ -3562,9 +3562,10 @@ main () {
   ###############################################################################
   # Subset filtered VCF by (CHROM, POS) per dose file — clean & robust
   ###############################################################################
-  cd "$projdir/snpfilter" || exit 1
-  export n="${ref1%.f*}"
-  for snpfilter_dir in */; do
+  if [[ "$filtered_vcf" == "true" ]]; then
+    cd "$projdir/snpfilter" || exit 1
+    export n="${ref1%.f*}"
+    for snpfilter_dir in */; do
       cd "${projdir}/snpfilter/$snpfilter_dir" || continue
       export ploidydir=${snpfilter_dir:0:1}
       shopt -s nullglob
@@ -3573,322 +3574,85 @@ main () {
       vcfs=( "${vcfs[@]%.csi}" )
       vcfs=( "${vcfs[@]%.tbi}" )
       (( ${#vcfs[@]} == 1 )) || {
-          echo "ERROR: Expected exactly one filtered VCF, found ${#vcfs[@]}" >&2
-          printf '%s\n' "${vcfs[@]}" >&2
-          exit 1
+      echo "ERROR: Expected exactly one filtered VCF, found ${#vcfs[@]}" >&2
+      printf '%s\n' "${vcfs[@]}" >&2
+      exit 1
       }
       filtered_vcf="${vcfs[0]}"
       if [[ "$filtered_vcf" == *.gz ]]; then
-          gunzip -f "$filtered_vcf"
-          filtered_vcf="${filtered_vcf%.gz}"
+        gunzip -f "$filtered_vcf"
+        filtered_vcf="${filtered_vcf%.gz}"
       fi
       $bcftools view -Oz -o "${filtered_vcf}.gz" "$filtered_vcf"
+      rm -f  "$filtered_vcf"
       filtered_vcf="${filtered_vcf}.gz"
       $bcftools index -f "$filtered_vcf"
 
-      # ---- Build chromosome rename map (strip ${n}_ prefix) ----
-      chrmap="chr_rename_${ploidydir}x.map"
-      $bcftools view -h "$filtered_vcf" \
-      | awk -v n="$n" '
-        /^##contig=<ID=/ {
-          id=$0
-          sub(/^##contig=<ID=/,"",id)
-          sub(/,.*/,"",id)
-
-          new=id
-          sub("^" n "_","",new)
-
-          if (id != new)
-            print id "\t" new
-        }
-      ' > "$chrmap"
-      # ---- Apply rename only if needed ----
-      if [[ -s "$chrmap" ]]; then
-          $bcftools annotate --rename-chrs "$chrmap" \
-              -Oz -o "${filtered_vcf%.gz}.renamed.vcf.gz" "$filtered_vcf"
-
-          mv "${filtered_vcf%.gz}.renamed.vcf.gz" "$filtered_vcf"
-          $bcftools index -f "$filtered_vcf"
-      fi
-
-      norm_vcf="${filtered_vcf%.vcf.gz}.chrnorm.vcf.gz"
-      $bcftools annotate --rename-chrs "$chrmap" -Oz -o "$norm_vcf" "$filtered_vcf"
-      $bcftools index -f "$norm_vcf"
-      filtered_vcf="$norm_vcf"
 
       # Process dose files
       dose_files=( *dose.txt )
       (( ${#dose_files[@]} )) || {
-          echo "ERROR: No dose files found" >&2
-          exit 1
+      echo "ERROR: No dose files found" >&2
+      exit 1
       }
       for dose in "${dose_files[@]}"; do
-          echo "Processing dose file: $dose" >&2
-          prefix="${dose%_dose.txt}"
-          # Sanity check: do SNPs match?
-          matches=$(
-            awk 'NR>1{print $2 ":" $3}' "$dose" | sort -u | comm -12 - \
-                <($bcftools query -f '%CHROM:%POS\n' "$filtered_vcf" | sort -u) \
-            | wc -l
-          )
-          if (( matches == 0 )); then
-              echo "ERROR: No SNPs from dose file match VCF for $dose" >&2
-              continue
-          fi
+        echo "Processing dose file: $dose" >&2
+        prefix="${dose%_dose.txt}"
+        vcf_base=$(basename "$filtered_vcf")
+        cp "../../snpcall/$vcf_base" .
 
-          # Build updated VCF using R
-          Rscript "${GBSapp_dir}/scripts/R/update_vcf_from_dose.R" \
-              "$filtered_vcf" "$dose" "$ploidydir" "${ARfile:-}" "${prefix}.vcf" "${GBSapp_dir}/tools/R"
-          [[ -s "${prefix}.vcf" ]] || {
-              echo "ERROR: VCF construction failed for $dose" >&2
-              exit 1
+
+        matches=$(
+        awk 'NR>1{print $2 ":" $3}' "$dose" | sort -u | comm -12 - \
+        <($bcftools query -f '%CHROM:%POS\n' "$filtered_vcf" | sort -u) \
+        | wc -l
+        )
+        if (( matches == 0 )); then
+          echo "ERROR: No SNPs from dose file match VCF for $dose" >&2
+          continue
+        else
+          echo "$matches matches"
+        fi
+
+        # Build updated VCF using R
+        if ! Rscript "${GBSapp_dir}/scripts/R/update_vcf_from_dose.R" "$vcf_base" "$dose" "$ploidydir" "${prefix}.vcf.gz" "${GBSapp_dir}/tools/R" "$threads"; then
+          echo "Warning: Rscript failed — continuing pipeline"
+        fi
+        [[ -s "${prefix}.vcf.gz" ]] || {
+        echo "ERROR: VCF construction failed for $dose" >&2
+        exit 1
+        }
+        rm -f "$vcf_base"
+
+        gunzip -c "${prefix}.vcf.gz" | grep -v '^##' | awk '{gsub(/#CHROM/,"CHROM");}1' > "${prefix}_${ploidydir}x_rawSPLIT.vcf"
+        awk -v n=10000 -v prefix="$prefix" -v p="$ploidydir" 'NR==1{hdr=$0; next} {f=sprintf("%s_%04d_%sx_rawSPLIT.vcf",prefix,int((NR-2)/n)+1,p); if(!(f in seen)){print hdr>f; seen[f]=1} print>>f}' "${prefix}_${ploidydir}x_rawSPLIT.vcf"
+        rm -f "${prefix}_${ploidydir}x_rawSPLIT.vcf"
+        if ! Rscript "${GBSapp_dir}"/scripts/R/VCF_2_DP_GT.R "${pop}" "${ploidydir}x" "${GBSapp_dir}/tools/R" "1" "$filter_ExcHet"; then
+        echo "Warning: Rscript failed for — continuing pipeline"
+        fi
+        mv raw2x_Allele_Ratio_Heterozygosity_plot.tiff  "${prefix}_Allele_Ratio_Heterozygosity_plot.tiff"
+        rm -rf *_${ploidydir}x_rawSPLIT.vcf
+
+        gunzip -f "${prefix}.vcf.gz"
+        $bcftools sort -Oz -o "${prefix}.vcf.gz" "${prefix}.vcf"
+        $bcftools index -f "${prefix}.vcf.gz"
+        rm -f "${prefix}.vcf"
+
+        # Optional HapMap conversion (diploids only)
+        if (( ploidydir <= 2 )); then
+          if ! Rscript "${GBSapp_dir}/scripts/R/hapmap_format.R" "$dose" "${GBSapp_dir}/tools/R"; then
+            echo "Warning: Rscript failed for — continuing pipeline"
+          fi
+          [[ -s outfile.hmp.txt ]] || {
+          echo "ERROR: hapmap_format.R failed for $dose" >&2
+          exit 1
           }
-          $bcftools view -Oz -o "${prefix}.vcf.gz" "${prefix}.vcf"
-          $bcftools index -f "${prefix}.vcf.gz"
-          rm -f "${prefix}.vcf"
-
-          # Optional HapMap conversion (diploids only)
-          if (( ploidydir <= 2 )); then
-              Rscript "${GBSapp_dir}/scripts/R/hapmap_format.R" \
-                  "$dose" \
-                  "${GBSapp_dir}/tools/R"
-              [[ -s outfile.hmp.txt ]] || {
-                  echo "ERROR: hapmap_format.R failed for $dose" >&2
-                  exit 1
-              }
-              mv outfile.hmp.txt "${prefix}.hmp.txt"
-          fi
-          rm -f darr.txt darr2.txt
+          mv outfile.hmp.txt "${prefix}.hmp.txt"
+        fi
       done
       shopt -u nullglob
-  done
-
-
-
-
-
-
-  # cd "$projdir"/snpfilter
-  # export n="${ref1%.f*}"
-  # {
-  #   for snpfilter_dir in */; do
-  #     if [ -d "${projdir}/snpfilter/${snpfilter_dir}" ]; then
-  #       cd "${projdir}/snpfilter/${snpfilter_dir}" &&
-  #       export ploidydir=${snpfilter_dir:0:1} &&
-  #
-  #   		for i in $(ls *dose.txt); do
-  #         if [[ "$filtered_vcf" == "true" ]]; then
-  #     			export ARselect=$( echo $i | awk -v FS='rd' '{print $1}') &&
-  #     			export ARfile=$(ls ../../snpcall/${ARselect}*AR.txt 2> /dev/null) &&
-  #           export arr=$(cat ${projdir}/samples_list_node_* | awk '{gsub(/.fastq/,"\t.fastq");gsub(/.fq/,"\t.fq");}1' | awk '{print $1}' | tr '\n' ',' | awk '{gsub(/\t/,",");gsub(/ /,",");gsub(/^,/,"");gsub(/,$/,"");}1') &&
-  #           export arr2=$(grep "CHROM" $i | awk '{$1=$2=$3=$4=$5=""}1' | tr -s ' ' | awk '{gsub(/ pvalue/,"");}1' | awk '{gsub(/\t/,",");gsub(/ /,",");gsub(/^,/,"");gsub(/,$/,"");}1') &&
-  #           export darr=$(echo ${arr[@]},${arr2[@]} | tr ',' '\n' | sort | uniq -u | tr '\n' ',' | awk '{gsub(/\t/,",");gsub(/ /,",");gsub(/^,/,"");gsub(/,$/,"");}1') &&
-  #           export darr2=$(echo ${arr[@]},${arr2[@]} | tr ',' '\n' | sort | uniq -u | awk '!/^$/' | awk '{print $1"_AR"}' | tr '\n' ',' | awk '{gsub(/\t/,",");gsub(/ /,",");gsub(/^,/,"");gsub(/,$/,"");}1') &&
-  #           echo $darr | tr ',' '\n' > darr.txt &&
-  #           echo $darr2 | tr ',' '\n' > darr2.txt &&
-  #           if [[ -s darr.txt ]]; then printf "999_999_999\n" > darr.txt; fi
-  #           wait
-  #           if [[ -s darr2.txt ]]; then printf "999_999_999\n" > darr2.txt; fi
-  #           wait
-  #
-  #     			if ! Rscript "${GBSapp_dir}"/scripts/R/heterozygote_vs_allele_ratio.R "$i" "$ARfile" "${ploidydir}x" "1" "darr2.txt" "${GBSapp_dir}/tools/R"; then
-  #             echo "Warning: Rscript failed for $pop — continuing pipeline"
-  #           fi
-  #           wait
-  #     			awk 'FNR==NR{a[$1,$2]=$0;next}{if(b=a[$2,$3]){print b}}' $ARfile $i | awk '{gsub(/NA/,"na"); print $1"_"$2"\t"$0}' | \
-  #     			awk -v pat1="${n}_Chr" -v pat2="${n}_chr" '{gsub(pat1,"Chr");gsub(pat2,"Chr");gsub(/CHROM_POS/,"SNP");}1' > ${i%.txt}_AR_metric.txt &&
-  #           wait
-  #
-  #
-  #           shopt -s nullglob
-  #           if [[ ! -f "$projdir/split_done.txt" ]]; then
-  #             split_files=( "$projdir"/snpcall/*x.vcf* )
-  #             filtered=()
-  #             for f in "${split_files[@]}"; do
-  #                 [[ $f == *.idx ]] || filtered+=( "$f" )
-  #             done
-  #             split_files=( "${filtered[@]}" )
-  #
-  #             if (( ${#split_files[@]} == 0 )); then
-  #                 echo "WARNING: No VCFs to process for dose ${vcfdose}" >&2
-  #             else
-  #               for split in "${split_files[@]}"; do
-  #                   unset ungzipped
-  #                   refg="${split##*/}"
-  #                   refg="${refg#*_}"
-  #                   refg="${refg%%_*}.fasta"
-  #                   base="${split%.vcf}"
-  #                   base="${base%.vcf.gz}"
-  #                   split_out="${base}_split.vcf"
-  #                   if [[ "$split" == *.gz ]]; then
-  #                       ungzipped="${base}.vcf"
-  #                       gunzip -c "$split" > "$ungzipped"
-  #                       input_vcf="$ungzipped"
-  #                   else
-  #                       input_vcf="$split"
-  #                   fi
-  #                   bcftools view -h "$input_vcf" >/dev/null 2>&1 || {
-  #                       echo "Skipping non-VCF: $input_vcf" >&2
-  #                       continue
-  #                   }
-  #                   $GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" \
-  #                       LeftAlignAndTrimVariants -R "${projdir}/refgenomes/$refg" -V "$input_vcf" -O "$split_out" \
-  #                       --split-multi-allelics --dont-trim-alleles --keep-original-ac --verbosity ERROR
-  #                   bcftools view -Oz -o "${split_out}.gz" "$split_out"
-  #                   bcftools index "${split_out}.gz"
-  #                   rm -f "$split_out"
-  #                   [[ -n "$ungzipped" ]] && rm -f "$ungzipped"
-  #               done
-  #             fi
-  #             :> "$projdir/split_done.txt"
-  #           fi
-  #           shopt -u nullglob
-  #
-  #           shopt -s nullglob
-  #           split_vcfs=( "$projdir"/snpcall/*_split.vcf.gz )
-  #           if (( ${#split_vcfs[@]} == 0 )); then
-  #               echo "ERROR: No *_split.vcf.gz files found in $projdir/snpcall" >&2
-  #               exit 1
-  #           fi
-  #           merge_prefix="${i%rd*}"
-  #           merged_vcf="${merge_prefix}split.vcf.gz"
-  #           if (( ${#split_vcfs[@]} > 1 )); then
-  #               $bcftools merge "${split_vcfs[@]}" --force-samples -m all -O z -o "$merged_vcf"
-  #           else
-  #               cp "${split_vcfs[0]}" "$merged_vcf"
-  #           fi
-  #           [[ -s "$merged_vcf" ]] || {
-  #               echo "ERROR: merged VCF is empty: $merged_vcf" >&2
-  #               exit 1
-  #           }
-  #           # Process each dose file
-  #           dose_files=( *dose*.txt )
-  #           (( ${#dose_files[@]} )) || {
-  #               echo "ERROR: No *dose*.txt files found" >&2
-  #               exit 1
-  #           }
-  #           for dose in "${dose_files[@]}"; do
-  #               echo "Processing $dose" >&2
-  #               prefix="${dose%_dose.txt}"
-  #               # Normalize chromosome names in dose file
-  #               awk -v pat1="${n}_Chr" -v pat2="${n}_chr" '
-  #                   { gsub(pat1,"Chr"); gsub(pat2,"Chr"); print }
-  #               ' "$dose" > "${dose}.tmp"
-  #               mv "${dose}.tmp" "$dose"
-  #
-  #               # Build VCF for this dose
-  #               header_vcf="${prefix}_header.vcf"
-  #               zcat "$merged_vcf" | awk -v pat1="${n}_Chr" -v pat2="${n}_chr" '
-  #                     /^#/ {
-  #                         gsub(pat1,"Chr");
-  #                         gsub(pat2,"Chr");
-  #                         gsub(/chr/,"Chr");
-  #                         print
-  #                     }' > "$header_vcf"
-  #               [[ -s "$header_vcf" ]] || {
-  #                   echo "ERROR: Header extraction failed for $merged_vcf" >&2
-  #                   exit 1
-  #               }
-  #               awk 'BEGIN{FS=OFS="\t"} NR==FNR&&FNR>1{gsub(/\r/,"",$2);gsub(/\r/,"",$3);keep[$2,$3]=1;next} !/^#/&&($1,$2) in keep{print}' "$dose" <(zcat "$merged_vcf") | \
-  #               sort -Vk1,1 -Vk2,2 | cat "$header_vcf" - > "${prefix}.vcf"
-  #               [[ -s "${prefix}.vcf" ]] || {
-  #                   echo "ERROR: VCF construction failed for $dose" >&2
-  #                   exit 1
-  #               }
-  #               gzip -f "${prefix}.vcf"
-  #               if ! zcat "${prefix}.vcf.gz" | grep -qv '^#'; then
-  #                   echo "ERROR: VCF contains no variants for $dose" >&2
-  #                   exit 1
-  #               fi
-  #
-  #               # Optional hapmap conversion
-  #               if (( ploidy <= 2 )); then
-  #                   if ! Rscript "${GBSapp_dir}/scripts/R/hapmap_format.R" \
-  #                       "${dose}" "${GBSapp_dir}/tools/R"; then
-  #                       echo "ERROR: hapmap_format.R failed for $dose" >&2
-  #                       exit 1
-  #                   fi
-  #                   [[ -s outfile.hmp.txt ]] || {
-  #                       echo "ERROR: outfile.hmp.txt missing after Rscript" >&2
-  #                       exit 1
-  #                   }
-  #                   mv outfile.hmp.txt "${prefix}.hmp.txt"
-  #               fi
-  #
-  #               # Metrics cleanup
-  #               for f in "${dose%.txt}"_AR_{metric,mean}.txt; do
-  #                   [[ -f "$f" ]] && mv "$f" "${prefix}_${f##*_}"
-  #               done
-  #           done
-  #
-  #           # Cleanup
-  #           rm -f "$merged_vcf"
-  #           rm -f *tmp.vcf *header.vcf darr.txt darr2.txt
-  #           shopt -u nullglob
-  #         fi
-  #
-  #
-  #           # # Merge logic
-  #           # shopt -s nullglob
-  #           # split_vcfs=( "$projdir"/snpcall/*_split.vcf.gz )
-  #           # shopt -s nullglob
-  #           # if (( ${#split_vcfs[@]} > 1 )); then
-  #           #     $bcftools merge "${split_vcfs[@]}" --force-samples -m all -O z -o "${i%rd*}split.vcf.gz"
-  #           # elif (( ${#split_vcfs[@]} == 1 )); then
-  #           #     cp "${split_vcfs[0]}" "./${i%rd*}split.vcf.gz"
-  #           # else
-  #           #     echo "WARNING: No *_split.vcf.gz files found in $projdir/snpcall/, creating empty placeholder" >&2
-  #           #     touch "./${i%rd*}split.vcf.gz"
-  #           # fi
-  #           # wait || true
-  #           #
-  #           # for i in *dose*; do
-  #           #   awk -v pat1="${n}_Chr" -v pat2="${n}_chr" '{gsub(pat1,"Chr");gsub(pat2,"Chr"); print $0}' $i > ${i%.txt}_hold.txt &&
-  #           #   mv ${i%.txt}_hold.txt $i &&
-  #           #   wait
-  #           # done
-  #           # wait
-  #           # zcat ${i%rd*}split.vcf.gz | grep '^#' | awk -v pat1="${n}_Chr" -v pat2="${n}_chr" '{gsub(pat1,"Chr");gsub(pat2,"Chr");gsub(/chr/,"Chr");}1' > ${i%.txt}_header.vcf &&
-  #           # awk 'FNR==NR{a[$1,$2]=$0;next}{if(b=a[$2,$3]){print b}}' <(zcat ${i%rd*}split.vcf.gz | grep -v '^#' | awk -v pat1="${n}_Chr" -v pat2="${n}_chr" '{gsub(pat1,"Chr");gsub(pat2,"Chr");gsub(/chr/,"Chr");}1') <(awk '!seen[$0] {print} {++seen[$0]}' $i) | \
-  #           # sort -Vk1,1 -Vk2,2 | cat ${i%.txt}_header.vcf - > ${i%dose.txt}.vcf &&
-  #           # rm -f ${i%.txt}_header.vcf
-  #           # rm -f ${i%rd*}split.vcf.gz
-  #           # gzip "${i%dose.txt}".vcf 2> /dev/null &&
-  #           # if ls *_.vcf.gz 1> /dev/null 2>&1; then mv ${i%dose.txt}.vcf.gz ${i%_dose.txt}.vcf.gz; fi
-  #           # wait
-  #
-  #         # else
-  #         #   for i in *dose*; do
-  #         #     awk -v pat1="${n}_Chr" -v pat2="${n}_chr" '{gsub(pat1,"Chr");gsub(pat2,"Chr"); print $0}' $i > ${i%.txt}_hold.txt &&
-  #         #     mv ${i%.txt}_hold.txt $i &&
-  #         #     wait
-  #         #   done
-  #         # fi
-  #         # wait
-  #
-  #   			# if [[ "$ploidy" -le 2 ]]; then
-  #         #   if ! Rscript "${GBSapp_dir}"/scripts/R/hapmap_format.R "$i" "${GBSapp_dir}/tools/R"; then
-  #         #     echo "Warning: Rscript failed for $pop — continuing pipeline"
-  #         #   fi
-  #         #   wait
-  #         #   mv outfile.hmp.txt "${i%dose.txt}.hmp.txt" 2> /dev/null &&
-  #         #   wait
-  #         # fi
-  #         #
-  #         # mv ${i%.txt}_AR_metric.txt ${i%dose.txt}_AR_metric.txt 2> /dev/null &&
-  #         # mv ${i%.txt}_AR_mean.txt ${i%dose.txt}_AR_mean.txt 2> /dev/null &&
-  #         # find . -type f -empty -delete
-  #         # rm -f AR*.txt
-  #         # wait
-  #   		done
-  #   		rm -f *tmp.vcf *header.vcf darr.txt darr2.txt
-  #   	fi
-  #   done
-  # } & PID_genvcf=$!
-  # [[ -n "$PID_genvcf" ]] && wait "$PID_genvcf"
-  # rm -f ${projdir}/snpcall/*_split.vcf*
-  # rm -f $projdir/split_done.txt
-  # wait
+    done
+  fi
 
 }
 cd $projdir
@@ -3917,59 +3681,33 @@ fi
 
 
 ######################################################################################################################################################
-echo -e "${blue}\n############################################################################## ${yellow}\n- Visualizations for Genotype Accuracy and ploidy estimation\n${blue}##############################################################################${white}\n"
+echo -e "${blue}\n############################################################################## ${yellow}\n- Visualizations for ploidy estimation\n${blue}##############################################################################${white}\n"
 main () {
-cd $projdir
-cd snpfilter
-for snpfilter_dir in */; do
-	cd "$snpfilter_dir"
-	dose=${snpfilter_dir%_gmiss*} && \
-	dose=${dose%_*} && \
-	awk 'BEGIN{OFS="\t"}{print $2,$3}' *dose_RefPrefix.txt > CHROM_POS.txt && \
-	cat "$projdir"/snpcall/*"${dose}"*.vcf | grep -Fwf CHROM_POS.txt - | awk '{gsub(/#/,""); print $0}' > snp_allele_depth.txt && \
-	cd "$projdir"/snpfilter
-done
-wait
-for snpfilter_dir in */; do (
-	cd "$snpfilter_dir"
-	dose=${snpfilter_dir%_gmiss*} && \
-	dose=${dose%_*} && \
-	poptype=${snpfilter_dir%_*_*} && \
-	poptype=${poptype//*_} && \
-	getrd=$( echo *dose.txt | awk  'BEGIN{OFS=FS="_rd"};{print $2}' | awk  'BEGIN{OFS=FS="_"};{print $1}' ) && \
-	if [[ $poptype == biparental ]]; then
-		cd ../"$snpfilter_dir"
-		Rscript "${GBSapp_dir}"/scripts/R/SNPaccuracy_biparental_ReadDepth.R $p1 $p2 $getrd "${GBSapp_dir}"/tools/R 2> /dev/null &&
-		wait
-	fi
-	if [[ $poptype == diversity ]]; then
-		cd ../"$snpfilter_dir"
-		Rscript "${GBSapp_dir}"/scripts/R/SNPaccuracy_diversity_ReadDepth.R $getrd "${GBSapp_dir}"/tools/R 2> /dev/null &&
-		wait
-	fi
-	wait
-	rm -f CHROM_POS.txt snp_allele_depth.txt
-	cd "$projdir"/snpfilter ) &
-	while (( $(jobs -rp | wc -l) >= $N )); do sleep 2; done
-done
-wait
-cd "$projdir"/snpfilter
-for snpfilter_dir in */; do
-	cd "$snpfilter_dir"  && \
-	cd genotype_accuracy  && \
-	i=0  && \
-	for f in *; do
-	    d=Variants_Set_$(printf %04d $((i/1000+1)))  && \
-	    mkdir -p "$d"  && \
-	    mv "$f" "$d"  && \
-	    let i++;
-	done
-	wait
-	cd "$projdir"/snpfilter
-done
-wait
-find . -type f -empty -delete
-find . -type d -empty -delete
+  cd ${projdir}/snpfilter
+  for snpdir in ./*/; do
+    [[ -d "$snpdir" ]] || continue
+    echo "Processing $snpdir"
+    cd "$snpdir" || continue
+    OUTDIR="ploidy_results"
+    WINDOW=51
+    MAX_PLOIDY=8
+    MIN_COV=$(( ploidy <= 2 ? 10 : ploidy <= 4 ? 15 : ploidy <= 6 ? 30 : ploidy <= 8 ? 50 : 10 ))
+    mkdir -p $OUTDIR
+    dose_file=(*_dose.txt) || true
+    VCF=${dose_file%_dose.txt}.vcf.gz
+    zcat "$VCF" | grep -v 'Chr00' > "vcfploidy_iput.vcf.gz"
+    if ! Rscript "${GBSapp_dir}/scripts/R/ploidy_estimation.R" \
+      "vcfploidy_iput.vcf.gz" "all" "$MIN_COV" "$MAX_PLOIDY" "$WINDOW" "$OUTDIR" "$threads" "${GBSapp_dir}/tools/R/"; then
+        echo "Warning: Rscript collapse_macrohaps.R failed — continuing pipeline"
+    fi
+    rm -f "vcfploidy_iput.vcf.gz"
+
+    mv "$OUTDIR/ploidy_all.tsv" "$OUTDIR/ploidy_samples_SNPgenomewide.txt"
+    mv "$OUTDIR/ploidy_all_chr_summary.tsv" "$OUTDIR/ploidy_samples_chromosome_median.txt"
+    mv "$OUTDIR/ploidy_all_genome_summary.tsv" "$OUTDIR/ploidy_samples_median.txt"
+    mv "$OUTDIR/ploidy_all_ploidy_loess.tiff" "$OUTDIR/ploidy_samples_SNPgenomewide.tiff"
+    mv "$OUTDIR/ploidy_all_chr_summary_boxplot.tiff" "$OUTDIR/ploidy_samples_median.tiff"
+  done
 }
 cd $projdir
 if [[ "$samples_list" == "samples_list_node_1.txt" ]]; then
@@ -3982,13 +3720,13 @@ if [[ "$samples_list" == "samples_list_node_1.txt" ]]; then
 		else
 			printf '\n'
 			echo -e "${magenta}- generating visualizations for genotype accuracy and ploidy estimation ${white}\n"
-			#time main &
+			time main &>> log.out
 		fi
 	fi
 	if [ "$walkaway" == true ]; then
-		if [ "$SNPaccuracy_ReadDepth" == 1 ]; then
+		if [ "$Ploidy_Estimation" == 1 ]; then
 			echo -e "${magenta}- generating visualizations for genotype accuracy and ploidy estimation ${white}\n"
-			#time main &
+			time main &>> log.out
 		else
 			echo -e "${magenta}- skipping visualizations for genotype accuracy and ploidy estimation ${white}\n"
 		fi
@@ -3997,304 +3735,509 @@ fi
 
 
 ######################################################################################################################################################
-echo -e "${blue}\n############################################################################## ${yellow}\n- Perform Sequence-based Haplotyping and Filtering\n${blue}##############################################################################${white}\n"
+echo -e "${blue}\n############################################################################## ${yellow}\n- Perform Sequence-based Microhaplotyping and LD-based Macrohaplotyping \n${blue}##############################################################################${white}\n"
 main () {
-cd $projdir
-cd refgenomes
-file=${ref1%.f*}.dict
-if test -f "$file"; then
-	echo -e "${magenta}- indexed subgenome already exist ${white}\n"
-else
-	$bwa index -a bwtsw ${ref1}
-	$samtools faidx ${ref1}
-	$java -jar $picard CreateSequenceDictionary REFERENCE= ${ref1} OUTPUT=${ref1%.f*}.dict
-fi
+  cd $projdir
+  micro_window_bp=200
+  micro_min_snps=2
+  ld_window_bp=1000000
+  ld_r2=0.3
+  macro_min_snps=3
+  macro_max_gap_bp=250000
+  cd "${projdir}/snpfilter" || exit 1
+  shopt -s nullglob
 
-cd $projdir
-cd snpfilter
-for snpfilter_dir in */; do
-	cd $snpfilter_dir
-	if [ -d subref ]; then rm -rf subref; fi
-	if [ -d subsamples ]; then rm -rf subsamples; fi
-	if [ -d paralog_haplo_filter ]; then rm -rf paralog_haplo_filter; fi
-	if test -f "$file"; then rm -rf haplo.txt; fi
-	mkdir subref
-	mkdir subsamples
-	mkdir paralog_haplo_filter
-	cd subref
-	export ref1=${ref1}
-	awk '{print "$samtools faidx ../../../refgenomes/${ref1} " $2 " >> refpos.fasta"}' ../snplist_nonredun.txt > snpseq_context.sh
-	bash snpseq_context.sh
-	wait
-	rm -f *.sh
-	$bwa index -a bwtsw refpos.fasta
-	$samtools faidx refpos.fasta
-	$java -jar $picard CreateSequenceDictionary REFERENCE= refpos.fasta OUTPUT= refpos.dict
+  for snpdir in ./*/; do
+    [[ -d "$snpdir" ]] || continue
+    echo "Processing $snpdir"
+    cd "$snpdir" || continue
 
-	cd ../../../preprocess
-	for sample in *_precall.bam; do
-		outfile=${sample%_${ref1%.fa*}*}
-		$samtools bam2fq $sample | awk 'NR%2==0' | awk 'NR%2==1' | awk '{!seen[$0]++}END{for (i in seen) print seen[i], i}' | awk '{$1=$1};1' | \
-		awk -v sname=${outfile} '{print ">"sname"_seq"NR"-"$1"\n"$2}' | $gzip > ../snpfilter/${snpfilter_dir}/subsamples/${outfile}_precall.fasta.gz
-		cd ../snpfilter/${snpfilter_dir}/subref
-		$bwa mem -t $loopthreads refpos.fasta ../subsamples/${outfile}_precall.fasta.gz > ../subsamples/${outfile}.sam
-		cd ../subsamples/
-		$samtools view -b -F 4 ${outfile}.sam | $samtools bam2fq - | awk 'NR%4==1' > ${outfile}_uniqh.fasta
-		$samtools view -b -F 4 ${outfile}.sam | $samtools bam2fq - | awk 'NR%2==0' | awk 'NR%2==1' > ${outfile}_uniqs.fasta
-		paste -d '\t' ${outfile}_uniqh.fasta ${outfile}_uniqs.fasta > ${outfile}_uniq.fasta
-		linelen=$(awk '{print $2}' ${outfile}_uniq.fasta | awk '{print length}' | sort -nr | uniq -c | awk -v sum=$(wc -l ${outfile}_uniq.fasta | awk '{print $1}') '{print $1/sum,$2}' | awk '$1>=0.05' | sort -n -k1,1 | awk 'NR==1{print $2}')
-		awk -v len=$linelen 'length($2)>=len' ${outfile}_uniq.fasta | awk -v len=$linelen '{print $1,substr($2,1,len)}' | \
-		awk 'BEGIN{OFS="\t"}{gsub(/-/,"\t"); print}' | awk '{print $2"\t"$3}'> ${outfile}.fasta
-		for j in $(LC_ALL=C; sort -n -k1,1 ${outfile}.fasta | awk '{print $1}' | uniq); do
-			awk -v n="$j" '$0~n{print $0}' ${outfile}.fasta | awk -v n=$j '{for(i=0;i<n;i++) print}' | awk -F' ' '{print $2}' >> ${outfile}_FR.fasta
-		done
-		awk '{!seen[$0]++}END{for (i in seen) print seen[i], i}'  ${outfile}_FR.fasta | awk '{$1=$1};1' | \
-		awk -v sname=${outfile} '{print ">"sname"_seq"NR"-"$1"\n"$2}' | $gzip > ${outfile}.fasta.gz
-		rm -f ${outfile}_precall.fasta.gz ${outfile}_precall.fasta.gz ${outfile}.sam ${outfile}_uniq* ${outfile}.fasta ${outfile}_FR.fasta
-		cd ../../../preprocess
-	done
+    vcf_file=( *.vcf.gz )
+    [[ ${#vcf_file[@]} -eq 1 ]] || { echo "Expected 1 VCF, found ${#vcf_file[@]}"; cd ..; continue; }
+    vcf_file="${vcf_file[0]}"
+    outdir="haps"
+    micro_dir="$outdir/micro"
+    macro_dir="$outdir/macro"
+    mkdir -p "$micro_dir" "$macro_dir"
+    ref="${projdir}/refgenomes/${ref1}"
+    bam_dir="${projdir}/preprocess/processed"
+    [[ -s "$ref" ]] || { echo "Missing reference"; exit 1; }
+    ls "$bam_dir"/*.bam >/dev/null || { echo "No BAMs"; exit 1; }
 
-	cd ../snpfilter/$snpfilter_dir
-	awk '{print "$samtools faidx ../../refgenomes/${ref1} " $2 " >> snpseq_context.fasta"}' snplist_nonredun.txt > snpseq_context.sh
-	bash snpseq_context.sh
-	awk 1 ORS=',' snpseq_context.fasta | awk '{gsub(/>/,"\n>"); print}' | awk 'NF > 0' | sort -u -t, -k2,2 | tr ',' '\n' | awk 'NF > 0' > temp && mv temp snpseq_context.fasta
-	$bwa index -a bwtsw snpseq_context.fasta
-	$samtools faidx snpseq_context.fasta
-	$java  -jar $picard CreateSequenceDictionary REFERENCE= snpseq_context.fasta OUTPUT=snpseq_context.dict
-	for sample in ./subsamples/*.fasta.gz; do
-		$bwa mem -t $threads snpseq_context.fasta $sample | $samtools view -F 4 > ${sample%.fasta.gz}_align.txt
-		awk '{print $1"\t"$3}' ${sample%.fasta.gz}_align.txt | awk 'BEGIN{OFS="\t"} {gsub(/^.*-/,"",$1); print}' > ${sample%.fasta.gz}_alignh.txt
-		$samtools bam2fq ${sample%.fasta.gz}_align.txt | awk 'NR%2==0' | awk 'NR%2==1' > ${sample%.fasta.gz}_aligns.txt
-		paste -d '\t' ${sample%.fasta.gz}_alignh.txt ${sample%.fasta.gz}_aligns.txt > ${sample%.fasta.gz}_align.txt
-		rm -f $sample ${sample%.fasta.gz}_alignh.txt ${sample%.fasta.gz}_aligns.txt
-	done
-	rm -f snpseq_context.sh snpseq_context*
-	rm -rf subref
+    ##########################################
+    # STEP 1: PHASING (STRICT DIPLOID / POLYPLOID)
+    ##########################################
+    echo "Phasing with WhatsHap (ploidy=$ploidy)"
+    max_jobs="$threads"
+    $bcftools query -f '%CHROM\t%POS\t%POS\n' "$vcf_file" > "${vcf_file%.vcf*}.bed"
+    if [[ $ploidy -le 2 ]]; then
+        # Remove duplicate positions, keep first occurrence
+        cat <($bcftools view -h "$vcf_file") <($bcftools view -H "$vcf_file" | awk '!seen[$1,$2]++') > "${vcf_file%.vcf.gz}_dedup.vcf" &&
+        $bcftools view -Oz -o "${vcf_file%.vcf.gz}_dedup.vcf.gz" "${vcf_file%.vcf.gz}_dedup.vcf" &&
+        $bcftools index "${vcf_file%.vcf.gz}_dedup.vcf.gz"
+        rm -f "${vcf_file%.vcf.gz}_dedup.vcf"
+    else
+        # Polyploid: normalize + deduplicate as before
+        $bcftools norm -m -any -Oz -o "${vcf_file%.vcf.gz}_norm.vcf.gz" "$vcf_file" &&
+        $bcftools index "${vcf_file%.vcf.gz}_norm.vcf.gz"
+        $bcftools view -H "${vcf_file%.vcf.gz}_norm.vcf.gz" | awk '!seen[$1,$2]++' > "${vcf_file%.vcf.gz}_norm_dedup.vcf" &&
+        $bcftools view -Oz -o "${vcf_file%.vcf.gz}_norm_dedup.vcf.gz" "${vcf_file%.vcf.gz}_norm_dedup.vcf" &&
+        $bcftools index "${vcf_file%.vcf.gz}_norm_dedup.vcf.gz"
+    	  rm -f "${vcf_file%.vcf.gz}_norm.vcf.gz" "${vcf_file%.vcf.gz}_norm_dedup.vcf"
+    fi
 
-	for sample in ./subsamples/*_align.txt; do
-		outfile=${sample#*/*/} && outfile=${outfile%_align.txt}
-		rdvalues=$(awk '{print $2}' $sample | sort -n | uniq)
-		for i in $rdvalues; do
-			awk -v n=${i} '$0~n{print}'  $sample | sort -s -nrk1,1 > ${sample%_align*}_snp.txt
-			rdthreshold=$(awk 'NR == 1 {print $1}' ${sample%_align*}_snp.txt)
-			rdthreshold=$(awk -v rdthreshold=$rdthreshold -v ploidy=$ploidy 'BEGIN{printf "%0.6f\n", (rdthreshold*(0.1/ploidy))}')
-			awk -v rd=$rdthreshold '{if ($1 >= rd) {print $1"\t"$2"\t"$3}}' ${sample%_align.txt}_snp.txt > ${sample%_align.txt}_haplotypes1.txt
-			haplotypes=$(wc -l ${sample%_align.txt}_haplotypes1.txt | awk '{print $1}')
-			if [[ "$haplotypes" -le "$ploidy" ]]; then
-				haplo_RD=$(awk '{print $1"/"}' ${sample%_align.txt}_haplotypes1.txt | tr -d '\n' )
-				haplo=$(awk '{print $3"/"}' ${sample%_align.txt}_haplotypes1.txt | tr -d '\n' )
-				printf "$i\t$haplo_RD\t$haplo\t$i" | awk '{gsub("/\t","\t"); print}' | awk '{print $1"\t"$2"\t"$3}' >> ./paralog_haplo_filter/${outfile}_haplotypes.txt
-			fi
-		done
-		rm -f ${sample%_align.txt}_snp.txt ${sample%_align.txt}_haplotypes1.txt ${sample}
-	done
+    if [[ $ploidy -le 2 ]]; then
+        echo "Diploid VCF, skipping diploidization"
+        beagle_input="${vcf_file%.vcf.gz}_dedup.vcf.gz"
+    else
+        echo "Polyploid VCF (ploidy=$ploidy), diploidizing GT..."
+        bcftools view beagle_input="${vcf_file%.vcf.gz}_norm_dedup.vcf.gz" | \
+        awk 'BEGIN{OFS="\t"} /^##/ || /^#CHROM/{print; next}
+        {
+            for(i=10;i<=NF;i++){
+                split($i,f,":")
+                gt=f[1]
+                if(gt=="."||gt=="./."||gt==".|.") { f[1]="./." }
+                else {
+                    n0=n1=0
+                    split(gt,a,/[/|]/)
+                    P=length(a)
+                    for(j=1;j<=P;j++){
+                        if(a[j]=="0") n0++
+                        else if(a[j]=="1") n1++
+                    }
+                    f[1]=(n1==0?"0/0":(n1==P?"1/1":"0/1"))
+                }
+                out=f[1]
+                for(k=2;k<=length(f);k++) out=out":"f[k]
+                $i=out
+            }
+            print
+        }' | bcftools view -Oz -o beagle_input="${vcf_file%.vcf.gz}_normdiplo_dedup.vcf.gz"
+        bcftools index "${vcf_file%.vcf.gz}_normdiplo_dedup.vcf.gz"
+        beagle_input="${vcf_file%.vcf.gz}_normdiplo_dedup.vcf.gz"
+    fi
 
-	rmdir subsamples
-	cat ./paralog_haplo_filter/*_haplotypes.txt | awk -F '\t' 'BEGIN{OFS="\t"}{print $1}' | sort -u > ./paralog_haplo_filter/SNP_files.txt
-	for i in ./paralog_haplo_filter/*_haplotypes.txt; do
-		happrecall=${i#*/*/}; happrecall=${happrecall%_haplotypes.txt}
-		printf "SNP\t${happrecall}_haplosRD\t${happrecall}_haplos\n" > ${i%_haplotypes.txt}_hapmissingSNP.txt
-		awk -F '\t' 'BEGIN{OFS="\t"}{print $1}' $i | cat - ./paralog_haplo_filter/SNP_files.txt | awk '{!seen[$0]++}END{for (i in seen) print seen[i], i}' | awk '{print $0"\tNA\tNA"}' | cat $i - | sort -u | sort -k1,1 >> ${i%_haplotypes.txt}_hapmissingSNP.txt
-	done
-	rm -f ./paralog_haplo_filter/SNP_files.txt
+    echo "Running Beagle imputation and LD phasing..."
+    $java -jar $beagle nthreads="$threads" gt="$beagle_input" out="${vcf_file%.vcf.gz}_LDphased" impute=true
+    rm -f *_dedup.vcf.gz*
 
-	touch ./paralog_haplo_filter/consensus_haplos.txt
-	if [ -z "${p1:-}" ]; then
-		if [ -z "${p2:-}" ]; then
-			for i in ./paralog_haplo_filter/*_hapmissingSNP.txt; do
-				awk '{print $3}' $i  | awk '{gsub("/","\t"); print}' | paste -d '\t' ./paralog_haplo_filter/consensus_haplos.txt - > consensus_haplos1.txt
-				cat consensus_haplos1.txt | while read -r line; do
-					sleep $((RANDOM % 2))
-          compress=$(echo $line | tr '\t' '\n' | sort | uniq | awk 'NF > 0' | tr '\n' '\t')
-					printf '..%s..' "$compress\n" >> consensus_haplos2.txt
-				done
-				cat consensus_haplos2.txt > ./paralog_haplo_filter/consensus_haplos.txt
-				rm -f consensus_haplos1.txt && rm consensus_haplos2.txt
-			done
-		else
-			for i in ./paralog_haplo_filter/${p1}*_hapmissingSNP.txt ./paralog_haplo_filter/${p2}*_hapmissingSNP.txt; do
-				awk '{print $3}' $i  | awk '{gsub("/","\t"); print}' | paste -d '\t' ./paralog_haplo_filter/consensus_haplos.txt - > consensus_haplos1.txt
-				cat consensus_haplos1.txt | while read -r line; do
-					sleep $((RANDOM % 2))
-          compress=$(echo $line | tr '\t' '\n' | sort | uniq | awk 'NF > 0' | tr '\n' '\t')
-					printf '..%s..' "$compress\n" >> consensus_haplos2.txt
-				done
-				cat consensus_haplos2.txt > ./paralog_haplo_filter/consensus_haplos.txt
-				rm -f consensus_haplos1.txt && rm -f consensus_haplos2.txt
-			done
-		fi
-	fi
-	cat ./paralog_haplo_filter/consensus_haplos.txt | while read -r line; do
-		sleep $((RANDOM % 2))
-    compress=$(echo $line | tr ' ' '\t' | tr '\t\t' '\t' | tr '\t' '\n' | sort | uniq | awk 'NF > 0' | awk '$1 != "NA"' | tr '\n' '\t')
-		nHap=$(printf '..%s..' "$compress" | tr '\t' '\n' | awk 'NF > 0' | wc -l)
-		printf '..%s..' "$nHap\t$compress\n" >> ./paralog_haplo_filter/consensus_haplo2.txt
-	done
-	cat ./paralog_haplo_filter/consensus_haplo2.txt > ./paralog_haplo_filter/consensus_haplos.txt
-	rm -f ./paralog_haplo_filter/consensus_haplo2.txt
+    for bam in "$bam_dir"/*.bam; do
+      (
+        sample=$(basename "$bam" .bam)
+        echo "Phasing $sample ..."
+        phased_vcf="$micro_dir/${sample}.phased.vcf"
+        phased_vcfgz="$micro_dir/${sample}.phased.vcf.gz"
+        $samtools view -b -L "${vcf_file%.vcf*}.bed" "${bam_dir}/${sample}.bam" > "${micro_dir}/${sample}.bam" || true
+        samtools index "${micro_dir}/${sample}.bam" || true
 
-	#source: http://www.dayofthenewdan.com/2012/12/26/AWK_Linear_Regression.html
-	fitline () {
-		awk 'BEGIN { FS = "[ ,\t]+" }
-		NF == 2 { x_sum += $1
-		y_sum += $2
-		xy_sum += $1*$2
-		x2_sum += $1*$1
-		num += 1
-		x[NR] = $1
-		y[NR] = $2
-		}
-		END { mean_x = x_sum / num
-		mean_y = y_sum / num
-		mean_xy = xy_sum / num
-		mean_x2 = x2_sum / num
-		slope = (mean_xy - (mean_x*mean_y)) / (mean_x2 - (mean_x*mean_x))
-		inter = mean_y - slope * mean_x
-		for (i = num; i > 0; i--) {
-		ss_total += (y[i] - mean_y)**2
-		ss_residual += (y[i] - (slope * x[i] + inter))**2
-		}
-		r2 = 1 - (ss_residual / ss_total)
-		printf("Slope      :  %g\n", slope)
-		printf("Intercept  :  %g\n", inter)
-		printf("R-Squared  :  %g\n", r2)
-		}'
-	}
+        "$whatshap" phase --reference "$ref" --output "$phased_vcf" "${vcf_file%.vcf.gz}_LDphased.vcf.gz" "${micro_dir}/${sample}.bam" &&
+        rm -f "${micro_dir}/${sample}.bam*"
+        $bcftools view -Oz -o "$phased_vcfgz" "$phased_vcf" &&
+        $bcftools index "$phased_vcfgz" &&
+        rm -f "$phased_vcf"
+      ) &
+      while (( $(jobs -rp | wc -l) >= max_jobs )); do
+        sleep 1
+      done
+    done
+    wait
+    rm -f "${vcf_file%.vcf*}.bed"
+    echo "All BAMs phased."
 
-	ploidy_level=${snpfilter_dir%x_*}
-	if [[ "$ploidy_level" -eq 2 ]]; then
-		for i in $( ls -S ./paralog_haplo_filter/*_hapmissingSNP.txt); do
-			awk 'NR==1{print $3}' $i > ${i%_hapmissingSNP.txt}_hapcoded.txt
-		done
-		for j in $(seq 2 1 $(wc -l ./paralog_haplo_filter/consensus_haplos.txt | awk '{print $1}' )); do
-			awk -v j=$j 'NR == j' ./paralog_haplo_filter/consensus_haplos.txt | tr '\t' '\n' | awk 'NR>1' | awk 'NF > 0' | awk '{print NR"\t"$1}' > ./paralog_haplo_filter/consensus_haplo_line.txt
-			for i in ./paralog_haplo_filter/*_hapmissingSNP.txt; do
-				nhaplo=$(awk -v j=$j 'NR==j{print $3}' $i | tr '/' '\n' | awk 'NF > 0' | wc -l)
-				if [[ $nhaplo -eq 1 ]]; then
-					awk -v j=$j 'NR==j{print $3}' $i | tr '/' '\n' | awk '{print ".\t"$0"\n.\t"$0}' | cat ./paralog_haplo_filter/consensus_haplo_line.txt - | sort -k2,2 | uniq -f1 -d | \
-					awk '{gsub(/.\tNA/,"NA\tNA"); print}' | awk '{print $1" "$1}' | tr ' ' '/' | awk '{gsub("NA/NA","NA"); print}' >> ${i%_hapmissingSNP.txt}_hapcoded.txt
-				fi
-				if [[ $nhaplo -eq 2 ]]; then
-					awk -v j=$j 'NR==j{print $3}' $i | tr '/' '\n' | awk '{print ".\t"$0"\n.\t"$0}' | cat ./paralog_haplo_filter/consensus_haplo_line.txt -  | sort -k2,2 | uniq -f1 -d | \
-					awk '{gsub(/.\tNA/,"NA\tNA"); print}' | awk '{print $1}' | tr '\n' ' ' | awk '{$1=$1};1' | tr ' ' '/' | awk '{gsub("NA/NA","NA"); print}' >> ${i%_hapmissingSNP.txt}_hapcoded.txt
-				fi
-			done; wait
-		done
-	fi
-	if [[ "$ploidy_level" -eq 4 ]]; then
-		for i in $( ls -S ./paralog_haplo_filter/*_hapmissingSNP.txt); do
-			awk 'NR==1{print $3}' $i > ${i%_hapmissingSNP.txt}_hapcoded.txt
-		done
-		for j in $(seq 2 1 $(wc -l ./paralog_haplo_filter/consensus_haplos.txt | awk '{print $1}' )); do
-			awk -v j=$j 'NR == j' ./paralog_haplo_filter/consensus_haplos.txt | tr '\t' '\n' | awk 'NR>1' | awk 'NF > 0' | awk '{print NR"\t"$1}' > ./paralog_haplo_filter/consensus_haplo_line.txt
-			for i in ./paralog_haplo_filter/*_hapmissingSNP.txt; do
-				nhaplo=$(awk -v j=$j 'NR==j{print $3}' $i | tr '/' '\n' | awk 'NF > 0' | wc -l)
-				exp=$(awk -v j=$j 'NR==j{print $3}' $i | tr '/' ' ' | awk 'NF > 0')
-				if [[ $nhaplo -eq 1 ]]; then
-					awk -v j=$j 'NR==j{print $3}' $i | tr '/' '\n' | awk '{print ".\t"$0"\n.\t"$0}' | cat ./paralog_haplo_filter/consensus_haplo_line.txt - | sort -k2,2 | uniq -f1 -d | \
-					awk '{gsub(/.\tNA/,"NA\tNA"); print}' | awk '{print $1" "$1" "$1" "$1}' | tr ' ' '/' | awk '{gsub("NA/NA","NA"); print}' >> ${i%_hapmissingSNP.txt}_hapcoded.txt
-				fi
-if [[ $nhaplo -eq 2 ]]; then
-obs1=$(printf "0 1 3")
-obs2=$(printf "0 2 2")
-exp1=$(( paste <(printf '..%s..' "$obs1\n" | tr ' ' '\n') <(printf '..%s..' "$exp\n" | tr ' ' '\n') | fitline | awk 'NR==3{print $3}' ))
-exp2=$(( paste <(printf '..%s..' "$obs2\n" | tr ' ' '\n') <(printf '..%s..' "$exp\n" | tr ' ' '\n') | fitline | awk 'NR==3{print $3}' ))
-	if ("$exp1" > "$exp2"); then echo yes; fi
-		awk -v j=$j 'NR==j{print $3}' $i | tr '/' '\n' | awk '{print ".\t"$0"\n.\t"$0}' | cat ./paralog_haplo_filter/consensus_haplo_line.txt - | sort -k2,2 | uniq -f1 -d | \
-		awk '{gsub(/.\tNA/,"NA\tNA"); print}' | awk '{print $1" "$1}' | tr ' ' '/' | awk '{gsub("NA/NA","NA"); print}' >> ${i%_hapmissingSNP.txt}_hapcoded.txt
-fi
-if [[ $nhaplo -eq 3 ]]; then
-	awk -v j=$j 'NR==j{print $3}' $i | tr '/' '\n' | awk '{print ".\t"$0"\n.\t"$0}' | cat ./paralog_haplo_filter/consensus_haplo_line.txt - | sort -k2,2 | uniq -f1 -d | \
-	awk '{gsub(/.\tNA/,"NA\tNA"); print}' | awk '{print $1" "$1" "$1}' | tr ' ' '/' | awk '{gsub("NA/NA","NA"); print}' >> ${i%_hapmissingSNP.txt}_hapcoded.txt
-fi
-				if [[ $nhaplo -eq 4 ]]; then
-					awk -v j=$j 'NR==j{print $3}' $i | tr '/' '\n' | awk '{print ".\t"$0"\n.\t"$0}' | cat ./paralog_haplo_filter/consensus_haplo_line.txt -  | sort -k2,2 | uniq -f1 -d | \
-					awk '{gsub(/.\tNA/,"NA\tNA"); print}' | awk '{print $1}' | tr '\n' ' ' | awk '{$1=$1};1' | tr ' ' '/' | awk '{gsub("NA/NA","NA"); print}' >> ${i%_hapmissingSNP.txt}_hapcoded.txt
-				fi
-			done; wait
-		done
-	fi
-	if [[ "$ploidy_level" -eq 6 ]]; then
-		for i in $( ls -S ./paralog_haplo_filter/*_hapmissingSNP.txt); do
-			awk 'NR==1{print $3}' $i > ${i%_hapmissingSNP.txt}_hapcoded.txt
-		done
-		for j in $(seq 2 1 $(wc -l ./paralog_haplo_filter/consensus_haplos.txt | awk '{print $1}' )); do
-			awk -v j=$j 'NR == j' ./paralog_haplo_filter/consensus_haplos.txt | tr '\t' '\n' | awk 'NR>1' | awk 'NF > 0' | awk '{print NR"\t"$1}' > ./paralog_haplo_filter/consensus_haplo_line.txt
-			for i in ./paralog_haplo_filter/*_hapmissingSNP.txt; do
-				nhaplo=$(awk -v j=$j 'NR==j{print $3}' $i | tr '/' '\n' | awk 'NF > 0' | wc -l)
-				if [[ $nhaplo -eq 1 ]]; then
-					awk -v j=$j 'NR==j{print $3}' $i | tr '/' '\n' | awk '{print ".\t"$0"\n.\t"$0}' | cat ./paralog_haplo_filter/consensus_haplo_line.txt - | sort -k2,2 | uniq -f1 -d | \
-					awk '{gsub(/.\tNA/,"NA\tNA"); print}' | awk '{print $1" "$1" "$1" "$1" "$1" "$1}' | tr ' ' '/' | awk '{gsub("NA/NA","NA"); print}' >> ${i%_hapmissingSNP.txt}_hapcoded.txt
-				fi
-				if [[ $nhaplo -eq 6 ]]; then
-					awk -v j=$j 'NR==j{print $3}' $i | tr '/' '\n' | awk '{print ".\t"$0"\n.\t"$0}' | cat ./paralog_haplo_filter/consensus_haplo_line.txt -  | sort -k2,2 | uniq -f1 -d | \
-					awk '{gsub(/.\tNA/,"NA\tNA"); print}' | awk '{print $1}' | tr '\n' ' ' | awk '{$1=$1};1' | tr ' ' '/' | awk '{gsub("NA/NA","NA"); print}' >> ${i%_hapmissingSNP.txt}_hapcoded.txt
-				fi
-			done; wait
-		done
-	fi
-	if [[ "$ploidy_level" -eq 8 ]]; then
-		for i in $( ls -S ./paralog_haplo_filter/*_hapmissingSNP.txt); do
-			awk 'NR==1{print $3}' $i > ${i%_hapmissingSNP.txt}_hapcoded.txt
-		done
-		for j in $(seq 2 1 $(wc -l ./paralog_haplo_filter/consensus_haplos.txt | awk '{print $1}' )); do
-			awk -v j=$j 'NR == j' ./paralog_haplo_filter/consensus_haplos.txt | tr '\t' '\n' | awk 'NR>1' | awk 'NF > 0' | awk '{print NR"\t"$1}' > ./paralog_haplo_filter/consensus_haplo_line.txt
-			for i in ./paralog_haplo_filter/*_hapmissingSNP.txt; do
-				nhaplo=$(awk -v j=$j 'NR==j{print $3}' $i | tr '/' '\n' | awk 'NF > 0' | wc -l)
-				if [[ $nhaplo -eq 1 ]]; then
-					awk -v j=$j 'NR==j{print $3}' $i | tr '/' '\n' | awk '{print ".\t"$0"\n.\t"$0}' | cat ./paralog_haplo_filter/consensus_haplo_line.txt - | sort -k2,2 | uniq -f1 -d | \
-					awk '{gsub(/.\tNA/,"NA\tNA"); print}' | awk '{print $1" "$1" "$1" "$1" "$1" "$1" "$1" "$1}' | tr ' ' '/' | awk '{gsub("NA/NA","NA"); print}' >> ${i%_hapmissingSNP.txt}_hapcoded.txt
-				fi
-				if [[ $nhaplo -eq 8 ]]; then
-					awk -v j=$j 'NR==j{print $3}' $i | tr '/' '\n' | awk '{print ".\t"$0"\n.\t"$0}' | cat ./paralog_haplo_filter/consensus_haplo_line.txt -  | sort -k2,2 | uniq -f1 -d | \
-					awk '{gsub(/.\tNA/,"NA\tNA"); print}' | awk '{print $1}' | tr '\n' ' ' | awk '{$1=$1};1' | tr ' ' '/' | awk '{gsub("NA/NA","NA"); print}' >> ${i%_hapmissingSNP.txt}_hapcoded.txt
-				fi
-			done; wait
-		done
-	fi
+    # Merge phased VCFs
+    PHASED="$outdir/merged.phased1.vcf.gz"
+    PHASEDfinal="$outdir/merged.phased"
+    $bcftools merge --force-samples "$micro_dir"/*.phased.vcf.gz -Oz -o "$PHASED" &&
+    $bcftools index "$PHASED"
+    $java -jar $beagle nthreads="$threads" gt="$PHASED" out="${PHASEDfinal}" impute=true
+    $bcftools index "${PHASEDfinal}.vcf.gz"
+    rm -f "${PHASED}*"
 
-	rm -f ./paralog_haplo_filter/consensus_haplo_line.txt
-	awk 'NR>1{$1=""; print $0}' ./paralog_haplo_filter/consensus_haplos.txt | awk '{$1=$1};1' | awk '{gsub(/ /,""); print}' | awk 'BEGIN{print "Haplotype_sequences"}1' > ./paralog_haplo_filter/Haplotype_Seq_Context.txt
-	awk '{print $1}' $(ls ./paralog_haplo_filter/*_hapmissingSNP.txt | head -n 1 ) | paste -d '\t' - ./paralog_haplo_filter/*_hapcoded.txt ./paralog_haplo_filter/Haplotype_Seq_Context.txt | \
-	awk -v nsample=$(ls ./paralog_haplo_filter/*_hapcoded.txt | wc -l) '{print (gsub(/NA/,"NA"))/nsample"\t"$0}' | awk -v n=$genotype_missingness '$1<=n {print}' | awk '{$1=""}1' | awk 'BEGIN{OFS="\t"}{$1=$1};1' > ./paralog_haplo_filter/${pop}_rd${ploidy}_population_haplotype.txt
+    ##########################################
+    # MICROHAP WINDOWING (PRESERVES BOTH HAPLOTYPES)
+    ##########################################
+    echo "Building microhap windows"
+    sampleids=$(bcftools query -l "$PHASED" | paste -sd '\t' -)
+    $bcftools query -f '%CHROM\t%POS[\t%GT]\n' "${PHASEDfinal}.vcf.gz" | \
+    awk -v d="$micro_window_bp" -v m="$micro_min_snps" -v samples="$sampleids" '
+    BEGIN{
+      FS=OFS="\t"
+      ns=split(samples,S,"\t")
+      hap_id=0
+      printf "HapID\tCHROM\tSTART"
+      for(i=1;i<=ns;i++) printf "\t%s",S[i]
+      print ""
+    }
+    {
+      if(NR==1 || $1!=chr || $2-prev_pos>d){
+        if(cnt>=m){
+          for(h=1;h<=nhap;h++){
+            hap_id++
+            printf "HAP_%d\t%s\t%d",hap_id,chr,start
+            for(i=1;i<=ns;i++) printf "\t%s",H[h,i]
+            print ""
+          }
+        }
+        delete H; cnt=0; nhap=0
+        chr=$1; start=$2
+      }
 
-	cat ./paralog_haplo_filter/${pop}_rd${ploidy}_population_haplotype.txt | while read -r line; do
-	sleep $((RANDOM % 2))
-  hap=$( echo $line | awk '{print $1}' )
-	awk -v hap=$hap '$0~hap {print $1}' snplist.txt >> ./paralog_haplo_filter/haplo_filtered_snp.txt
-	done
+      for(i=1;i<=ns;i++){
+        split($(i+2),gt,/[\|\/]/)
+        for(h=1;h<=length(gt);h++){
+          if(!(h SUBSEP i in H)) nhap=(h>nhap?h:nhap)
+          H[h,i]=(h SUBSEP i in H ? H[h,i] gt[h] : gt[h])
+        }
+      }
 
-	minRD=${snpfilter_dir%x*}
-	for i in $(ls ./paralog_haplo_filter/${pop}_${ploidy}x_rd${minRD}_maf${maf}_* | grep -v population_haplotype ) ; do
-	awk 'BEGIN{OFS="\t"}NR==FNR {h[$1] = $0; next} {print $0,h[$1]}' haplo_filtered_snp.txt $i | awk  -F '\t' 'BEGIN{OFS="\t"}$NF!=""' | awk 'BEGIN{OFS="\t"}NF{NF-=1};1' > ./paralog_haplo_filter/${i%.txt}_hapfiltered.txt
-	done
-done
+      prev_pos=$2; cnt++
+    }
+    END{
+      if(cnt>=m){
+        for(h=1;h<=nhap;h++){
+          hap_id++
+          printf "HAP_%d\t%s\t%d",hap_id,chr,start
+          for(i=1;i<=ns;i++) printf "\t%s",H[h,i]
+          print ""
+        }
+      }
+    }
+    ' > "$micro_dir/microhap.raw.tsv"
+
+
+    ##########################################
+    # ENCODING + COLLAPSING (DIPLOID SAFE)
+    ##########################################
+    if ! Rscript "${GBSapp_dir}/scripts/R/microhap_encode_ploidy.R" \
+      "$micro_dir/microhap.raw.tsv" "$ploidy" "$micro_dir/microhap"; then
+      echo "Warning: Rscript failed — continuing pipeline"
+    fi
+
+    if ! Rscript "${GBSapp_dir}/scripts/R/collapse_microhaps.R" \
+      "$micro_dir/microhap.haplotype_dosage.tsv" "$micro_dir/microhap.locus_dosage.tsv" "$micro_dir/microhap" \
+      "$ploidy" "$threads" "${GBSapp_dir}/tools/R/"; then
+      echo "Warning: Rscript failed — continuing pipeline"
+    fi
+
+    rescale_to_012 () {
+      infile="$1"
+      outfile="$2"
+      ploidy="$3"
+      awk -v PLOIDY="$ploidy" '
+      BEGIN { FS=OFS="\t" }
+      NR==1 { print; next }
+      {
+        maxval=0
+        for(i=4;i<=NF;i++){
+          if($i!="" && $i!=".") if($i>maxval) maxval=$i
+        }
+        printf "%s\t%s\t%s", $1,$2,$3
+        for(i=4;i<=NF;i++){
+          if($i=="" || $i==".") val=0
+          else val=int( ($i / (maxval>0?maxval:1)) * 2 + 0.5 )
+          printf "\t%d", val
+        }
+        printf "\n"
+      }' "$infile" > "$outfile"
+    }
+    rescale_to_012 "$micro_dir/microhap.haplotype_dosage.collapsed.tsv" "$micro_dir/microhap.haplotype.collapsed.012.tsv" "$ploidy"
+    rescale_to_012 "$micro_dir/microhap.locus_dosage.collapsed.tsv" "$micro_dir/microhap.locus.collapsed.012.tsv" "$ploidy"
+
+    dose_file=(*_dose.txt) || true
+    doseprefix=${dose_file%_dose.txt}
+    awk 'BEGIN{OFS="\t"} { $1=""; sub(/^\t/, ""); print }' "$micro_dir/microhap.haplotype.collapsed.012.tsv" | \
+    awk 'BEGIN{OFS="\t"} NR==1{printf "HapID\tCHROM\tPOS\tREF\tALT"; for(i=4;i<=NF;i++) printf "\t%s",$i; print ""; next}{printf "%s_%s\t%s\t%s\tNA\tNA",$1,$2,$1,$2; for(i=4;i<=NF;i++) printf "\t%s",$i; print ""}' | \
+    awk 'BEGIN{OFS="\t"} NR>1{for(i=6;i<=NF;i++) if($i!="NA"&&$i!="."&&$i!=""){ $i=int($i+0.5); if($i>2)$i=2; if($i<0)$i=0 }}1' \
+     > "${doseprefix}_microhap_allele.txt"
+    awk 'BEGIN{OFS="\t"} NR==1{printf "HapID\tCHROM\tPOS\tREF\tALT"; for(i=4;i<=NF;i++) printf "\t%s",$i; print ""; next}{printf "%s_%s\t%s\t%s\tNA\tNA",$1,$2,$1,$2; for(i=4;i<=NF;i++) printf "\t%s",$i; print ""}' \
+    "$micro_dir/microhap.locus.collapsed.012.tsv" | awk 'BEGIN{OFS="\t"} NR>1{for(i=6;i<=NF;i++) if($i!="NA"&&$i!="."&&$i!=""){ $i=int($i+0.5); if($i>2)$i=2; if($i<0)$i=0 }}1' \
+    > "${doseprefix}_microhap_geno.txt"
+
+    if ! Rscript "${GBSapp_dir}/scripts/R/hap_to_vcf.R" "${doseprefix}_microhap_allele.txt" "${doseprefix}_microhap_allele.vcf"; then
+      echo "Warning: Rscript collapse_microhaps.R failed — continuing pipeline"
+    fi
+    gzip "${doseprefix}_microhap_allele.vcf"
+    if ! Rscript "${GBSapp_dir}/scripts/R/hap_to_vcf.R" "${doseprefix}_microhap_geno.txt" "${doseprefix}_microhap_geno.vcf"; then
+      echo "Warning: Rscript collapse_microhaps.R failed — continuing pipeline"
+    fi
+    gzip "${doseprefix}_microhap_geno.vcf"
+
+    ##########################################
+    # STEP 3: MACRO-HAPLOTYPES (LD-based)
+    ##########################################
+    macro_blocks="${macro_dir}/macro_ld_blocks.bed"
+    mkdir -p "$macro_dir/blocks" "$macro_dir/dosage"
+
+    echo "Running R: defining macrohap LD blocks..."
+    if ! Rscript "${GBSapp_dir}/scripts/R/macrohap_ld_blocks.R" \
+        "${PHASEDfinal}.vcf.gz" "$ld_window_bp" "$ld_r2" "$macro_blocks" "${GBSapp_dir}/tools/R/" "$threads"; then
+      echo "Warning: Rscript macrohap_ld_blocks.R failed — continuing pipeline"
+    fi
+
+    # Subset phased VCF into macro-haplotype blocks
+    echo "Subsetting phased VCF into macro-haplotype blocks..."
+    while read chr start end; do
+      block_file="$macro_dir/blocks/${chr}_${start}_${end}.vcf.gz"
+      $bcftools view -r "${chr}:${start}-${end}" "${PHASEDfinal}.vcf.gz" -Oz -o "$block_file"
+      $bcftools index "$block_file" || true
+    done < "$macro_blocks"
+
+
+    # Create haplotype dosage file per block (polyploid-aware)
+    echo "Computing macro-haplotype dosages..."
+    for block_vcf in "$macro_dir"/blocks/*.vcf.gz; do
+      block_name=$(basename "$block_vcf" .vcf.gz)
+      bcftools query -f '%POS[\t%GT]\n' "$block_vcf" | \
+      awk -v block="$block_name" '
+      BEGIN{FS=OFS="\t"}
+      {
+        printf "%s\t%s", block,$1
+        for(i=2;i<=NF;i++){
+          n=split($i,a,/[\/|]/)
+          alt=0
+          for(j=1;j<=n;j++){
+            if(a[j]!="0" && a[j]!=".") alt++
+          }
+          printf "\t%d", alt
+        }
+        printf "\n"
+      }' > "$macro_dir/dosage/${block_name}.hap.raw.tsv"
+    done
+
+    hap_out="$macro_dir/dosage/all_blocks.hap.raw.tsv"
+    echo -e "Locus\tHaplotype\t$(bcftools query -l "$PHASEDfinal".vcf.gz | paste -sd '\t')" > "$hap_out"
+    # Append each block-level raw hap TSV
+    for f in "$macro_dir"/dosage/*.hap.raw.tsv; do
+      awk 'NR>1' "$f" >> "$hap_out"
+    done
+
+    # Collapse macrohap dosages using R (parallel)
+    locus_out="$macro_dir/macrohap.locus_dosage.tsv" || true
+    prefix="$macro_dir/macrohap" || true
+    if ! Rscript "${GBSapp_dir}/scripts/R/collapse_macrohaps.R" \
+      "$hap_out" "$locus_out" "$ploidy" "$prefix" "$threads" "${GBSapp_dir}/tools/R/"; then
+      echo "Warning: Rscript collapse_macrohaps.R failed — continuing pipeline"
+    fi
+    echo "Macrohap processing complete. Outputs:"
+    echo "  - Haplotype dosage: $macro_dir/macrohap.haplotype_dosage.tsv"
+    echo "  - Locus dosage: $macro_dir/macrohap.locus_dosage.tsv"
+
+
+    collapse_prefixed_samples () {
+      infile="$1"
+      outfile="$2"
+      awk '
+      BEGIN{ FS=OFS="\t" }
+      NR==1{
+        # map column indices to base sample names
+        for(i=1;i<=NF;i++){
+          if(i<=2){
+            base[i]=$i
+            keep[i]=1
+          } else {
+            split($i,a,":")
+            name=(length(a)==2 ? a[2] : $i)
+            base[i]=name
+            samples[name]=1
+          }
+        }
+        # print new header
+        printf "%s", $1
+        if(NF>1) printf "\t%s", $2
+        for(s in samples) printf "\t%s", s
+        printf "\n"
+        next
+      }
+      {
+        delete sum
+        for(i=3;i<=NF;i++){
+          if($i!="." && $i!=""){
+            sum[base[i]] += $i
+          }
+        }
+        printf "%s\t%s", $1, $2
+        for(s in samples){
+          printf "\t%s", (s in sum ? sum[s] : 0)
+        }
+        printf "\n"
+      }' "$infile" > "$outfile"
+    }
+    collapse_prefixed_samples "$macro_dir/macrohap.haplotype_dosage.tsv" "$macro_dir/macrohap.haplotype_dosage.collapsed.tsv"
+    collapse_prefixed_samples "$macro_dir/macrohap.locus_dosage.tsv" "$macro_dir/macrohap.locus_dosage.collapsed.tsv"
+
+    rescale_to_012 () {
+      infile="$1"
+      outfile="$2"
+      scale=32
+      awk -v SCALE="$scale" '
+      BEGIN{ FS=OFS="\t" }
+      NR==1{ print; next }
+      {
+        for(i=3;i<=NF;i++){
+          if($i!="." && $i!=""){
+            $i = $i / SCALE
+          }
+        }
+        print
+      }' "$infile" > "$outfile"
+    }
+    rescale_to_012 "$macro_dir/macrohap.haplotype_dosage.collapsed.tsv" "$macro_dir/macrohap.haplotype.collapsed.012.tsv" || true
+    rescale_to_012 "$macro_dir/macrohap.locus_dosage.collapsed.tsv" "$macro_dir/macrohap.locus.collapsed.012.tsv" || true
+
+    dose_file=(*_dose.txt) || true
+    doseprefix=${dose_file%_dose.txt}
+    awk 'BEGIN{OFS="\t"}
+    NR==1 {
+        # New header
+        printf "HapID\tCHROM\tPOS\tREF\tALT"
+        for(i=6;i<=NF;i++) printf "\t%s",$i
+        print ""
+        next
+    }
+    {
+        n=split($1,a,"_")
+        chrom=a[1]"_"a[2]
+        pos=a[n-1]
+        hap=$1
+
+        printf "%s\t%s\t%s\tNA\tNA", hap, chrom, pos
+        for(i=6;i<=NF;i++) printf "\t%s",$i
+        print ""
+    }' "$macro_dir/macrohap.haplotype.collapsed.012.tsv" | \
+    awk 'BEGIN{OFS="\t"} NR>1{for(i=6;i<=NF;i++) if($i!="NA"&&$i!="."&&$i!=""){ $i=int($i+0.5); if($i>2)$i=2; if($i<0)$i=0 }}1' \
+    > "${doseprefix}_macrohap_allele.txt"
+
+    awk 'BEGIN{OFS="\t"}
+    NR==1 {
+        printf "HapID\tCHROM\tPOS\tREF\tALT"
+        for(i=6;i<=NF;i++) printf "\t%s",$i
+        print ""
+        next
+    }
+    {
+        n=split($1,a,"_")
+        chrom=a[1]"_"a[2]
+        pos=a[n-1]
+        hap=$1
+
+        printf "%s\t%s\t%s\tNA\tNA", hap, chrom, pos
+        for(i=6;i<=NF;i++) printf "\t%s",$i
+        print ""
+    }' "$macro_dir/macrohap.locus.collapsed.012.tsv" | \
+    awk 'BEGIN{OFS="\t"} NR>1{for(i=6;i<=NF;i++) if($i!="NA"&&$i!="."&&$i!=""){ $i=int($i+0.5); if($i>2)$i=2; if($i<0)$i=0 }}1' \
+    > "${doseprefix}_macrohap_geno.txt"
+
+    if ! Rscript "${GBSapp_dir}/scripts/R/hap_to_vcf.R" "${doseprefix}_macrohap_allele.txt" "${doseprefix}_macrohap_allele.vcf"; then
+      echo "Warning: Rscript collapse_macrohaps.R failed — continuing pipeline"
+    fi
+    gzip "${doseprefix}_macrohap_allele"
+    if ! Rscript "${GBSapp_dir}/scripts/R/hap_to_vcf.R" "${doseprefix}_macrohap_geno.txt" "${doseprefix}_macrohap_geno.vcf"; then
+      echo "Warning: Rscript collapse_macrohaps.R failed — continuing pipeline"
+    fi
+    gzip "${doseprefix}_macrohap_geno.vcf"
+
+    echo "Microhaplotyping and Macrohaplotyping completed"
+    rm -rf haps *LDphased*
+  done
 }
 cd $projdir
 if [[ "$samples_list" == "samples_list_node_1.txt" ]]; then
 	if [ "$walkaway" == false ]; then
-		echo -e "${magenta}- Do you want to perform sequence-based haplotyping and filtering? ${white}\n"
+		echo -e "${magenta}- Do you want to perform sequence-based microhaplotyping and LD-based macrohaplotyping? ${white}\n"
 		read -p "- y(YES) or n(NO) " -t 36000 -n 1 -r
 		if [[ ! $REPLY =~ ^[Yy]$ ]]; then
 			printf '\n'
-			echo -e "${magenta}- skipping sequence-based haplotyping and filtering ${white}\n"
+			echo -e "${magenta}- skipping sequence-based microhaplotyping and LD-based macrohaplotyping? ${white}\n"
 		else
 			printf '\n'
-			echo -e "${magenta}- performing sequence-based haplotyping and filtering ${white}\n"
-			#time main &>> log.out
-			echo -e "${magenta}- Under Development ${white}\n"
+			echo -e "${magenta}- performing sequence-based microhaplotyping and LD-based macrohaplotyping? ${white}\n"
+			time main &>> log.out
 		fi
 	fi
 	if [ "$walkaway" == true ]; then
-		if [ "$paralogfiltering_haplotyping" == 1 ]; then
-			echo -e "${magenta}- performing sequence-based haplotyping and filtering ${white}\n"
-			#time main &>> log.out
-			echo -e "${magenta}- Under Development ${white}\n"
+		if [ "$micro_macro_haplotyping" == 1 ]; then
+			echo -e "${magenta}- performing sequence-based microhaplotyping and LD-based macrohaplotyping? ${white}\n"
+			time main &>> log.out
 		else
-			echo -e "${magenta}- skipping sequence-based haplotyping and filtering ${white}\n"
+			echo -e "${magenta}- skipping sequence-based microhaplotyping and LD-based macrohaplotyping? ${white}\n"
 		fi
 	fi
 fi
+
+
+main_imp () {
+  cd ${projdir}/snpfilter
+  for snpdir in ./*/; do
+    [[ -d "$snpdir" ]] || continue
+    echo "Processing $snpdir"
+    cd "$snpdir" || continue
+    mkdir -p imputed
+    dose_file=(*_dose.txt)
+    vcf_file=${dose_file%_dose.txt}.vcf.gz
+    cd imputed
+
+    if [[ $ploidy -le 2 ]]; then
+        # Remove duplicate positions, keep first occurrence
+        cat <($bcftools view -h "../$vcf_file") <($bcftools view -H "../$vcf_file" | awk '!seen[$1,$2]++') > "${vcf_file%.vcf.gz}_dedup.vcf" &&
+        $bcftools view -Oz -o "${vcf_file%.vcf.gz}_dedup.vcf.gz" "${vcf_file%.vcf.gz}_dedup.vcf" &&
+        $bcftools index "${vcf_file%.vcf.gz}_dedup.vcf.gz"
+        rm -f "${vcf_file%.vcf.gz}_dedup.vcf"
+    else
+        # Polyploid: normalize + deduplicate as before
+        $bcftools norm -m -any -Oz -o "${vcf_file%.vcf.gz}_norm.vcf.gz" "../$vcf_file" &&
+        $bcftools index "${vcf_file%.vcf.gz}_norm.vcf.gz"
+        $bcftools view -H "${vcf_file%.vcf.gz}_norm.vcf.gz" | awk '!seen[$1,$2]++' > "${vcf_file%.vcf.gz}_norm_dedup.vcf" &&
+        $bcftools view -Oz -o "${vcf_file%.vcf.gz}_norm_dedup.vcf.gz" "${vcf_file%.vcf.gz}_norm_dedup.vcf" &&
+        $bcftools index "${vcf_file%.vcf.gz}_norm_dedup.vcf.gz"
+    	rm -f "${vcf_file%.vcf.gz}_norm.vcf.gz" "${vcf_file%.vcf.gz}_norm_dedup.vcf"
+    fi
+
+    if [[ $ploidy -le 2 ]]; then
+    	echo "Running Beagle imputation and LD phasing for diploid samples"
+    	$java -jar $beagle nthreads="$threads" gt="${vcf_file%.vcf.gz}_dedup.vcf.gz" out="${vcf_file%.vcf.gz}_imputed_noDP" impute=true
+    	$bcftools index "${vcf_file%.vcf.gz}_imputed_noDP.vcf.gz"
+    	$bcftools annotate -a "${vcf_file%.vcf.gz}_dedup.vcf.gz" -c FORMAT/DP,FORMAT/AD "${vcf_file%.vcf.gz}_imputed_noDP.vcf.gz" -Oz -o "${vcf_file%.vcf.gz}_imputed_DP.vcf.gz"
+    	rm -f "${vcf_file%.vcf.gz}_imputed_noDP"*
+    	$bcftools index "${vcf_file%.vcf.gz}_imputed_DP.vcf.gz"
+
+    	$bcftools view -h "${vcf_file%.vcf.gz}_imputed_DP.vcf.gz" > header.vcf
+    	awk 'BEGIN{OFS="\t"} /^#/ {print; next} FNR==NR {for(i=10;i<=NF;i++) gt[FNR,i]=$i; next} {
+    	  printf "%s", $1
+    	  for(j=2;j<=9;j++) printf "\t%s",$j
+    	  for(j=10;j<=NF;j++){
+    		split($j,f,":")    # fields from imputed VCF
+    		split(gt[FNR,j],g,":") # fields from original VCF
+    		if(g[1]!="./.") f[1]=g[1]  # only replace GT if original is non-missing
+    		printf "\t%s", f[1]
+    		for(k=2;k<=length(f);k++) printf ":%s", f[k]  # append other FORMAT fields
+    	  }
+    	  print ""
+    	}' \
+    	<(zcat "${vcf_file%.vcf.gz}_dedup.vcf.gz" | grep -v '^#') <(zcat "${vcf_file%.vcf.gz}_imputed_DP.vcf.gz" | grep -v '^#') | \
+    	cat header.vcf - > "${vcf_file%.vcf.gz}_imputed.vcf"
+    	rm -f header.vcf
+      	rm -f "${vcf_file%.vcf.gz}_dedup.vcf.gz"*  "${vcf_file%.vcf.gz}_imputed_DP.vcf.gz"*
+
+    	grep -v '^##' "${vcf_file%.vcf.gz}_imputed.vcf" | awk '{gsub(/#CHROM/,"CHROM");}1' > "${vcf_file%.vcf.gz}_imputed_${ploidy}x_rawSPLIT.vcf"
+    	awk -v n=10000 -v prefix="${vcf_file%.vcf.gz}_imputed" -v p="$ploidy" 'NR==1{hdr=$0; next} {f=sprintf("%s_%04d_%sx_rawSPLIT.vcf",prefix,int((NR-2)/n)+1,p); if(!(f in seen)){print hdr>f; seen[f]=1} print>>f}' "${vcf_file%.vcf.gz}_imputed_${ploidy}x_rawSPLIT.vcf"
+    	rm -f "${vcf_file%.vcf.gz}_imputed_${ploidy}x_rawSPLIT.vcf"
+    	if ! Rscript "${GBSapp_dir}"/scripts/R/VCF_2_DP_GT.R "${pop}" "${ploidy}x" "${GBSapp_dir}/tools/R" "1" "$filter_ExcHet"; then
+    		echo "Warning: Rscript failed for — continuing pipeline"
+    	fi
+    	awk -F'\t' -v OFS='\t' 'NR==1{for(i=1;i<=NF;i++) if($i!~/_DP$/){keep[++k]=i; h=$i; sub(/_GT$/,"",h); H[k]=h} for(i=1;i<=k;i++) printf "%s%s",H[i],(i<k?OFS:ORS); next}{for(i=1;i<=k;i++) printf "%s%s",$(keep[i]),(i<k?OFS:ORS)}' \
+    	"${pop}_${ploidy}x_DP_GT.txt" | awk -F'\t' -v OFS='\t' '{NF--; print}' > "${dose_file%_dose.txt}_dose_imputed.txt"
+    	rm "${pop}_${ploidy}x_AR.txt" "${pop}_${ploidy}x_DP_GT.txt"
+    	mv raw2x_Allele_Ratio_Heterozygosity_plot.tiff  "${vcf_file%.vcf.gz}_Allele_Ratio_Heterozygosity_plot.tiff" || true
+    	$bcftools view -Oz -o "${vcf_file%.vcf.gz}_imputed.vcf.gz" "${vcf_file%.vcf.gz}_imputed.vcf" &&
+      $bcftools index "${vcf_file%.vcf.gz}_imputed.vcf.gz"
+      rm -f "${vcf_file%.vcf.gz}_imputed.vcf"
+    fi
+  done
+}
+echo -e "${magenta}- performing imputation? ${white}\n"
+time main_imp &>> log.out
+
 
 
 ######################################################################################################################################################
