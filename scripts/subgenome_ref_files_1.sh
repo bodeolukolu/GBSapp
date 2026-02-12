@@ -4286,28 +4286,30 @@ main_imp () {
     cd ${projdir}/snpfilter
   done
 }
+cd $projdir
 echo -e "${magenta}- performing imputation? ${white}\n"
 time main_imp &>> log.out
 
 
 
 ######################################################################################################################################################
-cd ${projdir}
-if [[ "$samples_list" == "samples_list_node_1.txt" ]] && [[ -d "snpfilter" ]]; then
-  find ../ -size 0 -delete >/dev/null 2>&1 &&
+cd "${projdir}"
+if [[ "$samples_list" == "samples_list_node_1.txt" && -d "snpfilter" ]]; then
   rm -f call*
-  ls ./snpfilter/*/*_plusSD.txt 2> /dev/null | xargs rm 2> /dev/null &&
-  ls ./snpfilter/*/*SD_1_G*G*.txt 2> /dev/null | xargs rm 2> /dev/null &&
-  ls *node*.txt | grep -v 'samples_list' | xargs rm 2> /dev/null &&
-	rm -f steps.txt
-	mv ${projdir}/GBSapp_run_node_1.sh ${projdir}/GBSapp_run_node_1_done.sh 2> /dev/null &&
-	mv ${projdir}/GBSapp_run_node.sh ${projdir}/GBSapp_run_node_done.sh 2> /dev/null &&
-  wait
-  if [[ "$biallelic" == true ]]; then mv snpfilter snpfilter_biallelic; fi
-  touch ../Analysis_Complete
-  wait
+  rm -f ./snpfilter/*/*_plusSD.txt
+  rm -f ./snpfilter/*/*SD_1_G*G*.txt
+  for f in *node*.txt; do
+    [[ "$f" == *samples_list* ]] && continue
+    rm -f "$f"
+  done
+  rm -f steps.txt
+  mv "${projdir}/GBSapp_run_node_1.sh" "${projdir}/GBSapp_run_node_1_done.sh" 2>/dev/null
+  mv "${projdir}/GBSapp_run_node.sh" "${projdir}/GBSapp_run_node_done.sh" 2>/dev/null
+  if [[ "$biallelic" == true ]]; then
+    mv snpfilter snpfilter_biallelic
+  fi
+  touch Analysis_Complete
 else
-	touch ../Analysis_Complete_${samples_list}
+  touch "Analysis_Complete_${samples_list}"
 fi
-wait
 echo -e "${magenta}- Run Complete. ${white}\n"
