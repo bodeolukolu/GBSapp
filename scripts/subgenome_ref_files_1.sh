@@ -3907,7 +3907,7 @@ main () {
     # MICROHAP WINDOWING (PRESERVES BOTH HAPLOTYPES)
     ##########################################
     echo "Building microhap windows"
-    sampleids=$(bcftools query -l "${PHASEDfinal}.vcf.gz"s | paste -sd '\t' -)
+    sampleids=$(bcftools query -l "${PHASEDfinal}.vcf.gz" | paste -sd '\t' -)
     $bcftools query -f '%CHROM\t%POS[\t%GT]\n' "${PHASEDfinal}.vcf.gz" | \
     awk -v d="$micro_window_bp" -v m="$micro_min_snps" -v samples="$sampleids" '
     BEGIN{
@@ -4180,7 +4180,7 @@ main () {
     if ! Rscript "${GBSapp_dir}/scripts/R/hap_to_vcf.R" "${doseprefix}_macrohap_allele.txt" "${doseprefix}_macrohap_allele.vcf"; then
       echo "Warning: Rscript collapse_macrohaps.R failed — continuing pipeline"
     fi
-    gzip "${doseprefix}_macrohap_allele"
+    gzip "${doseprefix}_macrohap_allele.vcf"
     if ! Rscript "${GBSapp_dir}/scripts/R/hap_to_vcf.R" "${doseprefix}_macrohap_geno.txt" "${doseprefix}_macrohap_geno.vcf"; then
       echo "Warning: Rscript collapse_macrohaps.R failed — continuing pipeline"
     fi
@@ -4283,6 +4283,7 @@ main_imp () {
       $bcftools index "${vcf_file%.vcf.gz}_imputed.vcf.gz"
       rm -f "${vcf_file%.vcf.gz}_imputed.vcf"
     fi
+    cd ${projdir}/snpfilter
   done
 }
 echo -e "${magenta}- performing imputation? ${white}\n"
