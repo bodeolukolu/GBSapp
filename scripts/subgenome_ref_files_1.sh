@@ -1228,7 +1228,7 @@ main () {
   fi
   wait
 
-  cat ${projdir}sv_mode.txt > ${projdir}/alignment_done_${samples_list}
+  cat ${projdir}/sv_mode.txt > ${projdir}/alignment_done_${samples_list}
 
   cd ${projdir}/preprocess
   if [[ "$samples_list" == "samples_list_node_1.txt" ]] && test ! -f ${projdir}/alignment_done.txt; then
@@ -3707,6 +3707,7 @@ main () {
     mv "$OUTDIR/ploidy_all_genome_summary.tsv" "$OUTDIR/ploidy_samples_median.txt"
     mv "$OUTDIR/ploidy_all_ploidy_loess.tiff" "$OUTDIR/ploidy_samples_SNPgenomewide.tiff"
     mv "$OUTDIR/ploidy_all_chr_summary_boxplot.tiff" "$OUTDIR/ploidy_samples_median.tiff"
+    cd ${projdir}/snpfilter
   done
 }
 cd $projdir
@@ -3724,7 +3725,7 @@ if [[ "$samples_list" == "samples_list_node_1.txt" ]]; then
 		fi
 	fi
 	if [ "$walkaway" == true ]; then
-		if [ "$Ploidy_Estimation" == 1 ]; then
+		if [ "$ploidy_estimation" == 1 ]; then
 			echo -e "${magenta}- generating visualizations for genotype accuracy and ploidy estimation ${white}\n"
 			time main &>> log.out
 		else
@@ -3838,7 +3839,7 @@ main () {
       }
       print ""
     }' \
-    <(zcat "$beagle_input" | grep -v '^#') <(zcat "${vcf_file%.vcf.gz}_LDphased.vcf.gz" | grep -v '^#') | \
+    <(zcat "$beagle_input" | grep -v '^#') <(zcat "${vcf_file%.vcf.gz}_LDphasedDP.vcf.gz" | grep -v '^#') | \
     cat header.vcf - > "${vcf_file%.vcf.gz}_LDphased.vcf"
     rm -f header.vcf "${vcf_file%.vcf.gz}_LDphased.vcf.gz"*
     rm -f "$beagle_input"*  "${vcf_file%.vcf.gz}_LDphasedDP.vcf.gz"*
@@ -3906,7 +3907,7 @@ main () {
     # MICROHAP WINDOWING (PRESERVES BOTH HAPLOTYPES)
     ##########################################
     echo "Building microhap windows"
-    sampleids=$(bcftools query -l "$PHASED" | paste -sd '\t' -)
+    sampleids=$(bcftools query -l "${PHASEDfinal}.vcf.gz"s | paste -sd '\t' -)
     $bcftools query -f '%CHROM\t%POS[\t%GT]\n' "${PHASEDfinal}.vcf.gz" | \
     awk -v d="$micro_window_bp" -v m="$micro_min_snps" -v samples="$sampleids" '
     BEGIN{
@@ -4187,6 +4188,7 @@ main () {
 
     echo "Microhaplotyping and Macrohaplotyping completed"
     rm -rf haps *LDphased*
+    cd "${projdir}/snpfilter"
   done
 }
 cd $projdir

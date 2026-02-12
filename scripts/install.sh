@@ -20,7 +20,7 @@ main_genmap () {
   cd $tools_dir
   rm -rf genmap
 }
-dirtool=genmap
+dirtool=genmap*
 if [ -d $dirtool ]; then
   :
 else
@@ -292,13 +292,13 @@ wget https://faculty.washington.edu/browning/beagle/beagle.28Jun21.220.jar
 mv beagle.28Jun21.220.jar beagle.jar
 cd $tools_dir
 }
-dirtool=beagle
-if [ -d $dirtool ]; then
+dirtool=beagle.jar
+if [ -f $dirtool ]; then
 :
 else
 echo -e "${magenta}- Performing installation of dependency (Beagle) ${white}"
 main_beagle &>> ./log.out
-if [ ! -d $dirtool ]; then
+if [ ! -f $dirtool ]; then
     echo -e "${magenta} Beagle did not install properly ${white}"
 fi
 fi

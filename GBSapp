@@ -566,7 +566,7 @@ if [[ "$string" == true ]]; then
       read -p "- y(YES) or n(NO) " -n 1 -r
       if [[ ! $REPLY =~ ^[Yy]$ ]]; then
       	printf '\n'
-    	printf "snp_filtering=0 \n" >> steps.tmp
+    	   printf "snp_filtering=0 \n" >> steps.tmp
       	echo -e "${magenta}- skipping SNP/variant filtering ${white}"
         echo -e "${white}\n##############################################################################\n"
       else
@@ -575,18 +575,41 @@ if [[ "$string" == true ]]; then
         echo -e "${white}\n##############################################################################\n"
       fi
 
-      printf "Ploidy_Estimation=0 \n" >> steps.tmp
+      echo -e "${magenta}- Do you want to perform ploidy estimation? ${white}"
+      read -p "- y(YES) or n(NO) " -n 1 -r
+      if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        printf '\n'
+        printf "ploidy_estimation=0 \n" >> steps.tmp
+        echo -e "${magenta}- skipping ploidy_estimation ${white}"
+        echo -e "${white}\n##############################################################################\n"
+      else
+        printf '\n'
+        printf "ploidy_estimation=1 \n" >> steps.tmp
+        echo -e "${white}\n##############################################################################\n"
+      fi
+
+      echo -e "${magenta}- Do you want to perform micro- and macro-haplotyping? ${white}"
+      read -p "- y(YES) or n(NO) " -n 1 -r
+      if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        printf '\n'
       printf "micro_macro_haplotyping=0 \n" >> steps.tmp
+        echo -e "${magenta}- skipping micro_macro_haplotyping ${white}"
+        echo -e "${white}\n##############################################################################\n"
+      else
+        printf '\n'
+        printf "micro_macro_haplotyping=1 \n" >> steps.tmp
+        echo -e "${white}\n##############################################################################\n"
+      fi
     # echo -e "${magenta}- Do you want to generate visualizations for genotype accuracy and ploidy estimation? ${white}"
     # read -p "- y(YES) or n(NO) " -n 1 -r
     # if [[ ! $REPLY =~ ^[Yy]$ ]]; then
     # 	printf '\n'
-  	# printf "Ploidy_Estimation=0 \n" >> steps.tmp
+  	# printf "ploidy_estimation=0 \n" >> steps.tmp
     # 	echo -e "${magenta}- skipping visualizations for genotype accuracy and ploidy estimation ${white}"
     #   echo -e "${white}\n##############################################################################\n"
     # else
     #   printf '\n'
-    #   printf "Ploidy_Estimation=1 \n" >> steps.tmp
+    #   printf "ploidy_estimation=1 \n" >> steps.tmp
     #   echo -e "${white}\n##############################################################################\n"
     # fi
     #
@@ -655,7 +678,7 @@ if [[ "$string" == true ]]; then
       read -p "- y(YES) or n(NO) " -n 1 -r
       if [[ ! $REPLY =~ ^[Yy]$ ]]; then
       	printf '\n'
-    	printf "alignments=0 \n" > steps.tmp
+    	  printf "alignments=0 \n" > steps.tmp
       	echo -e "${magenta}- skipping read_alignments and alignment post-processing ${white}"
         echo -e "${white}\n##############################################################################\n"
       else
@@ -668,7 +691,7 @@ if [[ "$string" == true ]]; then
       read -p "- y(YES) or n(NO) " -n 1 -r
       if [[ ! $REPLY =~ ^[Yy]$ ]]; then
       	printf '\n'
-    	printf "snp_calling=0 \n" >> steps.tmp
+    	  printf "snp_calling=0 \n" >> steps.tmp
       	echo -e "${magenta}- skipping SNP/variant calling ${white}"
         echo -e "${white}\n##############################################################################\n"
       else
@@ -681,7 +704,7 @@ if [[ "$string" == true ]]; then
       read -p "- y(YES) or n(NO) " -n 1 -r
       if [[ ! $REPLY =~ ^[Yy]$ ]]; then
       	printf '\n'
-    	printf "snp_filtering=0 \n" >> steps.tmp
+    	  printf "snp_filtering=0 \n" >> steps.tmp
       	echo -e "${magenta}- skipping SNP/variant filtering ${white}"
         echo -e "${white}\n##############################################################################\n"
       else
@@ -690,18 +713,42 @@ if [[ "$string" == true ]]; then
         echo -e "${white}\n##############################################################################\n"
       fi
 
-      printf "Ploidy_Estimation=0 \n" >> steps.tmp
+      echo -e "${magenta}- Do you want to perform ploidy estimation? ${white}"
+      read -p "- y(YES) or n(NO) " -n 1 -r
+      if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        printf '\n'
+        printf "ploidy_estimation=0 \n" >> steps.tmp
+        echo -e "${magenta}- skipping ploidy_estimation ${white}"
+        echo -e "${white}\n##############################################################################\n"
+      else
+        printf '\n'
+        printf "ploidy_estimation=1 \n" >> steps.tmp
+        echo -e "${white}\n##############################################################################\n"
+      fi
+
+      echo -e "${magenta}- Do you want to perform micro- and macro-haplotyping? ${white}"
+      read -p "- y(YES) or n(NO) " -n 1 -r
+      if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        printf '\n'
       printf "micro_macro_haplotyping=0 \n" >> steps.tmp
+        echo -e "${magenta}- skipping micro_macro_haplotyping ${white}"
+        echo -e "${white}\n##############################################################################\n"
+      else
+        printf '\n'
+        printf "micro_macro_haplotyping=1 \n" >> steps.tmp
+        echo -e "${white}\n##############################################################################\n"
+      fi
+
       # echo -e "${magenta}- Do you want to generate visualizations for genotype accuracy and ploidy estimation? ${white}"
       # read -p "- y(YES) or n(NO) " -n 1 -r
       # if [[ ! $REPLY =~ ^[Yy]$ ]]; then
       # 	printf '\n'
-    	# printf "Ploidy_Estimation=0 \n" >> steps.tmp
+    	# printf "ploidy_estimation=0 \n" >> steps.tmp
       # 	echo -e "${magenta}- skipping visualizations for genotype accuracy and ploidy estimation ${white}"
       #   echo -e "${white}\n##############################################################################\n"
       # else
       #   printf '\n'
-      #   printf "Ploidy_Estimation=1 \n" >> steps.tmp
+      #   printf "ploidy_estimation=1 \n" >> steps.tmp
       #   echo -e "${white}\n##############################################################################\n"
       # fi
       #
@@ -738,7 +785,7 @@ if [[ "$string" == true ]]; then
         grep -v '^samples_list=' config.sh > config_node.sh
         printf "samples_list=samples_list_node_${i}.txt\n" >> config_node.sh
         if [[ "$i" -gt 1 ]]; then
-          awk '{gsub(/snp_filtering=1/,"snp_filtering=0"); gsub(/Ploidy_Estimation=1/,"Ploidy_Estimation=0"); gsub(/micro_macro_haplotyping=1/,"micro_macro_haplotyping=0"); print}' steps.txt > steps_node.txt
+          awk '{gsub(/snp_filtering=1/,"snp_filtering=0"); gsub(/ploidy_estimation=1/,"ploidy_estimation=0"); gsub(/micro_macro_haplotyping=1/,"micro_macro_haplotyping=0"); print}' steps.txt > steps_node.txt
         else
           cp steps.txt steps_node.txt
         fi
