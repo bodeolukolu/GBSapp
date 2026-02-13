@@ -4303,8 +4303,8 @@ if [[ "$samples_list" == "samples_list_node_1.txt" && -d "snpfilter" ]]; then
     rm -f "$f"
   done
   rm -f steps.txt
-  mv "${projdir}/GBSapp_run_node_1.sh" "${projdir}/GBSapp_run_node_1_done.sh" 2>/dev/null
-  mv "${projdir}/GBSapp_run_node.sh" "${projdir}/GBSapp_run_node_done.sh" 2>/dev/null
+  mv "${projdir}/GBSapp_run_node_1.sh" "${projdir}/GBSapp_run_node_1_done.sh" 2>/dev/null || true
+  mv "${projdir}/GBSapp_run_node.sh" "${projdir}/GBSapp_run_node_done.sh" 2>/dev/null || true
   if [[ "$biallelic" == true ]]; then
     mv snpfilter snpfilter_biallelic
   fi
