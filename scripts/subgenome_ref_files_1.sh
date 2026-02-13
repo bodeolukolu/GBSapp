@@ -1080,13 +1080,13 @@ main () {
                   "$r1_file" "$r2_file" > "${sample_base}.sam"
               else
                   echo "Aligning SE reads: $r1_file (structure: $detect_structure_mode)"
-                  $minimap2 -t $alnthreads -ax sr --secondary=yes -k15 -w5 "../refgenomes/${ref1%.f*}.mmi" \
+                  $minimap2 -t $alnthreads -ax sr --secondary=yes -k15 -w5 -Y -f 0.0005 -N 8 -n 2 -m 25 "../refgenomes/${ref1%.f*}.mmi" \
                   "$r1_file" > "${sample_base}.sam"
               fi
               #### Step 2: Align stitched R1R2 reads separately
               if [[ -f "$r1r2_file" && -s "$r1r2_file" ]]; then
                   echo "Aligning stitched reads: $r1r2_file"
-                  $minimap2 -t $alnthreads -ax sr --secondary=yes -k15 -w5 "../refgenomes/${ref1%.f*}.mmi" \
+                  $minimap2 -t $alnthreads -ax sr --secondary=yes -k15 -w5 -Y -f 0.0005 -N 8 -n 2 -m 25 "../refgenomes/${ref1%.f*}.mmi" \
                   "$r1r2_file" > "${sample_base}_R1R2.sam"
                   # Merge SAMs
                   cat "${sample_base}.sam" <(grep -v '^@' "${sample_base}_R1R2.sam") > "${sample_base}_all.sam"
@@ -1100,17 +1100,17 @@ main () {
               #### Step 1: Align PE or SE reads
               if [[ -f "$r1_file" && -f "$r2_file" && -s "$r2_file" ]]; then
                   echo "Aligning PE reads: $r1_file + $r2_file (structure: $detect_structure_mode)"
-                  $minimap2 -t $alnthreads -ax pe --secondary=no --sam-hit-only -Y -f 0.0005 -N 8 -n 2 -m 25 "../refgenomes/${ref1%.f*}.mmi" \
+                  $minimap2 -t $alnthreads -ax pe --secondary=yes -Y -f 0.0005 -N 8 -n 2 -m 25 "../refgenomes/${ref1%.f*}.mmi" \
                   "$r1_file" "$r2_file" > "${sample_base}.sam"
               else
                   echo "Aligning SE reads: $r1_file (structure: $detect_structure_mode)"
-                  $minimap2 -t $alnthreads -ax sr --secondary=no --sam-hit-only "../refgenomes/${ref1%.f*}.mmi" \
+                  $minimap2 -t $alnthreads -ax sr --secondary=no -Y -f 0.0005 -N 8 -n 2 -m 25 "../refgenomes/${ref1%.f*}.mmi" \
                   "$r1_file" > "${sample_base}.sam"
               fi
               #### Step 2: Align stitched R1R2 reads separately
               if [[ -f "$r1r2_file" && -s "$r1r2_file" ]]; then
                   echo "Aligning stitched reads: $r1r2_file"
-                  $minimap2 -t $alnthreads -ax sr --secondary=no --sam-hit-only "../refgenomes/${ref1%.f*}.mmi" \
+                  $minimap2 -t $alnthreads -ax sr --secondary=yes -Y -f 0.0005 -N 8 -n 2 -m 25 "../refgenomes/${ref1%.f*}.mmi" \
                   "$r1r2_file" > "${sample_base}_R1R2.sam"
                   # Merge SAMs
                   cat "${sample_base}.sam" <(grep -v '^@' "${sample_base}_R1R2.sam") > "${sample_base}_all.sam"
@@ -1297,44 +1297,85 @@ main () {
     $samtools flagstat ${i%.f*}_full.sam.gz >> ${projdir}/alignment_summaries/${i%.f*}_summ.txt &&
     printf '########################################################################################################\n\n' >> ${projdir}/alignment_summaries/${i%.f*}_summ.txt &&
 
-    if test ! -f ${projdir}/preprocess/${i%.f*}_${ref1%.f*}_precall.bam.bai; then
-      if [[ "$paralogs" == false ]] && [[ "$uniquely_mapped" == true ]]; then
-        awk '/@HD/ || /@SQ/{print}' <(zcat ./alignment/${i%.f*}_redun.sam.gz 2> /dev/null) > ${i%.f*}_heading.sam &&
-        $samtools view -F4 <(zcat ./alignment/${i%.f*}_redun.sam.gz 2> /dev/null) | grep -v '^@' | awk '$3 != "*"' 2> /dev/null | awk '$6 != "*"' 2> /dev/null | \
-        awk -v min=$minmapq -F '\t' 'BEGIN{OFS="\t"} {if ($5 == 0 || $5 >= min) {print $0}}' | awk '!h[$1] { g[$1]=$0 } { h[$1]++ } END { for(k in g) print h[k], g[k] }' | \
-        tr " " "\t" | tr '\r' '\n' | awk '$1==1{print $0}' | awk '{$1=""}1' | awk '$1=$1' | tr " " "\t" | awk '{gsub(/_/,"_\t",$1);}1' | awk '{print $2"\t"$0}' | \
-        awk '{$2=$3=""}1' | tr -s " " | tr " " "\t" > ${i%.f*}_uniq.sam
-      fi
-      if [[ "$paralogs" == true ]] && [[ "$uniquely_mapped" == true ]]; then
-        awk '/@HD/ || /@SQ/{print}' <(zcat ./alignment/${i%.f*}_redun.sam.gz 2> /dev/null) > ${i%.f*}_heading.sam &&
-        $samtools view -F4 <(zcat ./alignment/${i%.f*}_redun.sam.gz 2> /dev/null) | grep -v '^@' | awk '$3 != "*"' 2> /dev/null | awk '$6 != "*"' 2> /dev/null | \
-        awk -v min=$minmapq -F '\t' 'BEGIN{OFS="\t"} {if ($5 == 0 || $5 >= min) {print $0}}' | awk '!h[$1] { g[$1]=$0 } { h[$1]++ } END { for(k in g) print h[k], g[k] }' | \
-        tr " " "\t" | tr '\r' '\n' | awk '$1==1 || $1<=6{print $0}' | awk '{$1=""}1' | awk '$1=$1' | tr " " "\t" | \
-        awk -F '\t' 'BEGIN{OFS="\t"} {if ($5 == 0) {print $0}}' 2> /dev/null > ${i%.f*}_uniqeq.sam
-        $samtools view -F4 <(zcat ./alignment/${i%.f*}_redun.sam.gz 2> /dev/null) | grep -v '^@' | awk '$3 != "*"' 2> /dev/null | awk '$6 != "*"' 2> /dev/null | \
-        awk '!h[$1] { g[$1]=$0 } { h[$1]++ } END { for(k in g) print h[k], g[k] }' | tr " " "\t" | tr '\r' '\n' | awk '$1==1 || $1<=6{print $0}' | awk '{$1=""}1' | awk '$1=$1' | tr " " "\t" | \
-        awk -F '\t' 'BEGIN{OFS="\t"} {if ($5 > 0) {print $0}}' 2> /dev/null | cat - ${i%.f*}_uniqeq.sam | \
-        awk '{gsub(/_/,"_\t",$1);}1' | awk '{print $2"\t"$0}' | awk '{$2=$3=""}1' | tr -s " " | tr " " "\t" > ${i%.f*}_uniq.sam &&
-        rm -f ${i%.f*}_uniqeq.sam
-      fi
-      if [[ "$paralogs" == true ]] && [[ "$uniquely_mapped" == false ]]; then
-        awk '/@HD/ || /@SQ/{print}' <(zcat ./alignment/${i%.f*}_redun.sam.gz 2> /dev/null) > ${i%.f*}_heading.sam &&
-        $samtools view -F4 <(zcat ./alignment/${i%.f*}_redun.sam.gz 2> /dev/null) | grep -v '^@' | awk '$3 != "*"' 2> /dev/null | awk '$6 != "*"' 2> /dev/null | \
-        awk -v min=$minmapq -F '\t' 'BEGIN{OFS="\t"} {if ($5 == 0 || $5 >= min) {print $0}}' | awk '!h[$1] { g[$1]=$0 } { h[$1]++ } END { for(k in g) print h[k], g[k] }' | \
-        tr " " "\t" | tr '\r' '\n' | awk '$1==1{print $0}' | awk '{$1=""}1' | awk '$1=$1' | tr " " "\t" | awk '{gsub(/_/,"_\t",$1);}1' | awk '{print $2"\t"$0}' | \
-        awk '{$2=$3=""}1' | tr -s " " | tr " " "\t" > ${i%.f*}_uniq.sampart &&
-        $samtools view -F4 <(zcat ./alignment/${i%.f*}_redun.sam.gz 2> /dev/null) | grep -v '^@' | awk '$3 != "*"' 2> /dev/null | awk '$6 != "*"' 2> /dev/null | \
-        awk -v min=$minmapq -F '\t' 'BEGIN{OFS="\t"} {if ($5 == 0 || $5 >= min) {print $0}}' | awk '!h[$1] { g[$1]=$0 } { h[$1]++ } END { for(k in g) print h[k], g[k] }' | \
-        tr " " "\t" | tr '\r' '\n' | awk '$1==1 || $1<=6{print $0}' | awk '{$1=""}1' | awk '$1=$1' | tr " " "\t" | \
-        awk -F '\t' 'BEGIN{OFS="\t"} {if ($5 == 0) {print $0}}' 2> /dev/null > ${i%.f*}_uniqeq.sam
-        $samtools view -F4 <(zcat ./alignment/${i%.f*}_redun.sam.gz 2> /dev/null) | grep -v '^@' | awk '$3 != "*"' 2> /dev/null | awk '$6 != "*"' 2> /dev/null | \
-        awk '!h[$1] { g[$1]=$0 } { h[$1]++ } END { for(k in g) print h[k], g[k] }' | tr " " "\t" | tr '\r' '\n' | awk '$1==1 || $1<=6{print $0}' | awk '{$1=""}1' | awk '$1=$1' | tr " " "\t" | \
-        awk -F '\t' 'BEGIN{OFS="\t"} {if ($5 > 0) {print $0}}' 2> /dev/null | cat - ${i%.f*}_uniqeq.sam | \
-        awk '{gsub(/_/,"_\t",$1);}1' | awk '{print $2"\t"$0}' | awk '{$2=$3=""}1' | tr -s " " | tr " " "\t" > ${i%.f*}_uniqAll.sam &&
-        rm -f ${i%.f*}_uniqeq.sam
-        awk 'NR==FNR{a[$0]=1;next}!a[$0]' ${i%.f*}_uniqpart.sam ${i%.f*}_uniqAll.sam > ${i%.f*}_uniq.sam &&
-        ${i%.f*}_uniqpart.sam ${i%.f*}_uniqAll.sam
-      fi
+    if test ! -f "${projdir}/preprocess/${i%.f*}_${ref1%.f*}_precall.bam.bai"; then
+      # Define input/output
+      INPUT_SAM=<(zcat ./alignment/${i%.f*}_redun.sam.gz 2>/dev/null)
+      OUTPUT_SAM=${i%.f*}_uniq.sam
+      # Process SAM
+      awk -v minmapq="$minmapq" -v paralogs="$paralogs" -v uniquely="$uniquely_mapped" 'BEGIN{OFS="\t"}
+          # 1️⃣ Print header lines (@HD, @SQ)
+          /^@HD/ || /^@SQ/ {print; next}
+          # 2️⃣ Skip unmapped or invalid reads
+          $3 == "*" || $6 == "*" {next}
+          # 3️⃣ Determine number of alignments (NH tag or fallback)
+          nh = 0
+          if (match($0, /NH:i:([0-9]+)/, a)) {
+              nh = a[1] + 0       # NH tag present
+          } else {
+              nh = -1             # No NH tag; fallback later
+          }
+          # 4️⃣ Keep reads with MAPQ >= min or MAPQ=0 (multi-mappers)
+          if (!($5 == 0 || $5 >= minmapq)) { next }
+          # 5️⃣ Build pseudo-NH for reads missing NH tag
+          if (nh == -1) {
+              if (!seen[$1]++) nh = 1   # first occurrence counts as 1
+              else nh = 2               # multiple occurrences
+          }
+          # 6️⃣ Apply filtering based on paralogs & unique mapping
+          keep = 0
+          if (paralogs == "false" && uniquely == "true" && nh == 1) {
+              keep = 1
+          } else if (paralogs == "true" && uniquely == "true" && (nh == 1 || nh <= 6)) {
+              keep = 1
+          } else if (paralogs == "true" && uniquely == "false" && nh <= 6) {
+              keep = 1
+          }
+          # 7️⃣ Print if selected
+          if (keep) print
+      ' "$INPUT_SAM" > "$OUTPUT_SAM"
+    fi
+
+
+    # if test ! -f ${projdir}/preprocess/${i%.f*}_${ref1%.f*}_precall.bam.bai; then
+    #   if [[ "$paralogs" == false ]] && [[ "$uniquely_mapped" == true ]]; then
+    #     awk '/@HD/ || /@SQ/{print}' <(zcat ./alignment/${i%.f*}_redun.sam.gz 2> /dev/null) > ${i%.f*}_heading.sam &&
+    #     $samtools view -F4 <(zcat ./alignment/${i%.f*}_redun.sam.gz 2> /dev/null) | grep -v '^@' | awk '$3 != "*"' 2> /dev/null | awk '$6 != "*"' 2> /dev/null | \
+    #     awk -v min=$minmapq -F '\t' 'BEGIN{OFS="\t"} {if ($5 == 0 || $5 >= min) {print $0}}' | awk '!h[$1] { g[$1]=$0 } { h[$1]++ } END { for(k in g) print h[k], g[k] }' | \
+    #     tr " " "\t" | tr '\r' '\n' | awk '$1==1{print $0}' | \
+    #     awk '{$1=""}1' | awk '$1=$1' | tr " " "\t" | awk '{gsub(/_/,"_\t",$1);}1' | awk '{print $2"\t"$0}' | \
+    #     awk '{$2=$3=""}1' | tr -s " " | tr " " "\t" > ${i%.f*}_uniq.sam
+    #   fi
+    #   if [[ "$paralogs" == true ]] && [[ "$uniquely_mapped" == true ]]; then
+    #     awk '/@HD/ || /@SQ/{print}' <(zcat ./alignment/${i%.f*}_redun.sam.gz 2> /dev/null) > ${i%.f*}_heading.sam &&
+    #     $samtools view -F4 <(zcat ./alignment/${i%.f*}_redun.sam.gz 2> /dev/null) | grep -v '^@' | awk '$3 != "*"' 2> /dev/null | awk '$6 != "*"' 2> /dev/null | \
+    #     awk -v min=$minmapq -F '\t' 'BEGIN{OFS="\t"} {if ($5 == 0 || $5 >= min) {print $0}}' | awk '!h[$1] { g[$1]=$0 } { h[$1]++ } END { for(k in g) print h[k], g[k] }' | \
+    #     tr " " "\t" | tr '\r' '\n' | awk '$1==1 || $1<=6{print $0}' | \
+    #     awk '{$1=""}1' | awk '$1=$1' | tr " " "\t" | \
+    #     awk -F '\t' 'BEGIN{OFS="\t"} {if ($5 == 0) {print $0}}' 2> /dev/null > ${i%.f*}_uniqeq.sam
+    #     $samtools view -F4 <(zcat ./alignment/${i%.f*}_redun.sam.gz 2> /dev/null) | grep -v '^@' | awk '$3 != "*"' 2> /dev/null | awk '$6 != "*"' 2> /dev/null | \
+    #     awk '!h[$1] { g[$1]=$0 } { h[$1]++ } END { for(k in g) print h[k], g[k] }' | tr " " "\t" | tr '\r' '\n' | awk '$1==1 || $1<=6{print $0}' | awk '{$1=""}1' | awk '$1=$1' | tr " " "\t" | \
+    #     awk -F '\t' 'BEGIN{OFS="\t"} {if ($5 > 0) {print $0}}' 2> /dev/null | cat - ${i%.f*}_uniqeq.sam | \
+    #     awk '{gsub(/_/,"_\t",$1);}1' | awk '{print $2"\t"$0}' | awk '{$2=$3=""}1' | tr -s " " | tr " " "\t" > ${i%.f*}_uniq.sam &&
+    #     rm -f ${i%.f*}_uniqeq.sam
+    #   fi
+    #   if [[ "$paralogs" == true ]] && [[ "$uniquely_mapped" == false ]]; then
+    #     awk '/@HD/ || /@SQ/{print}' <(zcat ./alignment/${i%.f*}_redun.sam.gz 2> /dev/null) > ${i%.f*}_heading.sam &&
+    #     $samtools view -F4 <(zcat ./alignment/${i%.f*}_redun.sam.gz 2> /dev/null) | grep -v '^@' | awk '$3 != "*"' 2> /dev/null | awk '$6 != "*"' 2> /dev/null | \
+    #     awk -v min=$minmapq -F '\t' 'BEGIN{OFS="\t"} {if ($5 == 0 || $5 >= min) {print $0}}' | awk '!h[$1] { g[$1]=$0 } { h[$1]++ } END { for(k in g) print h[k], g[k] }' | \
+    #     tr " " "\t" | tr '\r' '\n' | awk '$1==1{print $0}' | awk '{$1=""}1' | awk '$1=$1' | tr " " "\t" | awk '{gsub(/_/,"_\t",$1);}1' | awk '{print $2"\t"$0}' | \
+    #     awk '{$2=$3=""}1' | tr -s " " | tr " " "\t" > ${i%.f*}_uniq.sampart &&
+    #     $samtools view -F4 <(zcat ./alignment/${i%.f*}_redun.sam.gz 2> /dev/null) | grep -v '^@' | awk '$3 != "*"' 2> /dev/null | awk '$6 != "*"' 2> /dev/null | \
+    #     awk -v min=$minmapq -F '\t' 'BEGIN{OFS="\t"} {if ($5 == 0 || $5 >= min) {print $0}}' | awk '!h[$1] { g[$1]=$0 } { h[$1]++ } END { for(k in g) print h[k], g[k] }' | \
+    #     tr " " "\t" | tr '\r' '\n' | awk '$1==1 || $1<=6{print $0}' | awk '{$1=""}1' | awk '$1=$1' | tr " " "\t" | \
+    #     awk -F '\t' 'BEGIN{OFS="\t"} {if ($5 == 0) {print $0}}' 2> /dev/null > ${i%.f*}_uniqeq.sam
+    #     $samtools view -F4 <(zcat ./alignment/${i%.f*}_redun.sam.gz 2> /dev/null) | grep -v '^@' | awk '$3 != "*"' 2> /dev/null | awk '$6 != "*"' 2> /dev/null | \
+    #     awk '!h[$1] { g[$1]=$0 } { h[$1]++ } END { for(k in g) print h[k], g[k] }' | tr " " "\t" | tr '\r' '\n' | awk '$1==1 || $1<=6{print $0}' | awk '{$1=""}1' | awk '$1=$1' | tr " " "\t" | \
+    #     awk -F '\t' 'BEGIN{OFS="\t"} {if ($5 > 0) {print $0}}' 2> /dev/null | cat - ${i%.f*}_uniqeq.sam | \
+    #     awk '{gsub(/_/,"_\t",$1);}1' | awk '{print $2"\t"$0}' | awk '{$2=$3=""}1' | tr -s " " | tr " " "\t" > ${i%.f*}_uniqAll.sam &&
+    #     rm -f ${i%.f*}_uniqeq.sam
+    #     awk 'NR==FNR{a[$0]=1;next}!a[$0]' ${i%.f*}_uniqpart.sam ${i%.f*}_uniqAll.sam > ${i%.f*}_uniq.sam &&
+    #     ${i%.f*}_uniqpart.sam ${i%.f*}_uniqAll.sam
+    #   fi
 
       awk '{while ($1-- > 0) print $0}' ${i%.f*}_uniq.sam | \
       awk 'BEGIN{OFS="\t"}{split($0,a,"\t"); base=a[1]; copy[base]++; a[1]=base"_copy"copy[base]; print a[1],$2,$3,$4,$5,$6,$7,$8,$9,$10,$11}' > ${i%.f*}_${ref1%.f*}.sam &&
@@ -4302,7 +4343,8 @@ if [[ "$samples_list" == "samples_list_node_1.txt" && -d "snpfilter" ]]; then
     [[ "$f" == *samples_list* ]] && continue
     rm -f "$f"
   done
-  rm -f steps.txt
+  rm -f  fetch_excluded.txt steps.txt
+  rm -f compress_done.txt alignment_summary_done.txt alignment_done_samples_list_node_*.txt
   mv "${projdir}/GBSapp_run_node_1.sh" "${projdir}/GBSapp_run_node_1_done.sh" 2>/dev/null || true
   mv "${projdir}/GBSapp_run_node.sh" "${projdir}/GBSapp_run_node_done.sh" 2>/dev/null || true
   if [[ "$biallelic" == true ]]; then
