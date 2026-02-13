@@ -573,7 +573,7 @@ main () {
   done
 }
 cd $projdir
-if [[ "$alignments" == 1 ]] && [[ "$snp_calling" == 1 ]]; then
+if [[ "$alignments" == 1 ]]; then
   if [[ "$samples_list" == "samples_list_node_1.txt" ]]; then
     if [[ ! -f compress_done.txt && ! -f organize_files_done.txt ]]; then
       time main 2>> ${projdir}/log.out
@@ -1298,9 +1298,6 @@ main () {
     printf '########################################################################################################\n\n' >> ${projdir}/alignment_summaries/${i%.f*}_summ.txt &&
 
     if test ! -f "${projdir}/preprocess/${i%.f*}_${ref1%.f*}_precall.bam.bai"; then
-      # Define input/output
-      INPUT_SAM=<(zcat ./alignment/${i%.f*}_redun.sam.gz 2>/dev/null)
-      OUTPUT_SAM=${i%.f*}_uniq.sam
       # Process SAM
       awk -v minmapq="$minmapq" -v paralogs="$paralogs" -v uniquely="$uniquely_mapped" 'BEGIN{OFS="\t"}
           # 1️⃣ Print header lines (@HD, @SQ)
@@ -1332,9 +1329,7 @@ main () {
           }
           # 7️⃣ Print if selected
           if (keep) print
-      ' "$INPUT_SAM" > "$OUTPUT_SAM"
-    fi
-
+      ' <(zcat ./alignment/${i%.f*}_redun.sam.gz 2>/dev/null) > ${i%.f*}_uniq.sam
 
     # if test ! -f ${projdir}/preprocess/${i%.f*}_${ref1%.f*}_precall.bam.bai; then
     #   if [[ "$paralogs" == false ]] && [[ "$uniquely_mapped" == true ]]; then
