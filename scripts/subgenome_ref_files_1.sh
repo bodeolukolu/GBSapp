@@ -1298,38 +1298,33 @@ main () {
     printf '########################################################################################################\n\n' >> ${projdir}/alignment_summaries/${i%.f*}_summ.txt &&
 
     if test ! -f "${projdir}/preprocess/${i%.f*}_${ref1%.f*}_precall.bam.bai"; then
-      # Process SAM
-      awk -v minmapq="$minmapq" -v paralogs="$paralogs" -v uniquely="$uniquely_mapped" 'BEGIN{OFS="\t"}
-          # 1️⃣ Print header lines (@HD, @SQ)
-          /^@HD/ || /^@SQ/ {print; next}
-          # 2️⃣ Skip unmapped or invalid reads
-          $3 == "*" || $6 == "*" {next}
-          # 3️⃣ Determine number of alignments (NH tag or fallback)
-          nh = 0
-          if (match($0, /NH:i:([0-9]+)/, a)) {
-              nh = a[1] + 0       # NH tag present
-          } else {
-              nh = -1             # No NH tag; fallback later
-          }
-          # 4️⃣ Keep reads with MAPQ >= min or MAPQ=0 (multi-mappers)
-          if (!($5 == 0 || $5 >= minmapq)) { next }
-          # 5️⃣ Build pseudo-NH for reads missing NH tag
-          if (nh == -1) {
-              if (!seen[$1]++) nh = 1   # first occurrence counts as 1
-              else nh = 2               # multiple occurrences
-          }
-          # 6️⃣ Apply filtering based on paralogs & unique mapping
-          keep = 0
-          if (paralogs == "false" && uniquely == "true" && nh == 1) {
-              keep = 1
-          } else if (paralogs == "true" && uniquely == "true" && (nh == 1 || nh <= 6)) {
-              keep = 1
-          } else if (paralogs == "true" && uniquely == "false" && nh <= 6) {
-              keep = 1
-          }
-          # 7️⃣ Print if selected
-          if (keep) print
+      awk -v minmapq="$minmapq" -v paralogs="$paralogs" -v uniquely="$uniquely_mapped" 'BEGIN{FS=OFS="\t"}
+      /^@/ {print; next}
+      $3 == "*" || $6 == "*" {next}
+      nh = 0
+      if (match($0, /NH:i:([0-9]+)/, a)) {
+          nh = a[1] + 0
+      } else {
+          nh = -1
+      }
+      if (!($5 == 0 || $5 >= minmapq)) next
+      if (nh == -1) {
+          seen[$1]++
+          nh = seen[$1]
+      }
+      keep = 0
+      if (paralogs == "false" && uniquely == "true" && nh == 1) {
+          keep = 1
+      }
+      else if (paralogs == "true" && uniquely == "true" && nh <= 6) {
+          keep = 1
+      }
+      else if (paralogs == "true" && uniquely == "false" && nh <= 6) {
+          keep = 1
+      }
+      if (keep) print
       ' <(zcat ./alignment/${i%.f*}_redun.sam.gz 2>/dev/null) > ${i%.f*}_uniq.sam
+
 
     # if test ! -f ${projdir}/preprocess/${i%.f*}_${ref1%.f*}_precall.bam.bai; then
     #   if [[ "$paralogs" == false ]] && [[ "$uniquely_mapped" == true ]]; then
