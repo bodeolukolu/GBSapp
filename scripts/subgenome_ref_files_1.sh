@@ -1326,119 +1326,166 @@ main () {
   fi
 
   while IFS="" read -r i || [ -n "$i" ]; do (
-    tmpflag=$(mktemp)
-    printf '\n###---%s---###\n' "${i%.f*}" > "${projdir}/alignment_summaries/${i%.f*}_summ.txt"
-    $samtools view -h "./alignment/${i%.f*}_redun.bam" | \
-    awk 'BEGIN{FS=OFS="\t"} /^@/ {print; next} {split($1,a,"_"); n=a[length(a)]+0; if(n<1)n=1; base=a[1]; for(i=2;i<length(a);i++) base=base"_"a[i]; for(k=1;k<=n;k++){ $1=base"_copy"k; print }}' | \
-    $samtools flagstat -@ "$gthreads" - > "$tmpflag"
-    cat "$tmpflag" >> "${projdir}/alignment_summaries/${i%.f*}_summ.txt"
-    rm -f "$tmpflag"
+    if [[ ! -f "${projdir}/preprocess/${i%.f*}_${ref1%.f*}_precall.bam.bai" || ! -f "${projdir}/preprocess/processed/${i%.f*}_${ref1%.f*}_precall.bam.bai" ]]; then
+      tmpflag=$(mktemp)
+      printf '\n###---%s---###\n' "${i%.f*}" > "${projdir}/alignment_summaries/${i%.f*}_summ.txt"
+      $samtools view -h "./alignment/${i%.f*}_redun.bam" | \
+      awk 'BEGIN{FS=OFS="\t"} /^@/ {print; next} {split($1,a,"_"); n=a[length(a)]+0; if(n<1)n=1; base=a[1]; for(i=2;i<length(a);i++) base=base"_"a[i]; for(k=1;k<=n;k++){ $1=base"_copy"k; print }}' | \
+      $samtools flagstat -@ "$gthreads" - > "$tmpflag"
+      cat "$tmpflag" >> "${projdir}/alignment_summaries/${i%.f*}_summ.txt"
+      rm -f "$tmpflag"
 
-    if test ! -f ${projdir}/preprocess/${i%.f*}_${ref1%.f*}_precall.bam.bai; then
       BIN_SIZE=50
-    	if [[ "$paralogs" == false && "$uniquely_mapped" == true ]]; then
-    		$samtools view -h -F4 "./alignment/${i%.f*}_redun.bam" | \
-    		awk -v b="$BIN_SIZE" -v max="$downsample" -v Q="I" 'BEGIN{
-    			FS=OFS="\t"
-    			srand()
-    			bad="([0-9]+I[0-9]+I)|([0-9]+D[0-9]+D)|([0-9]+D[0-9]+I)|([0-9]+I[0-9]+D)"
-    		}
-    		/^@/ { print; next }
-    		{
-    			if ($3=="*" || $6=="*" || $5<20) next
-    			split($1,a,"_")
-    			if (a[2] != 1) next
-    			n=1
-    			if (match($1,/_([0-9]+)$/)) {
-    				n = substr($1,RSTART+1)+0
-    				base = substr($1,1,RSTART-1)
-    			} else base=$1
-    			if ($6 ~ bad) next
-    			bin = int($4/b)
-    			key = $3 "_" bin
-    			for (k=1; k<=n; k++) {
-    				if (count[key] >= max) break
-    				if (rand() >= 0.5) continue
-    				count[key]++
-    				$1 = base
-    				$11 = $10
-    				gsub(/[ACGTNacgtn]/, Q, $11)
-    				print
-    			}
-    		}' | \
-    		$samtools view -u -@ "$gthreads" - | \
-    		$samtools sort -@ "$gthreads" -o "${i%.f*}_${ref1%.f*}_sorted.bam" -
-    		$samtools index "${i%.f*}_${ref1%.f*}_sorted.bam"
-    	fi
-    	if [[ "$paralogs" == true && "$uniquely_mapped" == true ]]; then
-    		$samtools view -h -F4 "./alignment/${i%.f*}_redun.bam" | \
-    		awk -v b="$BIN_SIZE" -v max="$downsample" -v Q="I" 'BEGIN{
-    			FS=OFS="\t"
-    			srand()
-    			bad="([0-9]+I[0-9]+I)|([0-9]+D[0-9]+D)|([0-9]+D[0-9]+I)|([0-9]+I[0-9]+D)"
-    		}
-    		/^@/ { print; next }
-    		{
-    			if ($3=="*" || $6=="*" || $5<10) next
-    			n=1
-    			if (match($1,/_([0-9]+)$/))
-    				n = substr($1,RSTART+1)+0
-    			if (n > 6) next
-    			if (match($1,/_([0-9]+)$/)) {
-    				base = substr($1,1,RSTART-1)
-    			} else base=$1
-    			if ($6 ~ bad) next
-    			bin = int($4/b)
-    			key = $3 "_" bin
-    			for (k=1; k<=n; k++) {
-    				if (count[key] >= max) break
-    				if (rand() >= 0.5) continue
+      if [[ "$paralogs" == false && "$uniquely_mapped" == true ]]; then
+        $samtools view -h -F4 "./alignment/${i%.f*}_redun.bam" | \
+        awk -v max="$downsample" -v Q="I" '
+        BEGIN{
+            FS=OFS="\t"
+            bad="([0-9]+I[0-9]+I)|([0-9]+D[0-9]+D)|([0-9]+D[0-9]+I)|([0-9]+I[0-9]+D)"
+        }
+        function flush_group(    i,j,max_i,tmp,n,f){
+            n = gcount
+            for(i=1; i<=n && i<=max; i++){
+                max_i=i
+                for(j=i+1;j<=n;j++)
+                    if(glen[j] > glen[max_i]) max_i=j
+                tmp=glen[i]; glen[i]=glen[max_i]; glen[max_i]=tmp
+                tmp=gline[i]; gline[i]=gline[max_i]; gline[max_i]=tmp
 
-    				count[key]++
-    				$1 = base
-    				$11 = $10
-    				gsub(/[ACGTNacgtn]/, Q, $11)
-    				print
-    			}
-    		}' | \
-    		$samtools view -u -@ "$gthreads" - | \
-    		$samtools sort -@ "$gthreads" -o "${i%.f*}_${ref1%.f*}_sorted.bam" -
-    		$samtools index "${i%.f*}_${ref1%.f*}_sorted.bam"
-    	fi
-    	if [[ "$paralogs" == true && "$uniquely_mapped" == false ]]; then
-    		$samtools view -h -F4 "./alignment/${i%.f*}_redun.bam" | \
-    		awk -v b="$BIN_SIZE" -v max="$downsample" -v Q="I" 'BEGIN{
-    			FS=OFS="\t"
-    			srand()
-    			bad="([0-9]+I[0-9]+I)|([0-9]+D[0-9]+D)|([0-9]+D[0-9]+I)|([0-9]+I[0-9]+D)"
-    		}
-    		/^@/ { print; next }
-    		{
-    			if ($3=="*" || $6=="*" || $5<10) next
-    			n=1
-    			if (match($1,/_([0-9]+)$/))
-    				n = substr($1,RSTART+1)+0
-    			if (n < 2 || n > 6) next
-    			if (match($1,/_([0-9]+)$/)) {
-    				base = substr($1,1,RSTART-1)
-    			} else base=$1
-    			if ($6 ~ bad) next
-    			bin = int($4/b)
-    			key = $3 "_" bin
-    			for (k=1; k<=n; k++) {
-    				if (count[key] >= max) break
-    				if (rand() >= 0.5) continue
-    				count[key]++
-    				$1 = base
-    				$11 = $10
-    				gsub(/[ACGTNacgtn]/, Q, $11)
-    				print
-    			}
-    		}' | \
-    		$samtools view -u -@ "$gthreads" - | \
-    		$samtools sort -@ "$gthreads" -o "${i%.f*}_${ref1%.f*}_sorted.bam" -
-    		$samtools index "${i%.f*}_${ref1%.f*}_sorted.bam"
-    	fi
+                split(gline[i],f,"\t")
+                f[11]=f[10]
+                gsub(/[ACGTNacgtn]/,Q,f[11])
+                print join(f,OFS)
+            }
+            delete glen; delete gline; gcount=0
+        }
+        function join(arr,sep,    i,s){
+            for(i=1;i in arr;i++) s=(i==1?arr[i]:s sep arr[i])
+            return s
+        }
+        /^@/ { print; next }
+        {
+            if ($3=="*" || $6=="*" || $5<20) next
+            split($1,a,"_")
+            if (a[2]!=1) next
+            if ($6~bad) next
+            n=1
+            if (match($1,/_([0-9]+)$/)){
+                n=substr($1,RSTART+1)+0
+                base=substr($1,1,RSTART-1)
+            } else base=$1
+            key=$3"_"$4
+            if (current_key!="" && key!=current_key) flush_group()
+            current_key=key
+            for(k=1;k<=n;k++){
+                $1=base
+                gline[++gcount]=$0
+                glen[gcount]=length($10)
+            }
+        }
+        END{ if(gcount>0) flush_group() }' | $samtools view -u -@ "$gthreads" - | \
+        $samtools sort -@ "$gthreads" -o "${i%.f*}_${ref1%.f*}_sorted.bam" -
+        $samtools index "${i%.f*}_${ref1%.f*}_sorted.bam"
+      fi
+      if [[ "$paralogs" == true && "$uniquely_mapped" == true ]]; then
+        $samtools view -h -F4 "./alignment/${i%.f*}_redun.bam" | \
+        awk -v max="$downsample" -v Q="I" '
+        BEGIN{
+            FS=OFS="\t"
+            bad="([0-9]+I[0-9]+I)|([0-9]+D[0-9]+D)|([0-9]+D[0-9]+I)|([0-9]+I[0-9]+D)"
+        }
+        function flush_group(    i,j,max_i,tmp,n,f){
+            n=gcount
+            for(i=1;i<=n && i<=max;i++){
+                max_i=i
+                for(j=i+1;j<=n;j++)
+                    if(glen[j]>glen[max_i]) max_i=j
+                tmp=glen[i]; glen[i]=glen[max_i]; glen[max_i]=tmp
+                tmp=gline[i]; gline[i]=gline[max_i]; gline[max_i]=tmp
+                split(gline[i],f,"\t")
+                f[11]=f[10]
+                gsub(/[ACGTNacgtn]/,Q,f[11])
+                print join(f,OFS)
+            }
+            delete glen; delete gline; gcount=0
+        }
+        function join(arr,sep,    i,s){
+            for(i=1;i in arr;i++) s=(i==1?arr[i]:s sep arr[i])
+            return s
+        }
+        /^@/ { print; next }
+        {
+            if ($3=="*" || $6=="*" || $5<10) next
+            if ($6~bad) next
+            n=1
+            if (match($1,/_([0-9]+)$/)){
+                n=substr($1,RSTART+1)+0
+                if(n>6) next
+                base=substr($1,1,RSTART-1)
+            } else base=$1
+            key=$3"_"$4
+            if(current_key!="" && key!=current_key) flush_group()
+            current_key=key
+            for(k=1;k<=n;k++){
+                $1=base
+                gline[++gcount]=$0
+                glen[gcount]=length($10)
+            }
+        }
+        END{ if(gcount>0) flush_group() }' | $samtools view -u -@ "$gthreads" - | \
+        $samtools sort -@ "$gthreads" -o "${i%.f*}_${ref1%.f*}_sorted.bam" -
+        $samtools index "${i%.f*}_${ref1%.f*}_sorted.bam"
+      fi
+      if [[ "$paralogs" == true && "$uniquely_mapped" == false ]]; then
+        $samtools view -h -F4 "./alignment/${i%.f*}_redun.bam" | \
+        awk -v max="$downsample" -v Q="I" '
+        BEGIN{
+            FS=OFS="\t"
+            bad="([0-9]+I[0-9]+I)|([0-9]+D[0-9]+D)|([0-9]+D[0-9]+I)|([0-9]+I[0-9]+D)"
+        }
+        function flush_group(    i,j,max_i,tmp,n,f){
+            n=gcount
+            for(i=1;i<=n && i<=max;i++){
+                max_i=i
+                for(j=i+1;j<=n;j++)
+                    if(glen[j]>glen[max_i]) max_i=j
+                tmp=glen[i]; glen[i]=glen[max_i]; glen[max_i]=tmp
+                tmp=gline[i]; gline[i]=gline[max_i]; gline[max_i]=tmp
+                split(gline[i],f,"\t")
+                f[11]=f[10]
+                gsub(/[ACGTNacgtn]/,Q,f[11])
+                print join(f,OFS)
+            }
+            delete glen; delete gline; gcount=0
+        }
+        function join(arr,sep,    i,s){
+            for(i=1;i in arr;i++) s=(i==1?arr[i]:s sep arr[i])
+            return s
+        }
+        /^@/ { print; next }
+        {
+            if ($3=="*" || $6=="*" || $5<10) next
+            if ($6~bad) next
+            n=1
+            if (match($1,/_([0-9]+)$/)){
+                n=substr($1,RSTART+1)+0
+                if(n<2 || n>6) next
+                base=substr($1,1,RSTART-1)
+            } else next
+            key=$3"_"$4
+            if(current_key!="" && key!=current_key) flush_group()
+            current_key=key
+            for(k=1;k<=n;k++){
+                $1=base
+                gline[++gcount]=$0
+                glen[gcount]=length($10)
+            }
+        }
+        END{ if(gcount>0) flush_group() }' | $samtools view -u -@ "$gthreads" - | \
+        $samtools sort -@ "$gthreads" -o "${i%.f*}_${ref1%.f*}_sorted.bam" -
+        $samtools index "${i%.f*}_${ref1%.f*}_sorted.bam"
+      fi
+
 
       # Add read groups
     	$java $Xmx2 -XX:ParallelGCThreads=$gthreads -jar $picard AddOrReplaceReadGroups I="${i%.f*}_${ref1%.f*}_sorted.bam" \
