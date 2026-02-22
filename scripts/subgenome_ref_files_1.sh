@@ -1037,6 +1037,8 @@ main () {
             tmp_sv=$(mktemp "${projdir}/samples/tmp.XXXXXX")
             sv_out="${projdir}/sv_mode.txt"
 
+            [[ -f "../preprocess/alignment/${sample_base}_redun.bam" ]] && continue
+
             #### Step 0: Structure detection (sample 1% reads, min 1000)
             detect_structure_mode="low"  # default
             if [[ -f "$r1_file" ]]; then
@@ -1144,7 +1146,7 @@ main () {
           star_dir="../preprocess/staralign/${sample_base}"
           out_bam="${align_dir}/${sample_base}_redun.bam"
 
-          [[ -f "$out_bam" ]] && exit 0
+          [[ -f "$out_bam" ]] && continue
           mkdir -p "$align_dir" "$star_dir"
 
           # STEP 1: Align PE or SE reads with STAR
