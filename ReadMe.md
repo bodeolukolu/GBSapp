@@ -24,10 +24,8 @@ For questions, bugs, and suggestions, please contact bolukolu@utk.edu.
 - Increase speed of variant calling based on dynamic downsampling (avoids allele dropout due to biased downsampling).
 - Fast alignment due to joint-alignment method.
 - Visualizations for report and QC.
-
-- Functions under-development:
-  - calling microhaplotypes
-  - estimating ploidy level and aneuploidy
+- calling micro- and macro-haplotypes
+- estimating ploidy level (plots ploidy profile along chromosomes).
 
 
 
@@ -124,7 +122,6 @@ Using a text editor, save a file containing any of the following variables as 'c
 |Variable      |Default       |Usage         |Input         |required/Optional|
 |:-------------|:-------------|:-------------|:-------------|:----------------|
 |ploidy|na|value = 1,2,4,6, or 8|integer|Required|
-|haplome_number|1|specify single value or range (comma delimited) up to maximum haplome i.e. ploidy level|integer|Optional|
 |ref1|na|reference subgenome as .fasta file. Anchor-genome when other pangenomes/subgenomes are provided  |integer|Optional|
 |ploidy_ref1|na|ploidy-level|integer|Optional|
 |Get_Chromosome|na|variant calling on specific chromosomes, scaffolds,and contigs|comma delimited string(s)|optional|
@@ -163,12 +160,11 @@ Using a text editor, save a file containing any of the following variables as 'c
 |max_pseudoMol|5000|maximum # of pseudomolecules (scaffold/contig) before stitching into non-contiguous pseudo-chromosomes|integer|Optional|
 |uniquely_mapped|true|include uniquely mapped for variant calling |string|Optional|
 |paralogs|false|include paralogs for variant calling |string|Optional|
-|minmapq|20|minimum mapping quality|integer|Optional|
 |downsample_2x|50|value for unbiased downsampling for 2x ploidy|integer|Optional|
 |downsample_4x|100|value for unbiased downsampling for 4x ploidy|integer|Optional|
 |downsample_6x|150|value for unbiased downsampling for 6x ploidy|integer|Optional|
 |downsample_8x|200|value for unbiased downsampling for 8x ploidy|integer|Optional|
-|maxHaplotype|128|maximum number of haplotypes per haploid genome across population(increase for polyploids/high heterozygosity/high background mutational load)|integer|Optional|
+|maxHaplotype|128|maximum # of haplotypes per haploid genome across population(increase for polyploids/high heterozygosity/high background mutational load)|integer|Optional|
 |use_softclip|false|use soft-clipped bases for variant calling|string|Optional|
 |joint_calling|false| cohort calling will be performed if set to false|string|Optional|
 |keep_gVCF|false|keep sample gVCF files, if additional samples will be included for future joint calling)|string|Optional|
@@ -189,7 +185,6 @@ threads=16
 walkaway=true
 cluster=true
 nodes=1
-aligner=minimap2
 RNA=false
 variant_caller=gatk
 samples_alt_dir=false
@@ -200,11 +195,8 @@ subsample_WGS_in_silico_qRRS=false
 ###################################################
 ploidy=6
 haplome_number=6
-# Variant calling with haploid subgenome(s)
-# Anchored to ref1 for loci conserved across all subgenomes
 ref1=TF.fasta
 ploidy_ref1=2
-# exclue or limit variant calling to specific chromosomes
 Get_Chromosome=TF_Chr01,TF_Chr02
 Exclude_Chromosome=TF_Chr00,TL_Chr00
 genomecov_est=false
@@ -221,6 +213,7 @@ select_samples=pop.txt
 minRD_2x=6
 minRD_4x=25
 minRD_6x=45
+minRD_8x=100
 pseg=0.001
 maf=0.05
 filtered_vcf=true
@@ -230,7 +223,6 @@ filtered_vcf=true
 max_pseudoMol=5000
 uniquely_mapped=true
 paralogs=true
-minmapq=20
 downsample_2x=50
 downsample_4x=100
 downsample_6x=150

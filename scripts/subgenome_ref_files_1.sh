@@ -46,9 +46,6 @@ fi
 if [ -z "${uniquely_mapped:-}" ]; then
 	export uniquely_mapped=true
 fi
-if [ -z "${minmapq:-}" ]; then
-	export minmapq=20
-fi
 if [ "$RNA" == "true" ]; then
 	export minmapq=1
 fi
@@ -575,7 +572,7 @@ main () {
 cd $projdir
 if [[ "$alignments" == 1 ]]; then
   if [[ "$samples_list" == "samples_list_node_1.txt" ]]; then
-    if [[ ! -f compress_done.txt && ! -f organize_files_done.txt ]]; then
+    if [[ ! -f organize_files_done.txt ]]; then
       time main 2>> ${projdir}/log.out
     fi
   fi
@@ -1073,59 +1070,56 @@ main () {
             cat "$tmp_sv" >> "$sv_out" && rm -f "$tmp_sv"
 
             if [[ "$detect_structure_mode" == "high" ]]; then
-              #### Step 1: Align PE or SE reads
-              if [[ -f "$r1_file" && -f "$r2_file" && -s "$r2_file" ]]; then
-                  echo "Aligning PE reads: $r1_file + $r2_file (structure: $detect_structure_mode)"
-                  $minimap2 -t $alnthreads -ax pe --secondary=yes -k15 -w5 -Y -f 0.0005 -N 8 -n 2 -m 25 "../refgenomes/${ref1%.f*}.mmi" \
-                  "$r1_file" "$r2_file" > "${sample_base}.sam"
-              else
-                  echo "Aligning SE reads: $r1_file (structure: $detect_structure_mode)"
-                  $minimap2 -t $alnthreads -ax sr --secondary=yes -k15 -w5 -Y -f 0.0005 -N 8 -n 2 -m 25 "../refgenomes/${ref1%.f*}.mmi" \
-                  "$r1_file" > "${sample_base}.sam"
-              fi
-              #### Step 2: Align stitched R1R2 reads separately
-              if [[ -f "$r1r2_file" && -s "$r1r2_file" ]]; then
-                  echo "Aligning stitched reads: $r1r2_file"
-                  $minimap2 -t $alnthreads -ax sr --secondary=yes -k15 -w5 -Y -f 0.0005 -N 8 -n 2 -m 25 "../refgenomes/${ref1%.f*}.mmi" \
-                  "$r1r2_file" > "${sample_base}_R1R2.sam"
-                  # Merge SAMs
-                  cat "${sample_base}.sam" <(grep -v '^@' "${sample_base}_R1R2.sam") > "${sample_base}_all.sam"
-                  rm -f "${sample_base}_R1R2.sam"
-              else
-                  mv "${sample_base}.sam" "${sample_base}_all.sam"
-              fi
+        			#### Step 1: Align PE or SE reads
+        			if [[ -f "$r1_file" && -f "$r2_file" && -s "$r2_file" ]]; then
+        					echo "Aligning PE reads: $r1_file + $r2_file (structure: $detect_structure_mode)"
+        					$minimap2 -t $gthreads -ax pe --secondary=yes -k15 -w5 -Y -f 0.0005 -N 8 -n 2 -m 25 "../refgenomes/${ref1%.f*}.mmi" \
+        					"$r1_file" "$r2_file" | $samtools sort -@ $gthreads -m 1G -T "${projdir}/samples/tmp" -O BAM -o "../preprocess/alignment/${sample_base}_redun.bam"
+        			else
+        					echo "Aligning SE reads: $r1_file (structure: $detect_structure_mode)"
+        					$minimap2 -t $gthreads -ax sr --secondary=yes -k15 -w5 -Y -f 0.0005 -N 8 -n 2 -m 25 "../refgenomes/${ref1%.f*}.mmi" \
+        					"$r1_file" | $samtools sort -@ $gthreads -m 1G -T "${projdir}/samples/tmp" -O BAM -o "../preprocess/alignment/${sample_base}_redun.bam"
+        			fi
+        			#### Step 2: Align stitched R1R2 reads separately
+        			if [[ -f "$r1r2_file" && -s "$r1r2_file" ]]; then
+        					echo "Aligning stitched reads: $r1r2_file"
+        					$minimap2 -t $gthreads -ax sr --secondary=yes -k15 -w5 -Y -f 0.0005 -N 8 -n 2 -m 25 "../refgenomes/${ref1%.f*}.mmi" \
+        					"$r1r2_file" | $samtools sort -@ $gthreads -m 1G -T "${projdir}/samples/tmp" -O BAM -o "../preprocess/alignment/${sample_base}_redunR1R2.bam"
+        					# Merge BAMs
+        					$samtools merge -@ $gthreads -u - "../preprocess/alignment/${sample_base}_redun.bam" "../preprocess/alignment/${sample_base}_redunR1R2.bam" | \
+        					$samtools sort -@ $gthreads -m 1G -O BAM -o "../preprocess/alignment/${sample_base}_redunall.bam"
+        					rm -f "../preprocess/alignment/${sample_base}_redun.bam" "../preprocess/alignment/${sample_base}_redunR1R2.bam"
+        					mv "../preprocess/alignment/${sample_base}_redunall.bam" "../preprocess/alignment/${sample_base}_redun.bam"
+        			fi
             fi
 
-            if [[ "$detect_structure_mode" == "low" ]]; then
-              #### Step 1: Align PE or SE reads
-              if [[ -f "$r1_file" && -f "$r2_file" && -s "$r2_file" ]]; then
-                  echo "Aligning PE reads: $r1_file + $r2_file (structure: $detect_structure_mode)"
-                  $minimap2 -t $alnthreads -ax pe --secondary=yes -Y -f 0.0005 -N 8 -n 2 -m 25 "../refgenomes/${ref1%.f*}.mmi" \
-                  "$r1_file" "$r2_file" > "${sample_base}.sam"
-              else
-                  echo "Aligning SE reads: $r1_file (structure: $detect_structure_mode)"
-                  $minimap2 -t $alnthreads -ax sr --secondary=no -Y -f 0.0005 -N 8 -n 2 -m 25 "../refgenomes/${ref1%.f*}.mmi" \
-                  "$r1_file" > "${sample_base}.sam"
-              fi
-              #### Step 2: Align stitched R1R2 reads separately
-              if [[ -f "$r1r2_file" && -s "$r1r2_file" ]]; then
-                  echo "Aligning stitched reads: $r1r2_file"
-                  $minimap2 -t $alnthreads -ax sr --secondary=yes -Y -f 0.0005 -N 8 -n 2 -m 25 "../refgenomes/${ref1%.f*}.mmi" \
-                  "$r1r2_file" > "${sample_base}_R1R2.sam"
-                  # Merge SAMs
-                  cat "${sample_base}.sam" <(grep -v '^@' "${sample_base}_R1R2.sam") > "${sample_base}_all.sam"
-                  rm -f "${sample_base}_R1R2.sam"
-              else
-                  mv "${sample_base}.sam" "${sample_base}_all.sam"
-              fi
+    				if [[ "$detect_structure_mode" == "low" ]]; then
+        			#### Step 1: Align PE or SE reads
+        			if [[ -f "$r1_file" && -f "$r2_file" && -s "$r2_file" ]]; then
+        					echo "Aligning PE reads: $r1_file + $r2_file (structure: $detect_structure_mode)"
+        					$minimap2 -t $gthreads -ax pe --secondary=yes -Y -f 0.0005 -N 8 -n 2 -m 25 "../refgenomes/${ref1%.f*}.mmi" \
+        					"$r1_file" "$r2_file" | $samtools sort -@ $gthreads -m 1G -T "${projdir}/samples/tmp" -O BAM -o "../preprocess/alignment/${sample_base}_redun.bam"
+        			else
+        					echo "Aligning SE reads: $r1_file (structure: $detect_structure_mode)"
+        					$minimap2 -t $gthreads -ax sr --secondary=no -Y -f 0.0005 -N 8 -n 2 -m 25 "../refgenomes/${ref1%.f*}.mmi" \
+        					"$r1_file" | $samtools sort -@ $gthreads -m 1G -T "${projdir}/samples/tmp" -O BAM -o "../preprocess/alignment/${sample_base}_redun.bam"
+        			fi
+        			#### Step 2: Align stitched R1R2 reads separately
+        			if [[ -f "$r1r2_file" && -s "$r1r2_file" ]]; then
+        					echo "Aligning stitched reads: $r1r2_file"
+        					$minimap2 -t $gthreads -ax sr --secondary=yes -Y -f 0.0005 -N 8 -n 2 -m 25 "../refgenomes/${ref1%.f*}.mmi" \
+        					"$r1r2_file" | $samtools sort -@ $gthreads -m 1G -T "${projdir}/samples/tmp" -O BAM -o "../preprocess/alignment/${sample_base}_redunR1R2.bam"
+        					# Merge BAMs
+        					$samtools merge -@ $gthreads -u - "../preprocess/alignment/${sample_base}_redun.bam" "../preprocess/alignment/${sample_base}_redunR1R2.bam" | \
+        					$samtools sort -@ $gthreads -m 1G -O BAM -o "../preprocess/alignment/${sample_base}_redunall.bam"
+        					rm -f "../preprocess/alignment/${sample_base}_redun.bam" "../preprocess/alignment/${sample_base}_redunR1R2.bam"
+        					mv "../preprocess/alignment/${sample_base}_redunall.bam" "../preprocess/alignment/${sample_base}_redun.bam"
+        			fi
             fi
-
-
-            #### Step 3: Sort and compress
-            samtools sort -O SAM "${sample_base}_all.sam" | gzip > "../preprocess/alignment/${sample_base}_redun.sam.gz"
-            cp -rn "../preprocess/alignment/${sample_base}_redun.sam.gz" "${projdir}/preprocess/alignment/"
-            rm -f "${sample_base}_all.sam") &
-            while (( $(jobs -rp | wc -l) >= $alnN )); do sleep 2; done
+            cp -rn "../preprocess/alignment/${sample_base}_redun.bam" "${projdir}/preprocess/alignment/" ) &
+          while (( $(jobs -rp | wc -l) >= $gN )); do
+            sleep 2
+          done
         done < <(cat "${projdir}/${samples_list}")
         wait
       fi
@@ -1134,12 +1128,93 @@ main () {
   wait
 
   cd ${projdir}
+  if [[ $nodes -eq 1 ]]; then cd ${projdir}/samples ; fi
+  if [[ $nodes -gt 1 ]] && test -f ${projdir}/GBSapp_run_node_1.sh; then cd /tmp/${samples_list%.txt}/samples ; fi
   if [[ "$RNA" == "true" ]]; then
     mkdir -p ../preprocess/staralign
     if test ! -f ${projdir}/precall_done.txt && test ! -f ${projdir}/alignment_done.txt; then
       cd samples
+      while IFS= read -r alignfq; do
+      (
+          sample_base="${alignfq%.f*}"
+          r1_file="${sample_base}_R1_uniq.fasta.gz"
+          r2_file="${sample_base}_R2_uniq.fasta.gz"
+          r1r2_file="${sample_base}_R1R2_uniq.fasta.gz"
+          align_dir="../preprocess/alignment"
+          star_dir="../preprocess/staralign/${sample_base}"
+          out_bam="${align_dir}/${sample_base}_redun.bam"
+
+          [[ -f "$out_bam" ]] && exit 0
+          mkdir -p "$align_dir" "$star_dir"
+
+          # STEP 1: Align PE or SE reads with STAR
+          ########################################
+          if [[ -f "$r1_file" && -f "$r2_file" && -s "$r2_file" ]]; then
+              echo "STAR aligning PE: $sample_base"
+              $star \
+                  --runThreadN "$gthreads" \
+                  --genomeDir "${projdir}/refgenomes/star_index" \
+                  --readFilesIn "$r1_file" "$r2_file" \
+                  --readFilesCommand zcat \
+                  --outFileNamePrefix "${star_dir}/" \
+                  --outSAMtype BAM SortedByCoordinate \
+                  --outFilterMultimapNmax 8 \
+                  --twopassMode Basic
+          else
+              echo "STAR aligning SE: $sample_base"
+              $star \
+                  --runThreadN "$gthreads" \
+                  --genomeDir "${projdir}/refgenomes/star_index" \
+                  --readFilesIn "$r1_file" \
+                  --readFilesCommand zcat \
+                  --outFileNamePrefix "${star_dir}/" \
+                  --outSAMtype BAM SortedByCoordinate \
+                  --outFilterMultimapNmax 8 \
+                  --twopassMode Basic
+          fi
+          mv "${star_dir}/Aligned.sortedByCoord.out.bam" "$out_bam"
+
+          # STEP 2: Align stitched R1R2 reads
+          ########################################
+          if [[ -f "$r1r2_file" && -s "$r1r2_file" ]]; then
+              echo "STAR aligning stitched reads: $sample_base"
+              stitched_dir="${star_dir}_R1R2"
+              mkdir -p "$stitched_dir"
+              $star \
+                  --runThreadN "$gthreads" \
+                  --genomeDir "${projdir}/refgenomes/star_index" \
+                  --readFilesIn "$r1r2_file" \
+                  --readFilesCommand zcat \
+                  --outFileNamePrefix "${stitched_dir}/" \
+                  --outSAMtype BAM SortedByCoordinate \
+                  --outFilterMultimapNmax 8 \
+                  --twopassMode Basic
+              stitched_bam="${stitched_dir}/Aligned.sortedByCoord.out.bam"
+
+              # Merge efficiently
+              $samtools merge -@ "$gthreads" -u - "$out_bam" "$stitched_bam" | \
+              $samtools sort -@ "$gthreads" -m 1G -o "${out_bam}.tmp" -
+              mv "${out_bam}.tmp" "$out_bam"
+              rm -rf "$stitched_dir"
+          fi
+
+          # STEP 3: Split N CIGAR reads (GATK)
+          ########################################
+          split_bam="${align_dir}/${sample_base}_redunsplit.bam"
+          $GATK SplitNCigarReads \
+              -R "${projdir}/refgenomes/$ref1" -I "$out_bam" -O "$split_bam" --verbosity ERROR
+          mv "$split_bam" "$out_bam"
+          rm -f "${split_bam%.bam}.bai"
+          $samtools index "$out_bam"
+          rm -rf "$star_dir"
+      ) &
+      while (( $(jobs -rp | wc -l) >= gN )); do
+          sleep 2
+      done
+      done < "${projdir}/${samples_list}"
+      wait
+
       while IFS="" read -r alignfq || [ -n "$alignfq" ]; do (
-          sleep $((RANDOM % 2))
           sample_base="${alignfq%.f*}"
           r1_file="${sample_base}_R1_uniq.fasta.gz"
           r2_file="${sample_base}_R2_uniq.fasta.gz"
@@ -1148,46 +1223,11 @@ main () {
           star_dir="../preprocess/staralign"
           out_prefix="${star_dir}/${sample_base}_redun_"
           # Skip if already processed
-          if [[ -f "$align_dir/${sample_base}_redun.sam.gz" ]]; then
+          if [[ -f "$align_dir/${sample_base}_redun.bam" ]]; then
               continue
           fi
-
-          # Function to convert FASTA -> FASTQ
-          fasta_to_fastq() {
-              local fasta="$1"
-              local fastq_out="$2"
-              awk 'BEGIN {RS=">"; ORS=""} NR>1 {
-                  header=substr($0,1,index($0,"\n")-1);
-                  seq=substr($0,index($0,"\n")+1);
-                  gsub(/\n/,"",seq);
-                  if(length(seq) >= 64) print ">" header "\n" seq "\n";
-              }' <(zcat "$fasta") | \
-              awk 'BEGIN {OFS="\n"} /^>/ {header=substr($0,2); next} {print "@" header,$0,"+",
-              gensub(/./,"I","g",$0)}' | gzip > "$fastq_out"
-          }
-
-          # Step 0: Determine input reads to align
-          if [[ -f "$r1_file" && -f "$r2_file" && -s "$r2_file" ]]; then
-              echo "PE reads detected for $sample_base: $r1_file + $r2_file"
-              fasta_to_fastq "$r1_file" "${sample_base}_R1_uniq.fastq.gz"
-              fasta_to_fastq "$r2_file" "${sample_base}_R2_uniq.fastq.gz"
-              fastq_in=("${sample_base}_R1_uniq.fastq.gz" "${sample_base}_R2_uniq.fastq.gz")
-              star_args="--readFilesIn ${fastq_in[*]}"
-          elif [[ -f "$r1_file" ]]; then
-              echo "SE reads detected for $sample_base: $r1_file"
-              fasta_to_fastq "$r1_file" "${sample_base}_R1_uniq.fastq.gz"
-              star_args="--readFilesIn ${sample_base}_R1_uniq.fastq.gz"
-          elif [[ -f "$r1r2_file" && -s "$r1r2_file" ]]; then
-              echo "Stitched reads detected for $sample_base: $r1r2_file (high-SV mode)"
-              fasta_to_fastq "$r1r2_file" "${sample_base}_R1R2_uniq.fastq.gz"
-              star_args="--readFilesIn ${sample_base}_R1R2_uniq.fastq.gz"
-          else
-              echo "No valid reads found for $sample_base, skipping..."
-              continue
-          fi
-
           # Step 1: Run STAR
-          $star --runThreadN "$alnthreads" \
+          $star --runThreadN "$gthreads" \
               --genomeDir "${projdir}/refgenomes/star_index" \
               $star_args \
               --readFilesCommand zcat \
@@ -1222,7 +1262,7 @@ main () {
           rm -rf "$star_dir/*"
           cp -rn "$align_dir/${sample_base}_redun.sam.gz" "${projdir}/preprocess/alignment/"
           ) &
-          while (( $(jobs -rp | wc -l) >= $alnN )); do sleep 2; done
+          while (( $(jobs -rp | wc -l) >= $gN )); do sleep 2; done
       done < <(cat "${projdir}/${samples_list}")
     fi
   fi
@@ -1247,9 +1287,6 @@ main () {
   if [[ $nodes -eq 1 ]]; then cd ${projdir}/preprocess/; fi
   if [[ $nodes -gt 1 ]] && test -f ${projdir}/GBSapp_run_node_1.sh; then cd /tmp/${samples_list%.txt}/preprocess/; fi
 
-  if [[ "$samples_list" == "samples_list_node_1.txt" ]]; then
-    touch ${projdir}/compress_done.txt
-  fi
   if [[ "$ploidy" -eq 1 ]]; then
     if [[ -z "${downsample_1x:-}" ]]; then
       downsample=50
@@ -1287,77 +1324,124 @@ main () {
   fi
 
   while IFS="" read -r i || [ -n "$i" ]; do (
-    printf '\n###---'${i%.f*}'---###\n' > ${projdir}/alignment_summaries/${i%.f*}_summ.txt &&
-    zcat ./alignment/${i%.f*}_redun.sam.gz | grep -v '^@' | awk '{gsub(/_/,"\t",$1);}1' | tr ' ' '\t' > ${i%.f*}_full.sam &&
-    split -l 10000 ${i%.f*}_full.sam ${i%.f*}_chunk_ && rm -f ${i%.f*}_full.sam
-    find . -name '${i%.f*}_chunk_*' -print0 | xargs -0 -P "$gthreads" -I{} bash -c 'awk '\''{for(i=0;i<=$2-1;i++) print $0}'\'' "$1" > "$1.out"' _ {} &&
-    cat ${i%.f*}_chunk_* | awk '!($2="")1' | awk '{$1=$1"_"NR}1' | awk '{gsub(/ /,"\t");}1' > ${i%.f*}_full.sam &&
-    cat <(zcat ./alignment/${i%.f*}_redun.sam.gz | grep '^@') ${i%.f*}_full.sam | gzip > ${i%.f*}_full.sam.gz &&
-    rm -f ${i%.f*}_chunk_* ${i%.f*}_full.sam
-    $samtools flagstat ${i%.f*}_full.sam.gz >> ${projdir}/alignment_summaries/${i%.f*}_summ.txt &&
-    printf '########################################################################################################\n\n' >> ${projdir}/alignment_summaries/${i%.f*}_summ.txt &&
+    tmpflag=$(mktemp)
+    printf '\n###---%s---###\n' "${i%.f*}" > "${projdir}/alignment_summaries/${i%.f*}_summ.txt"
+    $samtools view -h "./alignment/${i%.f*}_redun.bam" | \
+    awk 'BEGIN{FS=OFS="\t"} /^@/ {print; next} {split($1,a,"_"); n=a[length(a)]+0; if(n<1)n=1; base=a[1]; for(i=2;i<length(a);i++) base=base"_"a[i]; for(k=1;k<=n;k++){ $1=base"_copy"k; print }}' | \
+    $samtools flagstat -@ "$gthreads" - > "$tmpflag"
+    cat "$tmpflag" >> "${projdir}/alignment_summaries/${i%.f*}_summ.txt"
+    rm -f "$tmpflag"
 
     if test ! -f ${projdir}/preprocess/${i%.f*}_${ref1%.f*}_precall.bam.bai; then
-      if [[ "$paralogs" == false ]] && [[ "$uniquely_mapped" == true ]]; then
-        awk '/@HD/ || /@SQ/{print}' <(zcat ./alignment/${i%.f*}_redun.sam.gz 2> /dev/null) > ${i%.f*}_heading.sam &&
-        $samtools view -F4 <(zcat ./alignment/${i%.f*}_redun.sam.gz 2> /dev/null) | grep -v '^@' | awk '$3 != "*"' 2> /dev/null | awk '$6 != "*"' 2> /dev/null | \
-        awk -v min=$minmapq -F '\t' 'BEGIN{OFS="\t"} {if ($5 == 0 || $5 >= min) {print $0}}' | awk '!h[$1] { g[$1]=$0 } { h[$1]++ } END { for(k in g) print h[k], g[k] }' | \
-        tr " " "\t" | tr '\r' '\n' | awk '$1==1{print $0}' | \
-        awk '{$1=""}1' | awk '$1=$1' | tr " " "\t" | awk '{gsub(/_/,"_\t",$1);}1' | awk '{print $2"\t"$0}' | \
-        awk '{$2=$3=""}1' | tr -s " " | tr " " "\t" > ${i%.f*}_uniq.sam
-      fi
-      if [[ "$paralogs" == true ]] && [[ "$uniquely_mapped" == true ]]; then
-        awk '/@HD/ || /@SQ/{print}' <(zcat ./alignment/${i%.f*}_redun.sam.gz 2> /dev/null) > ${i%.f*}_heading.sam &&
-        $samtools view -F4 <(zcat ./alignment/${i%.f*}_redun.sam.gz 2> /dev/null) | grep -v '^@' | awk '$3 != "*"' 2> /dev/null | awk '$6 != "*"' 2> /dev/null | \
-        awk -v min=$minmapq -F '\t' 'BEGIN{OFS="\t"} {if ($5 == 0 || $5 >= min) {print $0}}' | awk '!h[$1] { g[$1]=$0 } { h[$1]++ } END { for(k in g) print h[k], g[k] }' | \
-        tr " " "\t" | tr '\r' '\n' | awk '$1==1 || $1<=6{print $0}' | \
-        awk '{$1=""}1' | awk '$1=$1' | tr " " "\t" | \
-        awk -F '\t' 'BEGIN{OFS="\t"} {if ($5 == 0) {print $0}}' 2> /dev/null > ${i%.f*}_uniqeq.sam
-        $samtools view -F4 <(zcat ./alignment/${i%.f*}_redun.sam.gz 2> /dev/null) | grep -v '^@' | awk '$3 != "*"' 2> /dev/null | awk '$6 != "*"' 2> /dev/null | \
-        awk '!h[$1] { g[$1]=$0 } { h[$1]++ } END { for(k in g) print h[k], g[k] }' | tr " " "\t" | tr '\r' '\n' | awk '$1==1 || $1<=6{print $0}' | awk '{$1=""}1' | awk '$1=$1' | tr " " "\t" | \
-        awk -F '\t' 'BEGIN{OFS="\t"} {if ($5 > 0) {print $0}}' 2> /dev/null | cat - ${i%.f*}_uniqeq.sam | \
-        awk '{gsub(/_/,"_\t",$1);}1' | awk '{print $2"\t"$0}' | awk '{$2=$3=""}1' | tr -s " " | tr " " "\t" > ${i%.f*}_uniq.sam &&
-        rm -f ${i%.f*}_uniqeq.sam
-      fi
-      if [[ "$paralogs" == true ]] && [[ "$uniquely_mapped" == false ]]; then
-        awk '/@HD/ || /@SQ/{print}' <(zcat ./alignment/${i%.f*}_redun.sam.gz 2> /dev/null) > ${i%.f*}_heading.sam &&
-        $samtools view -F4 <(zcat ./alignment/${i%.f*}_redun.sam.gz 2> /dev/null) | grep -v '^@' | awk '$3 != "*"' 2> /dev/null | awk '$6 != "*"' 2> /dev/null | \
-        awk -v min=$minmapq -F '\t' 'BEGIN{OFS="\t"} {if ($5 == 0 || $5 >= min) {print $0}}' | awk '!h[$1] { g[$1]=$0 } { h[$1]++ } END { for(k in g) print h[k], g[k] }' | \
-        tr " " "\t" | tr '\r' '\n' | awk '$1==1{print $0}' | awk '{$1=""}1' | awk '$1=$1' | tr " " "\t" | awk '{gsub(/_/,"_\t",$1);}1' | awk '{print $2"\t"$0}' | \
-        awk '{$2=$3=""}1' | tr -s " " | tr " " "\t" > ${i%.f*}_uniq.sampart &&
-        $samtools view -F4 <(zcat ./alignment/${i%.f*}_redun.sam.gz 2> /dev/null) | grep -v '^@' | awk '$3 != "*"' 2> /dev/null | awk '$6 != "*"' 2> /dev/null | \
-        awk -v min=$minmapq -F '\t' 'BEGIN{OFS="\t"} {if ($5 == 0 || $5 >= min) {print $0}}' | awk '!h[$1] { g[$1]=$0 } { h[$1]++ } END { for(k in g) print h[k], g[k] }' | \
-        tr " " "\t" | tr '\r' '\n' | awk '$1==1 || $1<=6{print $0}' | awk '{$1=""}1' | awk '$1=$1' | tr " " "\t" | \
-        awk -F '\t' 'BEGIN{OFS="\t"} {if ($5 == 0) {print $0}}' 2> /dev/null > ${i%.f*}_uniqeq.sam
-        $samtools view -F4 <(zcat ./alignment/${i%.f*}_redun.sam.gz 2> /dev/null) | grep -v '^@' | awk '$3 != "*"' 2> /dev/null | awk '$6 != "*"' 2> /dev/null | \
-        awk '!h[$1] { g[$1]=$0 } { h[$1]++ } END { for(k in g) print h[k], g[k] }' | tr " " "\t" | tr '\r' '\n' | awk '$1==1 || $1<=6{print $0}' | awk '{$1=""}1' | awk '$1=$1' | tr " " "\t" | \
-        awk -F '\t' 'BEGIN{OFS="\t"} {if ($5 > 0) {print $0}}' 2> /dev/null | cat - ${i%.f*}_uniqeq.sam | \
-        awk '{gsub(/_/,"_\t",$1);}1' | awk '{print $2"\t"$0}' | awk '{$2=$3=""}1' | tr -s " " | tr " " "\t" > ${i%.f*}_uniqAll.sam &&
-        rm -f ${i%.f*}_uniqeq.sam
-        awk 'NR==FNR{a[$0]=1;next}!a[$0]' ${i%.f*}_uniqpart.sam ${i%.f*}_uniqAll.sam > ${i%.f*}_uniq.sam &&
-        rm -f ${i%.f*}_uniqpart.sam ${i%.f*}_uniqAll.sam
-      fi
+      BIN_SIZE=50
+    	if [[ "$paralogs" == false && "$uniquely_mapped" == true ]]; then
+    		$samtools view -h -F4 "./alignment/${i%.f*}_redun.bam" | \
+    		awk -v b="$BIN_SIZE" -v max="$downsample" -v Q="I" 'BEGIN{
+    			FS=OFS="\t"
+    			srand()
+    			bad="([0-9]+I[0-9]+I)|([0-9]+D[0-9]+D)|([0-9]+D[0-9]+I)|([0-9]+I[0-9]+D)"
+    		}
+    		/^@/ { print; next }
+    		{
+    			if ($3=="*" || $6=="*" || $5<20) next
+    			split($1,a,"_")
+    			if (a[2] != 1) next
+    			n=1
+    			if (match($1,/_([0-9]+)$/)) {
+    				n = substr($1,RSTART+1)+0
+    				base = substr($1,1,RSTART-1)
+    			} else base=$1
+    			if ($6 ~ bad) next
+    			bin = int($4/b)
+    			key = $3 "_" bin
+    			for (k=1; k<=n; k++) {
+    				if (count[key] >= max) break
+    				if (rand() >= 0.5) continue
+    				count[key]++
+    				$1 = base
+    				$11 = $10
+    				gsub(/[ACGTNacgtn]/, Q, $11)
+    				print
+    			}
+    		}' | \
+    		$samtools view -u -@ "$gthreads" - | \
+    		$samtools sort -@ "$gthreads" -o "${i%.f*}_${ref1%.f*}_sorted.bam" -
+    		$samtools index "${i%.f*}_${ref1%.f*}_sorted.bam"
+    	fi
+    	if [[ "$paralogs" == true && "$uniquely_mapped" == true ]]; then
+    		$samtools view -h -F4 "./alignment/${i%.f*}_redun.bam" | \
+    		awk -v b="$BIN_SIZE" -v max="$downsample" -v Q="I" 'BEGIN{
+    			FS=OFS="\t"
+    			srand()
+    			bad="([0-9]+I[0-9]+I)|([0-9]+D[0-9]+D)|([0-9]+D[0-9]+I)|([0-9]+I[0-9]+D)"
+    		}
+    		/^@/ { print; next }
+    		{
+    			if ($3=="*" || $6=="*" || $5<10) next
+    			n=1
+    			if (match($1,/_([0-9]+)$/))
+    				n = substr($1,RSTART+1)+0
+    			if (n > 6) next
+    			if (match($1,/_([0-9]+)$/)) {
+    				base = substr($1,1,RSTART-1)
+    			} else base=$1
+    			if ($6 ~ bad) next
+    			bin = int($4/b)
+    			key = $3 "_" bin
+    			for (k=1; k<=n; k++) {
+    				if (count[key] >= max) break
+    				if (rand() >= 0.5) continue
 
-      awk '{while ($1-- > 0) print $0}' ${i%.f*}_uniq.sam | \
-      awk 'BEGIN{OFS="\t"}{split($0,a,"\t"); base=a[1]; copy[base]++; a[1]=base"_copy"copy[base]; print a[1],$2,$3,$4,$5,$6,$7,$8,$9,$10,$11}' > ${i%.f*}_${ref1%.f*}.sam &&
-      rm -f ${i%.f*}_uniq.sam
-      BIN_SIZE=50   # bp bin for locus-aware downsampling
-      # NOTE: Synthetic base qualities (Q=40); BQSR must NOT be run downstream
-      awk -v b=$BIN_SIZE '{printf "%d\n", int($4/b)}' ${i%.f*}_${ref1%.f*}.sam | paste - ${i%.f*}_${ref1%.f*}.sam | \
-      shuf | awk -v max="$downsample" 'a[$1$4]++ < max' | awk '{$1=""}1' | awk '{$1=$1};1' | tr -s " " | tr " " "\t" | awk '{$11=$10}1' | \
-      awk -v Q="I" 'BEGIN{OFS="\t"}{gsub(/[ACGTNacgtn]/,Q,$11); print}' | cat ${i%.f*}_heading.sam - > ${i%.f*}_${ref1%.f*}_downsample.sam &&
-      :> ${i%.f*}_${ref1%.f*}.sam &&
-      mv ${i%.f*}_${ref1%.f*}_downsample.sam ${i%.f*}_${ref1%.f*}.sam &&
-      rm -f ${i%.f*}_heading.sam
+    				count[key]++
+    				$1 = base
+    				$11 = $10
+    				gsub(/[ACGTNacgtn]/, Q, $11)
+    				print
+    			}
+    		}' | \
+    		$samtools view -u -@ "$gthreads" - | \
+    		$samtools sort -@ "$gthreads" -o "${i%.f*}_${ref1%.f*}_sorted.bam" -
+    		$samtools index "${i%.f*}_${ref1%.f*}_sorted.bam"
+    	fi
+    	if [[ "$paralogs" == true && "$uniquely_mapped" == false ]]; then
+    		$samtools view -h -F4 "./alignment/${i%.f*}_redun.bam" | \
+    		awk -v b="$BIN_SIZE" -v max="$downsample" -v Q="I" 'BEGIN{
+    			FS=OFS="\t"
+    			srand()
+    			bad="([0-9]+I[0-9]+I)|([0-9]+D[0-9]+D)|([0-9]+D[0-9]+I)|([0-9]+I[0-9]+D)"
+    		}
+    		/^@/ { print; next }
+    		{
+    			if ($3=="*" || $6=="*" || $5<10) next
+    			n=1
+    			if (match($1,/_([0-9]+)$/))
+    				n = substr($1,RSTART+1)+0
+    			if (n < 2 || n > 6) next
+    			if (match($1,/_([0-9]+)$/)) {
+    				base = substr($1,1,RSTART-1)
+    			} else base=$1
+    			if ($6 ~ bad) next
+    			bin = int($4/b)
+    			key = $3 "_" bin
+    			for (k=1; k<=n; k++) {
+    				if (count[key] >= max) break
+    				if (rand() >= 0.5) continue
+    				count[key]++
+    				$1 = base
+    				$11 = $10
+    				gsub(/[ACGTNacgtn]/, Q, $11)
+    				print
+    			}
+    		}' | \
+    		$samtools view -u -@ "$gthreads" - | \
+    		$samtools sort -@ "$gthreads" -o "${i%.f*}_${ref1%.f*}_sorted.bam" -
+    		$samtools index "${i%.f*}_${ref1%.f*}_sorted.bam"
+    	fi
 
-      j="${i%.f*}_${ref1%.f*}.sam"
-      CIGAR_FILTER='I[0-9]+I|D[0-9]+D|D[0-9]+I|I[0-9]+D'
-      cat ${j} | grep -Ev "$CIGAR_FILTER"  > cleaned_${j};  mv cleaned_${j} ${j} &&
-      $java $Xmx2 -XX:ParallelGCThreads=$gthreads -Djava.io.tmpdir=${projdir}/preprocess/tmp -jar $picard SortSam I=$j O=${j%.sam*}.bam  SORT_ORDER=coordinate  VALIDATION_STRINGENCY=LENIENT TMP_DIR=${projdir}/preprocess/tmp >/dev/null 2>&1 && \
-      $java $Xmx2 -XX:ParallelGCThreads=$gthreads -jar $picard BuildBamIndex INPUT=${j%.sam*}.bam VALIDATION_STRINGENCY=LENIENT >/dev/null 2>&1 && \
-      $java $Xmx2 -XX:ParallelGCThreads=$gthreads -jar $picard AddOrReplaceReadGroups I=${j%.sam*}.bam O=${j%.sam*}_precall.bam RGLB=${i%.f*} RGPL=illumina RGPU=run RGSM=${i%.f*} VALIDATION_STRINGENCY=LENIENT >/dev/null 2>&1 && \
-      $samtools index ${j%.sam*}_precall.bam &&
-      rm -f $j ${j%.sam*}.bam ${j%.sam*}.bai
+      # Add read groups
+    	$java $Xmx2 -XX:ParallelGCThreads=$gthreads -jar $picard AddOrReplaceReadGroups I="${i%.f*}_${ref1%.f*}_sorted.bam" | \
+      O="${i%.f*}_${ref1%.f*}_precall.bam" RGLB=${i%.f*} RGPL=illumina RGPU=run RGSM=${i%.f*} VALIDATION_STRINGENCY=LENIENT
+    	$samtools index "${i%.f*}_${ref1%.f*}_precall.bam"
       if [[ $nodes -gt 1 ]]; then cp /tmp/${samples_list%.txt}/preprocess/${j%.sam*}_precall.bam* ${projdir}/preprocess/; fi
     fi
     ) &
@@ -1402,16 +1486,15 @@ main () {
       cd ${projdir}/alignment_summaries
       printf "Sample\tGenome_Coverage(percentage)\n" > summary_genomecov.txt
       genome_size=$(awk '{print $3}' ../refgenomes/${ref1%.f*}.dict | awk '{gsub(/LN:/,"");}1' | awk '{s+=$1}END{print s}')
-      for i in ../preprocess/alignment/*_redun.sam.gz; do
+      for i in ../preprocess/alignment/*_redun.bam; do
           while (( $(jobs -rp | wc -l) >= $gN )); do sleep 2; done
           (
               tmp_out=$(mktemp "${projdir}/alignment_summaries/tmp.XXXXXX")
-              $samtools view -bS <(zcat "$i" 2> /dev/null) | $samtools sort - > "${i%*_redun.sam.gz}.bam"
-              cov=$($bedtools genomecov -ibam "${i%*_redun.sam.gz}.bam" -bga | awk '{print ($4>1)?1:$4}' \
+              cov=$($bedtools genomecov -ibam "$i" -bga | awk '{print ($4>1)?1:$4}' \
               | awk -v pat=$genome_size '{s+=$1}END{print (s/pat)*100}')
-              printf "%s\t%s\n" "${i%*_redun.sam.gz}" "$cov" | awk '{gsub(/..\/preprocess\/alignment\//,"");}1' > "$tmp_out"
+              printf "%s\t%s\n" "${i%*_redun.bam}" "$cov" | awk '{gsub(/..\/preprocess\/alignment\//,"");}1' > "$tmp_out"
               cat "$tmp_out" >> summary_genomecov.txt
-              rm -f "$tmp_out" "${i%*_redun.sam.gz}.bam" ) &
+              rm -f "$tmp_out" "${i%*_redun.bam}.bam" ) &
       done
     fi
 		wait && touch ${projdir}/alignment_summary_done.txt
@@ -1454,7 +1537,6 @@ echo -e "${blue}\n##############################################################
 main () {
 
   cd ${projdir}
-  :> ${projdir}/compress_done.txt
   :> ${projdir}/precall_done_${samples_list}
 
   if [[ "$samples_list" == "samples_list_node_1.txt" ]]; then
@@ -1506,7 +1588,7 @@ main () {
     					$GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" HaplotypeCaller \
               -R ${projdir}/refgenomes/$ref1 -L ${selchr} ${input} -ploidy $ploidy \
               -O ${projdir}/snpcall/${pop}_${ploidy}x_${selchr}_raw.vcf.gz --max-reads-per-alignment-start 0 \
-              --minimum-mapping-quality $minmapq --dont-use-soft-clipped-bases $dont_use_softclip \
+              --minimum-mapping-quality 10 --dont-use-soft-clipped-bases $dont_use_softclip \
               --disable-bam-index-caching true --max-num-haplotypes-in-population $((ploidy * maxHaplotype)) --verbosity ERROR &&
     					gunzip ${projdir}/snpcall/${pop}_${ploidy}x_${selchr}_raw.vcf.gz
     				fi
@@ -1520,7 +1602,7 @@ main () {
               $GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" HaplotypeCaller \
               -R ${projdir}/refgenomes/$ref1 -L ${projdir}/variant_intervals_${selchr}.list ${input} -ploidy $ploidy \
               -O ${projdir}/snpcall/${pop}_${ploidy}x_${selchr}_raw.vcf.gz --max-reads-per-alignment-start 0 \
-              --minimum-mapping-quality $minmapq --dont-use-soft-clipped-bases $dont_use_softclip --disable-bam-index-caching true \
+              --minimum-mapping-quality 10 --dont-use-soft-clipped-bases $dont_use_softclip --disable-bam-index-caching true \
               --max-num-haplotypes-in-population $((ploidy * maxHaplotype)) --verbosity ERROR&&
               gunzip ${projdir}/snpcall/${pop}_${ploidy}x_${selchr}_raw.vcf.gz &&
               rm -f ${projdir}/variant_intervals_${selchr}.list
@@ -1541,7 +1623,7 @@ main () {
   				echo $Get_Chromosome | tr ',' '\n' | awk '{print "SN:"$1}' | awk 'NR==FNR{a[$1];next}$2 in a{print $0}' - ${projdir}/refgenomes/${ref1%.fasta}.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $2":1-"$3}' > ${projdir}/refgenomes/${ref1%.fasta}.list &&
   				$GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" HaplotypeCaller \
           -R ${projdir}/refgenomes/$ref1 -L ${projdir}/refgenomes/${ref1%.fasta}.list ${input} -ploidy $ploidy \
-          -O ${projdir}/snpcall/${pop}_${ploidy}x_raw.vcf.gz --max-reads-per-alignment-start 0 --minimum-mapping-quality $minmapq \
+          -O ${projdir}/snpcall/${pop}_${ploidy}x_raw.vcf.gz --max-reads-per-alignment-start 0 --minimum-mapping-quality 10 \
           --dont-use-soft-clipped-bases $dont_use_softclip --disable-bam-index-caching true \
           --max-num-haplotypes-in-population $((ploidy * maxHaplotype)) --verbosity ERROR &&
   				cd ../snpcall
@@ -1566,7 +1648,7 @@ main () {
                   if [[ -z "${interval_list:-}" ]]; then
         						$GATK --java-options "$Xmxg -Djava.io.tmpdir=../snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" HaplotypeCaller \
                     -R ../refgenomes/$ref1 -I ${i%.f*}_${ref1%.f*}_precall.bam -ploidy $ploidy -O ${projdir}/snpcall/${i%.f*}_${ref1%.f*}.hold.g.vcf.gz \
-                    -ERC GVCF --max-reads-per-alignment-start 0 --minimum-mapping-quality $minmapq --dont-use-soft-clipped-bases $dont_use_softclip \
+                    -ERC GVCF --max-reads-per-alignment-start 0 --minimum-mapping-quality 10 --dont-use-soft-clipped-bases $dont_use_softclip \
                     --disable-bam-index-caching true --max-num-haplotypes-in-population $((ploidy * maxHaplotype)) --verbosity ERROR
                   else
                     $GATK --java-options "$Xmxg -Djava.io.tmpdir=../snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" HaplotypeCaller \
@@ -1580,7 +1662,7 @@ main () {
       						$GATK --java-options "$Xmxg -Djava.io.tmpdir=../snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" HaplotypeCaller \
                   -R ../refgenomes/$ref1 -L ../refgenomes/${ref1%.fasta}.list -I ${i%.f*}_${ref1%.f*}_precall.bam -ploidy $ploidy \
                   -O ${projdir}/snpcall/${i%.f*}_${ref1%.f*}.hold.g.vcf.gz -ERC GVCF --max-reads-per-alignment-start 0 \
-                  --minimum-mapping-quality $minmapq --dont-use-soft-clipped-bases --disable-bam-index-caching $dont_use_softclip \
+                  --minimum-mapping-quality 10 --dont-use-soft-clipped-bases --disable-bam-index-caching $dont_use_softclip \
                   --max-num-haplotypes-in-population $((ploidy * maxHaplotype)) --verbosity ERROR
       					fi
       					mv ${projdir}/snpcall/${i%.f*}_${ref1%.f*}.hold.g.vcf.gz ${projdir}/snpcall/${i%.f*}_${ref1%.f*}.g.vcf.gz &&
@@ -4305,7 +4387,7 @@ if [[ "$samples_list" == "samples_list_node_1.txt" && -d "snpfilter" ]]; then
     rm -f "$f"
   done
   rm -f  fetch_excluded.txt steps.txt
-  rm -f compress_done.txt alignment_summary_done.txt alignment_done_samples_list_node_*.txt
+  rm -f alignment_summary_done.txt alignment_done_samples_list_node_*.txt
   mv "${projdir}/GBSapp_run_node_1.sh" "${projdir}/GBSapp_run_node_1_done.sh" 2>/dev/null || true
   mv "${projdir}/GBSapp_run_node.sh" "${projdir}/GBSapp_run_node_done.sh" 2>/dev/null || true
   if [[ "$biallelic" == true ]]; then
