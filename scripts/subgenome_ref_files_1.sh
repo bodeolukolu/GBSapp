@@ -1439,7 +1439,7 @@ main () {
     	fi
 
       # Add read groups
-    	$java $Xmx2 -XX:ParallelGCThreads=$gthreads -jar $picard AddOrReplaceReadGroups I="${i%.f*}_${ref1%.f*}_sorted.bam" | \
+    	$java $Xmx2 -XX:ParallelGCThreads=$gthreads -jar $picard AddOrReplaceReadGroups I="${i%.f*}_${ref1%.f*}_sorted.bam" \
       O="${i%.f*}_${ref1%.f*}_precall.bam" RGLB=${i%.f*} RGPL=illumina RGPU=run RGSM=${i%.f*} VALIDATION_STRINGENCY=LENIENT
     	$samtools index "${i%.f*}_${ref1%.f*}_precall.bam"
       if [[ $nodes -gt 1 ]]; then cp /tmp/${samples_list%.txt}/preprocess/${j%.sam*}_precall.bam* ${projdir}/preprocess/; fi
