@@ -1576,7 +1576,7 @@ main () {
     					$GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" HaplotypeCaller \
               -R ${projdir}/refgenomes/$ref1 -L ${selchr} ${input} -ploidy $ploidy \
               -O ${projdir}/snpcall/${pop}_${ploidy}x_${selchr}_raw.vcf.gz --max-reads-per-alignment-start 0 \
-              --minimum-mapping-quality 10 --dont-use-soft-clipped-bases $dont_use_softclip \
+              --minimum-mapping-quality 0 --dont-use-soft-clipped-bases $dont_use_softclip \
               --disable-bam-index-caching true --max-num-haplotypes-in-population $((ploidy * maxHaplotype)) --verbosity ERROR &&
     					gunzip ${projdir}/snpcall/${pop}_${ploidy}x_${selchr}_raw.vcf.gz
     				fi
@@ -1590,7 +1590,7 @@ main () {
               $GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" HaplotypeCaller \
               -R ${projdir}/refgenomes/$ref1 -L ${projdir}/variant_intervals_${selchr}.list ${input} -ploidy $ploidy \
               -O ${projdir}/snpcall/${pop}_${ploidy}x_${selchr}_raw.vcf.gz --max-reads-per-alignment-start 0 \
-              --minimum-mapping-quality 10 --dont-use-soft-clipped-bases $dont_use_softclip --disable-bam-index-caching true \
+              --minimum-mapping-quality 0 --dont-use-soft-clipped-bases $dont_use_softclip --disable-bam-index-caching true \
               --max-num-haplotypes-in-population $((ploidy * maxHaplotype)) --verbosity ERROR&&
               gunzip ${projdir}/snpcall/${pop}_${ploidy}x_${selchr}_raw.vcf.gz &&
               rm -f ${projdir}/variant_intervals_${selchr}.list
@@ -1611,7 +1611,7 @@ main () {
   				echo $Get_Chromosome | tr ',' '\n' | awk '{print "SN:"$1}' | awk 'NR==FNR{a[$1];next}$2 in a{print $0}' - ${projdir}/refgenomes/${ref1%.fasta}.dict | awk '{gsub(/SN:/,"");gsub(/LN:/,""); print $2":1-"$3}' > ${projdir}/refgenomes/${ref1%.fasta}.list &&
   				$GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" HaplotypeCaller \
           -R ${projdir}/refgenomes/$ref1 -L ${projdir}/refgenomes/${ref1%.fasta}.list ${input} -ploidy $ploidy \
-          -O ${projdir}/snpcall/${pop}_${ploidy}x_raw.vcf.gz --max-reads-per-alignment-start 0 --minimum-mapping-quality 10 \
+          -O ${projdir}/snpcall/${pop}_${ploidy}x_raw.vcf.gz --max-reads-per-alignment-start 0 --minimum-mapping-quality 0 \
           --dont-use-soft-clipped-bases $dont_use_softclip --disable-bam-index-caching true \
           --max-num-haplotypes-in-population $((ploidy * maxHaplotype)) --verbosity ERROR &&
   				cd ../snpcall
@@ -1636,7 +1636,7 @@ main () {
                   if [[ -z "${interval_list:-}" ]]; then
         						$GATK --java-options "$Xmxg -Djava.io.tmpdir=../snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" HaplotypeCaller \
                     -R ../refgenomes/$ref1 -I ${i%.f*}_${ref1%.f*}_precall.bam -ploidy $ploidy -O ${projdir}/snpcall/${i%.f*}_${ref1%.f*}.hold.g.vcf.gz \
-                    -ERC GVCF --max-reads-per-alignment-start 0 --minimum-mapping-quality 10 --dont-use-soft-clipped-bases $dont_use_softclip \
+                    -ERC GVCF --max-reads-per-alignment-start 0 --minimum-mapping-quality 0 --dont-use-soft-clipped-bases $dont_use_softclip \
                     --disable-bam-index-caching true --max-num-haplotypes-in-population $((ploidy * maxHaplotype)) --verbosity ERROR
                   else
                     $GATK --java-options "$Xmxg -Djava.io.tmpdir=../snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" HaplotypeCaller \
@@ -1650,7 +1650,7 @@ main () {
       						$GATK --java-options "$Xmxg -Djava.io.tmpdir=../snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" HaplotypeCaller \
                   -R ../refgenomes/$ref1 -L ../refgenomes/${ref1%.fasta}.list -I ${i%.f*}_${ref1%.f*}_precall.bam -ploidy $ploidy \
                   -O ${projdir}/snpcall/${i%.f*}_${ref1%.f*}.hold.g.vcf.gz -ERC GVCF --max-reads-per-alignment-start 0 \
-                  --minimum-mapping-quality 10 --dont-use-soft-clipped-bases --disable-bam-index-caching $dont_use_softclip \
+                  --minimum-mapping-quality 0 --dont-use-soft-clipped-bases --disable-bam-index-caching $dont_use_softclip \
                   --max-num-haplotypes-in-population $((ploidy * maxHaplotype)) --verbosity ERROR
       					fi
       					mv ${projdir}/snpcall/${i%.f*}_${ref1%.f*}.hold.g.vcf.gz ${projdir}/snpcall/${i%.f*}_${ref1%.f*}.g.vcf.gz &&
