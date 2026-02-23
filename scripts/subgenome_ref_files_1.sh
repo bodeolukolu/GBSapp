@@ -1335,175 +1335,96 @@ main () {
       cat "$tmpflag" >> "${projdir}/alignment_summaries/${i%.f*}_summ.txt"
       rm -f "$tmpflag"
 
-      if [[ "$paralogs" == false && "$uniquely_mapped" == true ]]; then
-        $samtools view -h -F4 "./alignment/${i%.f*}_redun.bam" | \
-        awk -v max="$downsample" -v Q="I" -v seed=42 'BEGIN{
+
+      inbam="./alignment/${i%.f*}_redun.bam"
+      outprefix="${i%.f*}_${ref1%.f*}"
+      tmpbam="${outprefix}.tmp.bam"
+
+      # Function: filter + expand from read ID
+      ###########################################
+      filter_and_expand_from_id() {
+        mode="$1"   # A, B, C
+        # Set branch-specific minimum MAPQ
+        if [[ "$mode" == "A" ]]; then minq=20; fi   # uniquely_mapped=true
+        if [[ "$mode" == "B" || "$mode" == "C" ]]; then minq=10; fi  # paralogs
+
+        $samtools view -h "$inbam" | \
+        awk -v min="$minq" -v mode="$mode" 'BEGIN{
             FS=OFS="\t"
-            srand(seed)
             bad="([0-9]+I[0-9]+I)|([0-9]+D[0-9]+D)|([0-9]+D[0-9]+I)|([0-9]+I[0-9]+D)"
             global_id=0
         }
-
-        # Preserve header exactly
+        # Pass header
         /^@/ { print; next }
         {
-            # ---------- Primary Filtering ----------
-            if ($3=="*" || $6=="*" || !($5>=20 || $5==0)) next
-            if ($6 ~ bad) next
+            # Filter unmapped reads and bad CIGAR
+            if($3=="*" || $6=="*") next
+            if($6 ~ bad) next
+            # Retain MAPQ 0; apply threshold to others
+            if($5 > 0 && $5 < min) next
 
-            # Only keep IDs with _1 as second token
-            split($1,a,"_")
-            if (a[2] != 1) next
-
-            # ---------- Expansion ----------
+            # Extract multiplicity from last underscore
             n=1
             base=$1
-            if (match($1,/_([0-9]+)$/)) {
-                n=substr($1,RSTART+1)+0
+            if(match($1, /_([0-9]+)$/)){
+                n=substr($1, RSTART+1)
                 base=substr($1,1,RSTART-1)
             }
-            bin=int($4/100)*100
-            key=$3"_"bin
-            for(k=1;k<=n;k++){
-                global_id++
-                $1=base"_"global_id
 
-                # Safe QUAL rewrite
-                if ($10 != "*" && length($10) > 0) {
-                    qual=$10
-                    gsub(/[ACGTNacgtn]/,Q,qual)
-                    $11=qual
+            # Paralog / uniquely-mapped filtering
+            ok=0
+            if(mode=="A" && n==1) ok=1
+            if(mode=="B" && n<=6) ok=1
+            if(mode=="C" && n>1) ok=1
+
+            if(ok){
+                for(i=1;i<=n;i++){
+                    global_id++
+                    $1=base"_"global_id
+                    print
                 }
-                group[key][++count[key]]=$0
             }
-        }
-        END{
-            for (key in group){
-                n=count[key]
-                # Fisher–Yates shuffle
-                for(i=n;i>1;i--){
-                    j=int(rand()*i)+1
-                    tmp=group[key][i]
-                    group[key][i]=group[key][j]
-                    group[key][j]=tmp
-                }
-                limit=(n>max?max:n)
-                for(i=1;i<=limit;i++)
-                    print group[key][i]
-            }
-        }' | \
-        $samtools view -u -@ "$gthreads" - | \
-        $samtools sort -@ "$gthreads" -o "${i%.f*}_${ref1%.f*}_sorted.bam" -
-        $samtools index "${i%.f*}_${ref1%.f*}_sorted.bam"
+        }'
+      }
+
+      # Run branch-specific filtering
+      ###########################################
+      if [[ "$paralogs" == false && "$uniquely_mapped" == true ]]; then
+          filter_and_expand_from_id "A" | $samtools view -b -o "$tmpbam" -
       fi
       if [[ "$paralogs" == true && "$uniquely_mapped" == true ]]; then
-        $samtools view -h -F4 "./alignment/${i%.f*}_redun.bam" | \
-        awk -v max="$downsample" -v Q="I" -v seed=42 'BEGIN{
-            FS=OFS="\t"
-            srand(seed)
-            bad="([0-9]+I[0-9]+I)|([0-9]+D[0-9]+D)|([0-9]+D[0-9]+I)|([0-9]+I[0-9]+D)"
-            global_id=0
-        }
-        /^@/ { print; next }
-        {
-            if ($3=="*" || $6=="*" || !($5>=20 || $5==0)) next
-            if ($6 ~ bad) next
-
-            # keep uniquely mapped only
-            split($1,a,"_")
-            if (a[2] != 1) next
-
-            n=1
-            base=$1
-            if (match($1,/_([0-9]+)$/)) {
-                n=substr($1,RSTART+1)+0
-                base=substr($1,1,RSTART-1)
-            }
-            bin=int($4/100)*100
-            key=$3"_"bin
-            for(k=1;k<=n;k++){
-                global_id++
-                $1=base"_"global_id
-                if ($10!="*" && length($10)>0){
-                    qual=$10
-                    gsub(/[ACGTNacgtn]/,Q,qual)
-                    $11=qual
-                }
-                group[key][++count[key]]=$0
-            }
-        }
-        END{
-            for (key in group){
-                n=count[key]
-
-                for(i=n;i>1;i--){
-                    j=int(rand()*i)+1
-                    tmp=group[key][i]
-                    group[key][i]=group[key][j]
-                    group[key][j]=tmp
-                }
-                limit=(n>max?max:n)
-                for(i=1;i<=limit;i++)
-                    print group[key][i]
-            }
-        }' | \
-        $samtools view -u -@ "$gthreads" - | \
-        $samtools sort -@ "$gthreads" -o "${i%.f*}_${ref1%.f*}_sorted.bam" -
-        $samtools index "${i%.f*}_${ref1%.f*}_sorted.bam"
+          filter_and_expand_from_id "B" | $samtools view -b -o "$tmpbam" -
       fi
-
       if [[ "$paralogs" == true && "$uniquely_mapped" == false ]]; then
-        $samtools view -h -F4 "./alignment/${i%.f*}_redun.bam" | \
-        awk -v max="$downsample" -v Q="I" -v seed=42 '
-        BEGIN{
-            FS=OFS="\t"
-            srand(seed)
-            bad="([0-9]+I[0-9]+I)|([0-9]+D[0-9]+D)|([0-9]+D[0-9]+I)|([0-9]+I[0-9]+D)"
-            global_id=0
-        }
-        /^@/ { print; next }
-        {
-            if ($3=="*" || $6=="*" || !($5>=20 || $5==0)) next
-            if ($6 ~ bad) next
-            # no uniquely-mapped restriction here
-            n=1
-            base=$1
-            if (match($1,/_([0-9]+)$/)) {
-                n=substr($1,RSTART+1)+0
-                base=substr($1,1,RSTART-1)
-            }
-            bin=int($4/100)*100
-            key=$3"_"bin
-            for(k=1;k<=n;k++){
-                global_id++
-                $1=base"_"global_id
-                if ($10!="*" && length($10)>0){
-                    qual=$10
-                    gsub(/[ACGTNacgtn]/,Q,qual)
-                    $11=qual
-                }
-                group[key][++count[key]]=$0
-            }
-        }
-        END{
-            for (key in group){
-                n=count[key]
-
-                for(i=n;i>1;i--){
-                    j=int(rand()*i)+1
-                    tmp=group[key][i]
-                    group[key][i]=group[key][j]
-                    group[key][j]=tmp
-                }
-                limit=(n>max?max:n)
-                for(i=1;i<=limit;i++)
-                    print group[key][i]
-            }
-        }' | \
-        $samtools view -u -@ "$gthreads" - | \
-        $samtools sort -@ "$gthreads" -o "${i%.f*}_${ref1%.f*}_sorted.bam" -
-        $samtools index "${i%.f*}_${ref1%.f*}_sorted.bam"
+          filter_and_expand_from_id "C" | $samtools view -b -o "$tmpbam" -
       fi
+
+      # Downsample per 100 bp bin (deterministic)
+      ###########################################
+      $samtools view -h "$tmpbam" | \
+      awk -v max="$downsample" -v seed=42 'BEGIN{FS=OFS="\t"; srand(seed)}
+      /^@/ {print; next}
+      {
+          bin=int($4/100)
+          key=$3"_"bin
+          bucket[key][++n[key]]=$0
+      }
+      END{
+          for(k in bucket){
+              total=n[k]
+              # Fisher-Yates shuffle
+              for(i=total;i>1;i--){
+                  j=int(rand()*i)+1
+                  tmp=bucket[k][i]; bucket[k][i]=bucket[k][j]; bucket[k][j]=tmp
+              }
+              limit=(total>max?max:total)
+              for(i=1;i<=limit;i++)
+                  print bucket[k][i]
+          }
+      }' | $samtools view -b -@ "$gthreads" - | \
+      $samtools sort -@ "$gthreads" -o "${outprefix}_sorted.bam" -
+      $samtools index "${outprefix}_sorted.bam"
+      rm "$tmpbam"
 
       # Add read groups
     	$java $Xmx2 -XX:ParallelGCThreads=$gthreads -jar $picard AddOrReplaceReadGroups I="${i%.f*}_${ref1%.f*}_sorted.bam" \
