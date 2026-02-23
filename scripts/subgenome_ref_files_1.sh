@@ -1337,42 +1337,50 @@ main () {
 
       if [[ "$paralogs" == false && "$uniquely_mapped" == true ]]; then
         $samtools view -h -F4 "./alignment/${i%.f*}_redun.bam" | \
-        awk -v max="$downsample" -v Q="I" -v seed=42 '
-        BEGIN{
+        awk -v max="$downsample" -v Q="I" -v seed=42 'BEGIN{
             FS=OFS="\t"
             srand(seed)
             bad="([0-9]+I[0-9]+I)|([0-9]+D[0-9]+D)|([0-9]+D[0-9]+I)|([0-9]+I[0-9]+D)"
             global_id=0
         }
-        function join(arr,sep,    i,s){
-            for(i=1;i in arr;i++) s=(i==1?arr[i]:s sep arr[i])
-            return s
-        }
+
+        # Preserve header exactly
         /^@/ { print; next }
         {
-            # Filtering
-            if ($3=="*" || $6=="*" || !($5 >= 20 || $5==0)) next
+            # ---------- Primary Filtering ----------
+            if ($3=="*" || $6=="*" || !($5>=20 || $5==0)) next
+            if ($6 ~ bad) next
+
+            # Only keep IDs with _1 as second token
             split($1,a,"_")
-            if(a[2]!=1) next
-            if($6~bad) next
-            # Expansion
+            if (a[2] != 1) next
+
+            # ---------- Expansion ----------
             n=1
-            if(match($1,/_([0-9]+)$/)){
+            base=$1
+            if (match($1,/_([0-9]+)$/)) {
                 n=substr($1,RSTART+1)+0
                 base=substr($1,1,RSTART-1)
-            } else base=$1
+            }
             bin=int($4/100)*100
             key=$3"_"bin
             for(k=1;k<=n;k++){
                 global_id++
                 $1=base"_"global_id
+
+                # Safe QUAL rewrite
+                if ($10 != "*" && length($10) > 0) {
+                    qual=$10
+                    gsub(/[ACGTNacgtn]/,Q,qual)
+                    $11=qual
+                }
                 group[key][++count[key]]=$0
             }
         }
         END{
-            for(key in group){
+            for (key in group){
                 n=count[key]
-                # shuffle
+                # Fisher–Yates shuffle
                 for(i=n;i>1;i--){
                     j=int(rand()*i)+1
                     tmp=group[key][i]
@@ -1380,14 +1388,11 @@ main () {
                     group[key][j]=tmp
                 }
                 limit=(n>max?max:n)
-                for(i=1;i<=limit;i++){
-                    split(group[key][i],f,"\t")
-                    f[11]=f[10]
-                    gsub(/[ACGTNacgtn]/,Q,f[11])
-                    print join(f,OFS)
-                }
+                for(i=1;i<=limit;i++)
+                    print group[key][i]
             }
-        }' | $samtools view -u -@ "$gthreads" - | \
+        }' | \
+        $samtools view -u -@ "$gthreads" - | \
         $samtools sort -@ "$gthreads" -o "${i%.f*}_${ref1%.f*}_sorted.bam" -
         $samtools index "${i%.f*}_${ref1%.f*}_sorted.bam"
       fi
