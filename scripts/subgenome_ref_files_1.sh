@@ -1339,32 +1339,32 @@ main () {
       inbam="./alignment/${i%.f*}_redun.bam"
       outprefix="${i%.f*}_${ref1%.f*}"
       tmpbam="${outprefix}.tmp.bam"
+      headerfile="${outprefix}.header.sam"
+      bodyfile="${outprefix}.body.sam"
+
+      # Extract header once
+      $samtools view -H "$inbam" > "$headerfile"
 
       # Function: filter + expand from read ID
       ###########################################
       filter_expand_fakequal() {
-        mode="$1"   # A, B, C
+        mode="$1"
 
-        # Branch-specific minimum MAPQ
-        if [[ "$mode" == "A" ]]; then minq=20; fi   # uniquely_mapped
-        if [[ "$mode" == "B" || "$mode" == "C" ]]; then minq=10; fi  # paralogs
+        if [[ "$mode" == "A" ]]; then minq=20; fi
+        if [[ "$mode" == "B" || "$mode" == "C" ]]; then minq=10; fi
 
-        $samtools view -h "$inbam" | \
+        $samtools view -@ "$gthreads" "$inbam" | \
         awk -v min="$minq" -v mode="$mode" '
         BEGIN{
             FS=OFS="\t"
             bad="([0-9]+I[0-9]+I)|([0-9]+D[0-9]+D)|([0-9]+D[0-9]+I)|([0-9]+I[0-9]+D)"
             global_id=0
         }
-        /^@/ { print; next }
-
         {
-            # Filter unmapped or bad CIGAR
             if($3=="*" || $6=="*") next
             if($6 ~ bad) next
-            if($5 > 0 && $5 < min) next  # MAPQ threshold
+            if($5 > 0 && $5 < min) next
 
-            # Extract multiplicity from last underscore
             n=1
             base=$1
             if(match($1, /_([0-9]+)$/)){
@@ -1372,7 +1372,6 @@ main () {
                 base=substr($1,1,RSTART-1)
             }
 
-            # Paralog / uniquely-mapped filtering
             ok=0
             if(mode=="A" && n==1) ok=1
             if(mode=="B" && n<=6) ok=1
@@ -1382,12 +1381,14 @@ main () {
                 for(i=1;i<=n;i++){
                     global_id++
                     $1=base"_"global_id
-                    # Replace QUAL string with "I"s
+
+                    # Force QUAL to valid string
                     if(length($10)>0){
-                        qual=substr($10,1,length($10))
-                        gsub(/./,"I",qual)
+                        qual=""
+                        for(q=1;q<=length($10);q++) qual=qual "I"
                         $11=qual
                     }
+
                     print
                 }
             }
@@ -1397,18 +1398,21 @@ main () {
       # Run branch-specific filtering
       ###########################################
       if [[ "$paralogs" == false && "$uniquely_mapped" == true ]]; then
-          filter_and_expand_from_id "A" | $samtools view -b -o "$tmpbam" -
+          filter_expand_fakequal "A" > "$bodyfile"
       fi
       if [[ "$paralogs" == true && "$uniquely_mapped" == true ]]; then
-          filter_and_expand_from_id "B" | $samtools view -b -o "$tmpbam" -
+          filter_expand_fakequal "B" > "$bodyfile"
       fi
       if [[ "$paralogs" == true && "$uniquely_mapped" == false ]]; then
-          filter_and_expand_from_id "C" | $samtools view -b -o "$tmpbam" -
+          filter_expand_fakequal "C" > "$bodyfile"
       fi
+      # Reassemble valid SAM
+      cat "$headerfile" "$bodyfile" | \
+      $samtools view -@ "$gthreads" -b -o "$tmpbam" -
 
       # Downsample per 100 bp bin (deterministic)
       ###########################################
-      $samtools view -h "$tmpbam" | \
+      $samtools view -@ "$gthreads" -h "$tmpbam" | \
       awk -v max="$downsample" -v seed=42 'BEGIN{FS=OFS="\t"; srand(seed)}
       /^@/ {print; next}
       {
@@ -1428,7 +1432,7 @@ main () {
               for(i=1;i<=limit;i++)
                   print bucket[k][i]
           }
-      }' | $samtools view -b -@ "$gthreads" - | \
+      }' | $samtools view -@ "$gthreads" -b -@ "$gthreads" - | \
       $samtools sort -@ "$gthreads" -o "${outprefix}_sorted.bam" -
       $samtools index "${outprefix}_sorted.bam"
       rm "$tmpbam"
