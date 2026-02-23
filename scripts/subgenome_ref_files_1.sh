@@ -1342,26 +1342,27 @@ main () {
 
       # Function: filter + expand from read ID
       ###########################################
-      filter_and_expand_from_id() {
+      filter_expand_fakequal() {
         mode="$1"   # A, B, C
-        # Set branch-specific minimum MAPQ
-        if [[ "$mode" == "A" ]]; then minq=20; fi   # uniquely_mapped=true
+
+        # Branch-specific minimum MAPQ
+        if [[ "$mode" == "A" ]]; then minq=20; fi   # uniquely_mapped
         if [[ "$mode" == "B" || "$mode" == "C" ]]; then minq=10; fi  # paralogs
 
         $samtools view -h "$inbam" | \
-        awk -v min="$minq" -v mode="$mode" 'BEGIN{
+        awk -v min="$minq" -v mode="$mode" '
+        BEGIN{
             FS=OFS="\t"
             bad="([0-9]+I[0-9]+I)|([0-9]+D[0-9]+D)|([0-9]+D[0-9]+I)|([0-9]+I[0-9]+D)"
             global_id=0
         }
-        # Pass header
         /^@/ { print; next }
+
         {
-            # Filter unmapped reads and bad CIGAR
+            # Filter unmapped or bad CIGAR
             if($3=="*" || $6=="*") next
             if($6 ~ bad) next
-            # Retain MAPQ 0; apply threshold to others
-            if($5 > 0 && $5 < min) next
+            if($5 > 0 && $5 < min) next  # MAPQ threshold
 
             # Extract multiplicity from last underscore
             n=1
@@ -1381,6 +1382,12 @@ main () {
                 for(i=1;i<=n;i++){
                     global_id++
                     $1=base"_"global_id
+                    # Replace QUAL string with "I"s
+                    if(length($10)>0){
+                        qual=substr($10,1,length($10))
+                        gsub(/./,"I",qual)
+                        $11=qual
+                    }
                     print
                 }
             }
