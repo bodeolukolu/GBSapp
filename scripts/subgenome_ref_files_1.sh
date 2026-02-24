@@ -1367,9 +1367,9 @@ main () {
 
             n=1
             base=$1
-            if(match($1, /_([0-9]+)$/)){
-                n=substr($1, RSTART+1)
-                base=substr($1,1,RSTART-1)
+            if(match($1, /^(.*)_([0-9]+)$/, m)){
+                base = m[1]
+                n = m[2] + 0
             }
 
             ok=0
@@ -1380,10 +1380,11 @@ main () {
             if(ok){
                 for(i=1;i<=n;i++){
                     global_id++
-                    $1=base"_"global_id
+                    $1 = base "_" global_id
 
-                    # Force QUAL to valid string
-                    if(length($10)>0){
+                    if($10=="*"){
+                        $11="*"
+                    } else {
                         qual=""
                         for(q=1;q<=length($10);q++) qual=qual "I"
                         $11=qual
@@ -1391,7 +1392,7 @@ main () {
 
                     print
                 }
-            }
+            }            
         }'
       }
 
