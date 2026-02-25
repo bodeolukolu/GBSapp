@@ -1349,64 +1349,78 @@ main () {
       ###########################################
       filter_expand_fakequal() {
         mode="$1"
-
         if [[ "$mode" == "A" ]]; then minq=20; fi
         if [[ "$mode" == "B" || "$mode" == "C" ]]; then minq=10; fi
 
         $samtools view -@ "$gthreads" "$inbam" | \
-        awk -v min="$minq" -v mode="$mode" '
-        BEGIN{
-            FS=OFS="\t"
-            bad="([0-9]+I[0-9]+I)|([0-9]+D[0-9]+D)|([0-9]+D[0-9]+I)|([0-9]+I[0-9]+D)"
-            global_id=0
+        awk -v min="$minq" -v mode="$mode" 'BEGIN{
+        FS=OFS="\t"
+        bad="([0-9]+I[0-9]+I)|([0-9]+D[0-9]+D)|([0-9]+D[0-9]+I)|([0-9]+I[0-9]+D)"
+        global_id=0
         }
         {
-            if($3=="*" || $6=="*") next
-            if($6 ~ bad) next
-            if($5 > 0 && $5 < min) next
 
-            n=1
-            base=$1
-            if(match($1, /^(.*)_([0-9]+)$/, m)){
-                base = m[1]
-                n = m[2] + 0
-            }
+        # Basic filtering
+        ################################
+        if($3=="*" || $6=="*") next
+        if($6 ~ bad) next
+        # retain MAPQ 0 reads
+        if($5>0 && $5<min) next
 
-            ok=0
-            if(mode=="A" && n==1) ok=1
-            if(mode=="B" && n<=6) ok=1
-            if(mode=="C" && n>1) ok=1
+        # Detect collapsed read suffix
+        ################################
+        n=1
+        base=$1
+        if(match($1,/^(.*)_([0-9]+)$/,m)){
+        base=m[1]
+        n=m[2]+0
+        }
 
-            if(ok){
-                for(i=1;i<=n;i++){
-                    global_id++
-                    $1 = base "_" global_id
+        # Apply pipeline mode logic
+        ################################
+        ok=0
+        if(mode=="A" && n==1) ok=1
+        if(mode=="B" && n<=6) ok=1
+        if(mode=="C" && n>1) ok=1
+        if(!ok) next
 
-                    if($10=="*"){
-                        $11="*"
-                    } else {
-                        qual=""
-                        for(q=1;q<=length($10);q++) qual=qual "I"
-                        $11=qual
-                    }
+        # Prepare fake QUAL once
+        ################################
+        if($10!="*"){
+        seq_len=length($10)
+        qual=""
+        for(i=1;i<=seq_len;i++)
+        qual=qual "I"
+        }else{
+        qual="*"
+        }
 
-                    print
-                }
-            }            
+        # Expand collapsed reads
+        ################################
+        for(i=1;i<=n;i++){
+        global_id++
+        $1 = base "_" global_id
+        $11 = qual
+        print
+        }
         }'
       }
 
-      # Run branch-specific filtering
-      ###########################################
+      # Run branch logic
+      ############################################
+
       if [[ "$paralogs" == false && "$uniquely_mapped" == true ]]; then
           filter_expand_fakequal "A" > "$bodyfile"
       fi
+
       if [[ "$paralogs" == true && "$uniquely_mapped" == true ]]; then
           filter_expand_fakequal "B" > "$bodyfile"
       fi
+
       if [[ "$paralogs" == true && "$uniquely_mapped" == false ]]; then
           filter_expand_fakequal "C" > "$bodyfile"
       fi
+
       # Reassemble valid SAM
       cat "$headerfile" "$bodyfile" | \
       $samtools view -@ "$gthreads" -b -o "$tmpbam" -
