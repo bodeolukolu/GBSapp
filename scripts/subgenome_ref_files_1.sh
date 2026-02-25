@@ -1338,124 +1338,111 @@ main () {
 
       inbam="./alignment/${i%.f*}_redun.bam"
       outprefix="${i%.f*}_${ref1%.f*}"
-      tmpbam="${outprefix}.tmp.bam"
-      headerfile="${outprefix}.header.sam"
-      bodyfile="${outprefix}.body.sam"
+      tmpbody="${outprefix}.body.sam"
 
-      # Extract header once
-      $samtools view -H "$inbam" > "$headerfile"
-
-      # Function: filter + expand from read ID
-      ###########################################
-      filter_expand_fakequal() {
-        mode="$1"
-        if [[ "$mode" == "A" ]]; then minq=20; fi
-        if [[ "$mode" == "B" || "$mode" == "C" ]]; then minq=10; fi
-
-        $samtools view -@ "$gthreads" "$inbam" | \
-        awk -v min="$minq" -v mode="$mode" 'BEGIN{
-        FS=OFS="\t"
-        bad="([0-9]+I[0-9]+I)|([0-9]+D[0-9]+D)|([0-9]+D[0-9]+I)|([0-9]+I[0-9]+D)"
-        global_id=0
-        }
-        {
-
-        # Basic filtering
-        ################################
-        if($3=="*" || $6=="*") next
-        if($6 ~ bad) next
-        # retain MAPQ 0 reads
-        if($5>0 && $5<min) next
-
-        # Detect collapsed read suffix
-        ################################
-        n=1
-        base=$1
-        if(match($1,/^(.*)_([0-9]+)$/,m)){
-        base=m[1]
-        n=m[2]+0
-        }
-
-        # Apply pipeline mode logic
-        ################################
-        ok=0
-        if(mode=="A" && n==1) ok=1
-        if(mode=="B" && n<=6) ok=1
-        if(mode=="C" && n>1) ok=1
-        if(!ok) next
-
-        # Prepare fake QUAL once
-        ################################
-        if($10!="*"){
-        seq_len=length($10)
-        qual=""
-        for(i=1;i<=seq_len;i++)
-        qual=qual "I"
-        }else{
-        qual="*"
-        }
-
-        # Expand collapsed reads
-        ################################
-        for(i=1;i<=n;i++){
-        global_id++
-        $1 = base "_" global_id
-        $11 = qual
-        print
-        }
-        }'
-      }
-
-      # Run branch logic
+      # Step 1 — determine filtering mode
       ############################################
-
       if [[ "$paralogs" == false && "$uniquely_mapped" == true ]]; then
-          filter_expand_fakequal "A" > "$bodyfile"
+          mode="A"   # only unique alignments
       fi
-
       if [[ "$paralogs" == true && "$uniquely_mapped" == true ]]; then
-          filter_expand_fakequal "B" > "$bodyfile"
+          mode="B"   # ≤6 alignments allowed
       fi
-
       if [[ "$paralogs" == true && "$uniquely_mapped" == false ]]; then
-          filter_expand_fakequal "C" > "$bodyfile"
+          mode="C"   # multi-mapped only
       fi
 
-      # Reassemble valid SAM
-      cat "$headerfile" "$bodyfile" | \
-      $samtools view -@ "$gthreads" -b -o "$tmpbam" -
-
-      # Downsample per 100 bp bin (deterministic)
-      ###########################################
-      $samtools view -@ "$gthreads" -h "$tmpbam" | \
-      awk -v max="$downsample" -v seed=42 'BEGIN{FS=OFS="\t"; srand(seed)}
-      /^@/ {print; next}
+      # Step 2 — filtering + expansion
+      ############################################
+      $samtools view -@ "$gthreads" "$inbam" | awk -v mode="$mode" 'BEGIN{
+      FS=OFS="\t"
+      bad="([0-9]+I[0-9]+I)|([0-9]+D[0-9]+D)|([0-9]+D[0-9]+I)|([0-9]+I[0-9]+D)"
+      }
       {
-          bin=int($4/100)
-          key=$3"_"bin
-          bucket[key][++n[key]]=$0
+      if($3=="*" || $6=="*") next
+      if($6 ~ bad) next
+      reads[$1]++
+      record[$1]=$0
       }
       END{
-          for(k in bucket){
-              total=n[k]
-              # Fisher-Yates shuffle
-              for(i=total;i>1;i--){
-                  j=int(rand()*i)+1
-                  tmp=bucket[k][i]; bucket[k][i]=bucket[k][j]; bucket[k][j]=tmp
-              }
-              limit=(total>max?max:total)
-              for(i=1;i<=limit;i++)
-                  print bucket[k][i]
-          }
-      }' | $samtools view -@ "$gthreads" -b -@ "$gthreads" - | \
+      for(r in record){
+      line=record[r]
+      split(line,f,"\t")
+      align_count=reads[r]
+
+      # Paralog filtering
+      ################################
+      keep=0
+      if(mode=="A" && align_count==1) keep=1
+      if(mode=="B" && align_count<=6) keep=1
+      if(mode=="C" && align_count>1) keep=1
+      if(!keep) continue
+
+      # Extract collapse suffix
+      ################################
+      suffix=1
+      base=r
+      if(match(r,/^(.*)_([0-9]+)$/,m)){
+      base=m[1]
+      suffix=m[2]+0
+      }
+
+      # Fake QUAL
+      ################################
+      seq=f[10]
+      if(seq!="*"){
+      ql=""
+      for(i=1;i<=length(seq);i++) ql=ql "I"
+      f[11]=ql
+      }
+
+      # Expand reads
+      ################################
+      for(i=1;i<=suffix;i++){
+      global++
+      f[1]=base"_"global
+      out=f[1]
+      for(k=2;k<=length(f);k++)
+      out=out OFS f[k]
+      print out
+      }
+      }
+      }'> "$tmpbody"
+
+      # Step 3 — downsample per 100 bp bin
+      ############################################
+      $samtools view -H "$inbam"
+      awk -v max="$downsample" -v seed=42 '
+      BEGIN{FS=OFS="\t"; srand(seed)}
+      {
+      bin=int($4/100)
+      key=$3"_"bin
+      bucket[key][++n[key]]=$0
+      }
+      END{
+      for(k in bucket){
+      total=n[k]
+      for(i=total;i>1;i--){
+      j=int(rand()*i)+1
+      tmp=bucket[k][i]
+      bucket[k][i]=bucket[k][j]
+      bucket[k][j]=tmp
+      }
+      limit=(total>max?max:total)
+      for(i=1;i<=limit;i++)
+      print bucket[k][i]
+      }
+      }' "$tmpbody" | $samtools view -@ "$gthreads" -b - | \
       $samtools sort -@ "$gthreads" -o "${outprefix}_sorted.bam" -
       $samtools index "${outprefix}_sorted.bam"
-      rm "$tmpbam"
+      rm "$tmpbody"
 
-      # Add read groups
-    	$java $Xmx2 -XX:ParallelGCThreads=$gthreads -jar $picard AddOrReplaceReadGroups I="${i%.f*}_${ref1%.f*}_sorted.bam" \
-      O="${i%.f*}_${ref1%.f*}_precall.bam" RGLB=${i%.f*} RGPL=illumina RGPU=run RGSM=${i%.f*} VALIDATION_STRINGENCY=LENIENT
-    	$samtools index "${i%.f*}_${ref1%.f*}_precall.bam"
+      # Step 4 — add read groups
+      ############################################
+      $java $Xmx2 -XX:ParallelGCThreads=$gthreads -jar $picard AddOrReplaceReadGroups \
+      I="${outprefix}_sorted.bam" O="${outprefix}_precall.bam" RGLB=${i%.f*} RGPL=illumina RGPU=run RGSM=${i%.f*} \
+      VALIDATION_STRINGENCY=LENIENT
+      $samtools index "${outprefix}_precall.bam"
       if [[ $nodes -gt 1 ]]; then cp /tmp/${samples_list%.txt}/preprocess/${j%.sam*}_precall.bam* ${projdir}/preprocess/; fi
     fi
     ) &
