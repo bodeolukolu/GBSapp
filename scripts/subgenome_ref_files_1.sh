@@ -1037,88 +1037,89 @@ main () {
             tmp_sv=$(mktemp "${projdir}/samples/tmp.XXXXXX")
             sv_out="${projdir}/sv_mode.txt"
 
-            [[ -f "../preprocess/alignment/${sample_base}_redun.bam" ]] && continue
+            if [[ ! -f "../preprocess/alignment/${sample_base}_redun.bam" ]]; then
+              #### Step 0: Structure detection (sample 1% reads, min 1000)
+              detect_structure_mode="low"  # default
+              if [[ -f "$r1_file" ]]; then
+                  total_reads=$(zcat "$r1_file" | awk '/^>/ {c++} END {print c}')
+                  sample_size=$(( total_reads / 100 ))
+                  if (( sample_size < 1000 )); then sample_size=1000; fi
 
-            #### Step 0: Structure detection (sample 1% reads, min 1000)
-            detect_structure_mode="low"  # default
-            if [[ -f "$r1_file" ]]; then
-                total_reads=$(zcat "$r1_file" | awk '/^>/ {c++} END {print c}')
-                sample_size=$(( total_reads / 100 ))
-                if (( sample_size < 1000 )); then sample_size=1000; fi
+                  tmp_sample_r1="${sample_base}_structure_sample_R1.fasta"
+                  zcat "$r1_file" | awk -v n="$sample_size" '/^>/ {if(seq!="" && count<n){print header"\n"seq; count++} header=$0; seq=""; next} {seq=seq $0} END{if(seq!="" && count<n){print header"\n"seq}}' > "$tmp_sample_r1"
+                  if [[ -f "$r2_file" && -s "$r2_file" ]]; then
+                    tmp_sample_r2="${sample_base}_structure_sample_R2.fasta"
+                    zcat "$r2_file" | awk -v n="$sample_size" '/^>/ {if(seq!="" && count<n){print header"\n"seq; count++} header=$0; seq=""; next} {seq=seq $0} END{if(seq!="" && count<n){print header"\n"seq}}' > "$tmp_sample_r2"
+                  fi
+                  tmp_aln="${sample_base}_structure_check.sam"
+                  # Use PE if R2 exists, else SE
+                  if [[ -f "${tmp_sample_r2:-}" ]]; then
+                      echo "Structure detection: PE mode for $sample_base"
+                      $minimap2 -t "$gthreads" -ax pe "../refgenomes/${ref1%.f*}.mmi" "$tmp_sample_r1" "$tmp_sample_r2" > "$tmp_aln" 2>/dev/null
+                  else
+                      echo "Structure detection: SE mode for $sample_base"
+                      $minimap2 -t "$gthreads" -ax sr "../refgenomes/${ref1%.f*}.mmi" "$tmp_sample_r1" > "$tmp_aln" 2>/dev/null
+                  fi
+                  discordant_pct=$(grep -v '^@' "$tmp_aln" | awk '{if($2>=256) d++} END{if(NR>0){print (d/NR)*100}else{print 0}}')
+                  if (( $(echo "$discordant_pct > 10" | bc -l) )); then
+                      detect_structure_mode="high"
+                  fi
+                  rm -f "${tmp_sample_r1:-}" "${tmp_sample_r2:-}" "${tmp_aln:-}"
+                  echo "Structure mode for $sample_base: $detect_structure_mode"
+              fi
+              printf "${alignfq%.f*}:\tdetect_structure_mde = ${detect_structure_mode} \t discordant_pct = $discordant_pct \n" > "$tmp_sv"
+              cat "$tmp_sv" >> "$sv_out" && rm -f "$tmp_sv"
 
-                tmp_sample_r1="${sample_base}_structure_sample_R1.fasta"
-                zcat "$r1_file" | awk -v n="$sample_size" '/^>/ {if(seq!="" && count<n){print header"\n"seq; count++} header=$0; seq=""; next} {seq=seq $0} END{if(seq!="" && count<n){print header"\n"seq}}' > "$tmp_sample_r1"
-                if [[ -f "$r2_file" && -s "$r2_file" ]]; then
-                  tmp_sample_r2="${sample_base}_structure_sample_R2.fasta"
-                  zcat "$r2_file" | awk -v n="$sample_size" '/^>/ {if(seq!="" && count<n){print header"\n"seq; count++} header=$0; seq=""; next} {seq=seq $0} END{if(seq!="" && count<n){print header"\n"seq}}' > "$tmp_sample_r2"
-                fi
-                tmp_aln="${sample_base}_structure_check.sam"
-                # Use PE if R2 exists, else SE
-                if [[ -f "${tmp_sample_r2:-}" ]]; then
-                    echo "Structure detection: PE mode for $sample_base"
-                    $minimap2 -t "$alnthreads" -ax pe "../refgenomes/${ref1%.f*}.mmi" "$tmp_sample_r1" "$tmp_sample_r2" > "$tmp_aln" 2>/dev/null
-                else
-                    echo "Structure detection: SE mode for $sample_base"
-                    $minimap2 -t "$alnthreads" -ax sr "../refgenomes/${ref1%.f*}.mmi" "$tmp_sample_r1" > "$tmp_aln" 2>/dev/null
-                fi
-                discordant_pct=$(grep -v '^@' "$tmp_aln" | awk '{if($2>=256) d++} END{if(NR>0){print (d/NR)*100}else{print 0}}')
-                if (( $(echo "$discordant_pct > 10" | bc -l) )); then
-                    detect_structure_mode="high"
-                fi
-                rm -f "${tmp_sample_r1:-}" "${tmp_sample_r2:-}" "${tmp_aln:-}"
-                echo "Structure mode for $sample_base: $detect_structure_mode"
+              if [[ "$detect_structure_mode" == "high" ]]; then
+          			#### Step 1: Align PE or SE reads
+          			if [[ -f "$r1_file" && -f "$r2_file" && -s "$r2_file" ]]; then
+          					echo "Aligning PE reads: $r1_file + $r2_file (structure: $detect_structure_mode)"
+          					$minimap2 -t $gthreads -ax pe --secondary=yes -k15 -w5 -Y -f 0.0005 -N 8 -n 2 -m 25 "../refgenomes/${ref1%.f*}.mmi" \
+          					"$r1_file" "$r2_file" | $samtools sort -@ $gthreads -m 1G -T "${projdir}/samples/tmp" -O BAM -o "../preprocess/alignment/${sample_base}_redun.bam"
+          			else
+          					echo "Aligning SE reads: $r1_file (structure: $detect_structure_mode)"
+          					$minimap2 -t $gthreads -ax sr --secondary=yes -k15 -w5 -Y -f 0.0005 -N 8 -n 2 -m 25 "../refgenomes/${ref1%.f*}.mmi" \
+          					"$r1_file" | $samtools sort -@ $gthreads -m 1G -T "${projdir}/samples/tmp" -O BAM -o "../preprocess/alignment/${sample_base}_redun.bam"
+          			fi
+          			#### Step 2: Align stitched R1R2 reads separately
+          			if [[ -f "$r1r2_file" && -s "$r1r2_file" ]]; then
+          					echo "Aligning stitched reads: $r1r2_file"
+          					$minimap2 -t $gthreads -ax sr --secondary=yes -k15 -w5 -Y -f 0.0005 -N 8 -n 2 -m 25 "../refgenomes/${ref1%.f*}.mmi" \
+          					"$r1r2_file" | $samtools sort -@ $gthreads -m 1G -T "${projdir}/samples/tmp" -O BAM -o "../preprocess/alignment/${sample_base}_redunR1R2.bam"
+          					# Merge BAMs
+          					$samtools merge -@ $gthreads -u - "../preprocess/alignment/${sample_base}_redun.bam" "../preprocess/alignment/${sample_base}_redunR1R2.bam" | \
+          					$samtools sort -@ $gthreads -m 1G -O BAM -o "../preprocess/alignment/${sample_base}_redunall.bam"
+          					rm -f "../preprocess/alignment/${sample_base}_redun.bam" "../preprocess/alignment/${sample_base}_redunR1R2.bam"
+          					mv "../preprocess/alignment/${sample_base}_redunall.bam" "../preprocess/alignment/${sample_base}_redun.bam"
+          			fi
+              fi
+
+      				if [[ "$detect_structure_mode" == "low" ]]; then
+          			#### Step 1: Align PE or SE reads
+          			if [[ -f "$r1_file" && -f "$r2_file" && -s "$r2_file" ]]; then
+          					echo "Aligning PE reads: $r1_file + $r2_file (structure: $detect_structure_mode)"
+          					$minimap2 -t $gthreads -ax pe --secondary=yes -Y -f 0.0005 -N 8 -n 2 -m 25 "../refgenomes/${ref1%.f*}.mmi" \
+          					"$r1_file" "$r2_file" | $samtools sort -@ $gthreads -m 1G -T "${projdir}/samples/tmp" -O BAM -o "../preprocess/alignment/${sample_base}_redun.bam"
+          			else
+          					echo "Aligning SE reads: $r1_file (structure: $detect_structure_mode)"
+          					$minimap2 -t $gthreads -ax sr --secondary=no -Y -f 0.0005 -N 8 -n 2 -m 25 "../refgenomes/${ref1%.f*}.mmi" \
+          					"$r1_file" | $samtools sort -@ $gthreads -m 1G -T "${projdir}/samples/tmp" -O BAM -o "../preprocess/alignment/${sample_base}_redun.bam"
+          			fi
+          			#### Step 2: Align stitched R1R2 reads separately
+          			if [[ -f "$r1r2_file" && -s "$r1r2_file" ]]; then
+          					echo "Aligning stitched reads: $r1r2_file"
+          					$minimap2 -t $gthreads -ax sr --secondary=yes -Y -f 0.0005 -N 8 -n 2 -m 25 "../refgenomes/${ref1%.f*}.mmi" \
+          					"$r1r2_file" | $samtools sort -@ $gthreads -m 1G -T "${projdir}/samples/tmp" -O BAM -o "../preprocess/alignment/${sample_base}_redunR1R2.bam"
+          					# Merge BAMs
+          					$samtools merge -@ $gthreads -u - "../preprocess/alignment/${sample_base}_redun.bam" "../preprocess/alignment/${sample_base}_redunR1R2.bam" | \
+          					$samtools sort -@ $gthreads -m 1G -O BAM -o "../preprocess/alignment/${sample_base}_redunall.bam"
+          					rm -f "../preprocess/alignment/${sample_base}_redun.bam" "../preprocess/alignment/${sample_base}_redunR1R2.bam"
+          					mv "../preprocess/alignment/${sample_base}_redunall.bam" "../preprocess/alignment/${sample_base}_redun.bam"
+          			fi
+              fi
+              cp -rn "../preprocess/alignment/${sample_base}_redun.bam" "${projdir}/preprocess/alignment/"
             fi
-            printf "${alignfq%.f*}:\tdetect_structure_mde = ${detect_structure_mode} \t discordant_pct = $discordant_pct \n" > "$tmp_sv"
-            cat "$tmp_sv" >> "$sv_out" && rm -f "$tmp_sv"
-
-            if [[ "$detect_structure_mode" == "high" ]]; then
-        			#### Step 1: Align PE or SE reads
-        			if [[ -f "$r1_file" && -f "$r2_file" && -s "$r2_file" ]]; then
-        					echo "Aligning PE reads: $r1_file + $r2_file (structure: $detect_structure_mode)"
-        					$minimap2 -t $gthreads -ax pe --secondary=yes -k15 -w5 -Y -f 0.0005 -N 8 -n 2 -m 25 "../refgenomes/${ref1%.f*}.mmi" \
-        					"$r1_file" "$r2_file" | $samtools sort -@ $gthreads -m 1G -T "${projdir}/samples/tmp" -O BAM -o "../preprocess/alignment/${sample_base}_redun.bam"
-        			else
-        					echo "Aligning SE reads: $r1_file (structure: $detect_structure_mode)"
-        					$minimap2 -t $gthreads -ax sr --secondary=yes -k15 -w5 -Y -f 0.0005 -N 8 -n 2 -m 25 "../refgenomes/${ref1%.f*}.mmi" \
-        					"$r1_file" | $samtools sort -@ $gthreads -m 1G -T "${projdir}/samples/tmp" -O BAM -o "../preprocess/alignment/${sample_base}_redun.bam"
-        			fi
-        			#### Step 2: Align stitched R1R2 reads separately
-        			if [[ -f "$r1r2_file" && -s "$r1r2_file" ]]; then
-        					echo "Aligning stitched reads: $r1r2_file"
-        					$minimap2 -t $gthreads -ax sr --secondary=yes -k15 -w5 -Y -f 0.0005 -N 8 -n 2 -m 25 "../refgenomes/${ref1%.f*}.mmi" \
-        					"$r1r2_file" | $samtools sort -@ $gthreads -m 1G -T "${projdir}/samples/tmp" -O BAM -o "../preprocess/alignment/${sample_base}_redunR1R2.bam"
-        					# Merge BAMs
-        					$samtools merge -@ $gthreads -u - "../preprocess/alignment/${sample_base}_redun.bam" "../preprocess/alignment/${sample_base}_redunR1R2.bam" | \
-        					$samtools sort -@ $gthreads -m 1G -O BAM -o "../preprocess/alignment/${sample_base}_redunall.bam"
-        					rm -f "../preprocess/alignment/${sample_base}_redun.bam" "../preprocess/alignment/${sample_base}_redunR1R2.bam"
-        					mv "../preprocess/alignment/${sample_base}_redunall.bam" "../preprocess/alignment/${sample_base}_redun.bam"
-        			fi
-            fi
-
-    				if [[ "$detect_structure_mode" == "low" ]]; then
-        			#### Step 1: Align PE or SE reads
-        			if [[ -f "$r1_file" && -f "$r2_file" && -s "$r2_file" ]]; then
-        					echo "Aligning PE reads: $r1_file + $r2_file (structure: $detect_structure_mode)"
-        					$minimap2 -t $gthreads -ax pe --secondary=yes -Y -f 0.0005 -N 8 -n 2 -m 25 "../refgenomes/${ref1%.f*}.mmi" \
-        					"$r1_file" "$r2_file" | $samtools sort -@ $gthreads -m 1G -T "${projdir}/samples/tmp" -O BAM -o "../preprocess/alignment/${sample_base}_redun.bam"
-        			else
-        					echo "Aligning SE reads: $r1_file (structure: $detect_structure_mode)"
-        					$minimap2 -t $gthreads -ax sr --secondary=no -Y -f 0.0005 -N 8 -n 2 -m 25 "../refgenomes/${ref1%.f*}.mmi" \
-        					"$r1_file" | $samtools sort -@ $gthreads -m 1G -T "${projdir}/samples/tmp" -O BAM -o "../preprocess/alignment/${sample_base}_redun.bam"
-        			fi
-        			#### Step 2: Align stitched R1R2 reads separately
-        			if [[ -f "$r1r2_file" && -s "$r1r2_file" ]]; then
-        					echo "Aligning stitched reads: $r1r2_file"
-        					$minimap2 -t $gthreads -ax sr --secondary=yes -Y -f 0.0005 -N 8 -n 2 -m 25 "../refgenomes/${ref1%.f*}.mmi" \
-        					"$r1r2_file" | $samtools sort -@ $gthreads -m 1G -T "${projdir}/samples/tmp" -O BAM -o "../preprocess/alignment/${sample_base}_redunR1R2.bam"
-        					# Merge BAMs
-        					$samtools merge -@ $gthreads -u - "../preprocess/alignment/${sample_base}_redun.bam" "../preprocess/alignment/${sample_base}_redunR1R2.bam" | \
-        					$samtools sort -@ $gthreads -m 1G -O BAM -o "../preprocess/alignment/${sample_base}_redunall.bam"
-        					rm -f "../preprocess/alignment/${sample_base}_redun.bam" "../preprocess/alignment/${sample_base}_redunR1R2.bam"
-        					mv "../preprocess/alignment/${sample_base}_redunall.bam" "../preprocess/alignment/${sample_base}_redun.bam"
-        			fi
-            fi
-            cp -rn "../preprocess/alignment/${sample_base}_redun.bam" "${projdir}/preprocess/alignment/" ) &
+            ) &
           while (( $(jobs -rp | wc -l) >= $gN )); do
             sleep 2
           done
