@@ -1335,7 +1335,7 @@ main () {
       cat "$tmpflag" >> "${projdir}/alignment_summaries/${i%.f*}_summ.txt"
       rm -f "$tmpflag"
 
-      outprefix="${i%.f*}_${ref1%.f*}"
+      outprefix="${i%.f*}"
       inbam="./alignment/${outprefix}_redun.bam"
       tmpbam="${outprefix}.tmp.bam"
       outbam="${outprefix}_sorted.bam"
@@ -1402,9 +1402,9 @@ main () {
       # Step 4 — add read groups
       ############################################
       $java $Xmx2 -XX:ParallelGCThreads=$gthreads -jar $picard AddOrReplaceReadGroups \
-      I="$outbam" O="${outprefix}_precall.bam" RGLB=${i%.f*} RGPL=illumina RGPU=run RGSM=${i%.f*} \
+      I="$outbam" O="${i%.f*}_${ref1%.f*}_precall.bam" RGLB=${i%.f*} RGPL=illumina RGPU=run RGSM=${i%.f*} \
       VALIDATION_STRINGENCY=LENIENT
-      $samtools index "${outprefix}_precall.bam"
+      $samtools index "${i%.f*}_${ref1%.f*}_precall.bam"
       if [[ $nodes -gt 1 ]]; then cp /tmp/${samples_list%.txt}/preprocess/${j%.sam*}_precall.bam* ${projdir}/preprocess/; fi
     fi
     ) &
