@@ -436,10 +436,12 @@ main () {
       $java -jar $picard CreateSequenceDictionary REFERENCE="$ref1" OUTPUT="${ref1%.f*}.dict"
       $minimap2 -d "${ref1%.f*}.mmi" "$ref1"
 
-      # index panref.fasta for post-GATK analysis if needed
-      $samtools faidx panref.fasta
-      $java -jar $picard CreateSequenceDictionary REFERENCE=panref.fasta OUTPUT=panref.dict
-      $minimap2 -d panref.mmi panref.fasta
+      if [[ -d pangenomes ]]; then
+        # index panref.fasta for post-GATK analysis if needed
+        $samtools faidx panref.fasta
+        $java -jar $picard CreateSequenceDictionary REFERENCE=panref.fasta OUTPUT=panref.dict
+        $minimap2 -d panref.mmi panref.fasta
+      fi
 
       echo "ALT-aware pangenome reference with softmasked primary ready"
     fi
@@ -1355,11 +1357,10 @@ main () {
       printf "Sample\tGenome_Coverage(percentage)\n" > summary_genomecov.txt
       genome_size=$(awk '{print $3}' ../refgenomes/${ref1%.f*}.dict | awk '{gsub(/LN:/,"");}1' | awk '{s+=$1}END{print s}')
       for i in ../preprocess/alignment/*_redun.bam; do
-          while (( $(jobs -rp | wc -l) >= $gN )); do sleep 2; done
+          while (( $(jobs -rp | wc -l) >= $threads )); do sleep 2; done
           (
               tmp_out=$(mktemp "${projdir}/alignment_summaries/tmp.XXXXXX")
-              cov=$($bedtools genomecov -ibam "$i" -bga | awk '{print ($4>1)?1:$4}' \
-              | awk -v pat=$genome_size '{s+=$1}END{print (s/pat)*100}')
+              cov=$($bedtools genomecov -ibam "$i" -bga | awk '{print ($4>1)?1:$4}' | awk -v pat=$genome_size '{s+=$1}END{print (s/pat)*100}')
               printf "%s\t%s\n" "${i%*_redun.bam}" "$cov" | awk '{gsub(/..\/preprocess\/alignment\//,"");}1' > "$tmp_out"
               cat "$tmp_out" >> summary_genomecov.txt
               rm -f "$tmp_out" "${i%*_redun.bam}.bam" ) &
