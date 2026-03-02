@@ -187,14 +187,20 @@ main () {
   if [[ -f "unsplit_${ref1%.f*}_fasta.txt" ]]; then
     mv "unsplit_${ref1%.f*}_fasta.txt" ../
   fi
-  originalREF=$(ls *_original.fasta 2>/dev/null)
+
+  # Restore original reference and pangenome backups
+  originalREF=$(ls *_original.fasta 2>/dev/null | head -n1)
   if [[ -f "$originalREF" ]]; then
-    mv "${ref1%.f*}_original.fasta" ../$ref1
-    if [[ -d pangenomes ]]; then mv pangenomes ../; fi
-    rm -rf ./*
-    mv "../$ref1" ./
-    mv "../pangenomes" ./
+      mv "$originalREF" "../$ref1"
+      if [[ -d pangenomes/original_panrefs ]]; then
+          mkdir -p ../pangenomes
+          mv pangenomes/original_panrefs/* ../pangenomes/ 2>/dev/null
+      fi
+      rm -rf ./*
+      mv "../$ref1" ./
+      mv ../pangenomes ./ 2>/dev/null
   fi
+
   if [[ -f "../${ref1%.f*}_unstitched.fasta"  ]]; then
     mv "../${ref1%.f*}_unstitched.fasta" ./
   fi
@@ -345,201 +351,97 @@ main () {
     	awk '{ sub("\r$",""); print}' ref.txt | awk -v n="$n" '{gsub(n,">"); print}' | awk -v n="$n" '{gsub(/>/,n); print}' > $ref1 &&
     	rm -f ref.txt
 
-      # processing pangenomes
+      # Build ALT-aware pangenome reference
+      ############################################################
       if [[ -d pangenomes ]]; then
-        cp "$ref1" "${ref1%.f*}_original.fasta" &&
-        $samtools faidx "${ref1%.f*}_original.fasta" &&
-        $java -jar $picard CreateSequenceDictionary REFERENCE="${ref1%.f*}_original.fasta" OUTPUT="${ref1%.f*}_original.dict" &&
-        $minimap2 -d "${ref1%.f*}_original.mmi" "${ref1%.f*}_original.fasta" &&
-        wait
+          echo "Building ALT-aware pangenome reference..."
 
-        cd pangenomes
-        shopt -s nullglob
-        for panref in *.fa.gz *.fna.gz *.fasta.gz; do
-          gunzip -f "$panref"
-        done
-        for panref in *.fa *.fna *.fasta; do
-          mv "$panref" "${panref%.f*}.fasta"
-        done
+          # Backup primary reference
+          cp "$ref1" "${ref1%.f*}_original.fasta"
+          $samtools faidx "${ref1%.f*}_original.fasta"
+          $java -jar $picard CreateSequenceDictionary REFERENCE="${ref1%.f*}_original.fasta" OUTPUT="${ref1%.f*}_original.dict"
+          $minimap2 -d "${ref1%.f*}_original.mmi" "${ref1%.f*}_original.fasta"
 
-        # remove small contigs (<1kb) and limit pseudomolecules to 5,000 sequences
-        shopt -s nullglob
-        for panref in *.fasta; do (
-          ## 1. Filter sequences ≥1000 bp (sequence-only length)
-          if awk '/^>/{if(NR>1 && len<1000) exit 1; len=0; next}{len+=length($0)}END{if(len<1000) exit 1}' "$panref"; then
-            echo "All contigs/scaffolds/chromosomes sequences >= 1000 bp"
-          else
-            awk 'BEGIN{RS=">"; ORS=""}
-            NR>1{
-              n = split($0, a, "\n")
-              seq = ""
-              for (i = 2; i <= n; i++) seq = seq a[i]
-              if (length(seq) >= 1000) print ">" $0
-            }' "$panref" > "${panref}.tmp" &&
-            mv "${panref}.tmp" "$panref"
-          fi
-          ncontigscaffold=$(grep '>' "$panref" | wc -l)
-          if [[ "$ncontigscaffold" -gt "$max_pseudoMol" ]]; then
-            mkdir original_pangenomes
-            nfakechr=$((threads/2))
-            awk 'BEGIN{RS=">"; FS="\n"}
-            NR>1{
-              header=$1
-              seq=""
-              for(i=2;i<=NF;i++) seq=seq $i
-              print ">"header"\t"seq
-            }' "$panref" > "${panref%.f*}_1.fasta"
-            awk '{ a[NR]=$0 }
-            END{
-              srand()
-              for(i=NR;i>0;i--){
-                j=int(rand()*i)+1
-                tmp=a[i]; a[i]=a[j]; a[j]=tmp
-              }
-              for(i=1;i<=NR;i++) print a[i]
-            }' "${panref%.f*}_1.fasta" > "${panref%.f*}_2.fasta"
-            flength=$(wc -l "${panref%.f*}_2.fasta" | awk '{print $1}')
-            nsplit=$(( (flength + nfakechr - 1) / nfakechr ))
-            ## 5. Split into pseudochromosomes
-            split -a 2 -d -l "$nsplit" "${panref%.f*}_2.fasta" Chr
-            rm -f "${panref%.f*}_1.fasta" "${panref%.f*}_2.fasta"
-            ## index file per panref (FIXED: no race condition)
-            index_tmp="contigscaffold_index_${panref%.f*}.txt"
-            : > "$index_tmp"
+          # decompress and normalize FASTA names
+          cd pangenomes
+          for panref in *.fa.gz *.fna.gz *.fasta.gz; do gunzip -f "$panref"; done
+          for panref in *.fa *.fna *.fasta; do mv "$panref" "${panref%.f*}.fasta"; done
 
-            for i in Chr*; do
-              sleep $((RANDOM % 2))
-              ## 6. Restore FASTA formatting
-              awk '{print $1"\n"$2}' "$i" > "${i}.fasta"
-              grep -v '^>' "${i}.fasta" | tr -d '\n' | fold -w 100 > "${i}.txt"
-              ## 7. Build coordinate index (APPEND, not overwrite)
-              awk '/^>/{if (l!="") print l; print; l=0; next}
-                   {l+=length($0)}
-                   END{print l}' "${i}.fasta" | awk '{gsub(/>/,""); print $0}' | awk '{ ORS = NR % 2 ? "\t" : "\n" } 1' | \
-              awk '{print $1"\t"$2+100}' | awk -F "\t" '{sum+=$2; print $1"\t"sum-$2}' | \
-              awk -v chrid="$i" -v refgenome="${panref%.f*}" '{print refgenome"_"chrid"\t"$1"\t"$2}' >> "$index_tmp"
-            done
-            cp "$panref" original_pangenomes/
-            ## 9. Replace FASTA with stitched pseudochromosomes
-            : > "$panref"
-            for filename in Chr*.txt; do
-              sleep $((RANDOM % 2))
-              echo ">${filename%.txt}" >> "$panref"
-              cat "$filename" >> "$panref"
-            done
-            rm -f Chr* "${index_tmp}"
-          fi
-        ) &
-        while (( $(jobs -rp | wc -l) >= $gN )); do sleep 2; done
-        done
-        wait
-        ## 10. Merge all index files SAFELY
-        if [[ "$ncontigscaffold" -gt "$max_pseudoMol" ]]; then
-          cat contigscaffold_index_*.txt > contigscaffold_index.txt
-          rm -f contigscaffold_index_*.txt
-        fi
+          # remove contigs <1kb
+          for panref in *.fasta; do
+              awk 'BEGIN{RS=">";ORS=""} NR>1{n=split($0,a,"\n");seq="";for(i=2;i<=n;i++)seq=seq a[i];if(length(seq)>=1000)print ">"$0}' "$panref" > tmp && mv tmp "$panref"
+          done
 
-        # add pangenome as prefix to pangenomes fasta header
-        for panref in *.fasta; do (
-          awk '{ sub("\r$",""); print}' "$panref" | awk 'BEGIN{FS=" "}{if(!/>/){print toupper($0)}else{print $1}}' | \
-          awk '/>/{gsub(/a$/,"A");gsub(/b$/,"B");gsub(/c$/,"C");gsub(/d$/,"D");gsub(/e$/,"E");gsub(/f$/,"F");gsub(/g$/,"G");gsub(/h$/,"H");}1' > "${panref%%.fasta}.txt" &&
-          n=">pangenome_${panref%.fasta}_" &&
-          awk '{ sub("\r$",""); print}' "${panref%%.fasta}.txt" | awk -v n="$n" '{gsub(n,">"); print}' | awk -v n="$n" '{gsub(/>/,n); print}' > "${panref}.tmp" &&
-          mv "${panref}.tmp" "$panref" &&
-          rm -f "${panref%%.fasta}.txt"
-          ) &
-          while (( $(jobs -rp | wc -l) >= $gN )); do sleep 2; done
-        done
-        wait
+          # extract divergent regions relative to backbone
+          : > panref.raw.fa
+          mkdir -p original_panrefs
+          for panref in *.fasta; do
+              $minimap2 -x asm10 -t "$threads" "../$ref1" "$panref" > "${panref%.fasta}.paf"
+              awk '{print $6"\t"$8"\t"$9}' "${panref%.fasta}.paf" > aligned.bed
+              $samtools faidx "$panref"
+              awk '{print $1"\t0\t"$2}' "${panref}.fai" > full.bed
+              $bedtools subtract -a full.bed -b aligned.bed | $bedtools getfasta -fi "$panref" -bed - >> panref.raw.fa
+              mv "$panref" ./original_panrefs/
+              rm -f aligned.bed full.bed "${panref%.fasta}.paf"
+          done
+          wait
 
-        cd ../
-        $samtools faidx $ref1 &&
-        $java -jar $picard CreateSequenceDictionary REFERENCE=$ref1 OUTPUT=${ref1%.f*}.dict &&
-        $minimap2 -d ${ref1%.f*}.mmi $ref1 &&
+          # remove redundant sequences (≥95% identity)
+          $minimap2 -x asm20 -c --cs -t "$threads" panref.raw.fa panref.raw.fa > panref.self.paf
+          awk '$1!=$6 && ($10/$2>=0.95){print $1}' panref.self.paf | sort -u > redundant.ids
+          awk -v f=redundant.ids 'BEGIN{RS=">";FS="\n";ORS="";while((getline<f)>0)drop[$1]=1} NR>1{if(!($1 in drop))print ">"$0}' panref.raw.fa > panref.clean.fa
+          rm panref.raw.fa panref.self.paf redundant.ids
 
-        cd pangenomes
-        : > panref.raw.fa
-        # 1. Extract divergent regions
-        for panref in *.fasta; do (
-          $minimap2 -x asm5 -t "$gthreads" "../$ref1" "$panref" > "${panref%.fasta}.paf" &&
-          awk '{print $6,$8,$9}' OFS='\t' "${panref%.fasta}.paf" > "${panref%.fasta}.aligned.bed" &&
-          $samtools faidx "$panref" &&
-          awk -v OFS='\t' '{print $1,0,$2}' "${panref}.fai" > "${panref%.fasta}.full.bed" &&
-          $bedtools subtract -a "${panref%.fasta}.full.bed" -b "${panref%.fasta}.aligned.bed" \
-          | $bedtools getfasta -fi "$panref" -bed - -fo "${panref%.fasta}.div.fa"
-        ) &
-        while (( $(jobs -rp | wc -l) >= $gN )); do sleep 1; done
-        done
-        wait
-        cat *.div.fa > panref.raw.fa
-        rm -f *.paf *.bed *.fai *.div.fa
-        # 2. Self-alignment (for near-identical collapse)
-        $minimap2 -x asm20 -c --cs -t "$threads" panref.raw.fa panref.raw.fa > panref.self.paf
-        # 3. Identify redundant sequences (≥95% coverage, not self)
-        awk '$1 != $6 {
-          qlen=$2; tlen=$7
-          aln=$10
-          cov=aln/(qlen<tlen?qlen:tlen)
-          if(cov >= 0.95){
-            print $1
-          }
-        }' panref.self.paf | sort -u > redundant.ids
-        # 4. Keep only non-redundant (longest representative survives)
-        awk -v dropfile="redundant.ids" 'BEGIN {
-          RS=">"; FS="\n"; ORS=""
-          while ((getline < dropfile) > 0) {
-            drop[$1] = 1
-          }
-          close(dropfile)
-        }
-        NR > 1 {
-          id = $1
-          if (!(id in drop)) {
-            print ">" $0
-          }
-        }' panref.raw.fa | \
-        awk '/^>/ { sub(/:.*/, "", $0); print; next } { print }' > panref.fasta
-        rm -f panref.self.paf redundant.ids panref.raw.fa
+          # anchor insertions to primary reference
+          $minimap2 -x asm10 -t "$threads" "../${ref1%.f*}_original.fasta" panref.clean.fa > insertion_alignments.paf
+          awk '{print $6"\t"$8"\t"$9"\t"$1}' insertion_alignments.paf > insertion_coords.txt
 
-        $minimap2 -x asm5 -t $threads "../${ref1%.f*}_original.fasta" panref.fasta > ../pangenome2primary.paf
-        mv panref.fasta ../
-        cat "../${ref1}" ../panref.fasta > ref_combined.fasta &&
-        mv ref_combined.fasta "../${ref1}" && wait
+          # rename insertion sequences with >pangenome_ prefix
+          awk 'NR==FNR{c[$4]=$1"_"$2"_"$3;next} /^>/{h=$0;gsub(">","",h); if(h in c){print ">pangenome_INS_"c[h]"_"h}else{print ">pangenome_"h};next}{print}' \
+          insertion_coords.txt panref.clean.fa > panref.fasta
+          cp panref.fasta ../
+
+          # build ALT coordinate file
+          awk '{print "pangenome_INS_"$1"_"$2"_"$3"\t"$1"\t"$2"\t"$3}' insertion_coords.txt > ../${ref1%.f*}.alt
+
+          # merge backbone + insertions
+          cat "../${ref1%.f*}_original.fasta" panref.fasta > ../ref_combined.fasta
+          mv ../ref_combined.fasta ../$ref1
+          $minimap2 -x asm10 -c --secondary=no -t "$threads" "../${ref1%.f*}_original.fasta" panref.fasta > ../pangenome2primary.paf
+          rm insertion_alignments.paf insertion_coords.txt panref.clean.fa
       fi
 
       cd $projdir
       cd refgenomes
-      if [[ -d pangenomes ]]; then
-        $samtools faidx panref.fasta &&
-        $java -jar $picard CreateSequenceDictionary REFERENCE=panref.fasta OUTPUT=panref.dict &&
-        $minimap2 -d panref.mmi panref.fasta
-        rm -f ${ref1%.f*}.dict ${ref1%.f*}.fai ${ref1%.f*}.mmi
+
+      # --- compute mappability and softmask primary reference ---
+      # set threshold for paralogs
+      if [[ "$paralogs" == "false" ]]; then
+          threshold=1
+      else
+          threshold=8
       fi
 
-      $samtools faidx $ref1 &&
-      $java -jar $picard CreateSequenceDictionary REFERENCE=$ref1 OUTPUT=${ref1%.f*}.dict &&
-      $minimap2 -d ${ref1%.f*}.mmi $ref1 &&
-      $genmap index -F $ref1 -I ./genmap_out >/dev/null 2>&1
-      wait
-      $genmap map -K 100 -E 2 -I ./genmap_out -O ./genmap_out/ -t -w -bg --threads $threads >/dev/null 2>&1
-      wait
-      if [[ "$paralogs" == "false" ]]; then
-        threshold=1
-      else
-        threshold=8
-      fi
-      wait
-      ref_base=$(basename "$ref1" .fasta) &&
-      python3 "$wig2bed" "${projdir}/refgenomes/genmap_out/${ref_base}.genmap.wig" "$threshold" "${projdir}/refgenomes/genmap_out/lowmap_merged.bed" > /dev/null 2>&1
-      wait
-      $bedtools maskfasta -fi "${projdir}/refgenomes/$ref1" -bed "${projdir}/refgenomes/genmap_out/lowmap_merged.bed" -fo "${projdir}/refgenomes/${ref1%.f*}.hardmasked.fasta" >/dev/null 2>&1
-      wait
-      mv "${ref1%.f*}.hardmasked.fasta" "$ref1" &&
-      rm -f ${ref1%.f*}.dict ${ref1%.f*}.fai ${ref1%.f*}.mmi
-      $samtools faidx "$ref1" &&
-      $java -jar $picard CreateSequenceDictionary REFERENCE=$ref1 OUTPUT=${ref1%.f*}.dict &&
+      mkdir -p ./genmap_out
+      $genmap index -F "$ref1" -I ./genmap_out >/dev/null 2>&1
+      $genmap map -K 100 -E 2 -I ./genmap_out -O ./genmap_out/ -t -w -bg --threads "$threads" >/dev/null 2>&1
+      python3 "$wig2bed" "./genmap_out/${ref1%.f*}.genmap.wig" "$threshold" "./genmap_out/lowmap_merged.bed" >/dev/null 2>&1
+
+      # softmask reference for low-mappability regions
+      $bedtools maskfasta -fi "$ref1" -bed "./genmap_out/lowmap_merged.bed" -fo "${ref1%.f*}.softmasked.fasta" -soft
+
+      # rebuild indexes on softmasked reference for alignment & GATK
+      mv "${ref1%.f*}.softmasked.fasta" "$ref1"
+      $samtools faidx "$ref1"
+      $java -jar $picard CreateSequenceDictionary REFERENCE="$ref1" OUTPUT="${ref1%.f*}.dict"
       $minimap2 -d "${ref1%.f*}.mmi" "$ref1"
-      wait
+
+      # index panref.fasta for post-GATK analysis if needed
+      $samtools faidx panref.fasta
+      $java -jar $picard CreateSequenceDictionary REFERENCE=panref.fasta OUTPUT=panref.dict
+      $minimap2 -d panref.mmi panref.fasta
+
+      echo "ALT-aware pangenome reference with softmasked primary ready"
     fi
   fi
   wait
@@ -1036,6 +938,7 @@ main () {
             r1r2_file="${sample_base}_R1R2_uniq.fasta.gz"
             tmp_sv=$(mktemp "${projdir}/samples/tmp.XXXXXX")
             sv_out="${projdir}/sv_mode.txt"
+            : > "$sv_out"
 
             if [[ ! -f "../preprocess/alignment/${sample_base}_redun.bam" ]]; then
               #### Step 0: Structure detection (sample 1% reads, min 1000)
@@ -1327,7 +1230,8 @@ main () {
   fi
 
   while IFS="" read -r i || [ -n "$i" ]; do (
-    if [[ ! -f "${projdir}/preprocess/${i%.f*}_${ref1%.f*}_precall.bam.bai" || ! -f "${projdir}/preprocess/processed/${i%.f*}_${ref1%.f*}_precall.bam.bai" ]]; then
+    if [[ ! -f "${projdir}/preprocess/${i%.f*}_${ref1%.f*}_precall.bam" || ! -f "${projdir}/preprocess/${i%.f*}_${ref1%.f*}_precall.bam.bai" ]] \
+       && [[ ! -f "${projdir}/preprocess/processed/${i%.f*}_${ref1%.f*}_precall.bam" || ! -f "${projdir}/preprocess/processed/${i%.f*}_${ref1%.f*}_precall.bam.bai" ]]; then
       tmpflag=$(mktemp)
       printf '\n###---%s---###\n' "${i%.f*}" > "${projdir}/alignment_summaries/${i%.f*}_summ.txt"
       $samtools view -h "./alignment/${i%.f*}_redun.bam" | \
@@ -1811,7 +1715,7 @@ main () {
         $bcftools view -R ${ref1%.f*}.regions -Oz -o ${ref1%.f*}_only.tmp.vcf.gz "${vcf_file}.gz" &&
         $bcftools index ${ref1%.f*}_only.tmp.vcf.gz &&
         # reheader safely with full TF FASTA
-        $bcftools reheader -f "${primary_ref}.fai" -o ${ref1%.f*}_only.vcf.gz ${ref1%.f*}_only.tmp.vcf.gz &&
+        $bcftools reheader -f "${primary_ref}" -o ${ref1%.f*}_only.vcf.gz ${ref1%.f*}_only.tmp.vcf.gz &&
         $bcftools index ${ref1%.f*}_only.vcf.gz &&
 
         lifted_pangenome_vcf="${vcf_file%.vcf}_lifted.vcf.gz"
