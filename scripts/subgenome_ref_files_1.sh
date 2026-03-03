@@ -396,9 +396,28 @@ main () {
           $minimap2 -x asm10 -t "$threads" "../${ref1%.f*}_original.fasta" panref.clean.fa > insertion_alignments.paf
           awk '{print $6"\t"$8"\t"$9"\t"$1}' insertion_alignments.paf > insertion_coords.txt
 
+          # collapse insertions mapping to similar primary loci (±50bp window)
+          sort -k1,1 -k2,2n insertion_coords.txt | \
+          awk 'BEGIN{OFS="\t"}
+               {
+                   chr=$1; start=$2; end=$3
+                   # Keep record if:
+                   # 1) new chromosome
+                   # 2) start is outside ±50bp window of previous kept interval
+                   if(chr!=prev_chr || start>prev_end+50){
+                       print
+                       prev_chr=chr
+                       prev_end=end
+                   }
+               }' > insertion_coords.tmp && mv insertion_coords.tmp insertion_coords.txt
+
           # rename insertion sequences with >pangenome_ prefix
-          awk 'NR==FNR{c[$4]=$1"_"$2"_"$3;next} /^>/{h=$0;gsub(">","",h); if(h in c){print ">pangenome_INS_"c[h]"_"h}else{print ">pangenome_"h};next}{print}' \
-          insertion_coords.txt panref.clean.fa > panref.fasta
+          # Step 4: Rename insertion sequences with >pangenome_ prefix
+          awk 'NR==FNR{c[$4]=$1"_"$2"_"$3; next}
+               /^>/{h=$0; gsub(">","",h);
+                     if(h in c){print ">pangenome_INS_"c[h]"_"h}
+                     else {print ">pangenome_"h}; next}
+               {print}' insertion_coords.txt panref.clean.fa > panref.fasta
           cp panref.fasta ../
 
           # build ALT coordinate file
@@ -1285,19 +1304,73 @@ main () {
       }'
       }
 
+      # Function: filter by read name occurrence
+      ############################################
+      filter_by_qname_count() {
+      awk -F'\t' -v OFS="\t" -v mode="$1" '
+      BEGIN {}
+      /^@/ {print; next}
+      {
+          q=$1
+          chr=$3
+
+          total[q]++
+
+          if(chr ~ /^pangenome_/) secondary[q]++
+          else primary[q]++
+
+          line[NR]=$0
+          name[NR]=q
+      }
+      END {
+          for(i=1;i<=NR;i++){
+              q=name[i]
+              if(q=="") continue
+
+              if(mode=="unique" && total[q]==1)
+                  print line[i]
+
+              else if(mode=="unique_pangenomes" &&
+                      total[q] <= 2 &&
+                      primary[q] <= 1 &&
+                      secondary[q] <= 1)
+                  print line[i]
+
+              else if(mode=="paralog_unique" && total[q] <= 6)
+                  print line[i]
+
+              else if(mode=="paralog" && total[q] > 1 && total[q] <= 6)
+                  print line[i]
+          }
+      }'
+      }
+
       # Filtering logic
       ############################################
       if [[ "$paralogs" == false && "$uniquely_mapped" == true ]]; then
           $samtools view -h -@ "$gthreads" "$inbam" | \
-          awk 'BEGIN{OFS="\t"} /^@/ {print; next} $5>=20 {print}' | \
-          expand_reads | add_fake_qual | $samtools view -@ "$gthreads" -b -o "$tmpbam" -
-      elif [[ "$paralogs" == true ]]; then
+          awk 'BEGIN{OFS="\t"} /^@/ {print; next} ($5>=20) {print}' | \
+          expand_reads | add_fake_qual | \
+          filter_by_qname_count unique | \
+          $samtools view -@ "$gthreads" -b -o "$tmpbam" -
+      elif [[ "$paralogs" == true && "$uniquely_mapped" == true && -d "${projdir}/refgenomes/pangenomes" ]]; then
           $samtools view -h -@ "$gthreads" "$inbam" | \
-          awk 'BEGIN{OFS="\t"} /^@/ {print; next} $5>=10 {print}' | \
-          expand_reads | add_fake_qual | $samtools view -@ "$gthreads" -b -o "$tmpbam" -
-      else
+          awk 'BEGIN{OFS="\t"} /^@/ {print; next} ($5>=10 || $5==0) {print}' | \
+          expand_reads | add_fake_qual | \
+          filter_by_qname_count unique_pangenomes | \
+          $samtools view -@ "$gthreads" -b -o "$tmpbam" -
+      elif [[ "$paralogs" == true && "$uniquely_mapped" == true ]]; then
           $samtools view -h -@ "$gthreads" "$inbam" | \
-          expand_reads | add_fake_qual | $samtools view -@ "$gthreads" -b -o "$tmpbam" -
+          awk 'BEGIN{OFS="\t"} /^@/ {print; next} ($5>=10 || $5==0) {print}' | \
+          expand_reads | add_fake_qual | \
+          filter_by_qname_count paralog_unique | \
+          $samtools view -@ "$gthreads" -b -o "$tmpbam" -
+      elif [[ "$paralogs" == true && "$uniquely_mapped" == false ]]; then
+          $samtools view -h -@ "$gthreads" "$inbam" | \
+          awk 'BEGIN{OFS="\t"} /^@/ {print; next} ($5>=10 || $5==0) {print}' | \
+          expand_reads | add_fake_qual | \
+          filter_by_qname_count paralog | \
+          $samtools view -@ "$gthreads" -b -o "$tmpbam" -
       fi
 
       # Sort and index
@@ -1694,7 +1767,12 @@ main () {
         if [[ "$(zcat "./snpcall/${pop}_${ref1%.f*}_${ploidy}x_raw.vcf"* | awk '$1 ~ /^pangenome_/ {print 1}' | head -1)" ]]; then
             if [[ ! -f "${projdir}/projection_done.txt" ]]; then
                 cd snpcall
-                cp "${pop}_${ref1%.f*}_${ploidy}x_raw.vcf" "${pop}_${ref1%.f*}_${ploidy}x_raw_noliftover.vcf"
+                # Determine whether the raw VCF is gzipped or not
+                if [[ -f "${pop}_${ref1%.f*}_${ploidy}x_raw.vcf.gz" ]]; then
+                  cp "${pop}_${ref1%.f*}_${ploidy}x_raw.vcf.gz" "${pop}_${ref1%.f*}_${ploidy}x_raw_noliftover.vcf.gz"
+                elif [[ -f "${pop}_${ref1%.f*}_${ploidy}x_raw.vcf" ]]; then
+                  cp "${pop}_${ref1%.f*}_${ploidy}x_raw.vcf" "${pop}_${ref1%.f*}_${ploidy}x_raw_noliftover.vcf"
+                fi
 
                 primary_prefix="${ref1%.f*}_Chr"
                 primary_ref="../refgenomes/${ref1%.f*}_original.fasta"
@@ -1748,8 +1826,8 @@ main () {
                 $bcftools index "$filtered_vcf"
 
                 # Replace original final VCF and index atomically
-                mv -f "$filtered_vcf" "$final_vcf"
-                mv -f "${filtered_vcf}.csi" "${final_vcf}.csi"
+                mv -f "$filtered_vcf" "${vcf_file}.gz"
+                mv -f "${filtered_vcf}.csi" "${vcf_file}.gz.csi"
 
                 printf "Pangenome projection with structural absence completed\n" > "${projdir}/projection_done.txt"
 
