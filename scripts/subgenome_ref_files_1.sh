@@ -414,9 +414,13 @@ main () {
           # rename insertion sequences with >pangenome_ prefix
           # Step 4: Rename insertion sequences with >pangenome_ prefix
           awk 'NR==FNR{c[$4]=$1"_"$2"_"$3; next}
-               /^>/{h=$0; gsub(">","",h);
-                     if(h in c){print ">pangenome_INS_"c[h]"_"h}
-                     else {print ">pangenome_"h}; next}
+               /^>/{h=$0
+                   gsub(">","",h)
+                   gsub(/^pangenome_/,"",h)     # remove existing prefix
+                   if(h in c){print ">pangenome_INS_"c[h]"_"h}
+                   else {print ">pangenome_"h}
+                   next
+               }
                {print}' insertion_coords.txt panref.clean.fa > panref.fasta
           cp panref.fasta ../
 
@@ -1355,19 +1359,19 @@ main () {
           $samtools view -@ "$gthreads" -b -o "$tmpbam" -
       elif [[ "$paralogs" == true && "$uniquely_mapped" == true && -d "${projdir}/refgenomes/pangenomes" ]]; then
           $samtools view -h -@ "$gthreads" "$inbam" | \
-          awk 'BEGIN{OFS="\t"} /^@/ {print; next} ($5>=10 || $5==0) {print}' | \
+          awk 'BEGIN{OFS="\t"} /^@/ {print; next} ($5>=10) {print}' | \
           expand_reads | add_fake_qual | \
           filter_by_qname_count unique_pangenomes | \
           $samtools view -@ "$gthreads" -b -o "$tmpbam" -
       elif [[ "$paralogs" == true && "$uniquely_mapped" == true ]]; then
           $samtools view -h -@ "$gthreads" "$inbam" | \
-          awk 'BEGIN{OFS="\t"} /^@/ {print; next} ($5>=10 || $5==0) {print}' | \
+          awk 'BEGIN{OFS="\t"} /^@/ {print; next} ($5>=10) {print}' | \
           expand_reads | add_fake_qual | \
           filter_by_qname_count paralog_unique | \
           $samtools view -@ "$gthreads" -b -o "$tmpbam" -
       elif [[ "$paralogs" == true && "$uniquely_mapped" == false ]]; then
           $samtools view -h -@ "$gthreads" "$inbam" | \
-          awk 'BEGIN{OFS="\t"} /^@/ {print; next} ($5>=10 || $5==0) {print}' | \
+          awk 'BEGIN{OFS="\t"} /^@/ {print; next} ($5>=10) {print}' | \
           expand_reads | add_fake_qual | \
           filter_by_qname_count paralog | \
           $samtools view -@ "$gthreads" -b -o "$tmpbam" -
@@ -1820,14 +1824,9 @@ main () {
                 $bcftools concat -a -Oz -o "$final_vcf" primary_only.norm.vcf.gz secondary_lifted.norm.vcf.gz
                 $bcftools index "$final_vcf"
 
-                # Filter variants with missingness <80% into a temp file
-                filtered_vcf="${final_vcf%.vcf.gz}_filtmiss20perc.vcf.gz"
-                $bcftools view -i 'F_MISSING < 0.8' "$final_vcf" -Oz -o "$filtered_vcf"
-                $bcftools index "$filtered_vcf"
-
                 # Replace original final VCF and index atomically
-                mv -f "$filtered_vcf" "${vcf_file}.gz"
-                mv -f "${filtered_vcf}.csi" "${vcf_file}.gz.csi"
+                mv -f "${final_vcf}" "${vcf_file}.gz"
+                mv -f "${final_vcf}.csi" "${vcf_file}.gz.csi"
 
                 printf "Pangenome projection with structural absence completed\n" > "${projdir}/projection_done.txt"
 
