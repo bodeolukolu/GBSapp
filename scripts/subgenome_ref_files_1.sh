@@ -1787,23 +1787,19 @@ main () {
                 $bcftools index secondary_only.vcf.gz
 
                 # Convert secondary-only SNPs to primary coordinates and add PAN_SOURCE tag
-                bcftools view secondary_only.vcf.gz | \
+                $bcftools view secondary_lifted.vcf.gz | \
                 awk 'BEGIN{FS=OFS="\t"}
-                     /^#/ {print; next}
-                     {
-                         # Extract chromosome and anchor info from contig name
-                         split($1,a,"_")
-                         chr=a[4]                  # e.g., TF_Chr00
-                         anchor=a[5]               # e.g., 18366010
-                         $1=chr
-                         $2=$2+anchor              # map to primary coordinate
-
-                         # Append PAN_SOURCE info to INFO column
-                         if($8==".") { $8="PAN_SOURCE="$1":"anchor }
-                         else { $8=$8";PAN_SOURCE="$1":"anchor }
-
-                         print
-                     }' | bcftools view -Oz -o secondary_projected.vcf.gz
+                /^#/ {print; next}
+                {
+                    chrom=$1
+                    # Strip any prefix ending with "pangenome_"
+                    sub(/.*pangenome_/,"",chrom)
+                    # Remove :0-xxxx suffix if present
+                    sub(/:.*/,"",chrom)
+                    # Set chromosome
+                    $1=chrom
+                    print
+                }' | bcftools view -Oz -o secondary_lifted.primarycoords.vcf.gz
                 $bcftools index secondary_projected.vcf.gz
 
                 # Normalize and sort
