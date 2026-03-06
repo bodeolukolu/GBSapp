@@ -1767,77 +1767,77 @@ main () {
 
     # Check if pangenomes exist and have content
     if [[ -d "./refgenomes/pangenomes" ]] && find "./refgenomes/pangenomes" -type f -size +0c -print -quit | grep -q .; then
-        # Check if any pangenome variants exist
         if [[ "$(zcat "./snpcall/${pop}_${ref1%.f*}_${ploidy}x_raw.vcf"* | awk '$1 ~ /^pangenome_/ {print 1}' | head -1)" ]]; then
             if [[ ! -f "${projdir}/projection_done.txt" ]]; then
                 cd snpcall
-                # Determine whether the raw VCF is gzipped or not
-                if [[ -f "${pop}_${ref1%.f*}_${ploidy}x_raw.vcf.gz" ]]; then
-                  cp "${pop}_${ref1%.f*}_${ploidy}x_raw.vcf.gz" "${pop}_${ref1%.f*}_${ploidy}x_raw_noliftover.vcf.gz"
-                elif [[ -f "${pop}_${ref1%.f*}_${ploidy}x_raw.vcf" ]]; then
-                  cp "${pop}_${ref1%.f*}_${ploidy}x_raw.vcf" "${pop}_${ref1%.f*}_${ploidy}x_raw_noliftover.vcf"
-                fi
-
+                vcf_file="${pop}_${ref1%.f*}_${ploidy}x_raw.vcf.gz"
                 primary_prefix="${ref1%.f*}_Chr"
                 primary_ref="../refgenomes/${ref1%.f*}_original.fasta"
-                secondary_ref="../refgenomes/panref.fasta"
-                paf_file="../refgenomes/pangenome2primary.paf"
-                chain_out="../refgenomes/pangenome_to_primary.chain"
-                vcf_file="${pop}_${ref1%.f*}_${ploidy}x_raw.vcf"
 
-                # Ensure VCF is compressed and indexed
-                [[ -f "${vcf_file}.gz" ]] && gunzip "${vcf_file}.gz"
-                $bcftools view -Oz -o "${vcf_file}.gz" "$vcf_file"
-                $bcftools index "${vcf_file}.gz"
-                rm -f "$vcf_file"
-                wait
+                # Backup original VCF
+                cp "$vcf_file" "${pop}_${ref1%.f*}_${ploidy}x_raw_noliftover.vcf.gz"
+                cp "${pop}_${ref1%.f*}_${ploidy}x_raw_noliftover.vcf.gz" ../
 
-                # Clean PAF and generate chain file
-                sort -k6,6 -k8,8n "$paf_file" | awk '!seen[$6,$8,$9]++' > "${paf_file%.paf}.clean.paf"
-                python3 ${GBSapp_dir}/tools/paf2chain.py "${paf_file%.paf}.clean.paf" "$secondary_ref" "$primary_ref" "$chain_out"
-
-                # Split primary vs secondary variants
-                $bcftools view -r $($bcftools query -f '%CHROM\n' "${vcf_file}.gz" | grep "^${primary_prefix}") "${vcf_file}.gz" -Oz -o primary_only.vcf.gz
+                # Split primary vs pangenome variants
+                $bcftools view -r $($bcftools query -f '%CHROM\n' "$vcf_file" | grep "^${primary_prefix}" | sort -u | paste -sd "," -) \
+                    "$vcf_file" -Oz -o primary_only.vcf.gz
                 $bcftools index primary_only.vcf.gz
-                $bcftools view -r $($bcftools query -f '%CHROM\n' "${vcf_file}.gz" | grep '^pangenome_') "${vcf_file}.gz" -Oz -o secondary_only.vcf.gz
+                $bcftools view -r $($bcftools query -f '%CHROM\n' "$vcf_file" | grep '^pangenome_' | sort -u | paste -sd "," -) \
+                    "$vcf_file" -Oz -o secondary_only.vcf.gz
                 $bcftools index secondary_only.vcf.gz
 
-                # Liftover secondary variants to primary coordinates
-                ${GBSapp_dir}/tools/transanno/target/release/transanno liftvcf \
-                    --original-assembly "$secondary_ref" \
-                    --new-assembly "$primary_ref" \
-                    --chain "$chain_out" \
-                    --vcf secondary_only.vcf.gz \
-                    --output secondary_lifted.vcf.gz \
-                    --fail failed_secondary.vcf.gz
+                # Convert secondary-only SNPs to primary coordinates and add PAN_SOURCE tag
+                bcftools view secondary_only.vcf.gz | \
+                awk 'BEGIN{FS=OFS="\t"}
+                     /^#/ {print; next}
+                     {
+                         # Extract chromosome and anchor info from contig name
+                         split($1,a,"_")
+                         chr=a[4]                  # e.g., TF_Chr00
+                         anchor=a[5]               # e.g., 18366010
+                         $1=chr
+                         $2=$2+anchor              # map to primary coordinate
 
-                # Normalize and sort both primary and lifted secondary
-                for f in primary_only.vcf.gz secondary_lifted.vcf.gz; do
+                         # Append PAN_SOURCE info to INFO column
+                         if($8==".") { $8="PAN_SOURCE="$1":"anchor }
+                         else { $8=$8";PAN_SOURCE="$1":"anchor }
+
+                         print
+                     }' | bcftools view -Oz -o secondary_projected.vcf.gz
+                $bcftools index secondary_projected.vcf.gz
+
+                # Normalize and sort
+                for f in primary_only.vcf.gz secondary_projected.vcf.gz; do
                     base=$(basename "$f" .vcf.gz)
                     $bcftools sort -Oz -o "${base}.sorted.vcf.gz" "$f"
                     $bcftools norm -f "$primary_ref" -m-any "${base}.sorted.vcf.gz" -Oz -o "${base}.norm.vcf.gz"
                     $bcftools index "${base}.norm.vcf.gz"
                 done
 
-                # Merge normalized primary + secondary
+                # Merge projected + primary variants
                 final_vcf="${pop}_${ref1%.f*}_${ploidy}x_raw.vcf.gz"
-                $bcftools concat -a -Oz -o "$final_vcf" primary_only.norm.vcf.gz secondary_lifted.norm.vcf.gz
+                $bcftools concat -a -Oz -o "$final_vcf" primary_only.norm.vcf.gz secondary_projected.norm.vcf.gz
                 $bcftools index "$final_vcf"
 
+                printf "Pangenome coordinate projection completed\n" > "${projdir}/projection_done.txt"
+
                 # Replace original final VCF and index atomically
-                mv -f "${final_vcf}" "${vcf_file}.gz"
-                mv -f "${final_vcf}.csi" "${vcf_file}.gz.csi"
+                mv -f "${final_vcf}" "${vcf_file}"
+                mv -f "${final_vcf}.csi" "${vcf_file}.csi"
 
-                printf "Pangenome projection with structural absence completed\n" > "${projdir}/projection_done.txt"
-
-                # Clean up intermediate files
+                # Cleanup
                 rm -f primary_only.vcf.gz* secondary_only.vcf.gz* \
-                      primary_only.sorted.vcf.gz secondary_lifted.sorted.vcf.gz \
-                      primary_only.norm.vcf.gz secondary_lifted.norm.vcf.gz
+                      secondary_projected.vcf.gz* \
+                      primary_only.sorted.vcf.gz \
+                      secondary_projected.sorted.vcf.gz \
+                      primary_only.norm.vcf.gz \
+                      secondary_projected.norm.vcf.gz
                 wait
+
             fi
         fi
     fi
+
 
     ###########
 
