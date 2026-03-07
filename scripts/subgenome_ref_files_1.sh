@@ -1767,85 +1767,86 @@ main () {
 
     # Check if pangenomes exist and have content
     if [[ -d "./refgenomes/pangenomes" ]] && find "./refgenomes/pangenomes" -type f -size +0c -print -quit | grep -q .; then
-        if zcat "./snpcall/${pop}_${ref1%.f*}_${ploidy}x_raw.vcf.gz" | awk '$1 ~ /^pangenome_/ {exit 0} END{exit 1}'; then
+        vcf="./snpcall/${pop}_${ref1%.f*}_${ploidy}x_raw.vcf.gz"
+
+        # Check if VCF contains pangenome chromosomes
+        if zgrep -q '^pangenome_' "$vcf"; then
             if [[ ! -f "${projdir}/projection_done.txt" ]]; then
-              cd snpcall || exit 1
+                cd snpcall || exit 1
+                echo "Starting pangenome projection pipeline..."
 
-              # Variables (adjust as needed)
-              # -----------------------------
-              vcf_file="${pop}_${ref1%.f*}_${ploidy}x_raw.vcf.gz"
-              primary_ref="../refgenomes/${ref1%.f*}_original.fasta"
-              primary_prefix="${ref1%.f*}_Chr"
-              paf_file="../refgenomes/pangenome2primary.paf"
+                vcf_file="${pop}_${ref1%.f*}_${ploidy}x_raw.vcf.gz"
+                primary_ref="../refgenomes/${ref1%.f*}_original.fasta"
+                primary_prefix="${ref1%.f*}_Chr"
+                paf_file="../refgenomes/pangenome2primary.paf"
 
-              # Check for secondary SNPs
-              # -----------------------------
-              if [[ ! -f "$vcf_file" ]]; then
-                  echo "VCF file $vcf_file not found"
-                  exit 1
-              fi
+                [[ ! -f "$vcf_file" ]] && { echo "VCF not found"; exit 1; }
 
-              # Split primary vs secondary SNPs
-              # -----------------------------
-              echo "Splitting primary vs secondary SNPs..."
+                # Identify chromosomes
+                # --------------------------------------------------
+                bcftools query -f '%CHROM\n' "$vcf_file" | sort -u > all_chrs.txt
+                grep "^${primary_prefix}" all_chrs.txt > primary_chrs.txt
+                grep '^pangenome_' all_chrs.txt > secondary_chrs.txt
 
-              # Primary SNPs
-              $bcftools view -r $($bcftools query -f '%CHROM\n' "$vcf_file" | grep "^${primary_prefix}" | sort -u | paste -sd "," -) \
-              "$vcf_file" -Oz -o primary_only.vcf.gz
-              $bcftools index primary_only.vcf.gz
+                # Split primary SNPs
+                # --------------------------------------------------
+                echo "Extracting primary SNPs..."
+                bcftools view -R primary_chrs.txt "$vcf_file" -Oz -o primary_only.vcf.gz
+                bcftools index primary_only.vcf.gz
+                # Extract secondary SNPs
+                # --------------------------------------------------
+                echo "Extracting secondary SNPs..."
+                bcftools view -R secondary_chrs.txt "$vcf_file" -Oz -o secondary_only.vcf.gz
+                bcftools index secondary_only.vcf.gz
 
-              # Secondary SNPs (pangenome)
-              $bcftools view -r $($bcftools query -f '%CHROM\n' "$vcf_file" | grep '^pangenome_' | sort -u | paste -sd "," -) \
-              "$vcf_file" -Oz -o secondary_only.vcf.gz
-              $bcftools index secondary_only.vcf.gz
+                # Liftover secondary SNPs
+                # --------------------------------------------------
+                echo "Projecting secondary SNPs to primary genome..."
+                $transanno lift \
+                    --paf "$paf_file" \
+                    --in secondary_only.vcf.gz \
+                    --out secondary_projected.vcf.gz
+                bcftools index secondary_projected.vcf.gz
 
-              # -----------------------------
-              # Liftover secondary SNPs to primary genome
-              # -----------------------------
-              echo "Liftover secondary SNPs to primary genome using Transanno..."
+                # Clean chromosome names
+                # --------------------------------------------------
+                echo "Cleaning chromosome names..."
+                bcftools view secondary_projected.vcf.gz | \
+                awk 'BEGIN{OFS="\t"}
+                /^#/ {print; next}
+                {
+                    gsub(/^TF_pangenome_/,"TF_",$1)
+                    gsub(/^pangenome_/,"TF_",$1)
+                    print
+                }' | bcftools view -Oz -o secondary_projected.clean.vcf.gz
+                bcftools index secondary_projected.clean.vcf.gz
 
-              # Run Transanno liftover
-              $transanno lift \
-                  --paf "$paf_file" \
-                  --in secondary_only.vcf.gz \
-                  --out secondary_projected.vcf.gz
-              $bcftools index secondary_projected.vcf.gz
+                # Normalize
+                # --------------------------------------------------
+                echo "Normalizing variants..."
+                bcftools norm -f "$primary_ref" -m-any primary_only.vcf.gz -Oz -o primary.norm.vcf.gz
+                bcftools index primary.norm.vcf.gz
+                bcftools norm -f "$primary_ref" -m-any secondary_projected.clean.vcf.gz -Oz -o secondary.norm.vcf.gz
+                bcftools index secondary.norm.vcf.gz
 
-              # Clean CHROM names after liftover
-              # -----------------------------
-              echo "Renaming CHROM to TF_ChrXX style..."
-              awk -F"\t" 'BEGIN{OFS="\t"}
-              /^#/ {print; next}
-              {
-                  # Remove any pangenome/TF_pangenome prefixes
-                  gsub(/^TF_pangenome_/, "TF_")
-                  gsub(/^pangenome_/, "TF_")
-                  $1=$1
-                  print
-              }' secondary_projected.vcf.gz | $bcftools view -Oz -o secondary_projected.final.vcf.gz
-              $bcftools index secondary_projected.final.vcf.gz
+                # Merge VCFs
+                # --------------------------------------------------
+                echo "Merging primary and projected SNPs..."
+                final_vcf="${pop}_${ref1%.f*}_${ploidy}x_raw_TFcoords.vcf.gz"
+                bcftools concat -a primary.norm.vcf.gz secondary.norm.vcf.gz -Oz | \
+                bcftools sort -Oz -o "$final_vcf"
+                bcftools index "$final_vcf"
 
-              # Normalize and sort all VCFs
-              # -----------------------------
-              echo "Normalizing and sorting primary and projected secondary VCFs..."
-              for f in primary_only.vcf.gz secondary_projected.final.vcf.gz; do
-                  base=$(basename "$f" .vcf.gz)
-                  $bcftools sort -Oz -o "${base}.sorted.vcf.gz" "$f"
-                  $bcftools norm -f "$primary_ref" -m-any "${base}.sorted.vcf.gz" -Oz -o "${base}.norm.vcf.gz"
-                  $bcftools index "${base}.norm.vcf.gz"
-              done
-
-              # Merge primary + projected secondary SNPs
-              # -----------------------------
-              echo "Merging primary and projected secondary SNPs..."
-              final_vcf="${pop}_${ref1%.f*}_${ploidy}x_raw_TFcoords.vcf.gz"
-              $bcftools concat -a -Oz -o "$final_vcf" primary_only.norm.vcf.gz secondary_projected.norm.vcf.gz
-              $bcftools index "$final_vcf"
-
-              echo "All done. Final VCF anchored to TF genome: $final_vcf"
-              rm -f primary_only.vcf.gz secondary_only.vcf.gz secondary_projected.vcf.gz \
-                    primary_only.sorted.vcf.gz secondary_projected.final.vcf.gz \
-                    primary_only.norm.vcf.gz secondary_projected.norm.vcf.gz
+                echo "Final projected VCF: $final_vcf"
+                rm -f all_chrs.txt primary_chrs.txt secondary_chrs.txt \
+                      primary_only.vcf.gz primary_only.vcf.gz.csi \
+                      secondary_only.vcf.gz secondary_only.vcf.gz.csi \
+                      secondary_projected.vcf.gz secondary_projected.vcf.gz.csi \
+                      secondary_projected.clean.vcf.gz secondary_projected.clean.vcf.gz.csi \
+                      primary.norm.vcf.gz primary.norm.vcf.gz.csi \
+                      secondary.norm.vcf.gz secondary.norm.vcf.gz.csi
+                touch "${projdir}/projection_done.txt"
+                echo "Projection pipeline completed."
             fi
         fi
     fi
