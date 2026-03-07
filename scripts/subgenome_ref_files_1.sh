@@ -1766,6 +1766,134 @@ main () {
     cd "$projdir"
 
     # Check if pangenomes exist and have content
+    set -euo pipefail
+    cd "$projdir"
+
+    if [[ -d "./refgenomes/pangenomes" ]] && find "./refgenomes/pangenomes" -type f -size +0c -print -quit | grep -q .; then
+      raw_vcf="./snpcall/${pop}_${ref1%.f*}_${ploidy}x_raw.vcf.gz"
+      # Detect pangenome contigs
+      if zgrep -q '^pangenome_' "$raw_vcf"; then
+        if [[ ! -f "${projdir}/projection_done.txt" ]]; then
+          cd snpcall || exit 1
+          echo "Starting pangenome projection..."
+
+          vcf_file="${pop}_${ref1%.f*}_${ploidy}x_raw.vcf.gz"
+          primary_prefix="${ref1%.f*}_Chr"
+          primary_ref="../refgenomes/${ref1%.f*}_original.fasta"
+          secondary_ref="../refgenomes/panref.fasta"
+
+          paf_file="../refgenomes/pangenome2primary.paf"
+          clean_paf="../refgenomes/pangenome2primary.clean.paf"
+          chain_out="../refgenomes/pangenome_to_primary.chain"
+
+          # Prepare chain file for liftover
+          # --------------------------------------------------
+          echo "Preparing chain file..."
+          cp -r "$vcf_file" "${pop}_${ref1%.f*}_${ploidy}x_raw_noliftover.vcf.gz"
+          sort -k6,6 -k8,8n "$paf_file" | awk '!seen[$6,$8,$9]++' > "$clean_paf"
+          python3 "${GBSapp_dir}/tools/paf2chain.py" \
+              "$clean_paf" \
+              "$secondary_ref" \
+              "$primary_ref" \
+              "$chain_out"
+
+          # Identify chromosomes
+          # --------------------------------------------------
+          bcftools query -f '%CHROM\n' "$vcf_file" | sort -u > all_chrs.txt
+          grep "^${primary_prefix}" all_chrs.txt > primary_chrs.txt || true
+          grep '^pangenome_' all_chrs.txt > secondary_chrs.txt || true
+
+          # Extract primary SNPs
+          # --------------------------------------------------
+          echo "Extracting primary SNPs..."
+          bcftools view -R primary_chrs.txt "$vcf_file" -Oz -o primary_only.vcf.gz
+          bcftools index primary_only.vcf.gz
+
+          # Extract secondary SNPs
+          # --------------------------------------------------
+          echo "Extracting pangenome SNPs..."
+          bcftools view -R secondary_chrs.txt "$vcf_file" -Oz -o secondary_only.vcf.gz
+          bcftools index secondary_only.vcf.gz
+
+          # Liftover pangenome SNPs
+          # --------------------------------------------------
+          echo "Running chain-based liftover..."
+          $transanno liftvcf \
+              --original-assembly "$secondary_ref" \
+              --new-assembly "$primary_ref" \
+              --chain "$chain_out" \
+              --vcf secondary_only.vcf.gz \
+              --output secondary_lifted.vcf.gz \
+              --fail failed_secondary.vcf.gz
+
+          # Sort lifted variants
+          # --------------------------------------------------
+          bcftools sort secondary_lifted.vcf.gz -Oz -o secondary_lifted.sorted.vcf.gz
+          bcftools index secondary_lifted.sorted.vcf.gz
+
+          # Normalize variants
+          # --------------------------------------------------
+          echo "Normalizing variants..."
+          bcftools norm -f "$primary_ref" -m-any primary_only.vcf.gz -Oz -o primary.norm.vcf.gz
+          bcftools index primary.norm.vcf.gz
+
+          bcftools norm -f "$primary_ref" -m-any secondary_lifted.sorted.vcf.gz -Oz -o secondary_lifted.norm.vcf.gz
+          bcftools index secondary_lifted.norm.vcf.gz
+
+          # Merge projected + primary SNPs
+          # --------------------------------------------------
+          echo "Merging projected SNPs..."
+          merged_vcf="${pop}_${ref1%.f*}_${ploidy}x_raw_projected.vcf.gz"
+          bcftools concat -a primary.norm.vcf.gz secondary_lifted.norm.vcf.gz -Oz -o "$merged_vcf"
+          bcftools index "$merged_vcf"
+
+          # Filter missingness
+          # --------------------------------------------------
+          echo "Filtering variants (max 80% missing)..."
+          bcftools view -i 'F_MISSING < 0.8' "$merged_vcf" -Oz -o combined.filtmiss20perc.vcf.gz
+          bcftools index combined.filtmiss20perc.vcf.gz
+
+          # Separate final primary vs pangenome sets
+          # --------------------------------------------------
+          echo "Separating final SNP sets..."
+          bcftools query -f '%CHROM\n' combined.filtmiss20perc.vcf.gz | sort -u > final_chrs.txt
+          grep "^${primary_prefix}" final_chrs.txt > final_primary.txt || true
+          grep '^pangenome_' final_chrs.txt > final_pangenome.txt || true
+          bcftools view -R final_primary.txt combined.filtmiss20perc.vcf.gz -Oz -o primary.vcf.gz
+          bcftools index primary.vcf.gz
+
+          bcftools view -R final_pangenome.txt combined.filtmiss20perc.vcf.gz -Oz -o pangenome.vcf.gz
+          bcftools index pangenome.vcf.gz
+
+          # Normalize separately
+          # --------------------------------------------------
+          bcftools norm -f "$primary_ref" -m-any primary.vcf.gz -Oz -o primary.norm.vcf.gz
+          bcftools index primary.norm.vcf.gz
+          bcftools norm -f "$secondary_ref" -m-any pangenome.vcf.gz -Oz -o pangenome.norm.vcf.gz
+          bcftools index pangenome.norm.vcf.gz
+
+          # Final merge
+          # --------------------------------------------------
+          final_vcf="${pop}_${ref1%.f*}_${ploidy}x_raw.vcf.gz"
+          bcftools concat -a primary.norm.vcf.gz pangenome.norm.vcf.gz -Oz -o "$final_vcf"
+          bcftools index "$final_vcf"
+          rm -f primary_only.vcf.gz* secondary_only.vcf.gz* \
+                secondary_lifted.vcf.gz* secondary_lifted.sorted.vcf.gz* \
+                primary.norm.vcf.gz* secondary_lifted.norm.vcf.gz* \
+                primary.vcf.gz* pangenome.vcf.gz* \
+                pangenome.norm.vcf.gz* combined.filtmiss20perc.vcf.gz* \
+                final_chrs.txt primary_chrs.txt secondary_chrs.txt \
+                final_primary.txt final_pangenome.txt all_chrs.txt
+          mv -f "$final_vcf" "$vcf_file"
+          mv -f "$final_vcf" "${vcf_file}.csi"
+
+          printf "Pangenome projection with structural absence completed\n" > "${projdir}/projection_done.txt"
+          echo "Projection completed successfully."
+        fi
+      fi
+    fi
+
+
     if [[ -d "./refgenomes/pangenomes" ]] && find "./refgenomes/pangenomes" -type f -size +0c -print -quit | grep -q .; then
         vcf="./snpcall/${pop}_${ref1%.f*}_${ploidy}x_raw.vcf.gz"
 
