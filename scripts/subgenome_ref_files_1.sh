@@ -1770,7 +1770,10 @@ main () {
     cd "$projdir"
 
     if [[ -d "./refgenomes/pangenomes" ]] && find "./refgenomes/pangenomes" -type f -size +0c -print -quit | grep -q .; then
+      cd snpcall
+      $bcftools view -Oz -o "./snpcall/${pop}_${ref1%.f*}_${ploidy}x_raw.vcf.gz" "./snpcall/${pop}_${ref1%.f*}_${ploidy}x_raw.vcf" >/dev/null 2>&1
       raw_vcf="./snpcall/${pop}_${ref1%.f*}_${ploidy}x_raw.vcf.gz"
+
       # Detect pangenome contigs
       if zgrep -q '^pangenome_' "$raw_vcf"; then
         if [[ ! -f "${projdir}/projection_done.txt" ]]; then
