@@ -1771,13 +1771,13 @@ main () {
 
     if [[ -d "./refgenomes/pangenomes" ]] && find "./refgenomes/pangenomes" -type f -size +0c -print -quit | grep -q .; then
       cd snpcall
-      $bcftools view -Oz -o "./snpcall/${pop}_${ref1%.f*}_${ploidy}x_raw.vcf.gz" "./snpcall/${pop}_${ref1%.f*}_${ploidy}x_raw.vcf" >/dev/null 2>&1
-      raw_vcf="./snpcall/${pop}_${ref1%.f*}_${ploidy}x_raw.vcf.gz"
+      $bcftools view -Oz -o "${pop}_${ref1%.f*}_${ploidy}x_raw.vcf.gz" "${pop}_${ref1%.f*}_${ploidy}x_raw.vcf" >/dev/null 2>&1
+      $bcftools index -t "${pop}_${ref1%.f*}_${ploidy}x_raw.vcf.gz" >/dev/null 2>&1
+      raw_vcf="${pop}_${ref1%.f*}_${ploidy}x_raw.vcf.gz"
 
       # Detect pangenome contigs
       if zgrep -q '^pangenome_' "$raw_vcf"; then
         if [[ ! -f "${projdir}/projection_done.txt" ]]; then
-          cd snpcall || exit 1
           echo "Starting pangenome projection..."
 
           vcf_file="${pop}_${ref1%.f*}_${ploidy}x_raw.vcf.gz"
@@ -1786,14 +1786,14 @@ main () {
           secondary_ref="../refgenomes/panref.fasta"
 
           paf_file="../refgenomes/pangenome2primary.paf"
-          clean_paf="../refgenomes/pangenome2primary.clean.paf"
-          chain_out="../refgenomes/pangenome_to_primary.chain"
+          clean_paf="./pangenome2primary.clean.paf"
+          chain_out="./pangenome_to_primary.chain"
 
           # Prepare chain file for liftover
           # --------------------------------------------------
           echo "Preparing chain file..."
           cp -r "$vcf_file" "${pop}_${ref1%.f*}_${ploidy}x_raw_noliftover.vcf.gz"
-          sort -k6,6 -k8,8n "$paf_file" | awk '!seen[$6,$8,$9]++' > "$clean_paf"
+          sort -k6,6 -k8,8n "$paf_file" | awk '!seen[$6,$8,$9]++' | awk '{sub(/:.*/,"",$1); print}' > "$clean_paf"
           python3 "${GBSapp_dir}/tools/paf2chain.py" \
               "$clean_paf" \
               "$secondary_ref" \
@@ -1802,20 +1802,22 @@ main () {
 
           # Identify chromosomes
           # --------------------------------------------------
-          $bcftools query -f '%CHROM\n' "$vcf_file" | sort -u > all_chrs.txt
-          grep "^${primary_prefix}" all_chrs.txt > primary_chrs.txt || true
-          grep '^pangenome_' all_chrs.txt > secondary_chrs.txt || true
+          bcftools view -h "$vcf_file" | grep "^##contig" | sed 's/.*ID=\([^,]*\),length=\([0-9]*\).*/\1\t1\t\2/' | \
+          grep "^TF_Chr" > primary_regions.txt
+          bcftools view -h "$vcf_file" | grep "^##contig" | sed 's/.*ID=\([^,]*\),length=\([0-9]*\).*/\1\t1\t\2/' | \
+          grep "pangenome" > secondary_regions.txt
+
 
           # Extract primary SNPs
           # --------------------------------------------------
           echo "Extracting primary SNPs..."
-          $bcftools view -R primary_chrs.txt "$vcf_file" -Oz -o primary_only.vcf.gz
+          $bcftools view -R primary_regions.txt "$vcf_file" -Oz -o primary_only.vcf.gz
           $bcftools index primary_only.vcf.gz
 
           # Extract secondary SNPs
           # --------------------------------------------------
           echo "Extracting pangenome SNPs..."
-          $bcftools view -R secondary_chrs.txt "$vcf_file" -Oz -o secondary_only.vcf.gz
+          $bcftools view -R secondary_regions.txt "$vcf_file" -Oz -o secondary_only.vcf.gz
           $bcftools index secondary_only.vcf.gz
           $bcftools view secondary_only.vcf.gz | \
           awk 'BEGIN{OFS="\t"}
@@ -1834,6 +1836,7 @@ main () {
           # Liftover pangenome SNPs
           # --------------------------------------------------
           echo "Running chain-based liftover..."
+          awk '{sub(/:.*/,"",$1); print}' "$paf_file" > "$clean_paf"
           $transanno liftvcf \
               --original-assembly "$secondary_ref" \
               --new-assembly "$primary_ref" \
@@ -1898,8 +1901,8 @@ main () {
                 primary.norm.vcf.gz* secondary_lifted.norm.vcf.gz* \
                 primary.vcf.gz* pangenome.vcf.gz* \
                 pangenome.norm.vcf.gz* combined.filtmiss20perc.vcf.gz* \
-                final_chrs.txt primary_chrs.txt secondary_chrs.txt \
-                final_primary.txt final_pangenome.txt all_chrs.txt
+                final_chrs.txt primary_regions.txt secondary_regions.txt \
+                final_primary.txt final_pangenome.txt
           mv -f "$final_vcf" "$vcf_file"
           mv -f "$final_vcf" "${vcf_file}.csi"
 
