@@ -1793,7 +1793,15 @@ main () {
           # --------------------------------------------------
           echo "Preparing chain file..."
           cp -r "$vcf_file" "${pop}_${ref1%.f*}_${ploidy}x_raw_noliftover.vcf.gz"
-          sort -k6,6 -k8,8n "$paf_file" | awk '!seen[$6,$8,$9]++' | awk '{sub(/:.*/,"",$1); print}' > "$clean_paf"
+          awk '/^>/{gsub(">",""); split($0,a,":|-"); chrom=a[1]; end=a[2]; len=end+1; print chrom,len}' "$secondary_ref" > secondary_lengths.txt
+          awk 'NR==FNR {len[$1]=$2; next}
+          NF>=12 {
+              q=$1; t=$6;
+              if(q in len) {
+                  $1 = q ":0-" len[q]
+              }
+              print
+          }' secondary_lengths.txt "$paf_file" | sort -k6,6 -k8,8n | awk 'BEGIN{OFS="\t"} NF>=12 && !seen[$6,$8,$9]++' > "$clean_paf"
           python3 "${GBSapp_dir}/tools/paf2chain.py" \
               "$clean_paf" \
               "$secondary_ref" \
