@@ -1813,31 +1813,24 @@ main () {
           }' > "$clean_paf"
           python3 "${GBSapp_dir}/tools/paf2chain.py" \
               "$clean_paf" \
-              "$secondary_ref" \
               "$primary_ref" \
+              "$secondary_ref" \
               "$chain_out"
-
-          # Identify chromosomes
-          # --------------------------------------------------
-          bcftools view -h "$vcf_file" | grep "^##contig" | sed 's/.*ID=\([^,]*\),length=\([0-9]*\).*/\1\t1\t\2/' | \
-          grep -v "pangenome" > primary_regions.txt
-          bcftools view -h "$vcf_file" | grep "^##contig" | sed 's/.*ID=\([^,]*\),length=\([0-9]*\).*/\1\t1\t\2/' | \
-          grep "pangenome" | awk -v pref="${ref1%.f*}_" '$1 !~ "^"pref' > secondary_regions.txt
-
 
           # Extract primary SNPs
           # --------------------------------------------------
           echo "Extracting primary SNPs..."
-          $bcftools view -R primary_regions.txt "$vcf_file" -Oz -o primary_only.vcf.gz
-          $bcftools index primary_only.vcf.gz
+          primary_ref=${ref1%.f*}
+          primary_chrs=$(grep '^>' ./refgenomes/${primary_ref}_original.fasta | sed 's/>//' | tr '\n' ',' | sed 's/,$//')
+          bcftools view -Oz -o ./snpcall/primary.vcf.gz -r "$primary_chrs" "$vcf_file"
+          bcftools index ./snpcall/primary.vcf.gz
 
           # Extract secondary SNPs
           # --------------------------------------------------
           echo "Extracting pangenome SNPs..."
-          $bcftools view -R secondary_regions.txt "$vcf_file" -Oz -o secondary_only.vcf.gz
-          $bcftools index secondary_only.vcf.gz
-          $bcftools view -h "$vcf_file" | awk -v pref="${ref1%.f*}_" '$0 !~ "^##contig=<ID=" pref' > vcf_header_filtered.txt
-          $bcftools reheader -h vcf_header_filtered.txt -o "$vcf_file.filtered.vcf.gz" "$vcf_file"
+          secondary_chrs=$(grep '^>' ./refgenomes/panref.fasta | sed 's/>//' | tr '\n' ',' | sed 's/,$//')
+          bcftools view -Oz -o ./snpcall/secondary.vcf.gz -r "$secondary_chrs" "$vcf_file"
+          bcftools index ./snpcall/secondary.vcf.gz
 
           # Liftover pangenome SNPs
           # --------------------------------------------------
