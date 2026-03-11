@@ -413,10 +413,11 @@ main () {
 
           # rename insertion sequences with >pangenome_ prefix
           # Step 4: Rename insertion sequences with >pangenome_ prefix
-          awk 'NR==FNR{c[$4]=$1"_"$2"_"$3; next}
+          awk -v pref="${ref1%.f*}_" 'NR==FNR{c[$4]=$1"_"$2"_"$3; next}
                /^>/{h=$0
                    gsub(">","",h)
-                   gsub(/^pangenome_/,"",h)     # remove existing prefix
+                   # remove primary prefix (TF_) if present
+                   gsub("^" pref,"",h)
                    if(h in c){print ">pangenome_INS_"c[h]"_"h}
                    else {print ">pangenome_"h}
                    next
@@ -432,6 +433,8 @@ main () {
           mv ../ref_combined.fasta ../$ref1
           $minimap2 -x asm10 -c --secondary=no -t "$threads" "../${ref1%.f*}_original.fasta" panref.fasta > ../pangenome2primary.paf
           rm insertion_alignments.paf insertion_coords.txt panref.clean.fa
+          awk -v pref="${ref1%.f*}_" '{gsub("^"pref,""); print}' ../pangenome2primary.paf > ../pangenome2primary.clean.paf
+          mv ../pangenome2primary.clean.paf ../pangenome2primary.paf
       fi
 
       cd $projdir
@@ -1794,14 +1797,20 @@ main () {
           echo "Preparing chain file..."
           cp -r "$vcf_file" "${pop}_${ref1%.f*}_${ploidy}x_raw_noliftover.vcf.gz"
           awk '/^>/{gsub(">",""); split($0,a,":|-"); chrom=a[1]; end=a[2]; len=end+1; print chrom,len}' "$secondary_ref" > secondary_lengths.txt
-          awk 'NR==FNR {len[$1]=$2; next}
+          awk 'BEGIN{FS="[ \t]+"; OFS="\t"}
+          NR==FNR {len[$1]=$2; next}
           NF>=12 {
-              q=$1; t=$6;
-              if(q in len) {
-                  $1 = q ":0-" len[q]
+              if($1 in len){
+                  $1=$1":0-"len[$1]
               }
-              print
-          }' secondary_lengths.txt "$paf_file" | sort -k6,6 -k8,8n | awk 'BEGIN{OFS="\t"} NF>=12 && !seen[$6,$8,$9]++' > "$clean_paf"
+              for(i=1;i<=NF;i++){
+                  printf "%s%s",$i,(i<NF?OFS:ORS)
+              }
+          }' secondary_lengths.txt "$paf_file" \
+          | sort -k6,6 -k8,8n \
+          | awk 'BEGIN{FS="[ \t]+"; OFS="\t"} NF>=12 && !seen[$6,$8,$9]++ {
+                for(i=1;i<=NF;i++) printf "%s%s",$i,(i<NF?OFS:ORS)
+          }' > "$clean_paf"
           python3 "${GBSapp_dir}/tools/paf2chain.py" \
               "$clean_paf" \
               "$secondary_ref" \
@@ -1811,9 +1820,9 @@ main () {
           # Identify chromosomes
           # --------------------------------------------------
           bcftools view -h "$vcf_file" | grep "^##contig" | sed 's/.*ID=\([^,]*\),length=\([0-9]*\).*/\1\t1\t\2/' | \
-          grep "^TF_Chr" > primary_regions.txt
+          grep -v "pangenome" > primary_regions.txt
           bcftools view -h "$vcf_file" | grep "^##contig" | sed 's/.*ID=\([^,]*\),length=\([0-9]*\).*/\1\t1\t\2/' | \
-          grep "pangenome" > secondary_regions.txt
+          grep "pangenome" | awk -v pref="${ref1%.f*}_" '$1 !~ "^"pref' > secondary_regions.txt
 
 
           # Extract primary SNPs
@@ -1827,29 +1836,17 @@ main () {
           echo "Extracting pangenome SNPs..."
           $bcftools view -R secondary_regions.txt "$vcf_file" -Oz -o secondary_only.vcf.gz
           $bcftools index secondary_only.vcf.gz
-          $bcftools view secondary_only.vcf.gz | \
-          awk 'BEGIN{OFS="\t"}
-          /^##contig=<ID=pangenome_/ {
-              gsub(/:0-[0-9]+/, "")
-              print
-              next
-          }
-          /^#/ {print; next}
-          {
-              sub(/:0-[0-9]+/, "", $1)
-              print
-          }' | $bcftools view -Oz -o secondary_only.cleaned.vcf.gz
-          $bcftools index secondary_only.cleaned.vcf.gz
+          $bcftools view -h "$vcf_file" | awk -v pref="${ref1%.f*}_" '$0 !~ "^##contig=<ID=" pref' > vcf_header_filtered.txt
+          $bcftools reheader -h vcf_header_filtered.txt -o "$vcf_file.filtered.vcf.gz" "$vcf_file"
 
           # Liftover pangenome SNPs
           # --------------------------------------------------
           echo "Running chain-based liftover..."
-          awk '{sub(/:.*/,"",$1); print}' "$paf_file" > "$clean_paf"
           $transanno liftvcf \
               --original-assembly "$secondary_ref" \
               --new-assembly "$primary_ref" \
               --chain "$chain_out" \
-              --vcf secondary_only.cleaned.vcf.gz \
+              --vcf secondary_only.vcf.gz \
               --output secondary_lifted.vcf.gz \
               --fail failed_secondary.vcf.gz
 
@@ -1904,7 +1901,7 @@ main () {
           final_vcf="${pop}_${ref1%.f*}_${ploidy}x_raw.vcf.gz"
           $bcftools concat -a primary.norm.vcf.gz pangenome.norm.vcf.gz -Oz -o "$final_vcf"
           $bcftools index "$final_vcf"
-          rm -f primary_only.vcf.gz* secondary_only.vcf.gz* secondary_only.cleaned.vcf.gz* \
+          rm -f primary_only.vcf.gz* secondary_only.vcf.gz* \
                 secondary_lifted.vcf.gz* secondary_lifted.sorted.vcf.gz* \
                 primary.norm.vcf.gz* secondary_lifted.norm.vcf.gz* \
                 primary.vcf.gz* pangenome.vcf.gz* \
