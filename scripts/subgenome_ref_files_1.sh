@@ -1810,6 +1810,12 @@ main () {
           | sort -k6,6 -k8,8n \
           | awk 'BEGIN{FS="[ \t]+"; OFS="\t"} NF>=12 && !seen[$6,$8,$9]++ {
                 for(i=1;i<=NF;i++) printf "%s%s",$i,(i<NF?OFS:ORS)
+          }' | awk 'BEGIN{OFS="\t"}{
+          tmp1=$1; tmp2=$2; tmp3=$3; tmp4=$4; tmp5=$5;
+          $1=$6; $2=$7; $3=$8; $4=$9;
+          $6=tmp1; $7=tmp2; $8=tmp3; $9=tmp4;
+          $5=(tmp5=="+"?"+":"-");
+          print
           }' > "$clean_paf"
           python3 "${GBSapp_dir}/tools/paf2chain.py" \
               "$clean_paf" \
