@@ -353,7 +353,90 @@ main () {
 
       # Build ALT-aware pangenome reference
       ############################################################
+      # ------------------------------------------------------------------
+      # Build ALT-aware pangenome reference (liftover-safe version)
+      # ------------------------------------------------------------------
       if [[ -d pangenomes ]]; then
+          echo "Building ALT-aware pangenome reference..."
+          # Backup primary reference
+          # ---------------------------------------------------------------
+          cp "$ref1" "${ref1%.f*}_original.fasta"
+          $samtools faidx "${ref1%.f*}_original.fasta"
+          $java -jar $picard CreateSequenceDictionary REFERENCE="${ref1%.f*}_original.fasta" OUTPUT="${ref1%.f*}_original.dict"
+          $minimap2 -d "${ref1%.f*}_original.mmi" "${ref1%.f*}_original.fasta"
+
+          # Prepare pangenome FASTAs
+          # ---------------------------------------------------------------
+          cd pangenomes
+          shopt -s nullglob
+          for panref in *.fa.gz *.fna.gz *.fasta.gz; do
+              gunzip -f "$panref"
+          done
+          shopt -u nullglob
+
+          # normalize extensions
+          for panref in *.fa *.fna; do
+              [[ -f "$panref" ]] && mv "$panref" "${panref%.f*}.fasta"
+          done
+
+          # Combine all secondary genomes
+          # ---------------------------------------------------------------
+          echo "Combining secondary genomes..."
+          ls *.fasta >/dev/null 2>&1 || { echo "No secondary FASTA files found"; exit 1; }
+          cat *.fasta > panref.combined.fasta
+          $samtools faidx panref.combined.fasta
+
+          # Remove redundant sequences (≥95% identity)
+          # ---------------------------------------------------------------
+          echo "Removing redundant pangenome contigs..."
+          $minimap2 -x asm20 -c --cs -t "$threads" panref.combined.fasta panref.combined.fasta > panref.self.paf
+          awk '$1!=$6 && ($10/$2>=0.95){print $1}' panref.self.paf | sort -u > redundant.ids
+          awk -v f=redundant.ids 'BEGIN{
+              RS=">"
+              FS="\n"
+              ORS=""
+              while((getline<f)>0) drop[$1]=1
+          }
+          NR>1{
+              if(!($1 in drop)) print ">"$0
+          }' panref.combined.fasta > panref.clean.fasta
+          rm panref.self.paf redundant.ids
+          $samtools faidx panref.clean.fasta
+
+          # Identify regions already present in the primary genome
+          # (used only to create a faster secondary reference)
+          # ---------------------------------------------------------------
+          echo "Identifying regions already present in primary genome..."
+          $minimap2 -x asm10 -t "$threads" "../${ref1%.f*}_original.fasta" panref.clean.fasta > panref_vs_primary.paf
+          awk '{print $1"\t"$3"\t"$4}' panref_vs_primary.paf | sort -k1,1 -k2,2n > aligned.bed
+          awk '{print $1"\t0\t"$2}' panref.clean.fasta.fai > full.bed
+
+          # Extract divergent regions only (for faster read mapping)
+          echo "Extracting divergent secondary regions..."
+          $bedtools subtract -a full.bed -b aligned.bed | $bedtools getfasta -fi panref.clean.fasta -bed - -name > panref.fasta
+          mv panref.fasta ../
+          cd ..
+          $java -jar $picard CreateSequenceDictionary REFERENCE="panref.fasta" OUTPUT="panref.dict"
+          $samtools faidx panref.fasta
+
+
+          # Construct combined reference (primary + pangenome)
+          # ---------------------------------------------------------------
+          echo "Constructing combined reference..."
+          cat "${ref1%.f*}_original.fasta" panref.fasta > "$ref1"
+          $samtools faidx "$ref1"
+          $java -jar $picard CreateSequenceDictionary REFERENCE="$ref1" OUTPUT="${ref1%.f*}.dict"
+          $minimap2 -d "${ref1%.f*}.mmi" "$ref1"
+
+          # Generate alignment for chain creation
+          # ---------------------------------------------------------------
+          echo "Generating pangenome → primary alignment..."
+          $minimap2 -x asm10 -c --secondary=no -t "$threads" panref.fasta "${ref1%.f*}_original.fasta" > pangenome2primary.paf
+          rm -f aligned.bed aligned.sorted.bed full.bed panref_vs_primary.paf
+      fi
+
+
+      if [[ -d not_to_usepangenomes ]]; then
           echo "Building ALT-aware pangenome reference..."
 
           # Backup primary reference
@@ -367,14 +450,10 @@ main () {
           for panref in *.fa.gz *.fna.gz *.fasta.gz; do gunzip -f "$panref"; done
           for panref in *.fa *.fna *.fasta; do mv "$panref" "${panref%.f*}.fasta"; done
 
-          # remove contigs <1kb
-          for panref in *.fasta; do
-              awk 'BEGIN{RS=">";ORS=""} NR>1{n=split($0,a,"\n");seq="";for(i=2;i<=n;i++)seq=seq a[i];if(length(seq)>=1000)print ">"$0}' "$panref" > tmp && mv tmp "$panref"
-          done
 
           # extract divergent regions relative to backbone
-          : > panref.raw.fa
           mkdir -p original_panrefs
+          : > panref.raw.fa
           for panref in *.fasta; do
               $minimap2 -x asm10 -t "$threads" "../$ref1" "$panref" > "${panref%.fasta}.paf"
               awk '{print $6"\t"$8"\t"$9}' "${panref%.fasta}.paf" > aligned.bed
@@ -1774,145 +1853,89 @@ main () {
 
     if [[ -d "./refgenomes/pangenomes" ]] && find "./refgenomes/pangenomes" -type f -size +0c -print -quit | grep -q .; then
       cd snpcall
-      $bcftools view -Oz -o "${pop}_${ref1%.f*}_${ploidy}x_raw.vcf.gz" "${pop}_${ref1%.f*}_${ploidy}x_raw.vcf" >/dev/null 2>&1
-      $bcftools index -t "${pop}_${ref1%.f*}_${ploidy}x_raw.vcf.gz" >/dev/null 2>&1
+      $bcftools view -Oz -o "${pop}_${ref1%.f*}_${ploidy}x_raw.vcf.gz" "${pop}_${ref1%.f*}_${ploidy}x_raw.vcf"
+      $bcftools index -t "${pop}_${ref1%.f*}_${ploidy}x_raw.vcf.gz"
       raw_vcf="${pop}_${ref1%.f*}_${ploidy}x_raw.vcf.gz"
 
-      # Detect pangenome contigs
-      if zgrep -q '^pangenome_' "$raw_vcf"; then
-        if [[ ! -f "${projdir}/projection_done.txt" ]]; then
-          echo "Starting pangenome projection..."
+      if [[ ! -f "${projdir}/projection_done.txt" ]]; then
+        echo "Starting pangenome projection..."
+        vcf_file="$raw_vcf"
+        primary_ref="${projdir}/refgenomes/${ref1%.f*}_original.fasta"
+        secondary_ref="${projdir}/refgenomes/panref.fasta"
+        paf_file="${projdir}/refgenomes/pangenome2primary.paf"
+        chain_out="./pangenome_to_primary.chain"
 
-          vcf_file="${pop}_${ref1%.f*}_${ploidy}x_raw.vcf.gz"
-          primary_prefix="${ref1%.f*}_Chr"
-          primary_ref="../refgenomes/${ref1%.f*}_original.fasta"
-          secondary_ref="../refgenomes/panref.fasta"
+        # --------------------------------------------------
+        # Generate chain file
+        # --------------------------------------------------
+        echo "Preparing chain file..."
+        python3 "${GBSapp_dir}/tools/paf2chain.py" \
+            "$paf_file" \
+            "$primary_ref" \
+            "$secondary_ref" \
+            "$chain_out"
 
-          paf_file="../refgenomes/pangenome2primary.paf"
-          clean_paf="./pangenome2primary.clean.paf"
-          chain_out="./pangenome_to_primary.chain"
+        # Get contig names from references
+        # --------------------------------------------------
+        cut -f1 "${primary_ref}.fai" > primary_contigs.txt
+        cut -f1 "${secondary_ref}.fai" > secondary_contigs.txt
 
-          # Prepare chain file for liftover
-          # --------------------------------------------------
-          echo "Preparing chain file..."
-          cp -r "$vcf_file" "${pop}_${ref1%.f*}_${ploidy}x_raw_noliftover.vcf.gz"
-          awk '/^>/{gsub(">",""); split($0,a,":|-"); chrom=a[1]; end=a[2]; len=end+1; print chrom,len}' "$secondary_ref" > secondary_lengths.txt
-          awk 'BEGIN{FS="[ \t]+"; OFS="\t"}
-          NR==FNR {len[$1]=$2; next}
-          NF>=12 {
-              if($1 in len){
-                  $1=$1":0-"len[$1]
-              }
-              for(i=1;i<=NF;i++){
-                  printf "%s%s",$i,(i<NF?OFS:ORS)
-              }
-          }' secondary_lengths.txt "$paf_file" \
-          | sort -k6,6 -k8,8n \
-          | awk 'BEGIN{FS="[ \t]+"; OFS="\t"} NF>=12 && !seen[$6,$8,$9]++ {
-                for(i=1;i<=NF;i++) printf "%s%s",$i,(i<NF?OFS:ORS)
-          }' | awk 'BEGIN{OFS="\t"}{
-          tmp1=$1; tmp2=$2; tmp3=$3; tmp4=$4; tmp5=$5;
-          $1=$6; $2=$7; $3=$8; $4=$9;
-          $6=tmp1; $7=tmp2; $8=tmp3; $9=tmp4;
-          $5=(tmp5=="+"?"+":"-");
-          print
-          }' > "$clean_paf"
-          python3 "${GBSapp_dir}/tools/paf2chain.py" \
-              "$clean_paf" \
-              "$primary_ref" \
-              "$secondary_ref" \
-              "$chain_out"
+        # Extract primary SNPs
+        # --------------------------------------------------
+        echo "Extracting primary SNPs..."
+        $bcftools view -R primary_contigs.txt -T secondary_contigs.txt -Oz -o primary.vcf.gz "$vcf_file"
+        $bcftools index primary.vcf.gz
 
-          # Extract primary SNPs
-          # --------------------------------------------------
-          echo "Extracting primary SNPs..."
-          primary_ref=${ref1%.f*}
-          primary_chrs=$(grep '^>' ./refgenomes/${primary_ref}_original.fasta | sed 's/>//' | tr '\n' ',' | sed 's/,$//')
-          bcftools view -Oz -o ./snpcall/primary.vcf.gz -r "$primary_chrs" "$vcf_file"
-          bcftools index ./snpcall/primary.vcf.gz
+        # Extract secondary SNPs
+        # --------------------------------------------------
+        echo "Extracting secondary SNPs..."
+        $bcftools view -R secondary_contigs.txt -T ^primary_contigs.txt -Oz -o secondary.vcf.gz "$vcf_file"
+        $bcftools index secondary.vcf.gz
 
-          # Extract secondary SNPs
-          # --------------------------------------------------
-          echo "Extracting pangenome SNPs..."
-          secondary_chrs=$(grep '^>' ./refgenomes/panref.fasta | sed 's/>//' | tr '\n' ',' | sed 's/,$//')
-          bcftools view -Oz -o ./snpcall/secondary.vcf.gz -r "$secondary_chrs" "$vcf_file"
-          bcftools index ./snpcall/secondary.vcf.gz
+        # Liftover secondary variants
+        # --------------------------------------------------
+        echo "Running chain-based liftover..."
+        $transanno liftvcf \
+            --original-assembly "$secondary_ref" \
+            --new-assembly "$primary_ref" \
+            --chain "$chain_out" \
+            --vcf secondary.vcf.gz \
+            --output secondary_lifted.vcf.gz \
+            --fail failed_secondary.vcf.gz
 
-          # Liftover pangenome SNPs
-          # --------------------------------------------------
-          echo "Running chain-based liftover..."
-          $transanno liftvcf \
-              --original-assembly "$secondary_ref" \
-              --new-assembly "$primary_ref" \
-              --chain "$chain_out" \
-              --vcf secondary_only.vcf.gz \
-              --output secondary_lifted.vcf.gz \
-              --fail failed_secondary.vcf.gz
+        # Sort lifted variants
+        # --------------------------------------------------
+        $bcftools sort secondary_lifted.vcf.gz -Oz -o secondary_lifted.sorted.vcf.gz
+        $bcftools index secondary_lifted.sorted.vcf.gz
 
-          # Sort lifted variants
-          # --------------------------------------------------
-          $bcftools sort secondary_lifted.vcf.gz -Oz -o secondary_lifted.sorted.vcf.gz
-          $bcftools index secondary_lifted.sorted.vcf.gz
+        # Normalize variants
+        # --------------------------------------------------
+        echo "Normalizing variants..."
+        ref_combined="${projdir}/refgenomes/$ref1"
+        $bcftools norm -f "$ref_combined" -m-any primary.vcf.gz -Oz -o primary.norm.vcf.gz
+        $bcftools index primary.norm.vcf.gz
+        $bcftools norm -f "$ref_combined" -m-any secondary_lifted.sorted.vcf.gz -Oz -o secondary.norm.vcf.gz
+        $bcftools index secondary.norm.vcf.gz
 
-          # Normalize variants
-          # --------------------------------------------------
-          echo "Normalizing variants..."
-          $bcftools norm -f "$primary_ref" -m-any primary_only.vcf.gz -Oz -o primary.norm.vcf.gz
-          $bcftools index primary.norm.vcf.gz
+        # Merge variants
+        # --------------------------------------------------
+        echo "Merging projected SNPs..."
+        merged_vcf="${pop}_${ref1%.f*}_${ploidy}x_raw_projected.vcf.gz"
+        $bcftools concat -a primary.norm.vcf.gz secondary.norm.vcf.gz -Oz -o "$merged_vcf"
+        $bcftools index "$merged_vcf"
 
-          $bcftools norm -f "$primary_ref" -m-any secondary_lifted.sorted.vcf.gz -Oz -o secondary_lifted.norm.vcf.gz
-          $bcftools index secondary_lifted.norm.vcf.gz
+        # Filter missingness
+        # --------------------------------------------------
+        echo "Filtering variants (max 80% missing)..."
+        $bcftools view -i 'F_MISSING < 0.8' "$merged_vcf" -Oz -o final.vcf.gz
+        $bcftools index final.vcf.gz
+        mv final.vcf.gz "$vcf_file"
+        mv final.vcf.gz.csi "$vcf_file.csi"
 
-          # Merge projected + primary SNPs
-          # --------------------------------------------------
-          echo "Merging projected SNPs..."
-          merged_vcf="${pop}_${ref1%.f*}_${ploidy}x_raw_projected.vcf.gz"
-          $bcftools concat -a primary.norm.vcf.gz secondary_lifted.norm.vcf.gz -Oz -o "$merged_vcf"
-          $bcftools index "$merged_vcf"
-
-          # Filter missingness
-          # --------------------------------------------------
-          echo "Filtering variants (max 80% missing)..."
-          $bcftools view -i 'F_MISSING < 0.8' "$merged_vcf" -Oz -o combined.filtmiss20perc.vcf.gz
-          $bcftools index combined.filtmiss20perc.vcf.gz
-
-          # Separate final primary vs pangenome sets
-          # --------------------------------------------------
-          echo "Separating final SNP sets..."
-          $bcftools query -f '%CHROM\n' combined.filtmiss20perc.vcf.gz | sort -u > final_chrs.txt
-          grep "^${primary_prefix}" final_chrs.txt > final_primary.txt || true
-          grep '^pangenome_' final_chrs.txt > final_pangenome.txt || true
-          $bcftools view -R final_primary.txt combined.filtmiss20perc.vcf.gz -Oz -o primary.vcf.gz
-          $bcftools index primary.vcf.gz
-
-          $bcftools view -R final_pangenome.txt combined.filtmiss20perc.vcf.gz -Oz -o pangenome.vcf.gz
-          $bcftools index pangenome.vcf.gz
-
-          # Normalize separately
-          # --------------------------------------------------
-          $bcftools norm -f "$primary_ref" -m-any primary.vcf.gz -Oz -o primary.norm.vcf.gz
-          $bcftools index primary.norm.vcf.gz
-          $bcftools norm -f "$secondary_ref" -m-any pangenome.vcf.gz -Oz -o pangenome.norm.vcf.gz
-          $bcftools index pangenome.norm.vcf.gz
-
-          # Final merge
-          # --------------------------------------------------
-          final_vcf="${pop}_${ref1%.f*}_${ploidy}x_raw.vcf.gz"
-          $bcftools concat -a primary.norm.vcf.gz pangenome.norm.vcf.gz -Oz -o "$final_vcf"
-          $bcftools index "$final_vcf"
-          rm -f primary_only.vcf.gz* secondary_only.vcf.gz* \
-                secondary_lifted.vcf.gz* secondary_lifted.sorted.vcf.gz* \
-                primary.norm.vcf.gz* secondary_lifted.norm.vcf.gz* \
-                primary.vcf.gz* pangenome.vcf.gz* \
-                pangenome.norm.vcf.gz* combined.filtmiss20perc.vcf.gz* \
-                final_chrs.txt primary_regions.txt secondary_regions.txt \
-                final_primary.txt final_pangenome.txt
-          mv -f "$final_vcf" "$vcf_file"
-          mv -f "$final_vcf" "${vcf_file}.csi"
-
-          printf "Pangenome projection with structural absence completed\n" > "${projdir}/projection_done.txt"
-          echo "Projection completed successfully."
-        fi
+        printf "Pangenome projection completed\n" > "${projdir}/projection_done.txt"
+        echo "Projection completed successfully."
+        rm -f primary.vcf.gz* secondary.vcf.gz* secondary_lifted.vcf.gz* secondary_lifted.sorted.vcf.gz* \
+        primary.norm.vcf.gz* secondary_lifted.norm.vcf.gz*
       fi
     fi
 
