@@ -416,9 +416,49 @@ main () {
           $bedtools subtract -a full.bed -b aligned.bed | $bedtools getfasta -fi panref.clean.fasta -bed - -name > panref.fasta
           mv panref.fasta ../
           cd ..
+
+          awk 'BEGIN{RS=">"; ORS=""}
+          NR>1{
+              header=$1
+              seq=""
+              for(i=2;i<=NF;i++) seq=seq""$i
+              gsub(/\n/,"",seq)
+              gsub(/\r/,"",seq)
+              if(length(seq)>=200){
+                  print length(seq)"\t"seq"\n"
+              }
+          }' panref.fasta | sort -nr -k1,1 | awk -v maxlen=10000000 -v gap=1000 'BEGIN{
+              scaffold=1
+              scaflen=0
+              gapseq=""
+              for(i=1;i<=gap;i++) gapseq=gapseq"N"
+              printf(">panref_scaffold_%d\n",scaffold)
+          }
+          {
+              len=$1
+              seq=""
+              for(i=2;i<=NF;i++) seq=seq""$i
+              needed=len
+              if(scaflen>0) needed+=gap
+              if(scaflen+needed > maxlen){
+                  printf("\n")
+                  scaffold++
+                  scaflen=0
+                  printf(">panref_scaffold_%d\n",scaffold)
+              }
+              if(scaflen>0){
+                  printf("%s",gapseq)
+                  scaflen+=gap
+              }
+              printf("%s",seq)
+              scaflen+=len
+          }
+          END{
+              printf("\n")
+          }' > panref.scaffolded.fasta
+          mv panref.scaffolded.fasta panref.fasta
           $java -jar $picard CreateSequenceDictionary REFERENCE="panref.fasta" OUTPUT="panref.dict"
           $samtools faidx panref.fasta
-
 
           # Construct combined reference (primary + pangenome)
           # ---------------------------------------------------------------
