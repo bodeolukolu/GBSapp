@@ -421,12 +421,11 @@ main () {
 
           awk 'BEGIN{RS=">"; ORS=""}
           NR>1{
-              header=$1
               seq=""
               for(i=2;i<=NF;i++) seq=seq""$i
               gsub(/\n/,"",seq)
               gsub(/\r/,"",seq)
-              if(length(seq)>=200){
+              if(length(seq)>=100){
                   print length(seq)"\t"seq"\n"
               }
           }' panref.fasta | sort -nr -k1,1 | awk -v maxlen=10000000 -v gap=1000 'BEGIN{
@@ -440,6 +439,7 @@ main () {
               len=$1
               seq=""
               for(i=2;i<=NF;i++) seq=seq""$i
+              # Calculate if we need to start a new scaffold
               needed=len
               if(scaflen>0) needed+=gap
               if(scaflen+needed > maxlen){
@@ -448,6 +448,7 @@ main () {
                   scaflen=0
                   printf(">panref_scaffold_%d\n",scaffold)
               }
+              # Add Ns only if not first sequence in scaffold
               if(scaflen>0){
                   printf("%s",gapseq)
                   scaflen+=gap
@@ -1435,42 +1436,40 @@ main () {
       # Function: filter by read name occurrence
       ############################################
       filter_by_qname_count() {
-      awk -F'\t' -v OFS="\t" -v mode="$1" '
-      BEGIN {}
-      /^@/ {print; next}
-      {
-          q=$1
-          chr=$3
-
-          total[q]++
-
-          if(chr ~ /^pangenome_/) secondary[q]++
-          else primary[q]++
-
-          line[NR]=$0
-          name[NR]=q
-      }
-      END {
-          for(i=1;i<=NR;i++){
-              q=name[i]
-              if(q=="") continue
-
-              if(mode=="unique" && total[q]==1)
-                  print line[i]
-
-              else if(mode=="unique_pangenomes" &&
-                      total[q] <= 2 &&
-                      primary[q] <= 1 &&
-                      secondary[q] <= 1)
-                  print line[i]
-
-              else if(mode=="paralog_unique" && total[q] <= 6)
-                  print line[i]
-
-              else if(mode=="paralog" && total[q] > 1 && total[q] <= 6)
-                  print line[i]
+          local mode="$1"
+          # Count number of secondary fasta files
+          local n_secondary
+          n_secondary=$(ls -1 ../refgenomes/pangenomes/original_panrefs/*.fasta 2>/dev/null | wc -l)
+          [[ -z "$n_secondary" || "$n_secondary" -eq 0 ]] && n_secondary=1  # fallback
+          awk -F'\t' -v OFS="\t" -v mode="$mode" -v n_sec="$n_secondary" '
+          BEGIN {}
+          /^@/ {print; next}
+          {
+              q=$1
+              chr=$3
+              total[q]++
+              if(chr ~ /^pangenome_/ || chr ~ /^panref_/) secondary[q]++
+              else primary[q]++
+              line[NR]=$0
+              name[NR]=q
           }
-      }'
+          END {
+              for(i=1;i<=NR;i++){
+                  q=name[i]
+                  if(q=="") continue
+                  if(mode=="unique" && total[q]==1)
+                      print line[i]
+                  else if(mode=="unique_pangenomes" &&
+                          total[q] <= (1 + n_sec) &&   # adjust total threshold
+                          primary[q] <= 1 &&
+                          secondary[q] <= n_sec)       # allow up to one occurrence per secondary fasta
+                      print line[i]
+                  else if(mode=="paralog_unique" && total[q] <= 6)
+                      print line[i]
+                  else if(mode=="paralog" && total[q] > 1 && total[q] <= 6)
+                      print line[i]
+              }
+          }'
       }
 
       # Filtering logic
@@ -1920,19 +1919,36 @@ main () {
         # Get contig names from references
         # --------------------------------------------------
         cut -f1 "${primary_ref}.fai" > primary_contigs.txt
+        pri_targets=$(paste -sd, primary_contigs.txt)
         cut -f1 "${secondary_ref}.fai" > secondary_contigs.txt
+        sec_targets=$(paste -sd, secondary_contigs.txt)
 
         # Extract primary SNPs
         # --------------------------------------------------
         echo "Extracting primary SNPs..."
-        $bcftools view -R primary_contigs.txt -T secondary_contigs.txt -Oz -o primary.vcf.gz "$vcf_file"
+        $bcftools view -t ^$sec_targets -Oz -o primary.tmp.vcf.gz "$vcf_file"
+        $bcftools view -h primary.tmp.vcf.gz > header.txt
+        grep -v '^##contig=' header.txt | grep -v '^#CHROM' > header.meta
+        grep '^#CHROM' header.txt > header.chrom
+        awk '{print "##contig=<ID="$1">"}' primary_contigs.txt > header.contigs
+        cat header.meta header.contigs header.chrom > new.header
+        $bcftools reheader -h new.header -o primary.vcf.gz primary.tmp.vcf.gz
         $bcftools index primary.vcf.gz
+        rm -f primary.tmp.vcf.gz header.txt header.meta header.contigs header.chrom new.header header.base
 
         # Extract secondary SNPs
         # --------------------------------------------------
         echo "Extracting secondary SNPs..."
-        $bcftools view -R secondary_contigs.txt -T ^primary_contigs.txt -Oz -o secondary.vcf.gz "$vcf_file"
+        $bcftools view -t ^$pri_targets -Oz -o secondary.tmp.vcf.gz "$vcf_file"
+        $bcftools view -h secondary.tmp.vcf.gz > header.txt
+        grep -v '^##contig=' header.txt | grep -v '^#CHROM' > header.meta
+        grep '^#CHROM' header.txt > header.chrom
+        awk '{print "##contig=<ID="$1">"}' secondary_contigs.txt > header.contigs
+        cat header.meta header.contigs header.chrom > new.header
+        $bcftools reheader -h new.header -o secondary.vcf.gz secondary.tmp.vcf.gz
         $bcftools index secondary.vcf.gz
+        rm -f secondary.tmp.vcf.gz header.txt header.meta header.contigs header.chrom new.header header.base
+
 
         # Liftover secondary variants
         # --------------------------------------------------
