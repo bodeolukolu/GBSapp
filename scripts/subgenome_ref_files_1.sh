@@ -1960,14 +1960,14 @@ main () {
             --vcf secondary.vcf.gz \
             --output secondary_lifted.vcf.gz \
             --fail failed_secondary.vcf.gz
-        echo '##INFO=<ID=SRC,Number=1,Type=String,Description="Variant source: PRIMARY or SECONDARY">' > src_header.txt
-        $bcftools annotate -h src_header.txt -I +'%SRC=SECONDARY' secondary_lifted.vcf.gz -Oz -o secondary_lifted_annotated.vcf.gz
-        $bcftools index secondary_lifted_annotated.vcf.gz
-        rm -f src_header.txt
+        # echo '##INFO=<ID=SRC,Number=1,Type=String,Description="Variant source: PRIMARY or SECONDARY">' > src_header.txt
+        # $bcftools annotate -h src_header.txt -I +'%SRC=SECONDARY' secondary_lifted.vcf.gz -Oz -o secondary_lifted_annotated.vcf.gz
+        # $bcftools index secondary_lifted_annotated.vcf.gz
+        # rm -f src_header.txt
 
         # Sort lifted variants
         # --------------------------------------------------
-        $bcftools sort secondary_lifted_annotated.vcf.gz -Oz -o secondary_lifted.sorted.vcf.gz
+        $bcftools sort secondary_lifted.vcf.gz -Oz -o secondary_lifted.sorted.vcf.gz
         $bcftools index secondary_lifted.sorted.vcf.gz
 
         # Normalize variants
@@ -1991,9 +1991,9 @@ main () {
         echo "Filtering variants (max 80% missing)..."
         $bcftools view -i 'F_MISSING < 0.8' "$merged_vcf" -Oz -o final.vcf.gz
         $bcftools index final.vcf.gz
-        $bcftools +setGT final.vcf.gz -Ou -- -t q -i 'FMT/AD[:1]==0 && FMT/DP>=4' -n 0 | \
-        $bcftools +setGT -Ou -- -t q -i 'FMT/AD[:0]==0 && FMT/DP>=4' -n M | \
-        $bcftools view -Oz -o fixed.vcf.gz
+        bcftools +setGT final.vcf.gz -Ou -- -t q -i 'GT="mis" && FMT/AD[:1]==0 && FMT/DP>=2' -n 0 | \
+        bcftools +setGT -Ou -- -t q -i 'GT="mis" && FMT/AD[:0]==0 && FMT/DP>=2' -n 1 | \
+        bcftools view -Oz -o fixed.vcf.gz
         $bcftools index fixed.vcf.gz
         mv fixed.vcf.gz "$vcf_file"
         mv fixed.vcf.gz.csi "$vcf_file.csi"
@@ -2143,8 +2143,8 @@ main () {
   fi
 
   cd ${projdir}/snpcall
-  for g in *_raw.vcf.gz; do gunzip $g;	done
-  rm -f *_raw.vcf.gz.csi || true
+  for g in *_raw.vcf.gz; do gunzip -f $g;	done
+  rm -f *_raw.vcf.gz.csi *_raw.vcf.gz.tbi 2>/dev/null || true
   wait
 
   files1xG=(*_1x_DP_GT.txt)
