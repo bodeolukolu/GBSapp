@@ -375,8 +375,10 @@ main () {
           shopt -u nullglob
 
           # normalize extensions
+          mkdir -p original_panrefs
           for panref in *.fa *.fna; do
               [[ -f "$panref" ]] && mv "$panref" "${panref%.f*}.fasta"
+              cp "${panref%.f*}.fasta" ./original_panrefs/
           done
 
           # Combine all secondary genomes
