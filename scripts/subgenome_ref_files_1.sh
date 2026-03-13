@@ -1960,10 +1960,14 @@ main () {
             --vcf secondary.vcf.gz \
             --output secondary_lifted.vcf.gz \
             --fail failed_secondary.vcf.gz
+        echo '##INFO=<ID=SRC,Number=1,Type=String,Description="Variant source: PRIMARY or SECONDARY">' > src_header.txt
+        $bcftools annotate -h src_header.txt -I +'%SRC=SECONDARY' secondary_lifted.vcf.gz -Oz -o secondary_lifted_annotated.vcf.gz
+        $bcftools index secondary_lifted_annotated.vcf.gz
+        rm -f src_header.txt
 
         # Sort lifted variants
         # --------------------------------------------------
-        $bcftools sort secondary_lifted.vcf.gz -Oz -o secondary_lifted.sorted.vcf.gz
+        $bcftools sort secondary_lifted_annotated.vcf.gz -Oz -o secondary_lifted.sorted.vcf.gz
         $bcftools index secondary_lifted.sorted.vcf.gz
 
         # Normalize variants
@@ -1987,13 +1991,19 @@ main () {
         echo "Filtering variants (max 80% missing)..."
         $bcftools view -i 'F_MISSING < 0.8' "$merged_vcf" -Oz -o final.vcf.gz
         $bcftools index final.vcf.gz
-        mv final.vcf.gz "$vcf_file"
-        mv final.vcf.gz.csi "$vcf_file.csi"
+        $bcftools +setGT final.vcf.gz -Ou -- -t q -i 'FMT/AD[:1]==0 && FMT/DP>=4' -n 0 | \
+        $bcftools +setGT -Ou -- -t q -i 'FMT/AD[:0]==0 && FMT/DP>=4' -n M | \
+        $bcftools view -Oz -o fixed.vcf.gz
+        $bcftools index fixed.vcf.gz
+        mv fixed.vcf.gz "$vcf_file"
+        mv fixed.vcf.gz.csi "$vcf_file.csi"
 
         printf "Pangenome projection completed\n" > "${projdir}/projection_done.txt"
         echo "Projection completed successfully."
         rm -f primary.vcf.gz* secondary.vcf.gz* secondary_lifted.vcf.gz* secondary_lifted.sorted.vcf.gz* \
-        primary.norm.vcf.gz* secondary_lifted.norm.vcf.gz*
+        *.norm.vcf.gz* secondary_lifted.norm.vcf.gz* failed_secondary.vcf.gz* *_contigs.txt *_raw_projected.vcf* \
+        *_raw.vcf.gz.tbi *_raw.vcf.gz.csi pangenome_to_primary.chain proj_TF_2x_raw.vcf secondary_lifted_annotated.vcf.gz \
+        fixed.vcf.gz*
       fi
     fi
 
@@ -2159,8 +2169,8 @@ main () {
     			$GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" \
           LeftAlignAndTrimVariants -R ${projdir}/refgenomes/$refg -V $i -O ${i%.vcf}0.vcf --split-multi-allelics  \
           --dont-trim-alleles --keep-original-ac --verbosity ERROR &&
-    			wait
-    			awk '!/^##/' ${i%.vcf}0.vcf | awk '{gsub(/^#/,""); print $0}' > ${i%.vcf}trim.vcf &&
+          $bcftools annotate -x FORMAT/PGT,FORMAT/PID,FORMAT/PS ${i%.vcf}0.vcf | \
+    			awk '!/^##/' | awk '{gsub(/^#/,""); print $0}' > ${i%.vcf}trim.vcf &&
     			awk -v file=${i%.vcf} 'BEGIN{getline f;}NR%10000==2{x=file"1x_rawSPLIT"++i".vcf";a[i]=x;print f>x;}{print > x}' ${i%.vcf}trim.vcf & PID=$!
     		  wait $PID
     			rm -f "${i%.vcf}"0.vcf* "${i%.vcf}"trim.vcf*
@@ -2210,8 +2220,8 @@ main () {
     			$GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" \
           LeftAlignAndTrimVariants -R ${projdir}/refgenomes/$refg -V $i -O ${i%.vcf}0.vcf --split-multi-allelics  --dont-trim-alleles \
           --keep-original-ac --verbosity ERROR &&
-    			wait
-    			awk '!/^##/' ${i%.vcf}0.vcf | awk '{gsub(/^#/,""); print $0}' > ${i%.vcf}trim.vcf &&
+    			$bcftools annotate -x FORMAT/PGT,FORMAT/PID,FORMAT/PS ${i%.vcf}0.vcf | \
+    			awk '!/^##/' | awk '{gsub(/^#/,""); print $0}' > ${i%.vcf}trim.vcf &&
     			awk -v file=${i%.vcf} 'BEGIN{getline f;}NR%10000==2{x=file"2x_rawSPLIT"++i".vcf";a[i]=x;print f>x;}{print > x}' ${i%.vcf}trim.vcf & PID=$!
     			wait $PID
     			rm -f "${i%.vcf}"0.vcf* "${i%.vcf}"trim.vcf*
@@ -2263,8 +2273,8 @@ main () {
     			$GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" \
           LeftAlignAndTrimVariants -R ${projdir}/refgenomes/$refg -V $i -O ${i%.vcf}0.vcf --split-multi-allelics  --dont-trim-alleles \
           --keep-original-ac --verbosity ERROR &&
-    			wait
-    			awk '!/^##/' ${i%.vcf}0.vcf | awk '{gsub(/^#/,""); print $0}' > ${i%.vcf}trim.vcf &&
+    			$bcftools annotate -x FORMAT/PGT,FORMAT/PID,FORMAT/PS ${i%.vcf}0.vcf | \
+    			awk '!/^##/' | awk '{gsub(/^#/,""); print $0}' > ${i%.vcf}trim.vcf &&
     			awk -v file=${i%.vcf} 'BEGIN{getline f;}NR%10000==2{x=file"4x_rawSPLIT"++i".vcf";a[i]=x;print f>x;}{print > x}' ${i%.vcf}trim.vcf & PID=$!
     			wait $PID
     			rm -f "${i%.vcf}"0.vcf* "${i%.vcf}"trim.vcf*
@@ -2318,8 +2328,8 @@ main () {
     			$GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" \
           LeftAlignAndTrimVariants -R ${projdir}/refgenomes/$refg -V $i -O ${i%.vcf}0.vcf --split-multi-allelics  --dont-trim-alleles \
           --keep-original-ac --verbosity ERROR &&
-          wait
-    			awk '!/^##/' ${i%.vcf}0.vcf | awk '{gsub(/^#/,""); print $0}' > ${i%.vcf}trim.vcf &&
+          $bcftools annotate -x FORMAT/PGT,FORMAT/PID,FORMAT/PS ${i%.vcf}0.vcf | \
+    			awk '!/^##/' | awk '{gsub(/^#/,""); print $0}' > ${i%.vcf}trim.vcf &&
     			awk -v file=${i%.vcf} 'BEGIN{getline f;}NR%10000==2{x=file"6x_rawSPLIT"++i".vcf";a[i]=x;print f>x;}{print > x}' ${i%.vcf}trim.vcf & PID=$!
     			wait $PID
           rm -f "${i%.vcf}"0.vcf* "${i%.vcf}"trim.vcf*
@@ -2373,8 +2383,8 @@ main () {
     			$GATK --java-options "$Xmxg -Djava.io.tmpdir=${projdir}/snpcall/tmp -XX:+UseParallelGC -XX:ParallelGCThreads=$gthreads" \
           LeftAlignAndTrimVariants -R ${projdir}/refgenomes/$refg -V $i -O ${i%.vcf}0.vcf --split-multi-allelics  --dont-trim-alleles \
           --keep-original-ac --verbosity ERROR &&
-          wait
-    			awk '!/^##/' ${i%.vcf}0.vcf | awk '{gsub(/^#/,""); print $0}' > ${i%.vcf}trim.vcf &&
+          $bcftools annotate -x FORMAT/PGT,FORMAT/PID,FORMAT/PS ${i%.vcf}0.vcf | \
+    			awk '!/^##/' | awk '{gsub(/^#/,""); print $0}' > ${i%.vcf}trim.vcf &&
     			awk -v file=${i%.vcf} 'BEGIN{getline f;}NR%10000==2{x=file"8x_rawSPLIT"++i".vcf";a[i]=x;print f>x;}{print > x}' ${i%.vcf}trim.vcf & PID=$!
           wait $PID
           rm -f "${i%.vcf}"0.vcf* "${i%.vcf}"trim.vcf*
