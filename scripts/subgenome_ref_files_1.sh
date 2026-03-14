@@ -1995,15 +1995,17 @@ main () {
         bcftools +setGT -Ou -- -t q -i 'GT="mis" && FMT/AD[:0]==0 && FMT/DP>=2' -n 1 | \
         bcftools view -Oz -o fixed.vcf.gz
         $bcftools index fixed.vcf.gz
-        mv fixed.vcf.gz "$vcf_file"
-        mv fixed.vcf.gz.csi "$vcf_file.csi"
+        $bcftools annotate -x FORMAT/PGT,FORMAT/PID,FORMAT/PS -Oz -o fixed0.vcf.gz fixed.vcf.gz
+        $bcftools index fixed0.vcf.gz
+        mv -f fixed0.vcf.gz "$vcf_file"
+        mv -f fixed0.vcf.gz.csi "$vcf_file.csi"
 
         printf "Pangenome projection completed\n" > "${projdir}/projection_done.txt"
         echo "Projection completed successfully."
-        rm -f primary.vcf.gz* secondary.vcf.gz* secondary_lifted.vcf.gz* secondary_lifted.sorted.vcf.gz* \
-        *.norm.vcf.gz* secondary_lifted.norm.vcf.gz* failed_secondary.vcf.gz* *_contigs.txt *_raw_projected.vcf* \
-        *_raw.vcf.gz.tbi *_raw.vcf.gz.csi pangenome_to_primary.chain proj_TF_2x_raw.vcf secondary_lifted_annotated.vcf.gz \
-        fixed.vcf.gz*
+        # rm -f primary.vcf.gz* secondary.vcf.gz* secondary_lifted.vcf.gz* secondary_lifted.sorted.vcf.gz* \
+        # *.norm.vcf.gz* secondary_lifted.norm.vcf.gz* failed_secondary.vcf.gz* *_contigs.txt *_raw_projected.vcf* \
+        # *_raw.vcf.gz.tbi *_raw.vcf.gz.csi pangenome_to_primary.chain proj_TF_2x_raw.vcf secondary_lifted_annotated.vcf.gz \
+        # fixed.vcf.gz* fixed0.vcf.gz*
       fi
     fi
 
