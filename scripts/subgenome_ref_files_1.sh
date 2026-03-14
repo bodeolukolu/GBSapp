@@ -1926,7 +1926,7 @@ main () {
         # Extract primary SNPs
         # --------------------------------------------------
         echo "Extracting primary SNPs..."
-        $bcftools view -t ^$sec_targets -Oz -o primary.tmp.vcf.gz "$vcf_file"
+        $bcftools view -t ^$pri_targets -Oz -o primary.tmp.vcf.gz "$vcf_file"
         $bcftools view -h primary.tmp.vcf.gz > header.txt
         grep -v '^##contig=' header.txt | grep -v '^#CHROM' > header.meta
         grep '^#CHROM' header.txt > header.chrom
@@ -1939,7 +1939,7 @@ main () {
         # Extract secondary SNPs
         # --------------------------------------------------
         echo "Extracting secondary SNPs..."
-        $bcftools view -t ^$pri_targets -Oz -o secondary.tmp.vcf.gz "$vcf_file"
+        $bcftools view -t ^$sec_targets -Oz -o secondary.tmp.vcf.gz "$vcf_file"
         $bcftools view -h secondary.tmp.vcf.gz > header.txt
         grep -v '^##contig=' header.txt | grep -v '^#CHROM' > header.meta
         grep '^#CHROM' header.txt > header.chrom
