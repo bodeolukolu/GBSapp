@@ -1926,7 +1926,7 @@ main () {
         # Extract primary SNPs
         # --------------------------------------------------
         echo "Extracting primary SNPs..."
-        $bcftools view -t ^$pri_targets -Oz -o primary.tmp.vcf.gz "$vcf_file"
+        $bcftools view -t ^$sec_targets -Oz -o primary.tmp.vcf.gz "$vcf_file"
         $bcftools view -h primary.tmp.vcf.gz > header.txt
         grep -v '^##contig=' header.txt | grep -v '^#CHROM' > header.meta
         grep '^#CHROM' header.txt > header.chrom
@@ -1939,7 +1939,7 @@ main () {
         # Extract secondary SNPs
         # --------------------------------------------------
         echo "Extracting secondary SNPs..."
-        $bcftools view -t ^$sec_targets -Oz -o secondary.tmp.vcf.gz "$vcf_file"
+        $bcftools view -t ^$pri_targets -Oz -o secondary.tmp.vcf.gz "$vcf_file"
         $bcftools view -h secondary.tmp.vcf.gz > header.txt
         grep -v '^##contig=' header.txt | grep -v '^#CHROM' > header.meta
         grep '^#CHROM' header.txt > header.chrom
@@ -1960,10 +1960,11 @@ main () {
             --vcf secondary.vcf.gz \
             --output secondary_lifted.vcf.gz \
             --fail failed_secondary.vcf.gz
-        # echo '##INFO=<ID=SRC,Number=1,Type=String,Description="Variant source: PRIMARY or SECONDARY">' > src_header.txt
-        # $bcftools annotate -h src_header.txt -I +'%SRC=SECONDARY' secondary_lifted.vcf.gz -Oz -o secondary_lifted_annotated.vcf.gz
-        # $bcftools index secondary_lifted_annotated.vcf.gz
-        # rm -f src_header.txt
+        echo '##INFO=<ID=SRC,Number=1,Type=String,Description="Variant source: PRIMARY or SECONDARY">' > src_header.txt
+        $bcftools annotate -h src_header.txt -I +'%SRC=SECONDARY' secondary_lifted.vcf.gz -Ou | \
+        $bcftools sort -Oz -o secondary_lifted_annotated.vcf.gz
+        $bcftools index secondary_lifted_annotated.vcf.gz
+        rm -f src_header.txt
 
         # Sort lifted variants
         # --------------------------------------------------
@@ -1991,9 +1992,9 @@ main () {
         echo "Filtering variants (max 80% missing)..."
         $bcftools view -i 'F_MISSING < 0.8' "$merged_vcf" -Oz -o final.vcf.gz
         $bcftools index final.vcf.gz
-        bcftools +setGT final.vcf.gz -Ou -- -t q -i 'GT="mis" && FMT/AD[:1]==0 && FMT/DP>=2' -n 0 | \
-        bcftools +setGT -Ou -- -t q -i 'GT="mis" && FMT/AD[:0]==0 && FMT/DP>=2' -n 1 | \
-        bcftools view -Oz -o fixed.vcf.gz
+        $bcftools +setGT final.vcf.gz -Ou -- -t q -i 'GT="mis" && FMT/AD[:1]==0 && FMT/DP>=2' -n 0 | \
+        $bcftools +setGT -Ou -- -t q -i 'GT="mis" && FMT/AD[:0]==0 && FMT/DP>=2' -n M | \
+        $bcftools view -Oz -o fixed.vcf.gz
         $bcftools index fixed.vcf.gz
         $bcftools annotate -x FORMAT/PGT,FORMAT/PID,FORMAT/PS -Oz -o fixed0.vcf.gz fixed.vcf.gz
         $bcftools index fixed0.vcf.gz
@@ -2002,10 +2003,10 @@ main () {
 
         printf "Pangenome projection completed\n" > "${projdir}/projection_done.txt"
         echo "Projection completed successfully."
-        # rm -f primary.vcf.gz* secondary.vcf.gz* secondary_lifted.vcf.gz* secondary_lifted.sorted.vcf.gz* \
-        # *.norm.vcf.gz* secondary_lifted.norm.vcf.gz* failed_secondary.vcf.gz* *_contigs.txt *_raw_projected.vcf* \
-        # *_raw.vcf.gz.tbi *_raw.vcf.gz.csi pangenome_to_primary.chain proj_TF_2x_raw.vcf secondary_lifted_annotated.vcf.gz \
-        # fixed.vcf.gz* fixed0.vcf.gz*
+        rm -f primary.vcf.gz* secondary.vcf.gz* secondary_lifted.vcf.gz* secondary_lifted.sorted.vcf.gz* \
+        *.norm.vcf.gz* secondary_lifted.norm.vcf.gz* failed_secondary.vcf.gz* *_contigs.txt *_raw_projected.vcf* \
+        *_raw.vcf.gz.tbi *_raw.vcf.gz.csi pangenome_to_primary.chain proj_TF_2x_raw.vcf secondary_lifted_annotated.vcf.gz \
+        fixed.vcf.gz* fixed0.vcf.gz*
       fi
     fi
 
