@@ -194,9 +194,9 @@ main () {
       mv "$originalREF" "../$ref1"
       if [[ -d pangenomes/original_panrefs ]]; then
           mkdir -p ../pangenomes
-          mv pangenomes/original_panrefs/* ../pangenomes/ 2>/dev/null
+          mv -f pangenomes/original_panrefs/*.fasta ../pangenomes/ 2>/dev/null
       fi
-      rm -rf ./*
+      find . -mindepth 1 -maxdepth 1 -exec rm -rf {} +
       mv "../$ref1" ./
       mv ../pangenomes ./ 2>/dev/null
   fi
@@ -428,11 +428,11 @@ main () {
               if(length(seq)>=100){
                   print length(seq)"\t"seq"\n"
               }
-          }' panref.fasta | sort -nr -k1,1 | awk -v maxlen=10000000 -v gap=1000 'BEGIN{
+          }' panref.fasta | sort -nr -k1,1 | awk -v maxlen=10000000 -v gap=500 'BEGIN{
               scaffold=1
               scaflen=0
               gapseq=""
-              for(i=1;i<=gap;i++) gapseq=gapseq"N"
+              for(i=1;i<=gap;i++) gapseq=gapseq"n"
               printf(">panref_scaffold_%d\n",scaffold)
           }
           {
@@ -448,7 +448,7 @@ main () {
                   scaflen=0
                   printf(">panref_scaffold_%d\n",scaffold)
               }
-              # Add Ns only if not first sequence in scaffold
+              # Add ns only if not first sequence in scaffold
               if(scaflen>0){
                   printf("%s",gapseq)
                   scaflen+=gap
