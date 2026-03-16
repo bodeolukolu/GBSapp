@@ -378,8 +378,8 @@ main () {
           mkdir -p original_panrefs
           for panref in *.fa *.fna; do
               [[ -f "$panref" ]] && mv "$panref" "${panref%.f*}.fasta"
-              cp "${panref%.f*}.fasta" ./original_panrefs/
           done
+          cp *.fasta ./original_panrefs/
 
           # Combine all secondary genomes
           # ---------------------------------------------------------------
