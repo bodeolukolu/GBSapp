@@ -1390,65 +1390,26 @@ main () {
       cat "$tmpflag" >> "${projdir}/alignment_summaries/${i%.f*}_summ.txt"
       rm -f "$tmpflag"
 
+      # Input BAM, output BAM, and parameters
       outprefix="${i%.f*}"
       inbam="./alignment/${outprefix}_redun.bam"
       tmpbam="${outprefix}.tmp.bam"
       outbam="${outprefix}_sorted.bam"
 
-
-      # Function: expand collapsed reads
-      ############################################
-      expand_reads() {
-      awk -F'\t' -v OFS="\t" 'BEGIN {}
-      # pass header unchanged
-      /^@/ {print; next}
-      {
-          qname=$1
-          n=1
-          if (match(qname, /_([0-9]+)$/, m)) {
-              n=m[1]
-              sub(/_[0-9]+$/, "", qname)
-          }
-          $1=qname
-          for(i=1;i<=n;i++){
-              print
-          }
-      }'
-      }
-
-      # Function: ensure QUAL column
-      ############################################
-      add_fake_qual() {
-      awk -F'\t' -v OFS="\t" '/^@/ {print; next}
-      {
-          if ($11=="*" || $11=="") {
-              seq_len=length($10)
-              qual=""
-              for(i=1;i<=seq_len;i++){
-                  qual=qual "I"
-              }
-              $11=qual
-          }
-          print
-      }'
-      }
-
-      # Function: filter by read name occurrence
-      ############################################
+      # Function: filter by qname occurrence (uniquely mapped / paralogs)
       filter_by_qname_count() {
           local mode="$1"
-          # Count number of secondary fasta files
           local n_secondary
           n_secondary=$(ls -1 ../refgenomes/pangenomes/original_panrefs/*.fasta 2>/dev/null | wc -l)
-          [[ -z "$n_secondary" || "$n_secondary" -eq 0 ]] && n_secondary=1  # fallback
-          awk -F'\t' -v OFS="\t" -v mode="$mode" -v n_sec="$n_secondary" '
-          BEGIN {}
-          /^@/ {print; next}
+          [[ -z "$n_secondary" || "$n_secondary" -eq 0 ]] && n_secondary=1
+          awk -v mode="$mode" -v n_sec="$n_secondary" '
+          BEGIN { FS=OFS="\t" }
+          /^@/ { print; next }
           {
               q=$1
               chr=$3
               total[q]++
-              if(chr ~ /^pangenome_/ || chr ~ /^panref_/) secondary[q]++
+              if (chr ~ /^pangenome_/ || chr ~ /^panref_/) secondary[q]++
               else primary[q]++
               line[NR]=$0
               name[NR]=q
@@ -1457,47 +1418,135 @@ main () {
               for(i=1;i<=NR;i++){
                   q=name[i]
                   if(q=="") continue
-                  if(mode=="unique" && total[q]==1)
-                      print line[i]
+                  if(mode=="unique" && total[q]==1) print line[i]
                   else if(mode=="unique_pangenomes" &&
-                          total[q] <= (1 + n_sec) &&   # adjust total threshold
-                          primary[q] <= 1 &&
-                          secondary[q] <= n_sec)       # allow up to one occurrence per secondary fasta
-                      print line[i]
-                  else if(mode=="paralog_unique" && total[q] <= 6)
-                      print line[i]
-                  else if(mode=="paralog" && total[q] > 1 && total[q] <= 6)
-                      print line[i]
+                          total[q]<=(1+n_sec) &&
+                          primary[q]<=1 &&
+                          secondary[q]<=n_sec) print line[i]
+                  else if(mode=="paralog_unique" && total[q]<=6) print line[i]
+                  else if(mode=="paralog" && total[q]>1 && total[q]<=6) print line[i]
               }
+          }'
+      }
+      # Function: expand reads according to encoded dosage in QNAME (_n)
+      expand_reads() {
+          awk -F'\t' -v OFS="\t" '
+          /^@/ {print; next}
+          {
+              qname=$1
+              n=1
+              if (match(qname, /_([0-9]+)$/, m)) {
+                  n=m[1]
+                  sub(/_[0-9]+$/, "", qname)
+              }
+              $1=qname
+              for(i=1;i<=n;i++){
+                  print
+              }
+          }'
+      }
+      # Function: random downsampling while preserving expanded dosage
+      overlap_downsample() {
+
+      max_reads="$1"   # e.g. 100 reads per locus
+
+      awk -v max="$max_reads" '
+      BEGIN{
+          srand()
+      }
+
+      # pass SAM header through
+      /^@/ {print; next}
+
+      {
+          chr=$3
+          start=$4
+          cigar=$6
+
+          # approximate read length from sequence
+          readlen=length($10)
+          end=start+readlen-1
+
+          # detect new locus
+          if(current_chr!=chr || start>current_end){
+
+              flush_locus()
+
+              delete reads
+              delete idx
+              n=0
+              current_chr=chr
+              current_end=end
+          }
+
+          # update locus end
+          if(end>current_end)
+              current_end=end
+
+          n++
+          reads[n]=$0
+      }
+
+      END{
+          flush_locus()
+      }
+
+      function flush_locus(  i,j,tmp,limit){
+
+          if(n==0) return
+
+          for(i=1;i<=n;i++) idx[i]=i
+
+          # Fisher–Yates shuffle
+          for(i=n;i>=2;i--){
+              j=int(rand()*i)+1
+              tmp=idx[i]; idx[i]=idx[j]; idx[j]=tmp
+          }
+
+          limit=(n<max?n:max)
+
+          for(i=1;i<=limit;i++)
+              print reads[idx[i]]
+      }
+      '
+      }
+      # Function: add fake QUAL if missing
+      add_fake_qual() {
+          awk -F'\t' -v OFS="\t" '
+          /^@/ {print; next}
+          {
+              if ($11=="*" || $11=="") {
+                  qual=""
+                  for(i=1;i<=length($10);i++){ qual=qual "I" }
+                  $11=qual
+              }
+              print
           }'
       }
 
       # Filtering logic
       ############################################
       if [[ "$paralogs" == false && "$uniquely_mapped" == true ]]; then
-          $samtools view -h -@ "$gthreads" "$inbam" | \
-          awk 'BEGIN{OFS="\t"} /^@/ {print; next} ($5>=20) {print}' | \
-          expand_reads | add_fake_qual | \
-          filter_by_qname_count unique | \
-          $samtools view -@ "$gthreads" -b -o "$tmpbam" -
+        $samtools view -h -@ "$gthreads" "$inbam" | \
+        awk -v OFS="\t" '/^@/ {print; next} ($5>=20){print}' | \
+        filter_by_qname_count unique | expand_reads | overlap_downsample "$downsample" | \
+        add_fake_qual | $samtools view -@ "$gthreads" -b -o "$tmpbam" -
       elif [[ "$paralogs" == true && "$uniquely_mapped" == true && -d "${projdir}/refgenomes/pangenomes" ]]; then
-          $samtools view -h -@ "$gthreads" "$inbam" | \
-          awk 'BEGIN{OFS="\t"} /^@/ {print; next} ($5>=10) {print}' | \
-          expand_reads | add_fake_qual | \
-          filter_by_qname_count unique_pangenomes | \
-          $samtools view -@ "$gthreads" -b -o "$tmpbam" -
+        n_sec=$(ls "${projdir}/refgenomes/pangenomes"/*.fasta 2>/dev/null | wc -l)
+        $samtools view -h -@ "$gthreads" "$inbam" | \
+        awk -v OFS="\t" '/^@/ {print; next} ($5>=10){print}' | \
+        filter_by_qname_count unique_pangenomes | expand_reads | overlap_downsample "$downsample" | \
+        add_fake_qual | $samtools view -@ "$gthreads" -b -o "$tmpbam" -
       elif [[ "$paralogs" == true && "$uniquely_mapped" == true ]]; then
-          $samtools view -h -@ "$gthreads" "$inbam" | \
-          awk 'BEGIN{OFS="\t"} /^@/ {print; next} ($5>=10) {print}' | \
-          expand_reads | add_fake_qual | \
-          filter_by_qname_count paralog_unique | \
-          $samtools view -@ "$gthreads" -b -o "$tmpbam" -
+        $samtools view -h -@ "$gthreads" "$inbam" | \
+        awk -v OFS="\t" '/^@/ {print; next} ($5>=10){print}' | \
+        filter_by_qname_count paralog_unique | expand_reads | overlap_downsample "$downsample" | \
+        add_fake_qual | $samtools view -@ "$gthreads" -b -o "$tmpbam" -
       elif [[ "$paralogs" == true && "$uniquely_mapped" == false ]]; then
-          $samtools view -h -@ "$gthreads" "$inbam" | \
-          awk 'BEGIN{OFS="\t"} /^@/ {print; next} ($5>=10) {print}' | \
-          expand_reads | add_fake_qual | \
-          filter_by_qname_count paralog | \
-          $samtools view -@ "$gthreads" -b -o "$tmpbam" -
+        $samtools view -h -@ "$gthreads" "$inbam" | \
+        awk -v OFS="\t" '/^@/ {print; next} ($5>=10){print}' | \
+        filter_by_qname_count paralog | expand_reads | overlap_downsample "$downsample" | \
+        add_fake_qual | $samtools view -@ "$gthreads" -b -o "$tmpbam" -
       fi
 
       # Sort and index
@@ -1960,11 +2009,6 @@ main () {
             --vcf secondary.vcf.gz \
             --output secondary_lifted.vcf.gz \
             --fail failed_secondary.vcf.gz
-        echo '##INFO=<ID=SRC,Number=1,Type=String,Description="Variant source: PRIMARY or SECONDARY">' > src_header.txt
-        $bcftools annotate -h src_header.txt -I +'%SRC=SECONDARY' secondary_lifted.vcf.gz -Ou | \
-        $bcftools sort -Oz -o secondary_lifted_annotated.vcf.gz
-        $bcftools index secondary_lifted_annotated.vcf.gz
-        rm -f src_header.txt
 
         # Sort lifted variants
         # --------------------------------------------------

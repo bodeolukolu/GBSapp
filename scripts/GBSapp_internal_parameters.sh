@@ -94,6 +94,7 @@ export beagle=${GBSapp_dir}/tools/beagle.jar
 export bwa=${GBSapp_dir}/tools/bwa/bwa
 export samtools=${GBSapp_dir}/tools/samtools*/samtools && samtools=${samtools//'//'/'/'}
 export bcftools=${GBSapp_dir}/tools/bcftools*/bcftools && bcftools=${bcftools//'//'/'/'}
+export BCFTOOLS_PLUGINS=~/Documents/tools/GBSapp/tools/bcftools-1.22/plugins/
 export bedtools=${GBSapp_dir}/tools/bedtools2/bin/bedtools && bedtools=${bedtools//'//'/'/'}
 export picard=${GBSapp_dir}/tools/picard.jar && picard=${picard//'//'/'/'}
 export GATK=${GBSapp_dir}/tools/gatk*/gatk && GATK=${GATK//'//'/'/'}
